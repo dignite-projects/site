@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Sites.Admin</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Application.Contracts" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Authorization" Version="10.5.0" />
+    <ProjectReference Include="..\Dignite.Sites.Domain.Shared\Dignite.Sites.Domain.Shared.csproj" />
+    <ProjectReference Include="..\Dignite.Sites.Common.Application.Contracts\Dignite.Sites.Common.Application.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

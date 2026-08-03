@@ -1,0 +1,78 @@
+services:
+  host-web:
+    image: dignite.sites/host:latest
+    container_name: host
+    build:
+      context: ../../
+      dockerfile: Dignite.Sites.Host/Dockerfile.local
+    environment:
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080;
+      - Kestrel__Certificates__Default__Path=/app/certs/localhost.pfx
+      - Kestrel__Certificates__Default__Password=91f91912-5ab0-49df-8166-23377efaf3cc
+      - App__HealthCheckUrl=http://host:8080/health-status
+      - ConnectionStrings__Default=DataSource=/data/Host.db
+    ports:
+      - "44315:8081"
+    depends_on:
+      sqlite:
+        condition: service_healthy
+    restart: on-failure  
+    volumes:
+      - sqlite_data:/data
+      - ./certs:/app/certs
+    networks:
+      - abp-network  
+  
+  host-angular:
+    image: dignite.sites/host-angular:latest
+    container_name: host-angular
+    build:
+      context: ../../../angular
+      dockerfile: Dockerfile.local
+    ports:
+      - "4200:80"
+    depends_on:
+      - host-web
+    restart: on-failure
+    networks:
+      - abp-network
+
+  db-migrator:
+    image: dignite.sites/host:latest
+    container_name: db-migrator
+    build:
+      context: ../../
+      dockerfile: Dignite.Sites.Host/Dockerfile.local
+    environment:
+      - ConnectionStrings__Default=DataSource=/data/Host.db
+    command:
+      - --migrate-database
+    depends_on:
+      sqlite:
+        condition: service_healthy
+    volumes:
+      - sqlite_data:/data
+    networks:
+      - abp-network
+  sqlite:
+    container_name: sqlite-container
+    image: alpine:latest
+    command: sh -c "apk add sqlite && touch /data/Host.db && sqlite3 /data/Host.db '.databases' && tail -f /dev/null"
+    environment:
+      - TZ=UTC
+    volumes:
+      - sqlite_data:/data
+    networks:
+      - abp-network
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -f /data/Host.db ]; then exit 0; else exit 1; fi"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+volumes:
+  sqlite_data:
+    name: host_sqlite_data
+networks:
+  abp-network:
+    name: host-network
+    driver: bridge

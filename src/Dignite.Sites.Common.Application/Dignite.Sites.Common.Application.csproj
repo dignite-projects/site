@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Sites.Common</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Mapperly" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.5.0" />
+    <ProjectReference Include="..\Dignite.Sites.Common.Application.Contracts\Dignite.Sites.Common.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Dignite.Sites.Domain\Dignite.Sites.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

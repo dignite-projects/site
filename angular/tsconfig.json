@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.prod.json",
+  "compilerOptions": {
+    "paths": {
+      "@dignite/sites": ["projects/sites/src/public-api.ts"],
+      "@dignite/sites/config": [
+        "projects/sites/config/src/public-api.ts"
+      ]
+    }
+  }
+}
