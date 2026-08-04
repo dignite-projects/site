@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Ddd.Domain" Version="10.5.0"/>
     <ProjectReference Include="..\Dignite.Sites.Domain.Shared\Dignite.Sites.Domain.Shared.csproj" />
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Domain\Dignite.Abp.FlexFields.Domain.csproj" />
   </ItemGroup>
 
 </Project>

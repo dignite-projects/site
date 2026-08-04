@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="10.5.0" />
     <ProjectReference Include="..\Dignite.Sites.Domain\Dignite.Sites.Domain.csproj" />
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.EntityFrameworkCore\Dignite.Abp.FlexFields.EntityFrameworkCore.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,33 +1,151 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using Dignite.Abp.FlexFields.EntityFrameworkCore;
+using Dignite.Sites.ContentTypes;
+using Dignite.Sites.Contents;
+using Dignite.Sites.EntityFrameworkCore.ValueComparers;
+using Dignite.Sites.Fields;
+using Dignite.Sites.Pages;
+using Microsoft.EntityFrameworkCore;
 using Volo.Abp;
+using Volo.Abp.EntityFrameworkCore.Modeling;
+using Volo.Abp.EntityFrameworkCore.ValueConverters;
 
 namespace Dignite.Sites.EntityFrameworkCore;
 
 public static class SitesDbContextModelCreatingExtensions
 {
-    public static void ConfigureSites(
-        this ModelBuilder builder)
+    public static void ConfigureSites(this ModelBuilder builder)
     {
         Check.NotNull(builder, nameof(builder));
 
-        /* Configure all entities here. Example:
+        // A value object living inside ContentType's JSON column, not a table of its own.
+        builder.Ignore<ContentTypeField>();
 
-        builder.Entity<Question>(b =>
+        builder.Entity<Page>(b =>
         {
-            //Configure table & schema name
-            b.ToTable(SitesDbProperties.DbTablePrefix + "Questions", SitesDbProperties.DbSchema);
-
+            b.ToTable(SitesDbProperties.DbTablePrefix + "Pages", SitesDbProperties.DbSchema);
             b.ConfigureByConvention();
 
-            //Properties
-            b.Property(q => q.Title).IsRequired().HasMaxLength(QuestionConsts.MaxTitleLength);
+            b.Property(p => p.Name).IsRequired().HasMaxLength(PageConsts.MaxNameLength);
+            b.Property(p => p.DisplayName).IsRequired().HasMaxLength(PageConsts.MaxDisplayNameLength);
+            b.Property(p => p.Route).IsRequired().HasMaxLength(PageConsts.MaxRouteLength);
+            b.Property(p => p.ContentPathPattern).HasMaxLength(PageConsts.MaxContentPathPatternLength);
+            b.Property(p => p.Template).HasMaxLength(PageConsts.MaxTemplateLength);
 
-            //Relations
-            b.HasMany(question => question.Tags).WithOne().HasForeignKey(qt => qt.QuestionId);
+            b.HasMany(p => p.ContentTypes).WithOne().HasForeignKey(ct => ct.PageId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            //Indexes
-            b.HasIndex(q => q.CreationTime);
+            // Both unique per tenant. The route is what a request resolves against and the name is the
+            // handle MCP tools and templates address a page by, so a duplicate of either is ambiguous
+            // rather than merely untidy - worth a database constraint, not just a manager check.
+            b.HasIndex(p => new { p.TenantId, p.Route }).IsUnique();
+            b.HasIndex(p => new { p.TenantId, p.Name }).IsUnique();
         });
-        */
+
+        builder.Entity<ContentType>(b =>
+        {
+            b.ToTable(SitesDbProperties.DbTablePrefix + "ContentTypes", SitesDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(ct => ct.Name).IsRequired().HasMaxLength(ContentTypeConsts.MaxNameLength);
+            b.Property(ct => ct.DisplayName).IsRequired().HasMaxLength(ContentTypeConsts.MaxDisplayNameLength);
+            b.Property(ct => ct.Description).HasMaxLength(ContentTypeConsts.MaxDescriptionLength);
+
+            // The field arrangement is read as a whole with its type and never queried across types, so
+            // it is a JSON column rather than a table. Mapped through the backing field because the
+            // property is exposed as IReadOnlyList - callers change it through SetFields(), which is
+            // what enforces the no-duplicate-field rule.
+            b.Property<List<ContentTypeField>>("_fields")
+                .HasField("_fields")
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("Fields")
+                .HasConversion(new AbpJsonValueConverter<List<ContentTypeField>>())
+                // Required: a value-converted collection is otherwise compared and snapshotted by
+                // reference, so a change to the arrangement can be silently dropped.
+                .Metadata.SetValueComparer(new ContentTypeFieldListValueComparer());
+
+            b.HasIndex(ct => new { ct.TenantId, ct.PageId, ct.Name }).IsUnique();
+        });
+
+        builder.Entity<FieldGroup>(b =>
+        {
+            b.ToTable(SitesDbProperties.DbTablePrefix + "FieldGroups", SitesDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(fg => fg.Name).IsRequired().HasMaxLength(FieldGroupConsts.MaxNameLength);
+
+            // SetNull, not Cascade: a group is a filing decision over the library, so deleting one must
+            // not take the field definitions - and the contents whose values they describe - with it.
+            b.HasMany(fg => fg.Fields).WithOne().HasForeignKey(f => f.GroupId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b.HasIndex(fg => new { fg.TenantId, fg.Name }).IsUnique();
+        });
+
+        builder.Entity<Field>(b =>
+        {
+            b.ToTable(SitesDbProperties.DbTablePrefix + "Fields", SitesDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            // The kernel maps Name / DisplayName / Description / FieldTypeName / Configuration, with the
+            // lengths FlexFieldConsts defines. Restating them here would create a second set that could
+            // drift from what is actually applied.
+            b.ConfigureFlexField();
+
+            // Unique because a field's name doubles as the key its values are stored under in every
+            // content's bag - two definitions sharing a name would be two definitions of one stored value.
+            b.HasIndex(f => new { f.TenantId, f.Name }).IsUnique();
+            b.HasIndex(f => f.GroupId);
+        });
+
+        builder.Entity<Content>(b =>
+        {
+            b.ToTable(SitesDbProperties.DbTablePrefix + "Contents", SitesDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(c => c.CultureName).IsRequired().HasMaxLength(ContentConsts.MaxCultureNameLength);
+            b.Property(c => c.Slug).IsRequired().HasMaxLength(ContentConsts.MaxSlugLength);
+
+            // The kernel maps the authoritative value bag to a single JSON column, with the value
+            // comparer that makes in-place SetField/RemoveField on a loaded entity actually persist.
+            b.ConfigureFlexFieldsProperty();
+
+            b.HasOne<Page>().WithMany().HasForeignKey(c => c.PageId).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne<ContentType>().WithMany().HasForeignKey(c => c.ContentTypeId).OnDelete(DeleteBehavior.Restrict);
+
+            // 总体设计 §2.5's uniqueness rule, and the lookup route resolution performs on every request.
+            b.HasIndex(c => new { c.TenantId, c.PageId, c.CultureName, c.Slug }).IsUnique();
+
+            // The translation-group key (§2.4). Contents sharing it in different languages are the same
+            // content, which is what hreflang and the language switcher aggregate on - so this grouping
+            // has to be indexed even though nothing declares it as a constraint.
+            b.HasIndex(c => new { c.TenantId, c.PageId, c.ContentTypeId, c.Slug });
+
+            // The list query: everything published under a page, in one language, newest first.
+            b.HasIndex(c => new { c.TenantId, c.PageId, c.CultureName, c.Status, c.PublishTime });
+        });
+
+        builder.Entity<ContentFlexFieldIndex>(b =>
+        {
+            b.ToTable(SitesDbProperties.DbTablePrefix + "ContentFlexFieldIndexes", SitesDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            // The kernel maps the typed value slots; the table, the foreign key and the indexes below
+            // are Sites' own - the kernel deliberately declares no relationship.
+            b.ConfigureFlexFieldIndex();
+
+            // Cascade: an index row is derived state belonging to one content and is meaningless once
+            // that content is gone.
+            b.HasOne<Content>().WithMany().HasForeignKey(x => x.ContentId).OnDelete(DeleteBehavior.Cascade);
+
+            // Replacing one content's rows on every save - the manager's read-then-delete path.
+            b.HasIndex(x => x.ContentId);
+
+            // The query path: filter by field, then by the typed slot the condition names. FieldId leads
+            // because every condition constrains it, so it is what makes the scan selective.
+            b.HasIndex(x => new { x.FieldId, x.ValueType, x.StringValue });
+            b.HasIndex(x => new { x.FieldId, x.ValueType, x.NumberValue });
+            b.HasIndex(x => new { x.FieldId, x.ValueType, x.DateTimeValue });
+        });
     }
 }

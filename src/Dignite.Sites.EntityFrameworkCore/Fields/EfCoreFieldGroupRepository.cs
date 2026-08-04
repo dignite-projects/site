@@ -1,0 +1,53 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Dignite.Sites.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Volo.Abp.Domain.Repositories.EntityFrameworkCore;
+using Volo.Abp.EntityFrameworkCore;
+
+namespace Dignite.Sites.Fields;
+
+public class EfCoreFieldGroupRepository : EfCoreRepository<ISitesDbContext, FieldGroup, Guid>, IFieldGroupRepository
+{
+    public EfCoreFieldGroupRepository(IDbContextProvider<ISitesDbContext> dbContextProvider)
+        : base(dbContextProvider)
+    {
+    }
+
+    public virtual async Task<List<FieldGroup>> GetListAsync(
+        bool includeDetails = false,
+        CancellationToken cancellationToken = default)
+    {
+        return await (await GetQueryableAsync())
+            .IncludeDetails(includeDetails)
+            .OrderBy(fg => fg.Name)
+            .ToListAsync(GetCancellationToken(cancellationToken));
+    }
+
+    public virtual async Task<bool> NameExistsAsync(
+        string name,
+        Guid? excludedId = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await (await GetDbSetAsync())
+            .AnyAsync(
+                fg => fg.Name == name && (excludedId == null || fg.Id != excludedId),
+                GetCancellationToken(cancellationToken));
+    }
+
+    public override async Task<IQueryable<FieldGroup>> WithDetailsAsync()
+    {
+        return (await GetQueryableAsync()).IncludeDetails();
+    }
+}
+
+public static class FieldGroupRepositoryQueryableExtensions
+{
+    public static IQueryable<FieldGroup> IncludeDetails(this IQueryable<FieldGroup> queryable, bool include = true)
+    {
+        return include ? queryable.Include(fg => fg.Fields) : queryable;
+    }
+}

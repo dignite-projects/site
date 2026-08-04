@@ -1,7 +1,19 @@
 {
   "culture": "en",
   "texts": {
-    "MyAccount":  "My account",
-    "SamplePageMessage": "A sample page for the Sites module"
+    "MyAccount": "My account",
+    "SamplePageMessage": "A sample page for the Sites module",
+
+    "Sites:010001": "The route '{Route}' is already used by another page.",
+    "Sites:010002": "A page named '{Name}' already exists.",
+    "Sites:010003": "'{Pattern}' is not a valid content path pattern: it must contain the {{slug}} placeholder.",
+
+    "Sites:020001": "A content type named '{Name}' already exists on this page.",
+    "Sites:020002": "The field '{FieldId}' is referenced more than once by this content type.",
+
+    "Sites:030001": "A field named '{Name}' already exists.",
+
+    "Sites:040001": "The slug '{Slug}' is already used by another '{CultureName}' content on this page.",
+    "Sites:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given."
   }
 }

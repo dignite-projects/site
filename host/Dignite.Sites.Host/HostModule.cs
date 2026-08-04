@@ -64,6 +64,7 @@ using Volo.Abp.Identity.EntityFrameworkCore;
 using Volo.Abp.FeatureManagement.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Studio.Client.AspNetCore;
+using Dignite.Sites.EntityFrameworkCore;
 
 using Microsoft.Extensions.Hosting;
 
@@ -124,7 +125,10 @@ namespace Dignite.Sites.Host;
     typeof(AbpSettingManagementEntityFrameworkCoreModule),
     typeof(AbpBackgroundJobsEntityFrameworkCoreModule),
     typeof(BlobStoringDatabaseEntityFrameworkCoreModule),
-    typeof(AbpEntityFrameworkCoreSqliteModule)
+    typeof(AbpEntityFrameworkCoreSqliteModule),
+
+    // The Sites content kernel
+    typeof(SitesEntityFrameworkCoreModule)
 )]
 public class HostModule : AbpModule
 {
