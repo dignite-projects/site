@@ -23,7 +23,8 @@ public class EfCoreFieldGroupRepository : EfCoreRepository<ISitesDbContext, Fiel
     {
         return await (await GetQueryableAsync())
             .IncludeDetails(includeDetails)
-            .OrderBy(fg => fg.Name)
+            .OrderBy(fg => fg.Order)
+            .ThenBy(fg => fg.Name)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 

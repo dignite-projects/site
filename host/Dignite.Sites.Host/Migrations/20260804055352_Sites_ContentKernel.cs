@@ -12,20 +12,21 @@ namespace Dignite.Sites.Host.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "SitesFieldGroups",
+                name: "SiteFieldGroups",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 64, nullable: false),
+                    Order = table.Column<int>(type: "INTEGER", nullable: false),
                     TenantId = table.Column<Guid>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SitesFieldGroups", x => x.Id);
+                    table.PrimaryKey("PK_SiteFieldGroups", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SitesPages",
+                name: "SitePages",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
@@ -50,11 +51,11 @@ namespace Dignite.Sites.Host.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SitesPages", x => x.Id);
+                    table.PrimaryKey("PK_SitePages", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SitesFields",
+                name: "SiteFields",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
@@ -77,17 +78,17 @@ namespace Dignite.Sites.Host.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SitesFields", x => x.Id);
+                    table.PrimaryKey("PK_SiteFields", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SitesFields_SitesFieldGroups_GroupId",
+                        name: "FK_SiteFields_SiteFieldGroups_GroupId",
                         column: x => x.GroupId,
-                        principalTable: "SitesFieldGroups",
+                        principalTable: "SiteFieldGroups",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SitesContentTypes",
+                name: "SiteContentTypes",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
@@ -109,17 +110,17 @@ namespace Dignite.Sites.Host.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SitesContentTypes", x => x.Id);
+                    table.PrimaryKey("PK_SiteContentTypes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SitesContentTypes_SitesPages_PageId",
+                        name: "FK_SiteContentTypes_SitePages_PageId",
                         column: x => x.PageId,
-                        principalTable: "SitesPages",
+                        principalTable: "SitePages",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SitesContents",
+                name: "SiteContents",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
@@ -143,23 +144,23 @@ namespace Dignite.Sites.Host.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SitesContents", x => x.Id);
+                    table.PrimaryKey("PK_SiteContents", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SitesContents_SitesContentTypes_ContentTypeId",
+                        name: "FK_SiteContents_SiteContentTypes_ContentTypeId",
                         column: x => x.ContentTypeId,
-                        principalTable: "SitesContentTypes",
+                        principalTable: "SiteContentTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_SitesContents_SitesPages_PageId",
+                        name: "FK_SiteContents_SitePages_PageId",
                         column: x => x.PageId,
-                        principalTable: "SitesPages",
+                        principalTable: "SitePages",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "SitesContentFlexFieldIndexes",
+                name: "SiteContentFlexFieldIndexes",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
@@ -175,98 +176,98 @@ namespace Dignite.Sites.Host.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SitesContentFlexFieldIndexes", x => x.Id);
+                    table.PrimaryKey("PK_SiteContentFlexFieldIndexes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SitesContentFlexFieldIndexes_SitesContents_ContentId",
+                        name: "FK_SiteContentFlexFieldIndexes_SiteContents_ContentId",
                         column: x => x.ContentId,
-                        principalTable: "SitesContents",
+                        principalTable: "SiteContents",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContentFlexFieldIndexes_ContentId",
-                table: "SitesContentFlexFieldIndexes",
+                name: "IX_SiteContentFlexFieldIndexes_ContentId",
+                table: "SiteContentFlexFieldIndexes",
                 column: "ContentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContentFlexFieldIndexes_FieldId_ValueType_DateTimeValue",
-                table: "SitesContentFlexFieldIndexes",
+                name: "IX_SiteContentFlexFieldIndexes_FieldId_ValueType_DateTimeValue",
+                table: "SiteContentFlexFieldIndexes",
                 columns: new[] { "FieldId", "ValueType", "DateTimeValue" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContentFlexFieldIndexes_FieldId_ValueType_NumberValue",
-                table: "SitesContentFlexFieldIndexes",
+                name: "IX_SiteContentFlexFieldIndexes_FieldId_ValueType_NumberValue",
+                table: "SiteContentFlexFieldIndexes",
                 columns: new[] { "FieldId", "ValueType", "NumberValue" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContentFlexFieldIndexes_FieldId_ValueType_StringValue",
-                table: "SitesContentFlexFieldIndexes",
+                name: "IX_SiteContentFlexFieldIndexes_FieldId_ValueType_StringValue",
+                table: "SiteContentFlexFieldIndexes",
                 columns: new[] { "FieldId", "ValueType", "StringValue" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContents_ContentTypeId",
-                table: "SitesContents",
+                name: "IX_SiteContents_ContentTypeId",
+                table: "SiteContents",
                 column: "ContentTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContents_PageId",
-                table: "SitesContents",
+                name: "IX_SiteContents_PageId",
+                table: "SiteContents",
                 column: "PageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContents_TenantId_PageId_ContentTypeId_Slug",
-                table: "SitesContents",
+                name: "IX_SiteContents_TenantId_PageId_ContentTypeId_Slug",
+                table: "SiteContents",
                 columns: new[] { "TenantId", "PageId", "ContentTypeId", "Slug" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContents_TenantId_PageId_CultureName_Slug",
-                table: "SitesContents",
+                name: "IX_SiteContents_TenantId_PageId_CultureName_Slug",
+                table: "SiteContents",
                 columns: new[] { "TenantId", "PageId", "CultureName", "Slug" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContents_TenantId_PageId_CultureName_Status_PublishTime",
-                table: "SitesContents",
+                name: "IX_SiteContents_TenantId_PageId_CultureName_Status_PublishTime",
+                table: "SiteContents",
                 columns: new[] { "TenantId", "PageId", "CultureName", "Status", "PublishTime" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContentTypes_PageId",
-                table: "SitesContentTypes",
+                name: "IX_SiteContentTypes_PageId",
+                table: "SiteContentTypes",
                 column: "PageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesContentTypes_TenantId_PageId_Name",
-                table: "SitesContentTypes",
+                name: "IX_SiteContentTypes_TenantId_PageId_Name",
+                table: "SiteContentTypes",
                 columns: new[] { "TenantId", "PageId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesFieldGroups_TenantId_Name",
-                table: "SitesFieldGroups",
+                name: "IX_SiteFieldGroups_TenantId_Name",
+                table: "SiteFieldGroups",
                 columns: new[] { "TenantId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesFields_GroupId",
-                table: "SitesFields",
+                name: "IX_SiteFields_GroupId",
+                table: "SiteFields",
                 column: "GroupId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesFields_TenantId_Name",
-                table: "SitesFields",
+                name: "IX_SiteFields_TenantId_Name",
+                table: "SiteFields",
                 columns: new[] { "TenantId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesPages_TenantId_Name",
-                table: "SitesPages",
+                name: "IX_SitePages_TenantId_Name",
+                table: "SitePages",
                 columns: new[] { "TenantId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SitesPages_TenantId_Route",
-                table: "SitesPages",
+                name: "IX_SitePages_TenantId_Route",
+                table: "SitePages",
                 columns: new[] { "TenantId", "Route" },
                 unique: true);
         }
@@ -275,22 +276,22 @@ namespace Dignite.Sites.Host.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "SitesContentFlexFieldIndexes");
+                name: "SiteContentFlexFieldIndexes");
 
             migrationBuilder.DropTable(
-                name: "SitesFields");
+                name: "SiteFields");
 
             migrationBuilder.DropTable(
-                name: "SitesContents");
+                name: "SiteContents");
 
             migrationBuilder.DropTable(
-                name: "SitesFieldGroups");
+                name: "SiteFieldGroups");
 
             migrationBuilder.DropTable(
-                name: "SitesContentTypes");
+                name: "SiteContentTypes");
 
             migrationBuilder.DropTable(
-                name: "SitesPages");
+                name: "SitePages");
         }
     }
 }

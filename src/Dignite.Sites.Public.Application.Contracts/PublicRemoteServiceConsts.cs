@@ -2,7 +2,7 @@
 
 public class PublicRemoteServiceConsts
 {
-    public const string RemoteServiceName = "Public";
+    public const string RemoteServiceName = "SitePublic";
 
-    public const string ModuleName = "public";
+    public const string ModuleName = "site-public";
 }

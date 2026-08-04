@@ -14,6 +14,24 @@
     "Sites:030001": "A field named '{Name}' already exists.",
 
     "Sites:040001": "The slug '{Slug}' is already used by another '{CultureName}' content on this page.",
-    "Sites:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given."
+    "Sites:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given.",
+
+    "Permission:Sites": "Sites",
+    "Permission:Admin": "Admin",
+    "Permission:Public": "Public",
+    "Permission:Common": "Common",
+
+    "Permission:Pages": "Pages",
+    "Permission:ContentTypes": "Content Types",
+    "Permission:Fields": "Fields",
+    "Permission:Fields.Rename": "Rename",
+    "Permission:FieldGroups": "Field Groups",
+    "Permission:Contents": "Contents",
+    "Permission:Create": "Create",
+    "Permission:Update": "Update",
+    "Permission:Delete": "Delete",
+
+    "ContentTypeStillHasContents": "This content type still has contents; delete or move them first.",
+    "FieldGroupNameAlreadyExists": "A field group named '{0}' already exists."
   }
 }

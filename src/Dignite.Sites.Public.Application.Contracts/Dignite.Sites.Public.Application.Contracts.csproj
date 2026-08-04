@@ -13,6 +13,9 @@
     <PackageReference Include="Volo.Abp.Authorization" Version="10.5.0" />
     <ProjectReference Include="..\Dignite.Sites.Domain.Shared\Dignite.Sites.Domain.Shared.csproj" />
     <ProjectReference Include="..\Dignite.Sites.Common.Application.Contracts\Dignite.Sites.Common.Application.Contracts.csproj" />
+    <!-- FlexFieldQueryCondition (Content list filtering by field value) - see the matching comment in
+         Dignite.Sites.Admin.Application.Contracts.csproj. -->
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Abstractions\Dignite.Abp.FlexFields.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

@@ -100,7 +100,7 @@ namespace Dignite.Sites.Host.Migrations
                     b.HasIndex("TenantId", "PageId", "Name")
                         .IsUnique();
 
-                    b.ToTable("SitesContentTypes", (string)null);
+                    b.ToTable("SiteContentTypes", (string)null);
                 });
 
             modelBuilder.Entity("Dignite.Sites.Contents.Content", b =>
@@ -194,7 +194,7 @@ namespace Dignite.Sites.Host.Migrations
 
                     b.HasIndex("TenantId", "PageId", "CultureName", "Status", "PublishTime");
 
-                    b.ToTable("SitesContents", (string)null);
+                    b.ToTable("SiteContents", (string)null);
                 });
 
             modelBuilder.Entity("Dignite.Sites.Contents.ContentFlexFieldIndex", b =>
@@ -248,7 +248,7 @@ namespace Dignite.Sites.Host.Migrations
 
                     b.HasIndex("FieldId", "ValueType", "StringValue");
 
-                    b.ToTable("SitesContentFlexFieldIndexes", (string)null);
+                    b.ToTable("SiteContentFlexFieldIndexes", (string)null);
                 });
 
             modelBuilder.Entity("Dignite.Sites.Fields.Field", b =>
@@ -340,7 +340,7 @@ namespace Dignite.Sites.Host.Migrations
                     b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
-                    b.ToTable("SitesFields", (string)null);
+                    b.ToTable("SiteFields", (string)null);
                 });
 
             modelBuilder.Entity("Dignite.Sites.Fields.FieldGroup", b =>
@@ -353,6 +353,9 @@ namespace Dignite.Sites.Host.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("TEXT")
                         .HasColumnName("TenantId");
@@ -362,7 +365,7 @@ namespace Dignite.Sites.Host.Migrations
                     b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
-                    b.ToTable("SitesFieldGroups", (string)null);
+                    b.ToTable("SiteFieldGroups", (string)null);
                 });
 
             modelBuilder.Entity("Dignite.Sites.Pages.Page", b =>
@@ -456,7 +459,7 @@ namespace Dignite.Sites.Host.Migrations
                     b.HasIndex("TenantId", "Route")
                         .IsUnique();
 
-                    b.ToTable("SitesPages", (string)null);
+                    b.ToTable("SitePages", (string)null);
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>

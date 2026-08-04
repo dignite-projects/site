@@ -127,8 +127,12 @@ namespace Dignite.Sites.Host;
     typeof(BlobStoringDatabaseEntityFrameworkCoreModule),
     typeof(AbpEntityFrameworkCoreSqliteModule),
 
-    // The Sites content kernel
-    typeof(SitesEntityFrameworkCoreModule)
+    // The Sites content kernel - EF Core for HostDbContext's ISitesDbContext replacement (see
+    // HostDbContext), the unified Application module so the concrete app service classes are registered,
+    // and the unified HttpApi module for the explicit Admin/Public controllers.
+    typeof(SitesEntityFrameworkCoreModule),
+    typeof(SitesApplicationModule),
+    typeof(SitesHttpApiModule)
 )]
 public class HostModule : AbpModule
 {

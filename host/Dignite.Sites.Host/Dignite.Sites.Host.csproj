@@ -13,6 +13,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dignite.Sites.EntityFrameworkCore\Dignite.Sites.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\Dignite.Sites.HttpApi\Dignite.Sites.HttpApi.csproj" />
+    <!-- HttpApi only carries the .Application.Contracts interfaces (explicit controllers, not Auto API
+         Controllers - see Admin.HttpApi/Pages/PageAdminController.cs). The concrete app service classes
+         still need their own module loaded somewhere for DI to register them; that's here. -->
+    <ProjectReference Include="..\..\src\Dignite.Sites.Application\Dignite.Sites.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

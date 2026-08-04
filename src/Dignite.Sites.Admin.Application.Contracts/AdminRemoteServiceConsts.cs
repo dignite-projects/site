@@ -2,7 +2,7 @@
 
 public class AdminRemoteServiceConsts
 {
-    public const string RemoteServiceName = "Admin";
+    public const string RemoteServiceName = "SiteAdmin";
 
-    public const string ModuleName = "admin";
+    public const string ModuleName = "site-admin";
 }

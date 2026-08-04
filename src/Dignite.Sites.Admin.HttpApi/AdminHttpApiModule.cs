@@ -1,4 +1,4 @@
-﻿using Localization.Resources.AbpUi;
+using Localization.Resources.AbpUi;
 using Dignite.Sites.Localization;
 using Dignite.Sites.Common;
 using Volo.Abp.AspNetCore.Mvc;
