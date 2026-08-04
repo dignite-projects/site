@@ -15,6 +15,7 @@
 
     "Sites:040001": "The slug '{Slug}' is already used by another '{CultureName}' content on this page.",
     "Sites:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given.",
+    "Sites:040003": "A draft cannot have a publish time in the future ('{PublishTime}'). Set status to Published to schedule it for then.",
 
     "Permission:Sites": "Sites",
     "Permission:Admin": "Admin",

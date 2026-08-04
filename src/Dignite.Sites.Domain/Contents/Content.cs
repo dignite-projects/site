@@ -79,9 +79,13 @@ public class Content : FullAuditedAggregateRoot<Guid>, IHasFlexFields, IMultiTen
     public virtual string Slug { get; protected set; } = default!;
 
     /// <summary>
-    /// When this content becomes public. Read together with <see cref="Status"/>: a
-    /// <see cref="ContentStatus.Draft"/> with a future publish time is a scheduled post, which a
-    /// background job flips to <see cref="ContentStatus.Published"/> when the time arrives.
+    /// When this content becomes public. Read together with <see cref="Status"/>: scheduling for the
+    /// future is <see cref="ContentStatus.Published"/> with a <see cref="PublishTime"/> that has not
+    /// arrived yet - <see cref="IsPublished"/> and the repository's query filters already keep it hidden
+    /// until then, with no extra moving part. <see cref="ContentStatus.Draft"/> can never carry a future
+    /// <see cref="PublishTime"/>; <c>ContentManager</c> rejects that combination outright, because a
+    /// draft is not publicly reachable regardless of the time, so a future date on one is not a schedule
+    /// anything would ever act on.
     /// </summary>
     public virtual DateTime PublishTime { get; protected set; }
 

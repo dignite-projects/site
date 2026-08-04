@@ -7,6 +7,7 @@ using Dignite.Abp.FlexFields;
 using Dignite.Sites.ContentTypes;
 using Dignite.Sites.Fields;
 using Volo.Abp.Domain.Services;
+using Volo.Abp.Timing;
 using Volo.Abp.Validation;
 
 namespace Dignite.Sites.Contents;
@@ -34,18 +35,22 @@ public class ContentManager : DomainService
 
     protected IFlexFieldIndexManager<Content> IndexManager { get; }
 
+    protected IClock Clock { get; }
+
     public ContentManager(
         IContentRepository contentRepository,
         IContentTypeRepository contentTypeRepository,
         IFieldRepository fieldRepository,
         IFlexFieldValidator<Content> flexFieldValidator,
-        IFlexFieldIndexManager<Content> indexManager)
+        IFlexFieldIndexManager<Content> indexManager,
+        IClock clock)
     {
         ContentRepository = contentRepository;
         ContentTypeRepository = contentTypeRepository;
         FieldRepository = fieldRepository;
         FlexFieldValidator = flexFieldValidator;
         IndexManager = indexManager;
+        Clock = clock;
     }
 
     public virtual async Task<Content> CreateAsync(
@@ -57,6 +62,8 @@ public class ContentManager : DomainService
         IDictionary<string, object?>? fieldValues = null,
         CancellationToken cancellationToken = default)
     {
+        CheckPublishSchedule(status, publishTime);
+
         var contentType = await ContentTypeRepository.GetAsync(contentTypeId, cancellationToken: cancellationToken);
 
         // Normalize before the uniqueness check, not after: the check has to run against the value that
@@ -95,6 +102,8 @@ public class ContentManager : DomainService
         Guid? contentTypeId = null,
         CancellationToken cancellationToken = default)
     {
+        CheckPublishSchedule(status, publishTime);
+
         var effectiveTypeId = contentTypeId ?? content.ContentTypeId;
         var contentType = await ContentTypeRepository.GetAsync(effectiveTypeId, cancellationToken: cancellationToken);
 
@@ -182,6 +191,20 @@ public class ContentManager : DomainService
             throw new AbpValidationException(
                 "One or more field values are not valid for this content type.",
                 errors.ToList());
+        }
+    }
+
+    /// <summary>
+    /// A draft can never carry a future publish time (总体设计 §2.4) - see
+    /// <see cref="ContentDraftCannotHaveFuturePublishTimeException"/> for why. Scheduling for the future
+    /// is done by publishing with a future <c>PublishTime</c> instead, which the read path already keeps
+    /// hidden until due.
+    /// </summary>
+    protected virtual void CheckPublishSchedule(ContentStatus status, DateTime publishTime)
+    {
+        if (status == ContentStatus.Draft && publishTime > Clock.Now)
+        {
+            throw new ContentDraftCannotHaveFuturePublishTimeException(publishTime);
         }
     }
 

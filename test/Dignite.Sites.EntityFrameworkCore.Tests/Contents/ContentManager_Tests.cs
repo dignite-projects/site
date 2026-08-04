@@ -134,6 +134,42 @@ public class ContentManager_Tests : SitesEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// A draft's publish time can never be in the future (总体设计 §2.4): a draft is hidden regardless of
+    /// what PublishTime says, so a future date on one is not a schedule anything would act on.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_Draft_With_Future_PublishTime()
+    {
+        var future = SitesTestData.PublishTime.AddYears(20);
+
+        await Should.ThrowAsync<ContentDraftCannotHaveFuturePublishTimeException>(() => WithUnitOfWorkAsync(() =>
+            _contentManager.CreateAsync(
+                SitesTestData.PostArticleTypeId, SitesTestData.EnglishCulture, "future-draft",
+                future, ContentStatus.Draft,
+                new Dictionary<string, object?> { ["title"] = "Should not be schedulable as a draft" })));
+    }
+
+    /// <summary>
+    /// The other half of the same rule: Published with a future PublishTime is exactly how scheduling for
+    /// the future is done, and the existing "published, not yet due" query filter is what keeps it hidden
+    /// until then - no background job required.
+    /// </summary>
+    [Fact]
+    public async Task Should_Allow_Published_With_Future_PublishTime()
+    {
+        var future = SitesTestData.PublishTime.AddYears(20);
+
+        var content = await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SitesTestData.PostArticleTypeId, SitesTestData.EnglishCulture, "scheduled-post",
+            future, ContentStatus.Published,
+            new Dictionary<string, object?> { ["title"] = "Scheduled for later" }));
+
+        content.Status.ShouldBe(ContentStatus.Published);
+        content.IsPublished(SitesTestData.PublishTime).ShouldBeFalse();
+        content.IsPublished(future).ShouldBeTrue();
+    }
+
+    /// <summary>
     /// Another tenant's site is a separate site. Its contents must not be visible from here, and it must
     /// be able to use a slug this tenant already uses.
     /// </summary>
