@@ -17,6 +17,27 @@
     "Sites:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given.",
     "Sites:040003": "A draft cannot have a publish time in the future ('{PublishTime}'). Set status to Published to schedule it for then.",
 
+    "DisplayName:Sites.EnabledLanguages": "Enabled languages",
+    "Description:Sites.EnabledLanguages": "Comma-separated culture names (e.g. \"en,fr,zh-Hans\") this site serves.",
+
+    "DisplayName:Sites.Robots.AllowIndexing": "Allow search engine indexing",
+    "Description:Sites.Robots.AllowIndexing": "Whether search engines are allowed to index this site.",
+
+    "DisplayName:Sites.Robots.AllowAiTraining": "Allow AI training crawlers",
+    "Description:Sites.Robots.AllowAiTraining": "Allow crawlers that train AI models (GPTBot, Google-Extended, ClaudeBot, CCBot).",
+
+    "DisplayName:Sites.Robots.AllowAiSearch": "Allow AI search crawlers",
+    "Description:Sites.Robots.AllowAiSearch": "Allow crawlers that power AI search/RAG answers (OAI-SearchBot, PerplexityBot, Claude-SearchBot).",
+
+    "DisplayName:Sites.Branding.AppName": "Site name",
+    "Description:Sites.Branding.AppName": "The site's display name. Empty uses the platform default.",
+
+    "DisplayName:Sites.Branding.LogoUrl": "Logo (light background)",
+    "Description:Sites.Branding.LogoUrl": "Logo shown on a light background. Empty uses the platform default.",
+
+    "DisplayName:Sites.Branding.LogoReverseUrl": "Logo (dark background)",
+    "Description:Sites.Branding.LogoReverseUrl": "Logo shown on a dark background. Empty uses the platform default.",
+
     "Permission:Sites": "Sites",
     "Permission:Admin": "Admin",
     "Permission:Public": "Public",
