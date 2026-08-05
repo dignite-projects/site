@@ -108,6 +108,14 @@ public class SitemapEntrySource : DomainService
 
         foreach (var content in contents)
         {
+            // A language the tenant no longer serves cannot be routed back (SiteUrlContext.IsServed), so
+            // its URLs are dropped before they are ever claimed - not added to the exclusion set, since
+            // that set is for URLs a noindex has to retract from an otherwise valid claim.
+            if (!context.IsServed(content.CultureName))
+            {
+                continue;
+            }
+
             var location = UrlBuilder.BuildContentUrl(context, page, content);
 
             if (NoIndexRecognizer.IsNoIndex(content, seoField))
@@ -126,12 +134,14 @@ public class SitemapEntrySource : DomainService
         }
 
         // The page's own route exists in the default language whether or not anything was written in it -
-        // an active page is a real, routable URL - and in every other language that has content under it.
+        // an active page is a real, routable URL - and in every other language that both has content under
+        // it and is one the tenant actually serves.
         var pageCultures = new List<string> { context.DefaultCultureName };
         pageCultures.AddRange(
             contents.Select(c => c.CultureName)
                 .Distinct(StringComparer.Ordinal)
                 .Where(c => !string.Equals(c, context.DefaultCultureName, StringComparison.Ordinal))
+                .Where(context.IsServed)
                 .OrderBy(c => c, StringComparer.Ordinal));
 
         var pageOwnLastModified = page.LastModificationTime ?? page.CreationTime;

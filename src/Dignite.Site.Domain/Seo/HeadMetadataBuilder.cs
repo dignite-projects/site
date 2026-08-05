@@ -233,7 +233,7 @@ public class HeadMetadataBuilder : DomainService
             return translations
                 .Where(c => c.Id == content.Id || includeUnpublished || c.IsPublished(asOf))
                 .Where(c => c.Id == content.Id || includeUnpublished || !NoIndexRecognizer.IsNoIndex(c, seoField))
-                .Where(c => IsServed(context, c.CultureName))
+                .Where(c => context.IsServed(c.CultureName))
                 .Select(c => new HreflangAlternate(c.CultureName, UrlBuilder.BuildContentUrl(context, page, c)))
                 .ToList();
         }
@@ -247,7 +247,7 @@ public class HeadMetadataBuilder : DomainService
         var cultures = new List<string> { context.DefaultCultureName };
 
         if (CultureNameNormalizer.TryNormalize(cultureName, out var normalizedCurrent)
-            && IsServed(context, normalizedCurrent)
+            && context.IsServed(normalizedCurrent)
             && !cultures.Contains(normalizedCurrent, StringComparer.Ordinal))
         {
             cultures.Add(normalizedCurrent);
@@ -255,7 +255,7 @@ public class HeadMetadataBuilder : DomainService
 
         cultures.AddRange(
             cultureNames
-                .Where(c => IsServed(context, c))
+                .Where(context.IsServed)
                 .Where(c => !cultures.Contains(c, StringComparer.Ordinal))
                 .OrderBy(c => c, StringComparer.Ordinal));
 
@@ -264,16 +264,6 @@ public class HeadMetadataBuilder : DomainService
             .ToList();
     }
 
-    /// <summary>
-    /// Whether this site actually serves <paramref name="cultureName"/>. The default language is always
-    /// served - it is the first entry of the enabled list by construction - and is checked explicitly only
-    /// so a caller cannot depend on list membership alone.
-    /// </summary>
-    private static bool IsServed(SiteUrlContext context, string cultureName)
-    {
-        return string.Equals(cultureName, context.DefaultCultureName, StringComparison.Ordinal)
-               || context.EnabledCultureNames.Contains(cultureName, StringComparer.Ordinal);
-    }
 
     /// <summary>
     /// Home first, this route last.

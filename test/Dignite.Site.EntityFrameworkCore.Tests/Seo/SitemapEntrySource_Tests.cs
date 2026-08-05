@@ -166,6 +166,48 @@ public class SitemapEntrySource_Tests : SiteEntityFrameworkCoreTestBase
         (await GetLocationsAsync()).ShouldNotContain($"{BaseUrl}/legal");
     }
 
+    /// <summary>
+    /// Content can legally exist in a language the tenant does not serve: <c>ContentManager</c> normalizes
+    /// <c>CultureName</c> but never checks it against <c>Site.EnabledLanguages</c>, and an admin can drop a
+    /// language from that list long after content was written in it. Such a URL must not reach the sitemap -
+    /// <c>SiteUrlContext.TryStripCulturePrefix</c> refuses to strip a prefix for a non-served language, so
+    /// advertising one publishes a URL this same site then 404s on (GitHub issue #35).
+    /// </summary>
+    [Fact]
+    public async Task Should_Not_Emit_Urls_For_A_Language_The_Site_Does_Not_Serve()
+    {
+        // "fr" is a perfectly valid culture name, and deliberately absent from the enabled list above.
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, "fr", "bonjour", SiteTestData.PublishTime, ContentStatus.Published,
+            new Dictionary<string, object?> { ["title"] = "Bonjour" }));
+
+        var locations = await GetLocationsAsync();
+
+        locations.ShouldNotContain($"{BaseUrl}/fr/blog/bonjour");
+        locations.ShouldNotContain($"{BaseUrl}/fr/blog");
+
+        // The served languages are untouched - the filter is per culture, not a blanket page exclusion.
+        locations.ShouldContain($"{BaseUrl}/blog");
+        locations.ShouldContain($"{BaseUrl}/blog/my-trip");
+    }
+
+    /// <summary>
+    /// The same content becoming un-servable after the fact: the seeded About page has a zh-Hans row, so
+    /// narrowing the enabled list has to retire that URL rather than leave it advertised.
+    /// </summary>
+    [Fact]
+    public async Task Disabling_A_Language_Should_Retire_The_Urls_It_Had()
+    {
+        (await GetLocationsAsync()).ShouldContain($"{BaseUrl}/zh-Hans/about");
+
+        _settings.Set(SiteSettings.EnabledLanguages, "en");
+
+        var locations = await GetLocationsAsync();
+
+        locations.ShouldNotContain($"{BaseUrl}/zh-Hans/about");
+        locations.ShouldContain($"{BaseUrl}/about");
+    }
+
     [Fact]
     public async Task An_Inactive_Page_Should_Contribute_Nothing()
     {

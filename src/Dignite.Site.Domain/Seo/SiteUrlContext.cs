@@ -41,6 +41,25 @@ public class SiteUrlContext
     public IReadOnlyList<string> EnabledCultureNames { get; }
 
     /// <summary>
+    /// Whether this site actually serves <paramref name="cultureName"/> - the one question every emitter of
+    /// a language-prefixed URL has to ask before advertising it.
+    /// <para>
+    /// It exists because the two directions above are <b>not</b> symmetric, and cannot be made so without a
+    /// contract change: <see cref="ApplyCulturePrefix"/> is total and will happily prefix any culture,
+    /// while <see cref="TryStripCulturePrefix"/> refuses to strip one the tenant does not serve. A caller
+    /// that skips this check publishes URLs this same site then 404s on - and content in a non-served
+    /// language is entirely legal, since <c>ContentManager</c> normalizes <c>CultureName</c> without
+    /// validating it against the enabled list, and a language can be dropped from that list long after
+    /// content was written in it (GitHub issue #35).
+    /// </para>
+    /// </summary>
+    public bool IsServed(string? cultureName)
+    {
+        return CultureNameNormalizer.TryNormalize(cultureName, out var normalized)
+               && (IsDefault(normalized) || IsEnabled(normalized));
+    }
+
+    /// <summary>
     /// The absolute URL of <paramref name="path"/> in <paramref name="cultureName"/>.
     /// <para>
     /// The result is percent-encoded by <see cref="Uri"/>, which matters because slugs deliberately keep
