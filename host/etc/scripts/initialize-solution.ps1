@@ -31,13 +31,13 @@ Run-Step "InstallLibs" {
 }
 
 Run-Step "DbMigrator" {
-    Set-Location (Join-Path $scriptRoot "../../Dignite.Sites.Host")
+    Set-Location (Join-Path $scriptRoot "../../Dignite.Site.Host")
     dotnet run --migrate-database
     dotnet run --migrate-database
 }
 
 Run-Step "DevCert" {
-    Set-Location (Join-Path $scriptRoot "../../Dignite.Sites.Host")
+    Set-Location (Join-Path $scriptRoot "../../Dignite.Site.Host")
     dotnet dev-certs https -v -ep openiddict.pfx -p 2572d2b9-972b-4176-8dff-6186faf54d74
 }
 

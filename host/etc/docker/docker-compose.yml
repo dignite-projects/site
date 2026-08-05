@@ -1,10 +1,10 @@
 services:
   host-web:
-    image: dignite.sites/host:latest
+    image: dignite.site/host:latest
     container_name: host
     build:
       context: ../../
-      dockerfile: Dignite.Sites.Host/Dockerfile.local
+      dockerfile: Dignite.Site.Host/Dockerfile.local
     environment:
       - ASPNETCORE_URLS=https://+:8081;http://+:8080;
       - Kestrel__Certificates__Default__Path=/app/certs/localhost.pfx
@@ -24,7 +24,7 @@ services:
       - abp-network  
   
   host-angular:
-    image: dignite.sites/host-angular:latest
+    image: dignite.site/host-angular:latest
     container_name: host-angular
     build:
       context: ../../../angular
@@ -38,11 +38,11 @@ services:
       - abp-network
 
   db-migrator:
-    image: dignite.sites/host:latest
+    image: dignite.site/host:latest
     container_name: db-migrator
     build:
       context: ../../
-      dockerfile: Dignite.Sites.Host/Dockerfile.local
+      dockerfile: Dignite.Site.Host/Dockerfile.local
     environment:
       - ConnectionStrings__Default=DataSource=/data/Host.db
     command:

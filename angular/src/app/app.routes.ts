@@ -23,7 +23,7 @@ export const APP_ROUTES: Routes = [
     loadChildren: () => import('@abp/ng.setting-management').then(c => c.createRoutes()),
   },
   {
-    path: 'sites',
-    loadChildren: () => import('@dignite/sites').then(c => c.SITES_ROUTES),
+    path: 'site',
+    loadChildren: () => import('@dignite/site').then(c => c.SITE_ROUTES),
   },
 ];

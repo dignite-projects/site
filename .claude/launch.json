@@ -4,7 +4,7 @@
     {
       "name": "host",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "host/Dignite.Sites.Host/Dignite.Sites.Host.csproj", "--urls", "https://localhost:44315"],
+      "runtimeArgs": ["run", "--project", "host/Dignite.Site.Host/Dignite.Site.Host.csproj", "--urls", "https://localhost:44315"],
       "port": 44315,
       "url": "https://localhost:44315"
     }

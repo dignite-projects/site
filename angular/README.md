@@ -1,11 +1,11 @@
-# Dignite.Sites - Angular
+# Dignite.Site - Angular
 
-This workspace contains the Angular front-end for `Dignite.Sites.Host`, built on the ABP Framework. For more information, visit [abp.io](https://abp.io/).
+This workspace contains the Angular front-end for `Dignite.Site.Host`, built on the ABP Framework. For more information, visit [abp.io](https://abp.io/).
 
 It has two parts:
 
-* **Host** (`src/`) - the ABP application shell (login, identity, tenant/setting/feature management, and the Sites feature) that talks to the `Dignite.Sites.Host` backend.
-* **sites** (`projects/sites/`) - the `@dignite/sites` library with the Sites feature's components/services. It's consumed by Host through the `@dignite/sites` / `@dignite/sites/config` path aliases (see `tsconfig.json`), so it doesn't need to be built or published separately for local development.
+* **Host** (`src/`) - the ABP application shell (login, identity, tenant/setting/feature management, and the Site feature) that talks to the `Dignite.Site.Host` backend.
+* **site** (`projects/site/`) - the `@dignite/site` library with the Site feature's components/services. It's consumed by Host through the `@dignite/site` / `@dignite/site/config` path aliases (see `tsconfig.json`), so it doesn't need to be built or published separately for local development.
 
 ## Pre-requirements
 
@@ -30,7 +30,7 @@ abp install-libs
 
 ### Start the backend
 
-Before running the Angular application, make sure the `Dignite.Sites.Host` backend is running (default: `https://localhost:44315`).
+Before running the Angular application, make sure the `Dignite.Site.Host` backend is running (default: `https://localhost:44315`).
 
 ### Start the dev server
 
@@ -52,20 +52,20 @@ abp generate-proxy -t ng
 
 ## Code scaffolding
 
-Run `ng generate component component-name` to generate a new component in Host, or `ng generate component component-name --project sites` for the library.
+Run `ng generate component component-name` to generate a new component in Host, or `ng generate component component-name --project site` for the library.
 
 ## Build
 
 ```bash
 npm run build:prod   # Host application -> dist/Host
-npm run build:sites  # sites library -> dist/sites
+npm run build:site  # site library -> dist/site
 ```
 
 ## Running unit tests
 
 ```bash
 npm test   # Host application
-ng test sites   # sites library
+ng test site   # site library
 ```
 
 ## Environment Configuration

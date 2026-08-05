@@ -1,0 +1,46 @@
+﻿{
+  "packages":[
+    {
+      "appRoutingModuleConfiguration":{
+        "imports":[
+          {
+            "names":[
+              "SITE_ROUTES"
+            ],
+            "namespace": "@dignite/site"
+          } 
+        ],
+        "routes":[
+          "{ path: 'site', children: SITE_ROUTES, canActivate: [authGuard] }"
+        ]
+      },
+      "appModuleConfiguration":{
+        "imports":[
+          {
+            "names":[
+              "provideSite"
+            ],
+            "namespace": "@dignite/site/config"
+          }
+        ],
+        "providerNames":[
+          "provideSite()"
+        ]
+      },
+      "tsJsonPathRecordConfigurations":[
+        {
+          "name": "@dignite/site",
+          "paths": [
+            "angular/projects/site/src/public-api.ts"
+          ]
+        },
+        {
+          "name": "@dignite/site/config",
+          "paths": [
+            "angular/projects/site/config/src/public-api.ts"
+          ]
+        }
+      ]
+    }
+  ]
+}

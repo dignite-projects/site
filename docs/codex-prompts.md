@@ -16,7 +16,7 @@
 ## 共用前言
 
 ```text
-You are working on Dignite.Sites, an ABP Framework 10.5 / .NET 10 multi-tenant site
+You are working on Dignite.Site, an ABP Framework 10.5 / .NET 10 multi-tenant site
 platform at D:\dignite-projects\sites.
 
 READ FIRST
@@ -47,11 +47,11 @@ HARD CONSTRAINTS — violating these breaks things silently, not loudly
    ConfigureFlexField<Field>(). Do not restate them.
 
 VERIFY
-  dotnet build Dignite.Sites.slnx
-  dotnet test  Dignite.Sites.slnx      # 97 tests must stay green
+  dotnet build Dignite.Site.slnx
+  dotnet test  Dignite.Site.slnx      # 97 tests must stay green
 Add tests for what you write. Integration tests go in
-test/Dignite.Sites.EntityFrameworkCore.Tests (in-memory SQLite, seeded blog scenario in
-SitesTestDataSeedContributor); pure unit tests in test/Dignite.Sites.Domain.Tests.
+test/Dignite.Site.EntityFrameworkCore.Tests (in-memory SQLite, seeded blog scenario in
+SiteTestDataSeedContributor); pure unit tests in test/Dignite.Site.Domain.Tests.
 Do not commit unless asked.
 ```
 
@@ -126,8 +126,8 @@ coherent piece of work.
 #11 Tenant-level site settings — design doc §4.1. The Site aggregate was deliberately
 REMOVED: languages, default language, theme, analytics id, robots policy, default OG image
 and title template are all settings, and ABP's setting system already gives per-tenant
-isolation. Define them in the existing (empty) SitesSettingDefinitionProvider under
-SitesSettings.GroupName. Decide which are host-only and which tenants may override.
+isolation. Define them in the existing (empty) SiteSettingDefinitionProvider under
+SiteSettings.GroupName. Decide which are host-only and which tenants may override.
 
 #12 Domain-Names integration — design doc §4.2. Domains are the ONE exception to #11,
 because the question is reversed: not "what is configured for this tenant" but "given this

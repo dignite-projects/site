@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Site</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="10.5.0" />
+    <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.EntityFrameworkCore\Dignite.Abp.FlexFields.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+
+</Project>

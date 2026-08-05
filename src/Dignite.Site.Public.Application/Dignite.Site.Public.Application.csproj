@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Site.Public</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Mapperly" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.5.0" />
+    <!-- The generated site documents (总体设计 §8.3). Sitemap sharding/index XML, RSS+Atom, and JSON Feed
+         are all solved problems with maintained MIT libraries; only the glue that feeds them URLs,
+         timestamps and titles is written here. -->
+    <PackageReference Include="X.Web.Sitemap" Version="2.11.3" />
+    <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.10" />
+    <PackageReference Include="JsonFeed.NET" Version="2.0.0" />
+    <ProjectReference Include="..\Dignite.Site.Public.Application.Contracts\Dignite.Site.Public.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
+    <ProjectReference Include="..\Dignite.Site.Common.Application\Dignite.Site.Common.Application.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,3 +1,3 @@
-dotnet run --project Dignite.Sites.Host --migrate-database
+dotnet run --project Dignite.Site.Host --migrate-database
 
 exit $LASTEXITCODE

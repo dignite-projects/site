@@ -1,11 +1,11 @@
 {
   "applications": {
-    "Dignite.Sites.Host": {
+    "Dignite.Site.Host": {
       "type": "dotnet-project",
       "launchUrl": "https://localhost:44315",
       "healthCheckEndpoint": "/health-status",
       "healthUiEndpoint": "/health-ui",
-      "path": "../../Dignite.Sites.Host/Dignite.Sites.Host.csproj",
+      "path": "../../Dignite.Site.Host/Dignite.Site.Host.csproj",
       "execution": {
         "order": 0
       }

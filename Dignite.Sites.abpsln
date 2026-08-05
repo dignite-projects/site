@@ -1,9 +1,0 @@
-{
-  "id": "c1627353-9f44-4280-90b7-99f646a09b9c",
-  "template": "empty",
-  "modules": {
-    "Dignite.Sites": {
-      "path": "Dignite.Sites.abpmdl"
-    }
-  }
-}

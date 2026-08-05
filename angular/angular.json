@@ -201,23 +201,23 @@
         }
       }
     },
-    "sites": {
+    "site": {
       "projectType": "library",
-      "root": "projects/sites",
-      "sourceRoot": "projects/sites/src",
+      "root": "projects/site",
+      "sourceRoot": "projects/site/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular/build:ng-packagr",
           "options": {
-            "project": "projects/sites/ng-package.json"
+            "project": "projects/site/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/sites/tsconfig.lib.prod.json"
+              "tsConfig": "projects/site/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/sites/tsconfig.lib.json"
+              "tsConfig": "projects/site/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -225,8 +225,8 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "tsConfig": "projects/sites/tsconfig.spec.json",
-            "buildTarget": "projects/sites:build",
+            "tsConfig": "projects/site/tsconfig.spec.json",
+            "buildTarget": "projects/site:build",
             "runner": "vitest"
           }
         },
@@ -234,8 +234,8 @@
           "builder": "@angular-eslint/builder:lint",
           "options": {
             "lintFilePatterns": [
-              "projects/sites/**/*.ts",
-              "projects/sites/**/*.html"
+              "projects/site/**/*.ts",
+              "projects/site/**/*.html"
             ]
           }
         }

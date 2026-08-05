@@ -1,0 +1,37 @@
+{
+  "culture": "zh-Hans",
+  "texts": {
+    "MyAccount": "我的账户",
+    "SamplePageMessage": "Site 模块的示例页面",
+
+    "Site:010001": "路由 '{Route}' 已被其它页面占用。",
+    "Site:010002": "已存在名为 '{Name}' 的页面。",
+    "Site:010003": "'{Pattern}' 不是合法的内容路径模式：必须包含 {{slug}} 占位符。",
+
+    "Site:020001": "该页面下已存在名为 '{Name}' 的内容类型。",
+    "Site:020002": "该内容类型重复引用了字段 '{FieldId}'。",
+
+    "Site:030001": "已存在名为 '{Name}' 的字段。",
+
+    "Site:040001": "该页面下已存在 slug 为 '{Slug}' 的 '{CultureName}' 内容。",
+    "Site:040002": "内容类型 '{ContentTypeId}' 不隶属于所指定的页面。",
+
+    "Permission:Site": "Site",
+    "Permission:Admin": "管理端",
+    "Permission:Public": "公开端",
+    "Permission:Common": "公共",
+
+    "Permission:Pages": "页面",
+    "Permission:ContentTypes": "内容类型",
+    "Permission:Fields": "字段",
+    "Permission:Fields.Rename": "重命名",
+    "Permission:FieldGroups": "字段分组",
+    "Permission:Contents": "内容",
+    "Permission:Create": "新建",
+    "Permission:Update": "编辑",
+    "Permission:Delete": "删除",
+
+    "ContentTypeStillHasContents": "该内容类型下仍有内容，请先删除或迁移这些内容。",
+    "FieldGroupNameAlreadyExists": "已存在名为 '{0}' 的字段分组。"
+  }
+}

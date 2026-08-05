@@ -1,8 +1,8 @@
-# Dignite Sites
+# Dignite Site
 
 Multi-tenant CMS on [ABP](https://abp.io) — build pages and publish content by talking to your AI client via MCP, no admin backend forms.
 
-Dignite Sites is the AI-native next generation of [Dignite.Cms](https://github.com/dignite-projects/cms): it keeps the same proven core (field definitions, multi-tenancy, multi-language, versioning) but replaces the content authoring interface — from a backend form to an **MCP** server your own AI client talks to — and adds the site-level capabilities Cms never had (SEO, sitemap, feed, custom domains).
+Dignite Site is the AI-native next generation of [Dignite.Cms](https://github.com/dignite-projects/cms): it keeps the same proven core (field definitions, multi-tenancy, multi-language, versioning) but replaces the content authoring interface — from a backend form to an **MCP** server your own AI client talks to — and adds the site-level capabilities Cms never had (SEO, sitemap, feed, custom domains).
 
 ## Core ideas
 
@@ -16,7 +16,7 @@ See [docs/00-总体设计.md](docs/00-总体设计.md) for the full design (in C
 
 | Path | Description |
 |---|---|
-| `src/` | ABP domain, application, and HTTP API layers (`Dignite.Sites.*`, plus `Admin.*` / `Public.*` sub-apps) |
+| `src/` | ABP domain, application, and HTTP API layers (`Dignite.Site.*`, plus `Admin.*` / `Public.*` sub-apps) |
 | `host/` | ASP.NET Core host application |
 | `angular/` | Angular-based admin UI |
 | `test/` | Unit and integration tests |
@@ -24,7 +24,7 @@ See [docs/00-总体设计.md](docs/00-总体设计.md) for the full design (in C
 
 ## Getting started
 
-This is an [ABP Framework](https://abp.io) solution. See the [ABP documentation](https://docs.abp.io) for general setup, and `host/Dignite.Sites.Host/migrate-database.ps1` for database migration.
+This is an [ABP Framework](https://abp.io) solution. See the [ABP documentation](https://docs.abp.io) for general setup, and `host/Dignite.Site.Host/migrate-database.ps1` for database migration.
 
 ## License
 

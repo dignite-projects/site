@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Site.Admin</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Application.Contracts" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Authorization" Version="10.5.0" />
+    <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
+    <ProjectReference Include="..\Dignite.Site.Common.Application.Contracts\Dignite.Site.Common.Application.Contracts.csproj" />
+    <!-- FlexFieldQueryCondition (Content list filtering by field value) - a DDD-free, DTO-facing type
+         that this project is meant to reference directly (Dignite.Abp.FlexFields.Abstractions' own
+         module doc says so); Dignite.Abp.FlexFields.Domain is not referenced here on purpose. -->
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Abstractions\Dignite.Abp.FlexFields.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,12 +1,12 @@
 {
-  "name": "Sites",
+  "name": "Site",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve Host",
     "build": "ng build Host",
     "build:prod": "ng build Host --configuration production",
-    "build:sites": "ng build sites --configuration production",
+    "build:site": "ng build site --configuration production",
     "watch": "ng build Host --watch --configuration development",
     "test": "ng test Host",
     "lint": "ng lint Host",
