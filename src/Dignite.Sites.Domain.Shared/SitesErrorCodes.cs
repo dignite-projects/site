@@ -16,6 +16,8 @@ public static class SitesErrorCodes
     public const string ContentTypeFieldDuplicated = "Sites:020002";
 
     public const string FieldNameAlreadyExists = "Sites:030001";
+    public const string FieldIsPlatformPresetCannotBeDeleted = "Sites:030002";
+    public const string FieldIsPlatformPresetCannotBeRenamed = "Sites:030003";
 
     public const string ContentSlugAlreadyExists = "Sites:040001";
     public const string ContentPageInconsistent = "Sites:040002";

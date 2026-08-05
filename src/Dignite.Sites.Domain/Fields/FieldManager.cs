@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Sites.Contents;
+using Dignite.Sites.Seo;
 using Volo.Abp.Domain.Services;
 
 namespace Dignite.Sites.Fields;
@@ -112,10 +113,15 @@ public class FieldManager : DomainService
     /// closes the window - and note that no reindex is needed afterwards, because index rows key on the
     /// field's id and its value, neither of which a rename touches.
     /// </para>
+    /// <para>
+    /// Refuses a platform preset field outright - see <see cref="CheckNotPlatformPreset"/>.
+    /// </para>
     /// </summary>
     /// <returns>How many contents had a value moved.</returns>
     public virtual async Task<int> RenameAsync(Field field, string newName, CancellationToken cancellationToken = default)
     {
+        CheckNotPlatformPreset(field, isDelete: false);
+
         var oldName = field.Name;
 
         if (string.Equals(oldName, newName, StringComparison.Ordinal))
@@ -143,9 +149,14 @@ public class FieldManager : DomainService
     /// decision, because dropping a field from a type is a change to that type's shape and should be
     /// visible as one.
     /// </para>
+    /// <para>
+    /// Refuses a platform preset field outright - see <see cref="CheckNotPlatformPreset"/>.
+    /// </para>
     /// </summary>
     public virtual async Task DeleteAsync(Field field, CancellationToken cancellationToken = default)
     {
+        CheckNotPlatformPreset(field, isDelete: true);
+
         await ValueMigrator.RemoveFieldAsync(field.Name, cancellationToken);
         await FieldRepository.DeleteAsync(field, cancellationToken: cancellationToken);
     }
@@ -156,5 +167,29 @@ public class FieldManager : DomainService
         {
             throw new FieldNameAlreadyExistException(name);
         }
+    }
+
+    /// <summary>
+    /// A platform preset field - currently just <see cref="SeoFieldNames.FieldName"/> - has nothing else
+    /// stable to be recognized by: each tenant's row gets an ordinary, randomly generated <c>Id</c> (a
+    /// literal shared <c>Guid</c> cannot exist once per tenant under a single-column primary key on a
+    /// shared table), so its <c>Name</c> is the only cross-tenant "well-known" anchor. Deleting or renaming
+    /// it would silently disable whatever platform behavior is keyed on that name, so both are refused
+    /// here rather than left to be discovered later. Everything else about the field - DisplayName,
+    /// FieldTypeName, Configuration, GroupId - stays freely editable through <see cref="UpdateAsync"/>.
+    /// </summary>
+    protected virtual void CheckNotPlatformPreset(Field field, bool isDelete)
+    {
+        if (!string.Equals(field.Name, SeoFieldNames.FieldName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (isDelete)
+        {
+            throw new FieldIsPlatformPresetCannotBeDeletedException(field.Id, field.Name);
+        }
+
+        throw new FieldIsPlatformPresetCannotBeRenamedException(field.Id, field.Name);
     }
 }

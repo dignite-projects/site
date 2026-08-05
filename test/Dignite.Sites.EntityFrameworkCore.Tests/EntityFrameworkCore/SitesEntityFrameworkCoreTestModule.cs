@@ -2,9 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp;
+using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Modularity;
+using Volo.Abp.Threading;
 using Volo.Abp.Uow;
 
 namespace Dignite.Sites.EntityFrameworkCore;
@@ -20,7 +24,7 @@ public class SitesEntityFrameworkCoreTestModule : AbpModule
     {
         PreConfigure<AbpSqliteOptions>(x => x.BusyTimeout = null);
     }
-    
+
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         context.Services.AddAlwaysDisableUnitOfWorkTransaction();
@@ -33,6 +37,29 @@ public class SitesEntityFrameworkCoreTestModule : AbpModule
             {
                 configurationContext.UseSqlite(sqliteConnection);
             });
+        });
+    }
+
+    /// <summary>
+    /// Seeding lives here rather than in the shared <c>SitesTestBaseModule</c> - this is the layer that
+    /// actually has a database, which is what every seed contributor touching a repository needs (see
+    /// <c>SitesTestBaseModule</c>'s remarks).
+    /// </summary>
+    public override void OnApplicationInitialization(ApplicationInitializationContext context)
+    {
+        SeedTestData(context);
+    }
+
+    private static void SeedTestData(ApplicationInitializationContext context)
+    {
+        AsyncHelper.RunSync(async () =>
+        {
+            using (var scope = context.ServiceProvider.CreateScope())
+            {
+                await scope.ServiceProvider
+                    .GetRequiredService<IDataSeeder>()
+                    .SeedAsync();
+            }
         });
     }
 

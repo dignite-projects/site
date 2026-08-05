@@ -12,6 +12,8 @@
     "Sites:020002": "The field '{FieldId}' is referenced more than once by this content type.",
 
     "Sites:030001": "A field named '{Name}' already exists.",
+    "Sites:030002": "The field '{Name}' is a platform preset and cannot be deleted. Remove it from a content type's arrangement instead of deleting the definition.",
+    "Sites:030003": "The field '{Name}' is a platform preset and cannot be renamed. Its display name can still be changed.",
 
     "Sites:040001": "The slug '{Slug}' is already used by another '{CultureName}' content on this page.",
     "Sites:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given.",
@@ -45,6 +47,9 @@
     "Permission:Delete": "Delete",
 
     "ContentTypeStillHasContents": "This content type still has contents; delete or move them first.",
-    "FieldGroupNameAlreadyExists": "A field group named '{0}' already exists."
+    "FieldGroupNameAlreadyExists": "A field group named '{0}' already exists.",
+
+    "FieldType:Seo": "SEO",
+    "Validate:InvalidSeoValue": "The value of '{0}' is not a valid SEO field value."
   }
 }

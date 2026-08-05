@@ -5,6 +5,7 @@ using Dignite.Abp.FlexFields;
 using Dignite.Sites.Contents;
 using Dignite.Sites.EntityFrameworkCore;
 using Dignite.Sites.Fields;
+using Dignite.Sites.Seo;
 using Shouldly;
 using Volo.Abp.Domain.Repositories;
 using Xunit;
@@ -132,5 +133,52 @@ public class FieldManager_Tests : SitesEntityFrameworkCoreTestBase
     {
         return (await _contentRepository.FindBySlugAsync(
             SitesTestData.BlogPageId, SitesTestData.EnglishCulture, SitesTestData.TripSlug))!;
+    }
+
+    /// <summary>
+    /// The platform preset guard (总体设计 §5.3, GitHub issue #14): deleting the seeded SEO field would
+    /// silently disable the noindex semantic for every content type that pulled it in, so FieldManager
+    /// refuses outright rather than letting it happen and be discovered later.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_Deleting_The_Seo_Preset_Field()
+    {
+        await Should.ThrowAsync<FieldIsPlatformPresetCannotBeDeletedException>(() => WithUnitOfWorkAsync(async () =>
+        {
+            var field = await _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName);
+            await _fieldManager.DeleteAsync(field!);
+        }));
+    }
+
+    /// <summary>
+    /// The SEO field's Name is the only thing that makes it recognizable across a shared database (see
+    /// <c>SeoFieldNames</c>' remarks) - renaming it away would leave nothing for recognition to find.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_Renaming_The_Seo_Preset_Field()
+    {
+        await Should.ThrowAsync<FieldIsPlatformPresetCannotBeRenamedException>(() => WithUnitOfWorkAsync(async () =>
+        {
+            var field = await _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName);
+            await _fieldManager.RenameAsync(field!, "our-seo");
+        }));
+    }
+
+    /// <summary>
+    /// Only the Name is protected - everything else about the preset field is a normal, fully editable
+    /// field, so a tenant can still reconfigure display, description and type freely.
+    /// </summary>
+    [Fact]
+    public async Task Should_Allow_Updating_The_Seo_Preset_Fields_Other_Properties()
+    {
+        var updated = await WithUnitOfWorkAsync(async () =>
+        {
+            var field = (await _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName))!;
+            return await _fieldManager.UpdateAsync(field, "Our SEO", field.FieldTypeName, "Custom description");
+        });
+
+        updated.Name.ShouldBe(SeoFieldNames.FieldName);
+        updated.DisplayName.ShouldBe("Our SEO");
+        updated.Description.ShouldBe("Custom description");
     }
 }
