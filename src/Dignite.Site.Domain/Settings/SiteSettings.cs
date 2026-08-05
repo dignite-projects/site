@@ -39,4 +39,15 @@ public static class SiteSettings
         public const string AllowAiTraining = GroupName + ".Robots.AllowAiTraining";
         public const string AllowAiSearch = GroupName + ".Robots.AllowAiSearch";
     }
+
+    /// <summary>
+    /// Per-tenant branding, read by <c>SiteBrandingProvider</c> to replace the platform default with each
+    /// tenant's own name and logo. Empty falls back to the platform default.
+    /// </summary>
+    public static class Branding
+    {
+        public const string AppName = GroupName + ".Branding.AppName";
+        public const string LogoUrl = GroupName + ".Branding.LogoUrl";
+        public const string LogoReverseUrl = GroupName + ".Branding.LogoReverseUrl";
+    }
 }

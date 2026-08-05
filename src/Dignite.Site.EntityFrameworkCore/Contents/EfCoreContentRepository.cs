@@ -126,6 +126,21 @@ public class EfCoreContentRepository : EfCoreRepository<ISiteDbContext, Content,
             .AnyAsync(c => c.ContentTypeId == contentTypeId, GetCancellationToken(cancellationToken));
     }
 
+    public virtual async Task<List<string>> GetDistinctCultureNamesAsync(
+        Guid pageId,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = await GetFilteredQueryableAsync(
+            pageId, null, null, status, publishedBefore, null, null, null, cancellationToken);
+
+        return await query
+            .Select(c => c.CultureName)
+            .Distinct()
+            .ToListAsync(GetCancellationToken(cancellationToken));
+    }
+
     /// <summary>
     /// Builds the shared filter for the list and count queries.
     /// <para>

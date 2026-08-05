@@ -20,4 +20,7 @@ public class ContentTypeFieldDto
     public string? DisplayName { get; set; }
 
     public int Order { get; set; }
+
+    /// <summary>The schema.org property this usage maps to, e.g. <c>"headline"</c> (GitHub issue #20).</summary>
+    public string? SchemaProperty { get; set; }
 }

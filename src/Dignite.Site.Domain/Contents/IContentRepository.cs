@@ -88,4 +88,15 @@ public interface IContentRepository : IBasicRepository<Content, Guid>
     /// content type.
     /// </summary>
     Task<bool> AnyByContentTypeAsync(Guid contentTypeId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Which languages have at least one matching content under <paramref name="pageId"/> - a page's
+    /// language footprint for hreflang (总体设计 §5.5), without materializing every content row (and its
+    /// full FlexFields bag) just to project one column. Pushed to SQL as <c>SELECT DISTINCT</c>.
+    /// </summary>
+    Task<List<string>> GetDistinctCultureNamesAsync(
+        Guid pageId,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        CancellationToken cancellationToken = default);
 }

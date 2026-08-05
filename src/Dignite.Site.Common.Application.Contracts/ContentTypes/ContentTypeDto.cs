@@ -16,4 +16,7 @@ public class ContentTypeDto : FullAuditedEntityDto<Guid>
 
     /// <summary>Ordered, matching <c>ContentType.Fields</c>.</summary>
     public List<ContentTypeFieldDto> Fields { get; set; } = new();
+
+    /// <summary>The schema.org type this content type's contents represent, if any (GitHub issue #20).</summary>
+    public SchemaOrgType SchemaType { get; set; }
 }

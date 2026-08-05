@@ -38,6 +38,7 @@ public class ContentTypeManager : DomainService
         string displayName,
         string? description = null,
         IEnumerable<ContentTypeField>? fields = null,
+        SchemaOrgType schemaType = SchemaOrgType.None,
         CancellationToken cancellationToken = default)
     {
         // Resolves the page as a side effect of validating it exists - a content type with a dangling
@@ -55,6 +56,8 @@ public class ContentTypeManager : DomainService
             fields,
             CurrentTenant.Id);
 
+        contentType.SetSchemaType(schemaType);
+
         return await ContentTypeRepository.InsertAsync(contentType, cancellationToken: cancellationToken);
     }
 
@@ -64,6 +67,7 @@ public class ContentTypeManager : DomainService
         string displayName,
         string? description = null,
         IEnumerable<ContentTypeField>? fields = null,
+        SchemaOrgType? schemaType = null,
         CancellationToken cancellationToken = default)
     {
         if (!string.Equals(contentType.Name, name, StringComparison.Ordinal))
@@ -81,6 +85,13 @@ public class ContentTypeManager : DomainService
         if (fields != null)
         {
             contentType.SetFields(fields);
+        }
+
+        // Null means "leave it as it is", the same convention fields already uses above - an omitted
+        // schemaType must not silently reset an existing mapping back to None on every unrelated edit.
+        if (schemaType.HasValue)
+        {
+            contentType.SetSchemaType(schemaType.Value);
         }
 
         contentType = await ContentTypeRepository.UpdateAsync(contentType, cancellationToken: cancellationToken);

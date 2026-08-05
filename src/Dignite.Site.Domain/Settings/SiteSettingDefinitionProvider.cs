@@ -25,7 +25,13 @@ public class SiteSettingDefinitionProvider : SettingDefinitionProvider
             new SettingDefinition(SiteSettings.Robots.AllowAiTraining, "false",
                 L("DisplayName:Site.Robots.AllowAiTraining"), L("Description:Site.Robots.AllowAiTraining"), true),
             new SettingDefinition(SiteSettings.Robots.AllowAiSearch, "true",
-                L("DisplayName:Site.Robots.AllowAiSearch"), L("Description:Site.Robots.AllowAiSearch"), true)
+                L("DisplayName:Site.Robots.AllowAiSearch"), L("Description:Site.Robots.AllowAiSearch"), true),
+            new SettingDefinition(SiteSettings.Branding.AppName, "",
+                L("DisplayName:Site.Branding.AppName"), L("Description:Site.Branding.AppName"), true),
+            new SettingDefinition(SiteSettings.Branding.LogoUrl, "",
+                L("DisplayName:Site.Branding.LogoUrl"), L("Description:Site.Branding.LogoUrl"), true),
+            new SettingDefinition(SiteSettings.Branding.LogoReverseUrl, "",
+                L("DisplayName:Site.Branding.LogoReverseUrl"), L("Description:Site.Branding.LogoReverseUrl"), true)
         );
     }
 

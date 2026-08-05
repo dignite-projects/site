@@ -17,6 +17,13 @@
     <PackageReference Include="X.Web.Sitemap" Version="2.11.3" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.10" />
     <PackageReference Include="JsonFeed.NET" Version="2.0.0" />
+    <!-- Meta/OG/Twitter tag decisions (SeoTags) and JSON-LD graph construction (Schema.NET) - GitHub
+         issues #13/#20. Referenced directly rather than through Dignite.Abp.Seo: that wrapper module
+         drags in Volo.Abp.AspNetCore.Mvc.UI and is built against ABP 8.3.1 against this solution's 10.5.0,
+         for no benefit here since only the plain POCO types (SeoInfo, ArticleInfo, ...) are used, never
+         the IHtmlHelper rendering extensions. -->
+    <PackageReference Include="SeoTags" Version="2.0.3" />
+    <PackageReference Include="Schema.NET" Version="10.1.0" />
     <ProjectReference Include="..\Dignite.Site.Public.Application.Contracts\Dignite.Site.Public.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application\Dignite.Site.Common.Application.csproj" />

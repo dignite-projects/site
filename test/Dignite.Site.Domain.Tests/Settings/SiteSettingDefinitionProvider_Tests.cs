@@ -21,6 +21,9 @@ public class SiteSettingDefinitionProvider_Tests : SiteDomainTestBase<SiteDomain
     [InlineData(SiteSettings.Robots.AllowIndexing, "true")]
     [InlineData(SiteSettings.Robots.AllowAiTraining, "false")]
     [InlineData(SiteSettings.Robots.AllowAiSearch, "true")]
+    [InlineData(SiteSettings.Branding.AppName, "")]
+    [InlineData(SiteSettings.Branding.LogoUrl, "")]
+    [InlineData(SiteSettings.Branding.LogoReverseUrl, "")]
     public async Task Should_Resolve_Platform_Default(string name, string expected)
     {
         (await _settingProvider.GetOrNullAsync(name)).ShouldBe(expected);
@@ -31,6 +34,9 @@ public class SiteSettingDefinitionProvider_Tests : SiteDomainTestBase<SiteDomain
     [InlineData(SiteSettings.Robots.AllowIndexing)]
     [InlineData(SiteSettings.Robots.AllowAiTraining)]
     [InlineData(SiteSettings.Robots.AllowAiSearch)]
+    [InlineData(SiteSettings.Branding.AppName)]
+    [InlineData(SiteSettings.Branding.LogoUrl)]
+    [InlineData(SiteSettings.Branding.LogoReverseUrl)]
     public async Task Should_Not_Be_Locked_To_Tenant_Provider(string name)
     {
         // No .WithProviders("T"): an empty Providers list means every provider is allowed, which is what

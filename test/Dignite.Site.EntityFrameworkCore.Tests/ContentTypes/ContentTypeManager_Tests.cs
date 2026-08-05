@@ -145,4 +145,104 @@ public class ContentTypeManager_Tests : SiteEntityFrameworkCoreTestBase
 
         onAnotherPage.Id.ShouldNotBe(Guid.Empty);
     }
+
+    [Fact]
+    public async Task Should_Persist_An_Explicit_SchemaType_On_Create()
+    {
+        var created = await WithUnitOfWorkAsync(() => _contentTypeManager.CreateAsync(
+            SiteTestData.BlogPageId, "schema-org-create-test", "Schema.org create test",
+            schemaType: SchemaOrgType.Article));
+
+        var reloaded = await WithUnitOfWorkAsync(() => _contentTypeRepository.GetAsync(created.Id));
+
+        reloaded.SchemaType.ShouldBe(SchemaOrgType.Article);
+    }
+
+    /// <summary>Defaulting to None when the caller does not name a schema.org type at all.</summary>
+    [Fact]
+    public async Task Should_Default_SchemaType_To_None_On_Create()
+    {
+        var created = await WithUnitOfWorkAsync(() =>
+            _contentTypeManager.CreateAsync(SiteTestData.BlogPageId, "schema-org-default-test", "Default"));
+
+        created.SchemaType.ShouldBe(SchemaOrgType.None);
+    }
+
+    /// <summary>
+    /// A null <c>schemaType</c> on <c>UpdateAsync</c> means "leave it as it is" - the same convention
+    /// <c>fields</c> already uses. Getting this wrong would silently reset every unrelated edit's
+    /// SchemaType back to None.
+    /// </summary>
+    [Fact]
+    public async Task UpdateAsync_With_A_Null_SchemaType_Should_Leave_The_Existing_Value_Unchanged()
+    {
+        var contentTypeId = await WithUnitOfWorkAsync(async () =>
+            (await _contentTypeManager.CreateAsync(
+                SiteTestData.BlogPageId, "schema-org-preserve-test", "Preserve", schemaType: SchemaOrgType.Product)).Id);
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var contentType = await _contentTypeRepository.GetAsync(contentTypeId);
+            await _contentTypeManager.UpdateAsync(
+                contentType, contentType.Name, "Preserve (renamed)", schemaType: null);
+        });
+
+        var reloaded = await WithUnitOfWorkAsync(() => _contentTypeRepository.GetAsync(contentTypeId));
+
+        reloaded.DisplayName.ShouldBe("Preserve (renamed)");
+        reloaded.SchemaType.ShouldBe(SchemaOrgType.Product);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_With_An_Explicit_SchemaType_Should_Overwrite_The_Existing_Value()
+    {
+        var contentTypeId = await WithUnitOfWorkAsync(async () =>
+            (await _contentTypeManager.CreateAsync(
+                SiteTestData.BlogPageId, "schema-org-overwrite-test", "Overwrite", schemaType: SchemaOrgType.Article)).Id);
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var contentType = await _contentTypeRepository.GetAsync(contentTypeId);
+            await _contentTypeManager.UpdateAsync(
+                contentType, contentType.Name, contentType.DisplayName, schemaType: SchemaOrgType.None);
+        });
+
+        var reloaded = await WithUnitOfWorkAsync(() => _contentTypeRepository.GetAsync(contentTypeId));
+
+        reloaded.SchemaType.ShouldBe(SchemaOrgType.None);
+    }
+
+    /// <summary>
+    /// The direct counterpart of <see cref="Should_Persist_A_Changed_Field_Arrangement"/>, for the newly
+    /// added <c>SchemaProperty</c> property specifically - proof that updating <c>ContentTypeField.Equals</c>
+    /// /<c>GetHashCode</c> to include it (rather than just adding the property) actually took effect end to
+    /// end, not just in the isolated <c>ContentTypeField_Tests</c> unit test.
+    /// </summary>
+    [Fact]
+    public async Task Should_Persist_A_SchemaProperty_Mapping_Change()
+    {
+        // Every property except SchemaProperty matches the seed's own Usage(TitleFieldId, order: 0)/
+        // Usage(BodyFieldId, order: 1) exactly (showInList: true, required/searchable: false) - on
+        // purpose. A replacement arrangement that also differs in a property already covered by Equals
+        // before this change (Required, ShowInList, ...) would dirty the value comparer regardless of
+        // whether SchemaProperty were wired into Equals/GetHashCode at all, so the assertion below would
+        // pass even if that wiring were missing entirely - exactly the regression this test exists to catch.
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var contentType = await _contentTypeRepository.GetAsync(SiteTestData.PostGalleryTypeId);
+
+            await _contentTypeManager.UpdateAsync(
+                contentType, contentType.Name, contentType.DisplayName, contentType.Description,
+                new[]
+                {
+                    new ContentTypeField(SiteTestData.TitleFieldId, showInList: true, order: 0, schemaProperty: "headline"),
+                    new ContentTypeField(SiteTestData.BodyFieldId, showInList: true, order: 1)
+                });
+        });
+
+        var reloaded = await WithUnitOfWorkAsync(() =>
+            _contentTypeRepository.GetAsync(SiteTestData.PostGalleryTypeId));
+
+        reloaded.Fields.Single(f => f.FieldId == SiteTestData.TitleFieldId).SchemaProperty.ShouldBe("headline");
+    }
 }

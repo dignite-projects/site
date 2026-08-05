@@ -39,6 +39,17 @@
     "DisplayName:Site.Robots.AllowAiSearch": "Allow AI search crawlers",
     "Description:Site.Robots.AllowAiSearch": "Allow crawlers that power AI search/RAG answers (OAI-SearchBot, PerplexityBot, Claude-SearchBot).",
 
+    "DisplayName:Site.Branding.AppName": "Site name",
+    "Description:Site.Branding.AppName": "The site's display name. Empty uses the platform default.",
+
+    "DisplayName:Site.Branding.LogoUrl": "Logo (light background)",
+    "Description:Site.Branding.LogoUrl": "Logo shown on a light background. Empty uses the platform default.",
+
+    "DisplayName:Site.Branding.LogoReverseUrl": "Logo (dark background)",
+    "Description:Site.Branding.LogoReverseUrl": "Logo shown on a dark background. Empty uses the platform default.",
+
+    "Branding:DefaultAppName": "Site",
+
     "Permission:Site": "Site",
     "Permission:Admin": "Admin",
     "Permission:Public": "Public",

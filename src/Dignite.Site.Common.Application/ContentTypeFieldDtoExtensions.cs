@@ -23,7 +23,8 @@ public static class ContentTypeFieldDtoExtensions
             Searchable = source.Searchable,
             ShowInList = source.ShowInList,
             DisplayName = source.DisplayName,
-            Order = source.Order
+            Order = source.Order,
+            SchemaProperty = source.SchemaProperty
         };
     }
 
@@ -35,7 +36,8 @@ public static class ContentTypeFieldDtoExtensions
     public static ContentTypeField ToEntity(this ContentTypeFieldDto source)
     {
         return new ContentTypeField(
-            source.FieldId, source.Required, source.Searchable, source.ShowInList, source.DisplayName, source.Order);
+            source.FieldId, source.Required, source.Searchable, source.ShowInList, source.DisplayName, source.Order,
+            source.SchemaProperty);
     }
 
     public static List<ContentTypeField> ToEntityList(this IEnumerable<ContentTypeFieldDto> source)
