@@ -15,10 +15,16 @@
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Mapperly" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared" Version="10.5.0"/>
+    <!-- Caching for the generated site documents. ABP's IDistributedCache prefixes every key with the
+         current tenant, which is the namespace isolation #15 and #18 both require. -->
+    <PackageReference Include="Volo.Abp.Caching" Version="10.5.0"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Dignite.Sites.Application.Contracts\Dignite.Sites.Application.Contracts.csproj" />
+    <!-- The default ISiteBaseUrlResolver is replaced here with one that can fall back to the incoming
+         request, which is why this layer needs the domain contract rather than just the app services. -->
+    <ProjectReference Include="..\Dignite.Sites.Domain\Dignite.Sites.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

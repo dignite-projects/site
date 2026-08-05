@@ -4,6 +4,8 @@ using Volo.Abp.Authorization;
 using Volo.Abp.Autofac;
 using Volo.Abp.Guids;
 using Volo.Abp.Modularity;
+using Volo.Abp.Settings;
+using Dignite.Sites.Settings;
 
 namespace Dignite.Sites;
 
@@ -31,5 +33,13 @@ public class SitesTestBaseModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         context.Services.AddAlwaysAllowAuthorization();
+
+        // Added last on purpose: SettingProvider consults value providers in reverse registration order,
+        // so this one gets the final say - which is what lets a test set a tenant setting without the
+        // Setting Management module (and therefore without a database) being present.
+        Configure<AbpSettingOptions>(options =>
+        {
+            options.ValueProviders.Add<TestSettingValueProvider>();
+        });
     }
 }

@@ -18,6 +18,9 @@
          Controllers - see Admin.HttpApi/Pages/PageAdminController.cs). The concrete app service classes
          still need their own module loaded somewhere for DI to register them; that's here. -->
     <ProjectReference Include="..\..\src\Dignite.Sites.Application\Dignite.Sites.Application.csproj" />
+    <!-- The site-facing documents (robots.txt, sitemap.xml, feeds) and the request-aware base URL
+         resolver they depend on. -->
+    <ProjectReference Include="..\..\src\Dignite.Sites.Public.Web\Dignite.Sites.Public.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

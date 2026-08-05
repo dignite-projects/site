@@ -14,6 +14,12 @@ public class SitesSettingDefinitionProvider : SettingDefinitionProvider
         context.Add(
             new SettingDefinition(SitesSettings.EnabledLanguages, "en",
                 L("DisplayName:Sites.EnabledLanguages"), L("Description:Sites.EnabledLanguages"), true),
+            // Blank by default: there is no sensible platform-wide domain, and blank is what makes the
+            // request's own host the fallback (see SettingSiteBaseUrlResolver).
+            new SettingDefinition(SitesSettings.PrimaryDomain, "",
+                L("DisplayName:Sites.PrimaryDomain"), L("Description:Sites.PrimaryDomain"), true),
+            new SettingDefinition(SitesSettings.EnableLlmsTxt, "false",
+                L("DisplayName:Sites.EnableLlmsTxt"), L("Description:Sites.EnableLlmsTxt"), true),
             new SettingDefinition(SitesSettings.Robots.AllowIndexing, "true",
                 L("DisplayName:Sites.Robots.AllowIndexing"), L("Description:Sites.Robots.AllowIndexing"), true),
             new SettingDefinition(SitesSettings.Robots.AllowAiTraining, "false",

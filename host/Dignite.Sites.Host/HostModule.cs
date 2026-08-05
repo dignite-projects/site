@@ -65,6 +65,7 @@ using Volo.Abp.FeatureManagement.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Studio.Client.AspNetCore;
 using Dignite.Sites.EntityFrameworkCore;
+using Dignite.Sites.Public;
 
 using Microsoft.Extensions.Hosting;
 
@@ -132,7 +133,13 @@ namespace Dignite.Sites.Host;
     // and the unified HttpApi module for the explicit Admin/Public controllers.
     typeof(SitesEntityFrameworkCoreModule),
     typeof(SitesApplicationModule),
-    typeof(SitesHttpApiModule)
+    typeof(SitesHttpApiModule),
+
+    // The site-facing web layer: robots.txt, sitemap.xml and the per-page feeds, which are documents on
+    // the tenant's own domain rather than API endpoints. Also where ISiteBaseUrlResolver gains its
+    // fall-back-to-the-request behaviour, so a tenant with no primary domain configured still serves
+    // working absolute URLs.
+    typeof(PublicWebModule)
 )]
 public class HostModule : AbpModule
 {

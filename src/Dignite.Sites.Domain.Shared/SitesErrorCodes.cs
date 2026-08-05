@@ -22,4 +22,6 @@ public static class SitesErrorCodes
     public const string ContentSlugAlreadyExists = "Sites:040001";
     public const string ContentPageInconsistent = "Sites:040002";
     public const string ContentDraftCannotHaveFuturePublishTime = "Sites:040003";
+
+    public const string PrimaryDomainNotConfigured = "Sites:050001";
 }

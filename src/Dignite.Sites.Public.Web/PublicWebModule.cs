@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Dignite.Sites.Localization;
+using Microsoft.AspNetCore.Routing;
 using Dignite.Sites.Public.Menus;
+using Dignite.Sites.Public.Seo;
 using Volo.Abp.AspNetCore.Mvc.Localization;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.Mapperly;
@@ -52,6 +54,14 @@ public class PublicWebModule : AbpModule
         Configure<RazorPagesOptions>(options =>
         {
             //Configure authorization.
+        });
+
+        // Registers the constraint FeedController's catch-all route names. Without this the template
+        // would fail to build at startup rather than silently mismatching, but the failure would be a
+        // long way from the route that caused it - so it is wired next to the module that owns it.
+        Configure<RouteOptions>(options =>
+        {
+            options.ConstraintMap[FeedPathRouteConstraint.Name] = typeof(FeedPathRouteConstraint);
         });
 
         if (hostingEnvironment.IsDevelopment())

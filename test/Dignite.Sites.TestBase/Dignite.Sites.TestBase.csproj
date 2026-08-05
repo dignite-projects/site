@@ -22,6 +22,10 @@
     <PackageReference Include="Volo.Abp.Autofac" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.Authorization" Version="10.5.0"/>
     <PackageReference Include="Volo.Abp.Guids" Version="10.5.0"/>
+    <!-- TestClock replaces IClock, and TestSettingValueProvider joins AbpSettingOptions.ValueProviders -
+         both live here so the domain and EF Core test layers share them. -->
+    <PackageReference Include="Volo.Abp.Timing" Version="10.5.0"/>
+    <PackageReference Include="Volo.Abp.Settings" Version="10.5.0"/>
     <PackageReference Include="Volo.Abp.TestBase" Version="10.5.0"/>
   </ItemGroup>
 
