@@ -55,6 +55,29 @@ public class SeoFieldType_Tests : SiteDomainTestBase<SiteDomainTestModule>
     }
 
     [Fact]
+    public void Should_Reject_A_Null_Value_When_Required()
+    {
+        Validate(null, required: true).ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Accept_A_Live_SeoFieldValue_When_Required()
+    {
+        Validate(new SeoFieldValue { MetaTitle = "Title" }, required: true).ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Presence, not completeness, is what <c>Required</c> checks - a value whose sub-properties are all
+    /// blank still satisfies it, matching this type's own stance that nothing inside the bundle is
+    /// individually required.
+    /// </summary>
+    [Fact]
+    public void Should_Accept_An_Empty_SeoFieldValue_When_Required()
+    {
+        Validate(new SeoFieldValue(), required: true).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Should_Accept_A_Live_SeoFieldValue()
     {
         Validate(new SeoFieldValue { MetaTitle = "Title", NoIndex = true }).ShouldBeEmpty();
@@ -116,16 +139,16 @@ public class SeoFieldType_Tests : SiteDomainTestBase<SiteDomainTestModule>
         read.MetaDescriptionCharLimit.ShouldBe(180);
     }
 
-    private IReadOnlyList<ValidationResult> Validate(object? value)
+    private IReadOnlyList<ValidationResult> Validate(object? value, bool required = false)
     {
-        return _fieldType.Validate(new FieldValidationArgs(ToValue(value)));
+        return _fieldType.Validate(new FieldValidationArgs(ToValue(value, required)));
     }
 
-    private static FlexFieldValue ToValue(object? value)
+    private static FlexFieldValue ToValue(object? value, bool required = false)
     {
         var data = new FlexFieldData(
             Guid.NewGuid(), SeoFieldNames.FieldName, "SEO", SeoFieldNames.FieldTypeName);
 
-        return new FlexFieldValue(data, required: false, searchable: true, value: value);
+        return new FlexFieldValue(data, required: required, searchable: true, value: value);
     }
 }

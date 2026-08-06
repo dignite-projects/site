@@ -69,6 +69,7 @@
     "FieldGroupNameAlreadyExists": "A field group named '{0}' already exists.",
 
     "FieldType:Seo": "SEO",
-    "Validate:InvalidSeoValue": "The value of '{0}' is not a valid SEO field value."
+    "Validate:InvalidSeoValue": "The value of '{0}' is not a valid SEO field value.",
+    "Validate:Required": "{0} Field Required!"
   }
 }

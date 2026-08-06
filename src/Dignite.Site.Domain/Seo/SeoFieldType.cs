@@ -44,26 +44,38 @@ public class SeoFieldType : FieldTypeBase
     public override FlexFieldValueType? IndexValueType => null;
 
     /// <summary>
-    /// Structural only: a value, if present, has to be readable as <see cref="SeoFieldValue"/>. Nothing
-    /// inside the bundle is required - SEO fields are supplementary, and a content type that pulls this
-    /// field in still falls back to platform defaults for whatever is left blank (总体设计 §5.3) - and the
-    /// character-limit guidance in <see cref="SeoConfiguration"/> is advisory, not enforced: a search
-    /// engine truncates an over-length title rather than rejecting it, so treating it as a hard validation
-    /// error would be over-strict for what is genuinely just a suggested threshold.
+    /// Checks two independent things: presence, against this usage's own
+    /// <see cref="FlexFieldValue.Required"/> flag; and, if present, whether the value is structurally
+    /// readable as a <see cref="SeoFieldValue"/>. Nothing <i>inside</i> the bundle is individually
+    /// required - SEO fields are supplementary, and a content type that pulls this field in still falls
+    /// back to platform defaults for whatever is left blank (总体设计 §5.3) - and the character-limit
+    /// guidance in <see cref="SeoConfiguration"/> is advisory, not enforced: a search engine truncates an
+    /// over-length title rather than rejecting it, so treating it as a hard validation error would be
+    /// over-strict for what is genuinely just a suggested threshold.
     /// </summary>
     public override IReadOnlyList<ValidationResult> Validate(FieldValidationArgs args)
     {
-        if (TryRead(args.Field.Value, out _))
+        if (!TryRead(args.Field.Value, out var seoValue))
         {
-            return Array.Empty<ValidationResult>();
+            return new[]
+            {
+                new ValidationResult(
+                    L["Validate:InvalidSeoValue", args.Field.DisplayName],
+                    new[] { args.Field.Name })
+            };
         }
 
-        return new[]
+        if (seoValue == null && args.Field.Required)
         {
-            new ValidationResult(
-                L["Validate:InvalidSeoValue", args.Field.DisplayName],
-                new[] { args.Field.Name })
-        };
+            return new[]
+            {
+                new ValidationResult(
+                    L["Validate:Required", args.Field.DisplayName],
+                    new[] { args.Field.Name })
+            };
+        }
+
+        return Array.Empty<ValidationResult>();
     }
 
     public override FieldConfigurationBase GetConfiguration(FieldConfigurationDictionary fieldConfiguration)
