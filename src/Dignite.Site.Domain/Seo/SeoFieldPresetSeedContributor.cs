@@ -64,8 +64,9 @@ public class SeoFieldPresetSeedContributor : IDataSeedContributor, ITransientDep
             "SEO",
             SeoFieldNames.FieldTypeName,
             description:
-            "Platform-recognized SEO metadata: meta title, meta description, social share image, and " +
-            "noindex. Pull this field into a content type to opt into platform SEO behavior.",
+            "Platform-recognized SEO metadata: meta title/description (aim for this field's char " +
+            "limits - engines truncate, don't reject), a social share image, and noindex (excludes " +
+            "this content from the sitemap - use for duplicates or thank-you pages).",
             configuration: new SeoConfiguration().ConfigurationDictionary);
     }
 }
