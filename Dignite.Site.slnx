@@ -28,6 +28,9 @@
         <Project Path="src/Dignite.Site.Public.HttpApi/Dignite.Site.Public.HttpApi.csproj" />
         <Project Path="src/Dignite.Site.Public.Web/Dignite.Site.Public.Web.csproj" />
     </Folder>
+    <Folder Name="/src/mcp/">
+        <Project Path="src/Dignite.Site.Mcp/Dignite.Site.Mcp.csproj" />
+    </Folder>
     <Folder Name="/src/unified/">
         <Project Path="src/Dignite.Site.Application.Contracts/Dignite.Site.Application.Contracts.csproj" />
         <Project Path="src/Dignite.Site.Application/Dignite.Site.Application.csproj" />

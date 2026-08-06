@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dignite.Abp.FlexFields;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
@@ -40,6 +41,49 @@ public class ContentManager_Tests : SiteEntityFrameworkCoreTestBase
             new Dictionary<string, object?> { ["title"] = "标题" }));
 
         content.CultureName.ShouldBe("zh-Hans");
+    }
+
+    /// <summary>
+    /// Moving a content to a different type without resending field values must re-filter the bag against
+    /// the NEW type's declared names - not leave the old type's values sitting under keys the new type
+    /// never declared. <c>ValidateFlexFieldsAsync</c> only walks the new type's declared fields, so a
+    /// stray leftover would be invisible to validation and reach every DTO consumer unfiltered, which is
+    /// exactly what <c>SetFieldValuesAsync</c>'s own contract - undeclared keys are dropped, not stored -
+    /// says cannot happen.
+    /// </summary>
+    [Fact]
+    public async Task Should_Refilter_Field_Values_Against_The_New_Type_When_Moving_Without_Resending_Them()
+    {
+        // post-article declares title/body/category/views/featured; post-gallery (its sibling under the
+        // same page) declares only title/body - the overlap and the gap are both needed for this test.
+        var content = await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, SiteTestData.EnglishCulture, "moving-content-type",
+            SiteTestData.PublishTime, ContentStatus.Published,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "Kept across the move",
+                ["views"] = 99
+            }));
+
+        var moved = await WithUnitOfWorkAsync(async () =>
+        {
+            var reloaded = await _contentRepository.GetAsync(content.Id);
+            return await _contentManager.UpdateAsync(
+                reloaded, reloaded.Slug, reloaded.PublishTime, reloaded.Status,
+                fieldValues: null, contentTypeId: SiteTestData.PostGalleryTypeId);
+        });
+
+        // Declared by both types: carried over untouched.
+        moved.GetField("title").ShouldBe("Kept across the move");
+
+        // Declared only by the old type: must not survive the move, or a reader would see a value for a
+        // field post-gallery's own schema says does not exist.
+        moved.GetField("views").ShouldBeNull();
+
+        // The persisted row agrees - not just the in-memory instance UpdateAsync returned.
+        var reread = await _contentRepository.GetAsync(content.Id);
+        reread.GetField("title").ShouldBe("Kept across the move");
+        reread.GetField("views").ShouldBeNull();
     }
 
     [Fact]

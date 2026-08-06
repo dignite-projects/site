@@ -6,6 +6,7 @@ using Dignite.Abp.FlexFields;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
+using Volo.Abp.Validation;
 using Xunit;
 
 namespace Dignite.Site.Admin.Contents;
@@ -100,6 +101,84 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         // "My trip" has views = 42 (> 10); "Draft post" has views = 7 (not > 10) and must be excluded.
         result.Items.ShouldContain(c => c.Slug == SiteTestData.TripSlug);
         result.Items.ShouldNotContain(c => c.Slug == SiteTestData.DraftSlug);
+    }
+
+    /// <summary>
+    /// Empty is a real address - the page's single content (总体设计 §2.4) - not "the caller omitted it".
+    /// The "about" page's English content is exactly that: seeded with slug <c>""</c>.
+    /// </summary>
+    [Fact]
+    public async Task Should_Find_A_Content_By_An_Empty_Slug()
+    {
+        var about = await _contentAppService.FindBySlugAsync(
+            SiteTestData.AboutPageId, SiteTestData.EnglishCulture, "");
+
+        about.ShouldNotBeNull();
+        JsonSerializer.Serialize(about!.FieldValues["title"]).ShouldBe("\"About us\"");
+    }
+
+    /// <summary>
+    /// A null slug is a caller error, not a synonym for the empty-slug address above -
+    /// <c>IContentAdminAppService.FindBySlugAsync</c> must reject it rather than coerce it into "" and
+    /// silently answer with the page's own content instead (总体设计 §2.4).
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_A_Null_Slug()
+    {
+        var error = await Should.ThrowAsync<AbpValidationException>(() =>
+            _contentAppService.FindBySlugAsync(SiteTestData.BlogPageId, SiteTestData.EnglishCulture, null!));
+
+        error.ValidationErrors.ShouldContain(e => e.MemberNames.Contains("slug"));
+    }
+
+    /// <summary>
+    /// The lookup normalizes the caller's culture before matching, because the stored value was
+    /// normalized on write (<c>ContentManager.CreateAsync</c>) - a caller spelling the same culture
+    /// differently must still find what is actually stored under its canonical form.
+    /// </summary>
+    [Fact]
+    public async Task Should_Find_A_Content_By_A_Differently_Cased_Culture()
+    {
+        var content = await _contentAppService.FindBySlugAsync(
+            SiteTestData.BlogPageId, "EN", SiteTestData.TripSlug);
+
+        content.ShouldNotBeNull();
+        content!.Slug.ShouldBe(SiteTestData.TripSlug);
+    }
+
+    /// <summary>
+    /// A culture tag .NET does not recognize cannot be the culture of any stored row - every write path
+    /// normalizes first. The honest answer is "not found", not a thrown exception that would surface to
+    /// an MCP client as an opaque internal error over what is usually a one-token typo like "english" for
+    /// "en" (总体设计 §6.2.4).
+    /// </summary>
+    [Fact]
+    public async Task Should_Return_Null_Rather_Than_Throw_For_An_Unrecognized_Culture()
+    {
+        var content = await _contentAppService.FindBySlugAsync(
+            SiteTestData.BlogPageId, "not-a-real-culture", SiteTestData.TripSlug);
+
+        content.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The list path must handle an unrecognized culture the same way the single-content lookup does, and
+    /// the same way <c>EfCoreContentRepository.GetFilteredQueryableAsync</c> handles it for the query it
+    /// builds: "nothing matches", not a thrown exception - this is the app-service-level pin for the
+    /// culture-handling fix the repository layer carries (used by the MCP <c>list_contents</c> tool).
+    /// </summary>
+    [Fact]
+    public async Task Should_Return_An_Empty_Page_Rather_Than_Throw_When_Listing_By_An_Unrecognized_Culture()
+    {
+        var result = await _contentAppService.GetListAsync(new GetContentListInput
+        {
+            PageId = SiteTestData.BlogPageId,
+            CultureName = "english",
+            MaxResultCount = 1000
+        });
+
+        result.TotalCount.ShouldBe(0);
+        result.Items.ShouldBeEmpty();
     }
 
     private async Task<ContentDto> GetTripContentAsync()

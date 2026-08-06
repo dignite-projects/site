@@ -29,6 +29,17 @@ public class ContentAdminController : AdminController, IContentAdminAppService
         return ContentAdminAppService.GetAsync(id);
     }
 
+    /// <summary>
+    /// The slug is a query parameter, not a route segment: an empty slug is the legitimate address of a
+    /// page's single content (总体设计 §2.4), and an empty route segment cannot be expressed.
+    /// </summary>
+    [HttpGet]
+    [Route("by-slug")]
+    public virtual Task<ContentDto?> FindBySlugAsync(Guid pageId, string cultureName, string slug)
+    {
+        return ContentAdminAppService.FindBySlugAsync(pageId, cultureName, slug);
+    }
+
     [HttpGet]
     public virtual Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
     {

@@ -12,6 +12,9 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.9" />
     <ProjectReference Include="..\..\src\Dignite.Site.EntityFrameworkCore\Dignite.Site.EntityFrameworkCore.csproj" />
+    <!-- The MCP tool classes are ordinary ABP services, so they are tested here against the same seeded
+         scenario as the app services they call - no HTTP, no MCP transport. -->
+    <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
     <ProjectReference Include="..\Dignite.Site.Application.Tests\Dignite.Site.Application.Tests.csproj" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.5.0"/>
   </ItemGroup>

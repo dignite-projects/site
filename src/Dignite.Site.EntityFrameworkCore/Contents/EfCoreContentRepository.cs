@@ -162,13 +162,24 @@ public class EfCoreContentRepository : EfCoreRepository<ISiteDbContext, Content,
         IReadOnlyList<FlexFieldQueryCondition>? flexFieldConditions,
         CancellationToken cancellationToken)
     {
-        var normalizedCulture = cultureName.IsNullOrWhiteSpace()
-            ? null
-            : CultureNameNormalizer.Normalize(cultureName!);
+        // TryNormalize, not the strict overload. This is a filter, and a culture no CultureInfo
+        // recognizes cannot be the culture of any stored row - every write path normalizes before
+        // storing - so the honest answer is "nothing matches", not an ArgumentException. The strict form
+        // belongs on the write paths, where an unrecognized tag really is a caller error; throwing out of
+        // a query instead surfaces to an API caller as a 500 and to an MCP client as an opaque internal
+        // error it cannot correct, over what is usually a one-token typo like "english".
+        var hasUnmatchableCulture = false;
+        string? normalizedCulture = null;
+
+        if (!cultureName.IsNullOrWhiteSpace())
+        {
+            hasUnmatchableCulture = !CultureNameNormalizer.TryNormalize(cultureName!, out normalizedCulture);
+        }
 
         var query = (await GetDbSetAsync())
+            .WhereIf(hasUnmatchableCulture, c => false)
             .WhereIf(pageId.HasValue, c => c.PageId == pageId!.Value)
-            .WhereIf(normalizedCulture != null, c => c.CultureName == normalizedCulture)
+            .WhereIf(!hasUnmatchableCulture && normalizedCulture != null, c => c.CultureName == normalizedCulture)
             .WhereIf(contentTypeId.HasValue, c => c.ContentTypeId == contentTypeId!.Value)
             .WhereIf(status.HasValue, c => c.Status == status!.Value)
             .WhereIf(publishedBefore.HasValue, c => c.PublishTime <= publishedBefore!.Value)

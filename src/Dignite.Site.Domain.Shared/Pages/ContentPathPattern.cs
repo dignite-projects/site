@@ -8,8 +8,8 @@ namespace Dignite.Site.Pages;
 
 /// <summary>
 /// The optional pattern on a <c>Page</c> that decides how the URLs of the contents beneath it are put
-/// together (总体设计 §3.3): <c>{slug}</c> by default, or something like <c>{date:yyyy/MM}/{slug}</c> to
-/// get <c>/news/2026/07/my-post</c>.
+/// together (总体设计 §3.3): <c>{slug}</c> by default, or something like
+/// <c>{publishTime:yyyy/MM}/{slug}</c> to get <c>/news/2026/07/my-post</c>.
 /// <para>
 /// Both directions live here, and they have to agree: <see cref="Build"/> composes a content's path when
 /// a URL is emitted (sitemap, canonical, hreflang), and <see cref="TryExtractSlug"/> takes them apart
@@ -29,10 +29,17 @@ public static class ContentPathPattern
     private const string SlugToken = "{slug}";
 
     /// <summary>
-    /// Matches <c>{date:FORMAT}</c>, capturing FORMAT. Non-greedy and excluding <c>}</c> so two
+    /// Matches <c>{publishTime:FORMAT}</c>, capturing FORMAT. Non-greedy and excluding <c>}</c> so two
     /// placeholders in one pattern cannot be swallowed as a single match.
+    /// <para>
+    /// Named after the content's own <c>PublishTime</c> field, not a generic word like "date" - the
+    /// same rule that makes <c>{slug}</c> recognizable applies here: a placeholder is only ever the name
+    /// of something the content actually has, never a keyword invented on top of it. A pattern that used
+    /// an invented word would look plausible and still be wrong, the way <c>{year}</c>/<c>{month}</c>
+    /// once slipped past validation entirely (see <see cref="IsValid"/>'s remarks).
+    /// </para>
     /// </summary>
-    private static readonly Regex DatePlaceholder = new(@"\{date:([^}]+)\}", RegexOptions.Compiled);
+    private static readonly Regex PublishTimePlaceholder = new(@"\{publishTime:([^}]+)\}", RegexOptions.Compiled);
 
     /// <summary>
     /// The date format specifiers a pattern may use, longest first - <c>yyyy</c> has to be tried before
@@ -52,11 +59,29 @@ public static class ContentPathPattern
     /// Whether <paramref name="pattern"/> is usable. A pattern must contain <c>{slug}</c>: the slug is
     /// what makes a content's URL unique within its page, so a pattern without one would route every
     /// content beneath the page to the same path.
+    /// <para>
+    /// Every other <c>{...}</c> token in the pattern must be one this class actually understands - a
+    /// <c>{publishTime:FORMAT}</c> placeholder, the only other kind <see cref="Build"/> and
+    /// <see cref="TryExtractSlug"/> know how to handle. Anything else - a typo, a token from a different
+    /// vocabulary someone remembered - is not an error either method raises; both simply treat unknown
+    /// text as a literal, so a pattern like <c>{year}/{slug}</c> would build URLs that carry the literal
+    /// string <c>{year}</c> forever and never resolve. Catching it here, at the one place a pattern is
+    /// accepted, is what stops that from being a silent trap discovered only after content exists at the
+    /// bad URL.
+    /// </para>
     /// </summary>
     public static bool IsValid(string? pattern)
     {
-        return !string.IsNullOrWhiteSpace(pattern)
-               && pattern.Contains(SlugToken, StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(pattern) || !pattern.Contains(SlugToken, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var withoutRecognizedPlaceholders = PublishTimePlaceholder
+            .Replace(pattern, string.Empty)
+            .Replace(SlugToken, string.Empty, StringComparison.Ordinal);
+
+        return !withoutRecognizedPlaceholders.Contains('{') && !withoutRecognizedPlaceholders.Contains('}');
     }
 
     /// <summary>
@@ -74,7 +99,7 @@ public static class ContentPathPattern
     /// Renders the path of one content relative to its page route, e.g. <c>2026/07/my-post</c>.
     /// </summary>
     /// <param name="pattern">The owning page's pattern; null/blank means <see cref="Default"/>.</param>
-    /// <param name="publishTime">Feeds any <c>{date:...}</c> placeholder.</param>
+    /// <param name="publishTime">Feeds any <c>{publishTime:...}</c> placeholder.</param>
     /// <param name="slug">
     /// The content's slug. Empty is legitimate - it is what a page carrying a single content uses - and
     /// yields an empty path, so the content's URL is the page route alone.
@@ -91,7 +116,7 @@ public static class ContentPathPattern
         // Invariant culture: these segments are URL structure, not text shown to anybody, so they must
         // not vary with the culture the request happens to run under. A Buddhist or Hijri calendar on
         // the ambient culture would otherwise silently emit a different year.
-        var built = DatePlaceholder.Replace(
+        var built = PublishTimePlaceholder.Replace(
             normalized,
             match => publishTime.ToString(match.Groups[1].Value, CultureInfo.InvariantCulture));
 
@@ -138,7 +163,7 @@ public static class ContentPathPattern
         var builder = new StringBuilder("^");
         var cursor = 0;
 
-        foreach (Match placeholder in DatePlaceholder.Matches(pattern))
+        foreach (Match placeholder in PublishTimePlaceholder.Matches(pattern))
         {
             builder.Append(EscapeWithSlugToken(pattern[cursor..placeholder.Index]));
             builder.Append(DateFormatToRegex(placeholder.Groups[1].Value));
@@ -203,8 +228,8 @@ public static class ContentPathPattern
     public static IReadOnlyList<string> SupportedPlaceholders { get; } = new[]
     {
         SlugToken,
-        "{date:yyyy}",
-        "{date:yyyy/MM}",
-        "{date:yyyy/MM/dd}"
+        "{publishTime:yyyy}",
+        "{publishTime:yyyy/MM}",
+        "{publishTime:yyyy/MM/dd}"
     };
 }

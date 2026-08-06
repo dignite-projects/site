@@ -10,6 +10,13 @@ public interface IFieldAdminAppService : IApplicationService
 {
     Task<FieldDto> GetAsync(Guid id);
 
+    /// <summary>
+    /// Finds a field definition by its tenant-unique <see cref="FieldDto.Name"/>, or null. That name is
+    /// already the key every content's value bag stores under, so it is the natural handle for a caller
+    /// that works in names rather than Guids (总体设计 §6.2.4).
+    /// </summary>
+    Task<FieldDto?> FindByNameAsync(string name);
+
     Task<PagedResultDto<FieldDto>> GetListAsync(GetFieldListInput input);
 
     Task<FieldDto> CreateAsync(CreateFieldDto input);

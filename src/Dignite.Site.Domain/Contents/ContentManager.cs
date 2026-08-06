@@ -105,6 +105,7 @@ public class ContentManager : DomainService
         CheckPublishSchedule(status, publishTime);
 
         var effectiveTypeId = contentTypeId ?? content.ContentTypeId;
+        var isChangingType = effectiveTypeId != content.ContentTypeId;
         var contentType = await ContentTypeRepository.GetAsync(effectiveTypeId, cancellationToken: cancellationToken);
 
         // A content type from another page would give this content a URL its page does not own.
@@ -125,7 +126,18 @@ public class ContentManager : DomainService
         content.SetPublishTime(publishTime);
         content.SetStatus(status);
 
-        await SetFieldValuesAsync(content, contentType, fieldValues, cancellationToken);
+        // A type change re-filters the bag against the NEW type's declared names even when the caller
+        // did not resend values. Without this, SetFieldValuesAsync's null-means-"leave alone" shortcut -
+        // correct for an ordinary status-only or schedule-only update - would leave the OLD type's values
+        // sitting under keys the new type never declared. Nothing downstream would catch it:
+        // ValidateFlexFieldsAsync only walks the new type's declared fields, so a stray leftover key is
+        // invisible to it and reaches every DTO consumer unfiltered, in direct contradiction of
+        // SetFieldValuesAsync's own contract that undeclared keys are dropped, not stored.
+        var effectiveFieldValues = fieldValues ?? (isChangingType
+            ? content.FlexFields.ToDictionary(pair => pair.Key, pair => (object?)pair.Value)
+            : null);
+
+        await SetFieldValuesAsync(content, contentType, effectiveFieldValues, cancellationToken);
         await ValidateFlexFieldsAsync(content, cancellationToken);
 
         content = await ContentRepository.UpdateAsync(content, cancellationToken: cancellationToken);

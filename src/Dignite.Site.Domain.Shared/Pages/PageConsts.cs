@@ -16,7 +16,7 @@ public static class PageConsts
     public static int MaxRouteLength { get; set; } = 256;
 
     /// <summary>
-    /// Default value: 128. The content path pattern, e.g. <c>{slug}</c> or <c>{date:yyyy/MM}/{slug}</c>.
+    /// Default value: 128. The content path pattern, e.g. <c>{slug}</c> or <c>{publishTime:yyyy/MM}/{slug}</c>.
     /// </summary>
     public static int MaxContentPathPatternLength { get; set; } = 128;
 

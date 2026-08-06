@@ -36,6 +36,12 @@ public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppS
         return MapToDto(contentType);
     }
 
+    public virtual async Task<ContentTypeDto?> FindByNameAsync(Guid pageId, string name)
+    {
+        var contentType = await ContentTypeRepository.FindByNameAsync(pageId, name);
+        return contentType == null ? null : MapToDto(contentType);
+    }
+
     public virtual async Task<ListResultDto<ContentTypeDto>> GetListByPageAsync(Guid pageId)
     {
         var contentTypes = await ContentTypeRepository.GetListByPageAsync(pageId);
@@ -67,8 +73,13 @@ public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppS
     [Authorize(AdminPermissions.ContentTypes.Delete)]
     public virtual async Task DeleteAsync(Guid id)
     {
-        // The FK from Content to ContentType is Restrict, so the database would refuse this anyway; the
-        // check here just turns that into a clear message instead of a raw constraint-violation error.
+        // This check is the only guard, not a friendlier duplicate of one the database also enforces.
+        // The FK from Content to ContentType is declared Restrict, but ContentType is soft-deleted - its
+        // "delete" is an UPDATE, and a declared FK behavior fires only on an actual DELETE statement, so
+        // the database never gets a chance to refuse this (same reason PageManager.DeleteAsync's cascade
+        // has to run explicitly rather than relying on ON DELETE CASCADE). Without this check, a content
+        // type with live contents would soft-delete successfully, leaving those contents pointing at a
+        // type no name-addressed surface can reach any more.
         if (await ContentRepository.AnyByContentTypeAsync(id))
         {
             throw new UserFriendlyException(L["ContentTypeStillHasContents"]);

@@ -21,6 +21,8 @@
     <!-- The site-facing documents (robots.txt, sitemap.xml, feeds) and the request-aware base URL
          resolver they depend on. -->
     <ProjectReference Include="..\..\src\Dignite.Site.Public.Web\Dignite.Site.Public.Web.csproj" />
+    <!-- The MCP endpoint (GitHub issue #26). -->
+    <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

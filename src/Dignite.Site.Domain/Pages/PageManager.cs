@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Contents;
 using Volo.Abp.Domain.Services;
 
 namespace Dignite.Site.Pages;
@@ -13,9 +15,55 @@ public class PageManager : DomainService
 {
     protected IPageRepository PageRepository { get; }
 
-    public PageManager(IPageRepository pageRepository)
+    protected IContentTypeRepository ContentTypeRepository { get; }
+
+    protected IContentRepository ContentRepository { get; }
+
+    public PageManager(
+        IPageRepository pageRepository,
+        IContentTypeRepository contentTypeRepository,
+        IContentRepository contentRepository)
     {
         PageRepository = pageRepository;
+        ContentTypeRepository = contentTypeRepository;
+        ContentRepository = contentRepository;
+    }
+
+    /// <summary>
+    /// Deletes a page and everything beneath it - every content type defined on it, and every content of
+    /// those types in every language (总体设计 §2.5).
+    /// <para>
+    /// <b>The descendants are deleted here, explicitly, and that is not redundant with the database's
+    /// cascading foreign keys.</b> These entities are all <c>FullAuditedAggregateRoot</c>, so ABP
+    /// soft-deletes them: a delete is an <c>UPDATE ... SET IsDeleted = 1</c>, and a cascade declared
+    /// <c>ON DELETE CASCADE</c> fires on <c>DELETE</c> only. Relying on it left the page hidden while every
+    /// content type and content under it stayed live - unreachable through any name-addressed surface,
+    /// since those resolve through the page, yet still present to anything enumerating contents directly.
+    /// </para>
+    /// <para>
+    /// Contents go before their content types, because the ordinary delete path refuses to remove a
+    /// content type that still has contents - a guard that is right for deleting one type on its own and
+    /// wrong here, where the whole section is going.
+    /// </para>
+    /// </summary>
+    public virtual async Task DeleteAsync(Page page, CancellationToken cancellationToken = default)
+    {
+        var contentTypes = await ContentTypeRepository.GetListByPageAsync(page.Id, cancellationToken);
+
+        foreach (var contentType in contentTypes)
+        {
+            var contents = await ContentRepository.GetListAsync(
+                pageId: page.Id, contentTypeId: contentType.Id, cancellationToken: cancellationToken);
+
+            foreach (var content in contents)
+            {
+                await ContentRepository.DeleteAsync(content, cancellationToken: cancellationToken);
+            }
+
+            await ContentTypeRepository.DeleteAsync(contentType, cancellationToken: cancellationToken);
+        }
+
+        await PageRepository.DeleteAsync(page, cancellationToken: cancellationToken);
     }
 
     public virtual async Task<Page> CreateAsync(

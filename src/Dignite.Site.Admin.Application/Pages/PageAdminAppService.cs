@@ -28,6 +28,12 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
         return ObjectMapper.Map<Page, PageDto>(page);
     }
 
+    public virtual async Task<PageDto?> FindByNameAsync(string name)
+    {
+        var page = await PageRepository.FindByNameAsync(name);
+        return page == null ? null : ObjectMapper.Map<Page, PageDto>(page);
+    }
+
     public virtual async Task<PagedResultDto<PageDto>> GetListAsync(GetPageListInput input)
     {
         var totalCount = await PageRepository.GetCountAsync(isActive: input.IsActive, filter: input.Filter);
@@ -66,8 +72,11 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
     [Authorize(AdminPermissions.Pages.Delete)]
     public virtual async Task DeleteAsync(Guid id)
     {
-        // Cascades to this page's content types and contents at the database level (总体设计 §2.5) - no
-        // guard to run here, unlike ContentTypeAdminAppService.DeleteAsync.
-        await PageRepository.DeleteAsync(id);
+        // Through the manager, which removes the content types and contents beneath the page itself. The
+        // database's cascading foreign keys do not do it: these entities are soft-deleted, so a delete is
+        // an UPDATE and ON DELETE CASCADE never fires (see PageManager.DeleteAsync).
+        var page = await PageRepository.GetAsync(id);
+
+        await PageManager.DeleteAsync(page);
     }
 }

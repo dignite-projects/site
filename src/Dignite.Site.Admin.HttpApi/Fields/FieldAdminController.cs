@@ -29,6 +29,14 @@ public class FieldAdminController : AdminController, IFieldAdminAppService
         return FieldAdminAppService.GetAsync(id);
     }
 
+    /// <summary>A query parameter rather than a route segment - see <c>PageAdminController</c>.</summary>
+    [HttpGet]
+    [Route("by-name")]
+    public virtual Task<FieldDto?> FindByNameAsync(string name)
+    {
+        return FieldAdminAppService.FindByNameAsync(name);
+    }
+
     [HttpGet]
     public virtual Task<PagedResultDto<FieldDto>> GetListAsync(GetFieldListInput input)
     {

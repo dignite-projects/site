@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Dignite.Site.Mcp;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -16,7 +17,11 @@ namespace Dignite.Site.EntityFrameworkCore;
 [DependsOn(
     typeof(SiteApplicationTestModule),
     typeof(SiteEntityFrameworkCoreModule),
-    typeof(AbpEntityFrameworkCoreSqliteModule)
+    typeof(AbpEntityFrameworkCoreSqliteModule),
+    // The MCP tools, so they can be resolved and called directly. Nothing here starts an HTTP server -
+    // the module's transport and endpoint registrations are inert without one, and the tools themselves
+    // are plain services.
+    typeof(SiteMcpModule)
 )]
 public class SiteEntityFrameworkCoreTestModule : AbpModule
 {

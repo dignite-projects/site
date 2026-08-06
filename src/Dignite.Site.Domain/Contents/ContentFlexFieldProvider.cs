@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Site.ContentTypes;
-using Dignite.Site.Fields;
 using Volo.Abp.DependencyInjection;
 
 namespace Dignite.Site.Contents;
@@ -35,17 +33,17 @@ public class ContentFlexFieldProvider : IFlexFieldProvider<Content>, ITransientD
 {
     protected IContentTypeRepository ContentTypeRepository { get; }
 
-    protected IFieldRepository FieldRepository { get; }
+    protected ContentTypeFieldResolver FieldResolver { get; }
 
     protected IContentRepository ContentRepository { get; }
 
     public ContentFlexFieldProvider(
         IContentTypeRepository contentTypeRepository,
-        IFieldRepository fieldRepository,
+        ContentTypeFieldResolver fieldResolver,
         IContentRepository contentRepository)
     {
         ContentTypeRepository = contentTypeRepository;
-        FieldRepository = fieldRepository;
+        FieldResolver = fieldResolver;
         ContentRepository = contentRepository;
     }
 
@@ -54,34 +52,26 @@ public class ContentFlexFieldProvider : IFlexFieldProvider<Content>, ITransientD
         CancellationToken cancellationToken = default)
     {
         var contentType = await ContentTypeRepository.FindAsync(entity.ContentTypeId, cancellationToken: cancellationToken);
-        if (contentType == null || contentType.Fields.Count == 0)
+        if (contentType == null)
         {
             return Array.Empty<FlexFieldValue>();
         }
 
-        var definitions = (await FieldRepository.GetListAsync(contentType.GetFieldIds(), cancellationToken))
-            .ToDictionary(f => f.Id);
+        // Sources 1 and 2. The resolver keeps the content type's own order, and drops usages whose
+        // definition has since been deleted - both of which this method used to do inline, and both of
+        // which the site-schema document handed to an AI client now inherits unchanged.
+        var resolved = await FieldResolver.ResolveAsync(contentType, cancellationToken);
 
-        var values = new List<FlexFieldValue>(contentType.Fields.Count);
+        var values = new List<FlexFieldValue>(resolved.Count);
 
-        // Content type order, not definition order: this list is also what an editor form and an MCP
-        // tool description are built from, and the arrangement is the content type's to decide.
-        foreach (var usage in contentType.Fields)
+        foreach (var field in resolved)
         {
-            // A usage whose definition has been deleted is skipped rather than treated as an error. It
-            // is reachable in normal operation - deleting a field does not rewrite every content type
-            // that referenced it - and the alternative would make every content of an affected type
-            // unreadable until someone tidied up.
-            if (!definitions.TryGetValue(usage.FieldId, out var definition))
-            {
-                continue;
-            }
-
+            // Source 3, the only one that is this provider's own business.
             values.Add(new FlexFieldValue(
-                definition.ToFlexFieldData(),
-                usage.Required,
-                usage.Searchable,
-                entity.GetField(definition.Name)));
+                field.Definition.ToFlexFieldData(),
+                field.Usage.Required,
+                field.Usage.Searchable,
+                entity.GetField(field.Definition.Name)));
         }
 
         return values;

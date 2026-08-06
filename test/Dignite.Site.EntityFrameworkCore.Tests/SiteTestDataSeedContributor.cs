@@ -107,7 +107,7 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
 
         // The dated variant of §3.3, so route resolution is exercised against both patterns.
         await _pageRepository.InsertAsync(
-            new Page(SiteTestData.NewsPageId, "news", "News", "/news", "{date:yyyy/MM}/{slug}"), autoSave: true);
+            new Page(SiteTestData.NewsPageId, "news", "News", "/news", "{publishTime:yyyy/MM}/{slug}"), autoSave: true);
 
         await _contentTypeRepository.InsertAsync(
             new ContentType(

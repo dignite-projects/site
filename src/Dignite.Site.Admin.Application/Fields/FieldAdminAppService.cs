@@ -35,6 +35,12 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
         return MapToDto(field);
     }
 
+    public virtual async Task<FieldDto?> FindByNameAsync(string name)
+    {
+        var field = await FieldRepository.FindByNameAsync(name);
+        return field == null ? null : MapToDto(field);
+    }
+
     public virtual async Task<PagedResultDto<FieldDto>> GetListAsync(GetFieldListInput input)
     {
         var totalCount = await FieldRepository.GetCountAsync(groupId: input.GroupId, filter: input.Filter);

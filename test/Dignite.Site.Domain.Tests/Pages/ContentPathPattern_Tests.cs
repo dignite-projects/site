@@ -24,10 +24,10 @@ public class ContentPathPattern_Tests
     [Fact]
     public void Should_Build_Dated_Path()
     {
-        ContentPathPattern.Build("{date:yyyy/MM}/{slug}", PublishTime, "my-post")
+        ContentPathPattern.Build("{publishTime:yyyy/MM}/{slug}", PublishTime, "my-post")
             .ShouldBe("2026/07/my-post");
 
-        ContentPathPattern.Build("{date:yyyy/MM/dd}/{slug}", PublishTime, "my-post")
+        ContentPathPattern.Build("{publishTime:yyyy/MM/dd}/{slug}", PublishTime, "my-post")
             .ShouldBe("2026/07/15/my-post");
     }
 
@@ -38,15 +38,15 @@ public class ContentPathPattern_Tests
     public void Should_Build_Empty_Path_For_Empty_Slug()
     {
         ContentPathPattern.Build("{slug}", PublishTime, "").ShouldBe("");
-        ContentPathPattern.Build("{date:yyyy/MM}/{slug}", PublishTime, null).ShouldBe("");
+        ContentPathPattern.Build("{publishTime:yyyy/MM}/{slug}", PublishTime, null).ShouldBe("");
     }
 
     [Theory]
     [InlineData("{slug}", "my-post")]
-    [InlineData("{date:yyyy}/{slug}", "my-post")]
-    [InlineData("{date:yyyy/MM}/{slug}", "my-post")]
-    [InlineData("{date:yyyy/MM/dd}/{slug}", "hello-world-2026")]
-    [InlineData("archive/{date:yyyy-MM}/{slug}", "my-post")]
+    [InlineData("{publishTime:yyyy}/{slug}", "my-post")]
+    [InlineData("{publishTime:yyyy/MM}/{slug}", "my-post")]
+    [InlineData("{publishTime:yyyy/MM/dd}/{slug}", "hello-world-2026")]
+    [InlineData("archive/{publishTime:yyyy-MM}/{slug}", "my-post")]
     public void Should_Round_Trip(string pattern, string slug)
     {
         var path = ContentPathPattern.Build(pattern, PublishTime, slug);
@@ -63,7 +63,7 @@ public class ContentPathPattern_Tests
     [Fact]
     public void Should_Extract_Slug_Regardless_Of_Which_Date_Matched()
     {
-        ContentPathPattern.TryExtractSlug("{date:yyyy/MM}/{slug}", "1999/01/my-post", out var slug)
+        ContentPathPattern.TryExtractSlug("{publishTime:yyyy/MM}/{slug}", "1999/01/my-post", out var slug)
             .ShouldBeTrue();
         slug.ShouldBe("my-post");
     }
@@ -75,25 +75,42 @@ public class ContentPathPattern_Tests
         ContentPathPattern.TryExtractSlug("{slug}", "2026/07/my-post", out _).ShouldBeFalse();
 
         // ...and the reverse: a bare slug is not a valid dated path.
-        ContentPathPattern.TryExtractSlug("{date:yyyy/MM}/{slug}", "my-post", out _).ShouldBeFalse();
+        ContentPathPattern.TryExtractSlug("{publishTime:yyyy/MM}/{slug}", "my-post", out _).ShouldBeFalse();
     }
 
     [Fact]
     public void Should_Not_Match_Malformed_Date_Segment()
     {
-        ContentPathPattern.TryExtractSlug("{date:yyyy/MM}/{slug}", "20xx/07/my-post", out _).ShouldBeFalse();
-        ContentPathPattern.TryExtractSlug("{date:yyyy/MM}/{slug}", "2026/7x/my-post", out _).ShouldBeFalse();
+        ContentPathPattern.TryExtractSlug("{publishTime:yyyy/MM}/{slug}", "20xx/07/my-post", out _).ShouldBeFalse();
+        ContentPathPattern.TryExtractSlug("{publishTime:yyyy/MM}/{slug}", "2026/7x/my-post", out _).ShouldBeFalse();
     }
 
     [Fact]
     public void Should_Reject_Pattern_Without_Slug_Placeholder()
     {
-        ContentPathPattern.IsValid("{date:yyyy/MM}").ShouldBeFalse();
+        ContentPathPattern.IsValid("{publishTime:yyyy/MM}").ShouldBeFalse();
         ContentPathPattern.IsValid("").ShouldBeFalse();
         ContentPathPattern.IsValid(null).ShouldBeFalse();
 
         ContentPathPattern.IsValid("{slug}").ShouldBeTrue();
-        ContentPathPattern.IsValid("{date:yyyy}/{slug}").ShouldBeTrue();
+        ContentPathPattern.IsValid("{publishTime:yyyy}/{slug}").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// A token this class does not understand must fail validation rather than silently becoming literal
+    /// text. Without this, {year}/{month}/{slug} - a plausible guess at the placeholder vocabulary, and
+    /// exactly what an earlier MCP tool description told a model to write - would pass IsValid, then
+    /// Build would bake the literal string "{year}" into every URL, which would never resolve.
+    /// </summary>
+    [Fact]
+    public void Should_Reject_A_Pattern_With_An_Unrecognized_Placeholder()
+    {
+        ContentPathPattern.IsValid("{year}/{month}/{slug}").ShouldBeFalse();
+        ContentPathPattern.IsValid("{slug}/{oops}").ShouldBeFalse();
+        ContentPathPattern.IsValid("{publishTim:yyyy}/{slug}").ShouldBeFalse();
+
+        // A stray, unmatched brace is caught the same way - it cannot be a recognized placeholder either.
+        ContentPathPattern.IsValid("{slug}/{").ShouldBeFalse();
     }
 
     /// <summary>

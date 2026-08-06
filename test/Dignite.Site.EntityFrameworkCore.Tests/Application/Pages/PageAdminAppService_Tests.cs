@@ -1,4 +1,6 @@
 using System.Threading.Tasks;
+using Dignite.Site.Admin.ContentTypes;
+using Dignite.Site.Admin.Contents;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
 using Volo.Abp.Domain.Entities;
@@ -9,10 +11,14 @@ namespace Dignite.Site.Admin.Pages;
 public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly IPageAdminAppService _pageAppService;
+    private readonly IContentTypeAdminAppService _contentTypeAppService;
+    private readonly IContentAdminAppService _contentAppService;
 
     public PageAdminAppService_Tests()
     {
         _pageAppService = GetRequiredService<IPageAdminAppService>();
+        _contentTypeAppService = GetRequiredService<IContentTypeAdminAppService>();
+        _contentAppService = GetRequiredService<IContentAdminAppService>();
     }
 
     [Fact]
@@ -53,6 +59,41 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         await _pageAppService.DeleteAsync(created.Id);
 
         await Should.ThrowAsync<EntityNotFoundException>(() => _pageAppService.GetAsync(created.Id));
+    }
+
+    /// <summary>
+    /// <c>PageManager.DeleteAsync</c>'s cascade (总体设计 §2.5), pinned here at the app-service surface -
+    /// not only through the MCP <c>delete_page</c> tool, which calls the very same manager method. The
+    /// seeded "blog" page carries two content types (<c>post-article</c>, <c>post-gallery</c>) and three
+    /// contents between them, which is exactly the shape that exercises the manager's nested loop; the
+    /// database's own foreign keys cannot do this cascade because these entities are soft-deleted, so a
+    /// delete is an UPDATE and a declared ON DELETE CASCADE never fires.
+    /// </summary>
+    [Fact]
+    public async Task Should_Cascade_Delete_Its_Content_Types_And_Contents_When_A_Page_Is_Deleted()
+    {
+        var tripContent = await _contentAppService.FindBySlugAsync(
+            SiteTestData.BlogPageId, SiteTestData.EnglishCulture, SiteTestData.TripSlug);
+        tripContent.ShouldNotBeNull();
+
+        var galleryContent = await _contentAppService.FindBySlugAsync(
+            SiteTestData.BlogPageId, SiteTestData.EnglishCulture, SiteTestData.GallerySlug);
+        galleryContent.ShouldNotBeNull();
+
+        await _pageAppService.DeleteAsync(SiteTestData.BlogPageId);
+
+        await Should.ThrowAsync<EntityNotFoundException>(() => _pageAppService.GetAsync(SiteTestData.BlogPageId));
+        await Should.ThrowAsync<EntityNotFoundException>(
+            () => _contentTypeAppService.GetAsync(SiteTestData.PostArticleTypeId));
+        await Should.ThrowAsync<EntityNotFoundException>(
+            () => _contentTypeAppService.GetAsync(SiteTestData.PostGalleryTypeId));
+        await Should.ThrowAsync<EntityNotFoundException>(() => _contentAppService.GetAsync(tripContent!.Id));
+        await Should.ThrowAsync<EntityNotFoundException>(() => _contentAppService.GetAsync(galleryContent!.Id));
+
+        // Unrelated pages, and their own content types, must survive - the cascade is scoped to this
+        // page's own subtree and must not overreach past it.
+        (await _pageAppService.GetAsync(SiteTestData.AboutPageId)).ShouldNotBeNull();
+        (await _contentTypeAppService.GetAsync(SiteTestData.NewsItemTypeId)).ShouldNotBeNull();
     }
 
     [Fact]

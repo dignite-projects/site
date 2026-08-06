@@ -41,7 +41,7 @@ public class Page_Tests
     [Fact]
     public void Should_Build_Dated_Content_Path()
     {
-        var page = NewPage("/news", "{date:yyyy/MM}/{slug}");
+        var page = NewPage("/news", "{publishTime:yyyy/MM}/{slug}");
 
         page.BuildContentPath(PublishTime, "my-post").ShouldBe("/news/2026/07/my-post");
     }
@@ -70,7 +70,7 @@ public class Page_Tests
     [Fact]
     public void Should_Reject_Content_Path_Pattern_Without_Slug()
     {
-        Should.Throw<InvalidContentPathPatternException>(() => NewPage("/news", "{date:yyyy/MM}"));
+        Should.Throw<InvalidContentPathPatternException>(() => NewPage("/news", "{publishTime:yyyy/MM}"));
     }
 
     private static Page NewPage(string route, string? contentPathPattern = null)
