@@ -11,7 +11,7 @@ namespace Dignite.Site.Fields;
 /// the meantime.
 /// <para>
 /// Only the technical <c>Name</c> is protected. <c>DisplayName</c>, <c>Description</c>,
-/// <c>FieldTypeName</c>, <c>Configuration</c> and <c>GroupId</c> stay fully editable through
+/// <c>FieldTypeName</c>, <c>Configuration</c> and <c>GroupName</c> stay fully editable through
 /// <c>FieldManager.UpdateAsync</c>.
 /// </para>
 /// </summary>

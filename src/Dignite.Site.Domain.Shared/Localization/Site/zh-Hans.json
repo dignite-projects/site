@@ -25,13 +25,11 @@
     "Permission:ContentTypes": "内容类型",
     "Permission:Fields": "字段",
     "Permission:Fields.Rename": "重命名",
-    "Permission:FieldGroups": "字段分组",
     "Permission:Contents": "内容",
     "Permission:Create": "新建",
     "Permission:Update": "编辑",
     "Permission:Delete": "删除",
 
-    "ContentTypeStillHasContents": "该内容类型下仍有内容，请先删除或迁移这些内容。",
-    "FieldGroupNameAlreadyExists": "已存在名为 '{0}' 的字段分组。"
+    "ContentTypeStillHasContents": "该内容类型下仍有内容，请先删除或迁移这些内容。"
   }
 }

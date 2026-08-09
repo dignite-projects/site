@@ -41,15 +41,11 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
         return field == null ? null : MapToDto(field);
     }
 
-    public virtual async Task<PagedResultDto<FieldDto>> GetListAsync(GetFieldListInput input)
+    public virtual async Task<ListResultDto<FieldDto>> GetListAsync(GetFieldListInput input)
     {
-        var totalCount = await FieldRepository.GetCountAsync(groupId: input.GroupId, filter: input.Filter);
+        var fields = await FieldRepository.GetListAsync(filter: input.Filter);
 
-        var fields = await FieldRepository.GetListAsync(
-            groupId: input.GroupId, filter: input.Filter, maxResultCount: input.MaxResultCount,
-            skipCount: input.SkipCount, sorting: input.Sorting);
-
-        return new PagedResultDto<FieldDto>(totalCount, fields.Select(MapToDto).ToList());
+        return new ListResultDto<FieldDto>(fields.Select(MapToDto).ToList());
     }
 
     [Authorize(AdminPermissions.Fields.Create)]
@@ -57,7 +53,7 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
     {
         var field = await FieldManager.CreateAsync(
             input.Name, input.DisplayName, input.FieldTypeName, input.Description,
-            input.Configuration.ToFieldConfiguration(), input.GroupId);
+            input.Configuration.ToFieldConfiguration(), input.GroupName);
 
         return MapToDto(field);
     }
@@ -69,7 +65,7 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
 
         field = await FieldManager.UpdateAsync(
             field, input.DisplayName, input.FieldTypeName, input.Description,
-            input.Configuration.ToFieldConfiguration(), input.GroupId);
+            input.Configuration.ToFieldConfiguration(), input.GroupName);
 
         return MapToDto(field);
     }

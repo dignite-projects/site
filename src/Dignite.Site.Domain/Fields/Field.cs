@@ -14,7 +14,7 @@ namespace Dignite.Site.Fields;
 /// configuration, validation, the value bag, the query index, rename migration) comes from that kernel,
 /// and this entity plus <c>Content</c>'s bag plus one provider is the entire surface Site has to write
 /// for it (§8.2). Everything <c>IFlexField</c> declares is mapped by the kernel's
-/// <c>ConfigureFlexField&lt;Field&gt;()</c>, including the column lengths; <see cref="GroupId"/> is the
+/// <c>ConfigureFlexField&lt;Field&gt;()</c>, including the column lengths; <see cref="GroupName"/> is the
 /// one property Site adds on top, and the one Site maps itself.
 /// </para>
 /// <para>
@@ -42,7 +42,7 @@ public class Field : FullAuditedAggregateRoot<Guid>, IFlexField, IMultiTenant
         string fieldTypeName,
         string? description = null,
         FieldConfigurationDictionary? configuration = null,
-        Guid? groupId = null,
+        string? groupName = null,
         Guid? tenantId = null)
         : base(id)
     {
@@ -50,7 +50,7 @@ public class Field : FullAuditedAggregateRoot<Guid>, IFlexField, IMultiTenant
         SetDisplayName(displayName);
         SetFieldTypeName(fieldTypeName);
         SetDescription(description);
-        SetGroupId(groupId);
+        SetGroupName(groupName);
         Configuration = configuration ?? new FieldConfigurationDictionary();
         TenantId = tenantId;
     }
@@ -88,8 +88,15 @@ public class Field : FullAuditedAggregateRoot<Guid>, IFlexField, IMultiTenant
     /// <summary>
     /// Optional library grouping - Site' own, not part of <c>IFlexField</c>. Purely organizational
     /// (总体设计 §2.3): it makes a large field library navigable and has no effect at runtime.
+    /// <para>
+    /// A plain string, not a reference to a group entity. Grouping carries no behaviour, no ordering and
+    /// no rules of its own, so a table for it bought nothing that a column does not - while costing an
+    /// aggregate root, a repository, an application service, a controller, four permissions and a foreign
+    /// key. Naming the group here also lets an editor file a field under a new group by typing it, with
+    /// no separate "create the group first" step.
+    /// </para>
     /// </summary>
-    public virtual Guid? GroupId { get; protected set; }
+    public virtual string? GroupName { get; protected set; }
 
     public virtual Guid? TenantId { get; protected set; }
 
@@ -126,12 +133,16 @@ public class Field : FullAuditedAggregateRoot<Guid>, IFlexField, IMultiTenant
     }
 
     /// <summary>
-    /// Assigns the library group. <see cref="Guid.Empty"/> is treated as "no group" - it is what an
-    /// unset value arrives as from a form post or a JSON payload, and storing it would leave a foreign
-    /// key pointing at a group that cannot exist.
+    /// Assigns the library group, trimmed. Blank is normalized to null - an unset group arrives as an
+    /// empty string from a form post or a JSON payload, and storing that would make "" and null two
+    /// spellings of "ungrouped" that group differently in any listing.
     /// </summary>
-    public virtual void SetGroupId(Guid? groupId)
+    public virtual void SetGroupName(string? groupName)
     {
-        GroupId = groupId.HasValue && groupId.Value != Guid.Empty ? groupId : null;
+        var trimmed = groupName?.Trim();
+
+        Check.Length(trimmed, nameof(groupName), FieldConsts.MaxGroupNameLength);
+
+        GroupName = string.IsNullOrEmpty(trimmed) ? null : trimmed;
     }
 }

@@ -38,7 +38,7 @@ public class FieldAdminController : AdminController, IFieldAdminAppService
     }
 
     [HttpGet]
-    public virtual Task<PagedResultDto<FieldDto>> GetListAsync(GetFieldListInput input)
+    public virtual Task<ListResultDto<FieldDto>> GetListAsync(GetFieldListInput input)
     {
         return FieldAdminAppService.GetListAsync(input);
     }

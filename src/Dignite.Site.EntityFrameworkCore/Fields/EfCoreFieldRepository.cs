@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Dynamic.Core;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields.EntityFrameworkCore;
@@ -33,32 +32,17 @@ public class EfCoreFieldRepository : EfCoreFlexFieldRepositoryBase<ISiteDbContex
     }
 
     public virtual async Task<List<Field>> GetListAsync(
-        Guid? groupId = null,
         string? filter = null,
-        int maxResultCount = int.MaxValue,
-        int skipCount = 0,
-        string? sorting = null,
         CancellationToken cancellationToken = default)
     {
-        return await (await GetFilteredQueryableAsync(groupId, filter))
-            .OrderBy(sorting.IsNullOrWhiteSpace() ? $"{nameof(Field.Name)} asc" : sorting!)
-            .PageBy(skipCount, maxResultCount)
+        return await (await GetFilteredQueryableAsync(filter))
+            .OrderBy(f => f.Name)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
-    public virtual async Task<int> GetCountAsync(
-        Guid? groupId = null,
-        string? filter = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await (await GetFilteredQueryableAsync(groupId, filter))
-            .CountAsync(GetCancellationToken(cancellationToken));
-    }
-
-    protected virtual async Task<IQueryable<Field>> GetFilteredQueryableAsync(Guid? groupId, string? filter)
+    protected virtual async Task<IQueryable<Field>> GetFilteredQueryableAsync(string? filter)
     {
         return (await GetDbSetAsync())
-            .WhereIf(groupId.HasValue, f => f.GroupId == groupId)
             .WhereIf(
                 !filter.IsNullOrWhiteSpace(),
                 f => f.Name.Contains(filter!) || f.DisplayName.Contains(filter!));

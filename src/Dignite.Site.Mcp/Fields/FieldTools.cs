@@ -39,20 +39,11 @@ public class FieldTools : ITransientDependency
         "before defining a content type: reuse an existing field rather than creating a near-duplicate, " +
         "since widening one definition then benefits every type that pulls it in.")]
     [Authorize(AdminPermissions.Fields.Default)]
-    public virtual Task<PagedResultDto<FieldDto>> ListFieldsAsync(
+    public virtual Task<ListResultDto<FieldDto>> ListFieldsAsync(
         [Description("Free-text filter over name and display name. Omit for all.")]
-        string? filter = null,
-        [Description("How many to skip, for paging.")]
-        int skipCount = 0,
-        [Description("How many to return.")]
-        int maxResultCount = 50)
+        string? filter = null)
     {
-        return FieldAppService.GetListAsync(new GetFieldListInput
-        {
-            Filter = filter,
-            SkipCount = skipCount,
-            MaxResultCount = maxResultCount
-        });
+        return FieldAppService.GetListAsync(new GetFieldListInput { Filter = filter });
     }
 
     [McpServerTool(Name = "list_field_types", Title = "List available field types", ReadOnly = true)]
@@ -122,7 +113,7 @@ public class FieldTools : ITransientDependency
             FieldTypeName = fieldTypeName ?? current.FieldTypeName,
             Description = description ?? current.Description,
             Configuration = configuration ?? current.Configuration,
-            GroupId = current.GroupId
+            GroupName = current.GroupName
         });
     }
 

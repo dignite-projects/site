@@ -17,7 +17,6 @@ public class SiteDbContext : AbpDbContext<SiteDbContext>, ISiteDbContext
 
     public DbSet<Field> Fields { get; set; } = default!;
 
-    public DbSet<FieldGroup> FieldGroups { get; set; } = default!;
 
     public DbSet<Content> Contents { get; set; } = default!;
 

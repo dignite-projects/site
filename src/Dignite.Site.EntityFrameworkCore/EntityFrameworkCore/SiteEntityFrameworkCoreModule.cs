@@ -28,7 +28,6 @@ public class SiteEntityFrameworkCoreModule : AbpModule
             options.AddRepository<Page, EfCorePageRepository>();
             options.AddRepository<ContentType, EfCoreContentTypeRepository>();
             options.AddRepository<Field, EfCoreFieldRepository>();
-            options.AddRepository<FieldGroup, EfCoreFieldGroupRepository>();
             options.AddRepository<Content, EfCoreContentRepository>();
         });
 

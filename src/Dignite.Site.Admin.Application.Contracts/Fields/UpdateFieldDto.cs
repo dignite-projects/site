@@ -20,5 +20,5 @@ public class UpdateFieldDto
 
     public IDictionary<string, object?>? Configuration { get; set; }
 
-    public Guid? GroupId { get; set; }
+    public string? GroupName { get; set; }
 }

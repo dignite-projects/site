@@ -20,5 +20,5 @@ public class FieldDto : FullAuditedEntityDto<Guid>
 
     public IDictionary<string, object?> Configuration { get; set; } = new Dictionary<string, object?>();
 
-    public Guid? GroupId { get; set; }
+    public string? GroupName { get; set; }
 }

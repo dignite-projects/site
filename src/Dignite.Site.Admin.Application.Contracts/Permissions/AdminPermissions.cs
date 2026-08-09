@@ -33,14 +33,6 @@ public class AdminPermissions
         public const string Rename = Default + ".Rename";
     }
 
-    public static class FieldGroups
-    {
-        public const string Default = GroupName + ".FieldGroups";
-        public const string Create = Default + ".Create";
-        public const string Update = Default + ".Update";
-        public const string Delete = Default + ".Delete";
-    }
-
     public static class Contents
     {
         public const string Default = GroupName + ".Contents";

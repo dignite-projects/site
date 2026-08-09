@@ -32,7 +32,6 @@ public class HostDbContext : AbpDbContext<HostDbContext>, ISiteDbContext
 
     public DbSet<Dignite.Site.Fields.Field> Fields { get; set; } = default!;
 
-    public DbSet<Dignite.Site.Fields.FieldGroup> FieldGroups { get; set; } = default!;
 
     public DbSet<Dignite.Site.Contents.Content> Contents { get; set; } = default!;
 

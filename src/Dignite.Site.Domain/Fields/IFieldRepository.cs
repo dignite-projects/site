@@ -19,12 +19,6 @@ namespace Dignite.Site.Fields;
 public interface IFieldRepository : IFlexFieldRepository<Field>
 {
     Task<List<Field>> GetListAsync(
-        Guid? groupId = null,
         string? filter = null,
-        int maxResultCount = int.MaxValue,
-        int skipCount = 0,
-        string? sorting = null,
         CancellationToken cancellationToken = default);
-
-    Task<int> GetCountAsync(Guid? groupId = null, string? filter = null, CancellationToken cancellationToken = default);
 }

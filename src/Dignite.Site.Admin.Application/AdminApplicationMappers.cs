@@ -43,14 +43,6 @@ public partial class FieldToFieldDtoMapper : MapperBase<Field, FieldDto>
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
-public partial class FieldGroupToFieldGroupDtoMapper : MapperBase<FieldGroup, FieldGroupDto>
-{
-    public override partial FieldGroupDto Map(FieldGroup source);
-
-    public override partial void Map(FieldGroup source, FieldGroupDto destination);
-}
-
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class ContentToContentDtoMapper : MapperBase<Content, ContentDto>
 {
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]

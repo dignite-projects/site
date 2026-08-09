@@ -86,7 +86,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
         var renamed = await _fieldTools.RenameFieldAsync("title", "headline");
         renamed.Name.ShouldBe("headline");
 
-        var listed = await _fieldTools.ListFieldsAsync(maxResultCount: 1000);
+        var listed = await _fieldTools.ListFieldsAsync();
         listed.Items.Select(field => field.Name).ShouldContain("headline");
         listed.Items.Select(field => field.Name).ShouldNotContain("title");
 
@@ -132,31 +132,28 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// There are no field-group tools (总体设计 §6.2.3) - group membership is not something an MCP client
-    /// can see or name, so update_field has no <c>groupId</c> parameter and always resubmits the field's
+    /// can see or name, so update_field has no <c>groupName</c> parameter and always resubmits the field's
     /// current group underneath. This pins that behaviour down: an edit to something unrelated must not
-    /// have the side effect of clearing a field's group, which is what the naive nullable-Guid version of
-    /// the "omit means keep" pattern used elsewhere in this method would do (omitted and "clear it" both
-    /// arrive as null with no way to tell them apart).
+    /// have the side effect of clearing a field's group, which is what the naive "omit means keep" pattern
+    /// used elsewhere in this method would do (omitted and "clear it" both arrive as null with no way to
+    /// tell them apart).
     /// </summary>
     [Fact]
     public async Task Should_Keep_A_Fields_Group_Untouched_By_Update_Field()
     {
-        var groupService = GetRequiredService<IFieldGroupAdminAppService>();
-        var group = await groupService.CreateAsync(new CreateFieldGroupDto { Name = "seo", Order = 0 });
-
         var fieldService = GetRequiredService<IFieldAdminAppService>();
         var created = await fieldService.CreateAsync(new CreateFieldDto
         {
             Name = "grouped-field",
             DisplayName = "Grouped field",
             FieldTypeName = "TextEdit",
-            GroupId = group.Id
+            GroupName = "seo"
         });
-        created.GroupId.ShouldBe(group.Id);
+        created.GroupName.ShouldBe("seo");
 
         var updated = await _fieldTools.UpdateFieldAsync(field: "grouped-field", displayName: "Renamed display");
 
-        updated.GroupId.ShouldBe(group.Id, "an unrelated edit must not clear or move the field's group");
+        updated.GroupName.ShouldBe("seo", "an unrelated edit must not clear or move the field's group");
     }
 
     [Fact]
@@ -177,7 +174,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Build_A_Section_From_Nothing_Addressing_Everything_By_Name()
     {
         await _pageTools.CreatePageAsync(
-            name: "docs", displayName: "Docs", route: "/docs", contentPathPattern: "{slug}");
+            name: "docs", displayName: "Docs", route: "/docs/{slug}");
 
         await _fieldTools.CreateFieldAsync(
             name: "doc-title", displayName: "Title", fieldTypeName: "TextEdit");

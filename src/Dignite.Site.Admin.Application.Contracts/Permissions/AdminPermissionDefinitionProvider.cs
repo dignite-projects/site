@@ -26,10 +26,6 @@ public class AdminPermissionDefinitionProvider : PermissionDefinitionProvider
         fields.AddChild(AdminPermissions.Fields.Delete, L("Permission:Delete"));
         fields.AddChild(AdminPermissions.Fields.Rename, L("Permission:Fields.Rename"));
 
-        var fieldGroups = myGroup.AddPermission(AdminPermissions.FieldGroups.Default, L("Permission:FieldGroups"));
-        fieldGroups.AddChild(AdminPermissions.FieldGroups.Create, L("Permission:Create"));
-        fieldGroups.AddChild(AdminPermissions.FieldGroups.Update, L("Permission:Update"));
-        fieldGroups.AddChild(AdminPermissions.FieldGroups.Delete, L("Permission:Delete"));
 
         var contents = myGroup.AddPermission(AdminPermissions.Contents.Default, L("Permission:Contents"));
         contents.AddChild(AdminPermissions.Contents.Create, L("Permission:Create"));

@@ -59,14 +59,12 @@
     "Permission:ContentTypes": "Content Types",
     "Permission:Fields": "Fields",
     "Permission:Fields.Rename": "Rename",
-    "Permission:FieldGroups": "Field Groups",
     "Permission:Contents": "Contents",
     "Permission:Create": "Create",
     "Permission:Update": "Update",
     "Permission:Delete": "Delete",
 
     "ContentTypeStillHasContents": "This content type still has contents; delete or move them first.",
-    "FieldGroupNameAlreadyExists": "A field group named '{0}' already exists.",
 
     "FieldType:Seo": "SEO",
     "Validate:InvalidSeoValue": "The value of '{0}' is not a valid SEO field value.",

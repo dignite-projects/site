@@ -68,21 +68,6 @@ public static class SiteDbContextModelCreatingExtensions
             b.HasIndex(ct => new { ct.TenantId, ct.PageId, ct.Name }).IsUnique();
         });
 
-        builder.Entity<FieldGroup>(b =>
-        {
-            b.ToTable(SiteDbProperties.DbTablePrefix + "FieldGroups", SiteDbProperties.DbSchema);
-            b.ConfigureByConvention();
-
-            b.Property(fg => fg.Name).IsRequired().HasMaxLength(FieldGroupConsts.MaxNameLength);
-
-            // SetNull, not Cascade: a group is a filing decision over the library, so deleting one must
-            // not take the field definitions - and the contents whose values they describe - with it.
-            b.HasMany(fg => fg.Fields).WithOne().HasForeignKey(f => f.GroupId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            b.HasIndex(fg => new { fg.TenantId, fg.Name }).IsUnique();
-        });
-
         builder.Entity<Field>(b =>
         {
             b.ToTable(SiteDbProperties.DbTablePrefix + "Fields", SiteDbProperties.DbSchema);
@@ -93,10 +78,15 @@ public static class SiteDbContextModelCreatingExtensions
             // drift from what is actually applied.
             b.ConfigureFlexField();
 
+            b.Property(f => f.GroupName).HasMaxLength(FieldConsts.MaxGroupNameLength);
+
             // Unique because a field's name doubles as the key its values are stored under in every
             // content's bag - two definitions sharing a name would be two definitions of one stored value.
             b.HasIndex(f => new { f.TenantId, f.Name }).IsUnique();
-            b.HasIndex(f => f.GroupId);
+
+            // Non-unique: grouping is a filing label, so many fields share one. Indexed because the
+            // library listing filters and orders by it.
+            b.HasIndex(f => new { f.TenantId, f.GroupName });
         });
 
         builder.Entity<Content>(b =>

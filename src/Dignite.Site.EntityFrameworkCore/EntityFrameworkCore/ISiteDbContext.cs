@@ -17,7 +17,6 @@ public interface ISiteDbContext : IEfCoreDbContext
 
     DbSet<Field> Fields { get; }
 
-    DbSet<FieldGroup> FieldGroups { get; }
 
     DbSet<Content> Contents { get; }
 

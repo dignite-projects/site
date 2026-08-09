@@ -43,7 +43,7 @@ public class FieldManager : DomainService
         string fieldTypeName,
         string? description = null,
         FieldConfigurationDictionary? configuration = null,
-        Guid? groupId = null,
+        string? groupName = null,
         CancellationToken cancellationToken = default)
     {
         await CheckNameAsync(name, null, cancellationToken);
@@ -55,7 +55,7 @@ public class FieldManager : DomainService
             fieldTypeName,
             description,
             configuration,
-            groupId,
+            groupName,
             CurrentTenant.Id);
 
         return await FieldRepository.InsertAsync(field, cancellationToken: cancellationToken);
@@ -76,7 +76,7 @@ public class FieldManager : DomainService
         string fieldTypeName,
         string? description = null,
         FieldConfigurationDictionary? configuration = null,
-        Guid? groupId = null,
+        string? groupName = null,
         CancellationToken cancellationToken = default)
     {
         var fieldTypeChanged = !string.Equals(field.FieldTypeName, fieldTypeName, StringComparison.Ordinal);
@@ -85,7 +85,7 @@ public class FieldManager : DomainService
         field.SetFieldTypeName(fieldTypeName);
         field.SetDescription(description);
         field.SetConfiguration(configuration);
-        field.SetGroupId(groupId);
+        field.SetGroupName(groupName);
 
         field = await FieldRepository.UpdateAsync(field, cancellationToken: cancellationToken);
 
@@ -176,7 +176,7 @@ public class FieldManager : DomainService
     /// shared table), so its <c>Name</c> is the only cross-tenant "well-known" anchor. Deleting or renaming
     /// it would silently disable whatever platform behavior is keyed on that name, so both are refused
     /// here rather than left to be discovered later. Everything else about the field - DisplayName,
-    /// FieldTypeName, Configuration, GroupId - stays freely editable through <see cref="UpdateAsync"/>.
+    /// FieldTypeName, Configuration, GroupName - stays freely editable through <see cref="UpdateAsync"/>.
     /// </summary>
     protected virtual void CheckNotPlatformPreset(Field field, bool isDelete)
     {

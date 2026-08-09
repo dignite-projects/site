@@ -17,7 +17,7 @@ public interface IFieldAdminAppService : IApplicationService
     /// </summary>
     Task<FieldDto?> FindByNameAsync(string name);
 
-    Task<PagedResultDto<FieldDto>> GetListAsync(GetFieldListInput input);
+    Task<ListResultDto<FieldDto>> GetListAsync(GetFieldListInput input);
 
     Task<FieldDto> CreateAsync(CreateFieldDto input);
 
