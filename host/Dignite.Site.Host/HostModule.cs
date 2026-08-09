@@ -64,7 +64,10 @@ using Volo.Abp.Identity.EntityFrameworkCore;
 using Volo.Abp.FeatureManagement.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Studio.Client.AspNetCore;
+using Volo.Abp.BlobStoring;
+using Volo.Abp.BlobStoring.FileSystem;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Dignite.Site.Public;
 using ModelContextProtocol.AspNetCore.Authentication;
@@ -130,6 +133,11 @@ namespace Dignite.Site.Host;
     typeof(AbpBackgroundJobsEntityFrameworkCoreModule),
     typeof(BlobStoringDatabaseEntityFrameworkCoreModule),
     typeof(AbpEntityFrameworkCoreSqliteModule),
+
+    // The active BLOB storage provider (GitHub issue #41) - filesystem for dev, production provider
+    // still open. ConfigureBlobStoring below is what actually points SiteFileContainerNames.Default at
+    // it; this DependsOn is what makes that provider resolvable at all.
+    typeof(AbpBlobStoringFileSystemModule),
 
     // The Site content kernel - EF Core for HostDbContext's ISiteDbContext replacement (see
     // HostDbContext), the unified Application module so the concrete app service classes are registered,
@@ -233,9 +241,31 @@ public class HostModule : AbpModule
         ConfigureLocalization();
         ConfigureNavigationServices();
         ConfigureEfCore(context);
-        
+        ConfigureBlobStoring(hostingEnvironment);
+
         Configure<RazorPagesOptions>(options =>
         {
+        });
+    }
+
+    /// <summary>
+    /// The backend GitHub issue #41 stood up for Dignite.FileExplorer: filesystem provider for dev, under
+    /// the container name #42's FileExplorer field type points its FileContainerName at. Production
+    /// provider (Azure/S3/other) is still an open decision (#41) - swapping it later only touches this
+    /// method, since FileDescriptorManager/DirectoryManager address blobs by container name, never by
+    /// provider.
+    /// </summary>
+    private void ConfigureBlobStoring(IHostEnvironment hostingEnvironment)
+    {
+        Configure<AbpBlobStoringOptions>(options =>
+        {
+            options.Containers.Configure(SiteFileContainerNames.Default, container =>
+            {
+                container.UseFileSystem(fileSystem =>
+                {
+                    fileSystem.BasePath = Path.Combine(hostingEnvironment.ContentRootPath, "App_Data", "files");
+                });
+            });
         });
     }
 

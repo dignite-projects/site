@@ -1,5 +1,6 @@
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.EntityFrameworkCore;
+using Dignite.FileExplorer.EntityFrameworkCore;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
@@ -15,7 +16,13 @@ namespace Dignite.Site.EntityFrameworkCore;
     typeof(AbpEntityFrameworkCoreModule),
     // Brings the model-builder extensions, the typed index-row shape, and the EF Core base classes the
     // index manager, query executor and field repository derive from.
-    typeof(FlexFieldsEntityFrameworkCoreModule)
+    typeof(FlexFieldsEntityFrameworkCoreModule),
+    // Dignite.FileExplorer's backend, in-process (GitHub issue #41). Registers FileExplorerDbContext,
+    // which shares the host's default connection string the same way Identity/OpenIddict/etc. already do
+    // - nothing here points it at a second database. FileDescriptor/DirectoryDescriptor are plain
+    // IMultiTenant, so whatever ICurrentTenant is active for the request is what a file gets tagged with;
+    // no tenant-mapping code needed.
+    typeof(FileExplorerEntityFrameworkCoreModule)
 )]
 public class SiteEntityFrameworkCoreModule : AbpModule
 {

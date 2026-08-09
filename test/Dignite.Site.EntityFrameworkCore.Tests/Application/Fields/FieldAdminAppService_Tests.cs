@@ -44,6 +44,8 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         names.ShouldContain("Select");
         names.ShouldContain("Switch");
         names.ShouldContain("TreeView");
+        names.ShouldContain("CKEditor");
+        names.ShouldContain("FileExplorer");
     }
 
     [Fact]

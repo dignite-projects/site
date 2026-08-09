@@ -12,6 +12,10 @@
     <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="10.5.0" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.EntityFrameworkCore\Dignite.Abp.FlexFields.EntityFrameworkCore.csproj" />
+    <!-- Dignite.FileExplorer, in-process (GitHub issue #41): its own Domain/Application/EntityFrameworkCore
+         layers carry no auth-stack dependency, so they slot in the same way flex-fields does - only
+         Dignite.FileExplorer.Web.Host is a full standalone app, and Site does not reference that. -->
+    <ProjectReference Include="..\..\..\abp-modules\file-storing\file-explorer\src\Dignite.FileExplorer.EntityFrameworkCore\Dignite.FileExplorer.EntityFrameworkCore.csproj" />
   </ItemGroup>
 
 </Project>

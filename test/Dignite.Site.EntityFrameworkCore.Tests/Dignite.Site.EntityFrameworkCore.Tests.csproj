@@ -17,6 +17,9 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
     <ProjectReference Include="..\Dignite.Site.Application.Tests\Dignite.Site.Application.Tests.csproj" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.5.0"/>
+    <!-- The FileExplorer backend's test container (GitHub issue #41) - same provider as the dev Host,
+         pointed at a temp directory instead of App_Data. -->
+    <PackageReference Include="Volo.Abp.BlobStoring.FileSystem" Version="10.5.0" />
   </ItemGroup>
 
 </Project>

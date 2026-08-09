@@ -95,6 +95,9 @@
     <PackageReference Include="Volo.Abp.TenantManagement.EntityFrameworkCore" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.BackgroundJobs.EntityFrameworkCore" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.BlobStoring.Database.EntityFrameworkCore" Version="10.5.0" />
+    <!-- Dev container for Dignite.FileExplorer (GitHub issue #41) - the production provider is still
+         undecided, filesystem is what unblocks local dev and #42's field-type wiring in the meantime. -->
+    <PackageReference Include="Volo.Abp.BlobStoring.FileSystem" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.FeatureManagement.EntityFrameworkCore" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.PermissionManagement.EntityFrameworkCore" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.SettingManagement.EntityFrameworkCore" Version="10.5.0" />
