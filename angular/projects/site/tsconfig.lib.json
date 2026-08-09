@@ -7,7 +7,9 @@
     "declarationMap": true,
     "inlineSources": true,
     "types": [],
-    "lib": ["dom", "es2018"]
+    // es2022 to match the `target` in tsconfig.prod.json. The scaffold's es2018 left out Array.flatMap
+    // and friends, which the runtime has had for years.
+    "lib": ["dom", "es2022"]
   },
   "exclude": ["src/test.ts", "**/*.spec.ts"]
 }

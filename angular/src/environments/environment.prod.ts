@@ -27,5 +27,9 @@ export const environment = {
       url: oAuthConfig.issuer,
       rootNamespace: 'AbpAccountPublic',
     },
+    SiteAdmin: {
+      url: 'https://localhost:44315',
+      rootNamespace: 'Dignite.Site.Admin',
+    },
   },
 } as Environment;

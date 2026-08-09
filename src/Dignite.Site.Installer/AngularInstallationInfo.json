@@ -11,7 +11,7 @@
           } 
         ],
         "routes":[
-          "{ path: 'site', children: SITE_ROUTES, canActivate: [authGuard] }"
+          "{ path: 'site', loadChildren: () => import('@dignite/site').then(c => c.SITE_ROUTES) }"
         ]
       },
       "appModuleConfiguration":{
@@ -27,6 +27,20 @@
           "provideSite()"
         ]
       },
+      "npmPackages":[
+        {
+          "name": "@dignite/ng.flex-fields",
+          "note": "Not published to npm. Consumed as a file: dependency pointing at the sibling repo's built output; requires preserveSymlinks in tsconfig and angular.json so its @angular/* resolve to the host's copies."
+        },
+        {
+          "name": "ng-zorro-antd",
+          "note": "Peer dependency of @dignite/ng.flex-fields (its TreeView control uses nz-tree-select)."
+        },
+        {
+          "name": "@angular/cdk",
+          "note": "Peer dependency of @dignite/ng.flex-fields; also used by the content type field arrangement's drag and drop."
+        }
+      ],
       "tsJsonPathRecordConfigurations":[
         {
           "name": "@dignite/site",

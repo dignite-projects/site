@@ -1,6 +1,10 @@
 /* You can add global styles to this file, and also import other style files */
 
-
+// Angular CDK overlays (nz-select's dropdown, etc.) default to z-index 1000, below ngb-modal's 1055 -
+// a dropdown opened from a field inside an abp-modal would render behind it and swallow clicks.
+.cdk-overlay-container {
+  z-index: 1060;
+}
 
 :root {
   --lpx-theme-light-bg: url('assets/images/login/login-bg-img-light.svg');

@@ -13,7 +13,12 @@
     "target": "ES2022",
     "module": "ES2022",
     "lib": ["ES2022", "dom", "esnext.disposable"],
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    // `@dignite/ng.flex-fields` is a `file:` dependency, so npm symlinks it to a sibling repo. Without
+    // this, TypeScript resolves through the symlink and picks up *that* repo's `@angular/*` packages,
+    // giving two nominally distinct copies of every Angular class - extending `FieldTypeControlBase`
+    // then fails with "AbstractControl is not assignable to AbstractControl".
+    "preserveSymlinks": true
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false

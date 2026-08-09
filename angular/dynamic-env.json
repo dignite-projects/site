@@ -16,6 +16,10 @@
     "default": {
       "url": "https://localhost:44315",
       "rootNamespace": "Dignite.Site.Host"
+    },
+    "SiteAdmin": {
+      "url": "https://localhost:44315",
+      "rootNamespace": "Dignite.Site.Admin"
     }
   }
 }

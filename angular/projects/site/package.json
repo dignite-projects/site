@@ -7,6 +7,9 @@
     "@abp/ng.theme.shared": "~10.5.0",
     "@abp/ng.components":"~10.5.0",
     "@volo/abp.commercial.ng.ui": "~10.5.0",
+    "@dignite/ng.flex-fields": "^10.0.0-rc.4",
+    "@swimlane/ngx-datatable": "~22.0.0",
+    "@angular/cdk": "~21.2.0",
     "tslib": "^2.1.0"
   }
 }
