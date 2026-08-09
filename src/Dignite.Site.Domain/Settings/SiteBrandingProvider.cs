@@ -10,7 +10,7 @@ namespace Dignite.Site.Settings;
 
 /// <summary>
 /// Replaces ABP's hard-coded <c>DefaultBrandingProvider</c> with the tenant's own name/logo (总体设计
-/// §4.1) - what JSON-LD's Organization/WebSite nodes name themselves after (GitHub issue #20).
+/// §4.1).
 /// <para>
 /// Lives in <c>Dignite.Site.Domain</c> rather than a specific host project: <see cref="SiteSettings.Branding"/>
 /// is defined right here, and ABP's conventional registrar picks up a
