@@ -18,42 +18,8 @@ public class ContentTypeField_Tests
     [Fact]
     public void Should_Be_Equal_When_Every_Property_Matches()
     {
-        var a = new ContentTypeField(FieldId, required: true, searchable: true, showInList: true, displayName: "Title", order: 1, schemaProperty: "headline");
-        var b = new ContentTypeField(FieldId, required: true, searchable: true, showInList: true, displayName: "Title", order: 1, schemaProperty: "headline");
-
-        a.ShouldBe(b);
-        a.GetHashCode().ShouldBe(b.GetHashCode());
-    }
-
-    /// <summary>
-    /// The regression this class exists to guard: two usages differing only in <c>SchemaProperty</c> must
-    /// not compare equal, or a tenant mapping a field to a schema.org property and saving would silently
-    /// fail to persist.
-    /// </summary>
-    [Fact]
-    public void Should_Not_Be_Equal_When_Only_SchemaProperty_Differs()
-    {
-        var a = new ContentTypeField(FieldId, order: 0, schemaProperty: "headline");
-        var b = new ContentTypeField(FieldId, order: 0, schemaProperty: "datePublished");
-
-        a.ShouldNotBe(b);
-        a.GetHashCode().ShouldNotBe(b.GetHashCode());
-    }
-
-    [Fact]
-    public void Should_Not_Be_Equal_When_One_SchemaProperty_Is_Null()
-    {
-        var withMapping = new ContentTypeField(FieldId, order: 0, schemaProperty: "headline");
-        var withoutMapping = new ContentTypeField(FieldId, order: 0, schemaProperty: null);
-
-        withMapping.ShouldNotBe(withoutMapping);
-    }
-
-    [Fact]
-    public void Should_Be_Equal_When_Both_SchemaProperty_Are_Null()
-    {
-        var a = new ContentTypeField(FieldId, order: 0);
-        var b = new ContentTypeField(FieldId, order: 0);
+        var a = new ContentTypeField(FieldId, required: true, searchable: true, showInList: true, displayName: "Title", order: 1);
+        var b = new ContentTypeField(FieldId, required: true, searchable: true, showInList: true, displayName: "Title", order: 1);
 
         a.ShouldBe(b);
         a.GetHashCode().ShouldBe(b.GetHashCode());

@@ -59,12 +59,4 @@ public class SiteSchemaFieldDto
     /// </para>
     /// </summary>
     public bool ShowInList { get; set; }
-
-    /// <summary>
-    /// The schema.org property this usage maps to, e.g. <c>headline</c> (总体设计 §5.4). Null means the
-    /// field plays no part in the content type's JSON-LD. Round-trips for the same reason as
-    /// <see cref="ShowInList"/> - without it, editing a content type would quietly strip the JSON-LD
-    /// mapping off every one of its fields.
-    /// </summary>
-    public string? SchemaProperty { get; set; }
 }

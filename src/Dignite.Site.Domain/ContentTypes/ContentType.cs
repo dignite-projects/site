@@ -75,13 +75,6 @@ public class ContentType : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// </summary>
     public virtual IReadOnlyList<ContentTypeField> Fields => _fields;
 
-    /// <summary>
-    /// The schema.org type contents of this content type represent, if any (总体设计 §5.4, GitHub issue
-    /// #20). <see cref="SchemaOrgType.None"/> by default - a content type opts in explicitly, the same way
-    /// it opts into the SEO field group (§5.3) rather than getting either by default.
-    /// </summary>
-    public virtual SchemaOrgType SchemaType { get; protected set; } = SchemaOrgType.None;
-
     public virtual Guid? TenantId { get; protected set; }
 
     public virtual void SetName(string name)
@@ -97,11 +90,6 @@ public class ContentType : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual void SetDescription(string? description)
     {
         Description = description;
-    }
-
-    public virtual void SetSchemaType(SchemaOrgType schemaType)
-    {
-        SchemaType = schemaType;
     }
 
     /// <summary>

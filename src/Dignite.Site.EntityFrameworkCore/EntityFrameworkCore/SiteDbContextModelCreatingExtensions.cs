@@ -50,7 +50,6 @@ public static class SiteDbContextModelCreatingExtensions
             b.Property(ct => ct.Name).IsRequired().HasMaxLength(ContentTypeConsts.MaxNameLength);
             b.Property(ct => ct.DisplayName).IsRequired().HasMaxLength(ContentTypeConsts.MaxDisplayNameLength);
             b.Property(ct => ct.Description).HasMaxLength(ContentTypeConsts.MaxDescriptionLength);
-            b.Property(ct => ct.SchemaType).IsRequired().HasDefaultValue(SchemaOrgType.None);
 
             // The field arrangement is read as a whole with its type and never queried across types, so
             // it is a JSON column rather than a table. Mapped through the backing field because the

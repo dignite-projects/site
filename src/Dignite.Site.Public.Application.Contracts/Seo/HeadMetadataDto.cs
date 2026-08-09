@@ -3,12 +3,14 @@ using System.Collections.Generic;
 namespace Dignite.Site.Public.Seo;
 
 /// <summary>
-/// Everything a renderer needs to put in one resolved route's <c>&lt;head&gt;</c> (总体设计 §5.3, §5.4,
-/// §5.5, §5.9 - GitHub issues #13, #16, #17, #20).
+/// Everything a renderer needs to put in one resolved route's <c>&lt;head&gt;</c> (总体设计 §5.3, §5.5,
+/// §5.9 - GitHub issues #13, #16, #17). JSON-LD is deliberately not part of this contract (总体设计 §5.4
+/// decision) - a renderer that wants structured data builds it itself from the same content and field
+/// data, rather than being bound to a schema.org mapping this backend decided on its behalf.
 /// <para>
 /// Plain strings and lists only, the same minimal-custom-shape principle <c>SiteDocument</c> already
-/// follows for sitemap/robots/feed - no <c>SeoTags</c> or <c>Schema.NET</c> type appears here, since this
-/// project never references <c>Dignite.Site.Domain</c> or those packages.
+/// follows for sitemap/robots/feed - no <c>SeoTags</c> type appears here, since this project never
+/// references <c>Dignite.Site.Domain</c> or that package.
 /// </para>
 /// </summary>
 public class HeadMetadataDto
@@ -34,19 +36,4 @@ public class HeadMetadataDto
     public List<HreflangAlternateDto> HreflangAlternates { get; set; } = new();
 
     public string? XDefaultUrl { get; set; }
-
-    /// <summary>
-    /// The commonly-expected schema.org properties for this content's mapped type that came back blank or
-    /// unmapped - a local structural stand-in for "would this pass a Rich Results check", with no call to
-    /// any external service. Empty when the route has no content-level schema.org mapping at all. Purely
-    /// informational: nothing in this codebase blocks a publish on it.
-    /// </summary>
-    public List<string> MissingSchemaProperties { get; set; } = new();
-
-    /// <summary>
-    /// Each entry is a complete, self-contained JSON-LD document (its own <c>@context</c>/<c>@type</c>) -
-    /// one <c>&lt;script type="application/ld+json"&gt;</c> block per entry. Multiple independent blocks
-    /// are valid per Google's own guidance; there is no need to merge them into one <c>@graph</c>.
-    /// </summary>
-    public List<string> JsonLdDocuments { get; set; } = new();
 }

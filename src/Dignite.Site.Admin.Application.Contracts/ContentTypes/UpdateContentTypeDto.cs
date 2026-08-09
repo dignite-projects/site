@@ -19,7 +19,4 @@ public class UpdateContentTypeDto
     public string? Description { get; set; }
 
     public List<ContentTypeFieldDto>? Fields { get; set; }
-
-    /// <summary>The schema.org type to set. <c>null</c> leaves the existing mapping unchanged.</summary>
-    public SchemaOrgType? SchemaType { get; set; }
 }

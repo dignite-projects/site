@@ -18,6 +18,14 @@ public interface IContentTypeAdminAppService : IApplicationService
 
     Task<ListResultDto<ContentTypeDto>> GetListByPageAsync(Guid pageId);
 
+    /// <summary>
+    /// Every content type across every page, unfiltered. The Contents list needs this to resolve a
+    /// content's <c>ContentTypeId</c> to a display name regardless of which page (if any) is selected in
+    /// its filter - <see cref="GetListByPageAsync"/> alone cannot answer that for a row whose page is not
+    /// the one currently filtered on.
+    /// </summary>
+    Task<ListResultDto<ContentTypeDto>> GetListAsync();
+
     Task<ContentTypeDto> CreateAsync(CreateContentTypeDto input);
 
     Task<ContentTypeDto> UpdateAsync(Guid id, UpdateContentTypeDto input);

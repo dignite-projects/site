@@ -25,7 +25,7 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
     /// update_content_type tells the caller to read the current arrangement from get_site_schema and send
     /// it back with changes merged in. Following that instruction must not destroy anything - so every
     /// usage flag the write side accepts has to survive the round trip, not just the ones a reader finds
-    /// interesting. ShowInList and SchemaProperty were the two that did not.
+    /// interesting. ShowInList was the one that did not.
     /// </summary>
     [Fact]
     public async Task Should_Round_Trip_Every_Usage_Flag_Through_The_Schema()
@@ -41,8 +41,7 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
                     Required = true,
                     Searchable = true,
                     ShowInList = true,
-                    Order = 0,
-                    SchemaProperty = "headline"
+                    Order = 0
                 }
             });
 
@@ -52,7 +51,6 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
             .ContentTypes.Single().Fields.Single();
 
         read.ShowInList.ShouldBeTrue("ShowInList must be readable, or an edit silently clears it");
-        read.SchemaProperty.ShouldBe("headline");
 
         // Now the merge the description prescribes: send back what was read, plus one more field.
         await _contentTypeTools.UpdateContentTypeAsync(
@@ -66,8 +64,7 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
                     Required = read.Required,
                     Searchable = read.Searchable,
                     ShowInList = read.ShowInList,
-                    Order = read.Order,
-                    SchemaProperty = read.SchemaProperty
+                    Order = read.Order
                 },
                 new() { Field = "body", Order = 1 }
             });
@@ -76,7 +73,6 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
             .ContentTypes.Single().Fields.Single(field => field.Name == "title");
 
         merged.ShowInList.ShouldBeTrue("the documented merge workflow must not clear it");
-        merged.SchemaProperty.ShouldBe("headline");
     }
 
     /// <summary>

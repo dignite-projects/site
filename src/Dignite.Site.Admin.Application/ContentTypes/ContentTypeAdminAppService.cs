@@ -48,12 +48,17 @@ public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppS
         return new ListResultDto<ContentTypeDto>(contentTypes.Select(MapToDto).ToList());
     }
 
+    public virtual async Task<ListResultDto<ContentTypeDto>> GetListAsync()
+    {
+        var contentTypes = await ContentTypeRepository.GetListAsync();
+        return new ListResultDto<ContentTypeDto>(contentTypes.Select(MapToDto).ToList());
+    }
+
     [Authorize(AdminPermissions.ContentTypes.Create)]
     public virtual async Task<ContentTypeDto> CreateAsync(CreateContentTypeDto input)
     {
         var contentType = await ContentTypeManager.CreateAsync(
-            input.PageId, input.Name, input.DisplayName, input.Description, input.Fields?.ToEntityList(),
-            input.SchemaType);
+            input.PageId, input.Name, input.DisplayName, input.Description, input.Fields?.ToEntityList());
 
         return MapToDto(contentType);
     }
@@ -64,8 +69,7 @@ public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppS
         var contentType = await ContentTypeRepository.GetAsync(id);
 
         contentType = await ContentTypeManager.UpdateAsync(
-            contentType, input.Name, input.DisplayName, input.Description, input.Fields?.ToEntityList(),
-            input.SchemaType);
+            contentType, input.Name, input.DisplayName, input.Description, input.Fields?.ToEntityList());
 
         return MapToDto(contentType);
     }

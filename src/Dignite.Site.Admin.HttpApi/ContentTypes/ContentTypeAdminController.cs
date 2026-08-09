@@ -36,6 +36,12 @@ public class ContentTypeAdminController : AdminController, IContentTypeAdminAppS
         return ContentTypeAdminAppService.GetListByPageAsync(pageId);
     }
 
+    [HttpGet]
+    public virtual Task<ListResultDto<ContentTypeDto>> GetListAsync()
+    {
+        return ContentTypeAdminAppService.GetListAsync();
+    }
+
     /// <summary>The name is a query parameter rather than a route segment - see <c>PageAdminController</c>.</summary>
     [HttpGet]
     [Route("by-page/{pageId}/by-name")]

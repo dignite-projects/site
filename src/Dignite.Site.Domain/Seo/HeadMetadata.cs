@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace Dignite.Site.Seo;
 
 /// <summary>
-/// Everything a renderer needs to put in one resolved route's <c>&lt;head&gt;</c> (总体设计 §5.3, §5.4,
-/// §5.5, §5.9 - GitHub issues #13, #16, #17, #20).
+/// Everything a renderer needs to put in one resolved route's <c>&lt;head&gt;</c> (总体设计 §5.3, §5.5,
+/// §5.9 - GitHub issues #13, #16, #17).
 /// <para>
 /// Pure data: no third-party rendering type appears anywhere in this class or the ones it aggregates, so
 /// it is equally usable by the Tier 0 renderer (#21) calling in-process and by any future out-of-process
@@ -21,10 +21,7 @@ public class HeadMetadata
         string cultureName,
         bool noIndex,
         IReadOnlyList<HreflangAlternate> hreflangAlternates,
-        string? xDefaultUrl,
-        JsonLdSiteData siteData,
-        IReadOnlyList<JsonLdBreadcrumbItem> breadcrumb,
-        JsonLdContentData? contentData)
+        string? xDefaultUrl)
     {
         Title = title;
         Description = description;
@@ -34,9 +31,6 @@ public class HeadMetadata
         NoIndex = noIndex;
         HreflangAlternates = hreflangAlternates;
         XDefaultUrl = xDefaultUrl;
-        SiteData = siteData;
-        Breadcrumb = breadcrumb;
-        ContentData = contentData;
     }
 
     /// <summary>Never blank - falls back through the same chain <c>ContentSummaryResolver</c> uses for a feed item.</summary>
@@ -44,8 +38,7 @@ public class HeadMetadata
 
     /// <summary>
     /// The language this route resolved in, normalized BCP 47 - the matched content's own
-    /// <c>CultureName</c> when there is one, otherwise the requested language. What JSON-LD's
-    /// <c>inLanguage</c> is built from.
+    /// <c>CultureName</c> when there is one, otherwise the requested language.
     /// </summary>
     public string CultureName { get; }
 
@@ -69,12 +62,4 @@ public class HeadMetadata
 
     /// <summary>The home page's URL in the default language, or null if no page currently holds <c>IsHomePage</c>.</summary>
     public string? XDefaultUrl { get; }
-
-    public JsonLdSiteData SiteData { get; }
-
-    /// <summary>Home first, this route last. A single entry when this route is the home page itself.</summary>
-    public IReadOnlyList<JsonLdBreadcrumbItem> Breadcrumb { get; }
-
-    /// <summary>Null when the route matched a bare page (no content), or its content type has no schema.org mapping.</summary>
-    public JsonLdContentData? ContentData { get; }
 }

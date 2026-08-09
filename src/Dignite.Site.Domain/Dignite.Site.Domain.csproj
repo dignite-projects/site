@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Ddd.Domain" Version="10.5.0"/>
-    <!-- IBrandingProvider, for JSON-LD's Organization/WebSite name and logo (GitHub issue #20) - core ABP
+    <!-- IBrandingProvider, replaced tenant-wide by SiteBrandingProvider (总体设计 §4.1) - core ABP
          infrastructure with no ASP.NET Core dependency, not a rendering package, so it does not break the
          "Domain stays library-agnostic" rule the sitemap/robots/feed generators already follow. -->
     <PackageReference Include="Volo.Abp.Ui" Version="10.5.0"/>

@@ -33,8 +33,7 @@ public class ContentTypeField
         bool searchable = false,
         bool showInList = false,
         string? displayName = null,
-        int order = 0,
-        string? schemaProperty = null)
+        int order = 0)
     {
         FieldId = fieldId;
         Required = required;
@@ -42,7 +41,6 @@ public class ContentTypeField
         ShowInList = showInList;
         DisplayName = displayName;
         Order = order;
-        SchemaProperty = schemaProperty;
     }
 
     /// <summary>The <c>Field.Id</c> this reference points at.</summary>
@@ -68,15 +66,6 @@ public class ContentTypeField
     public virtual int Order { get; protected set; }
 
     /// <summary>
-    /// The schema.org property this usage maps to, e.g. <c>"headline"</c> or <c>"datePublished"</c>
-    /// (总体设计 §5.4, GitHub issue #20). Null means this field plays no part in the content type's
-    /// JSON-LD, if it emits any at all. The vocabulary itself - which property names mean what - is
-    /// deliberately not known here; only the Application layer that builds the actual JSON-LD interprets
-    /// them, so it stays the one place the schema.org vocabulary is defined.
-    /// </summary>
-    public virtual string? SchemaProperty { get; protected set; }
-
-    /// <summary>
     /// Value equality, because this is a value object and because EF Core needs it: the field list is
     /// persisted through a value converter, and a converted collection with no way to compare its
     /// elements is compared by reference instead - which is how an edit to a content type's arrangement
@@ -90,12 +79,11 @@ public class ContentTypeField
                && Searchable == other.Searchable
                && ShowInList == other.ShowInList
                && Order == other.Order
-               && string.Equals(DisplayName, other.DisplayName, StringComparison.Ordinal)
-               && string.Equals(SchemaProperty, other.SchemaProperty, StringComparison.Ordinal);
+               && string.Equals(DisplayName, other.DisplayName, StringComparison.Ordinal);
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(FieldId, Required, Searchable, ShowInList, Order, DisplayName, SchemaProperty);
+        return HashCode.Combine(FieldId, Required, Searchable, ShowInList, Order, DisplayName);
     }
 }

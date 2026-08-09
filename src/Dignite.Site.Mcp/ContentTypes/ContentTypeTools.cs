@@ -60,9 +60,7 @@ public class ContentTypeTools : ITransientDependency
             "of content it holds and when to choose it over the others under this page.")]
         string? description = null,
         [Description("The fields this type pulls in, in order.")]
-        List<McpContentTypeFieldInput>? fields = null,
-        [Description("The schema.org type contents of this type represent, for JSON-LD. None by default.")]
-        SchemaOrgType schemaType = SchemaOrgType.None)
+        List<McpContentTypeFieldInput>? fields = null)
     {
         var pageDto = await NameResolver.GetPageAsync(page);
 
@@ -72,8 +70,7 @@ public class ContentTypeTools : ITransientDependency
             Name = name,
             DisplayName = displayName,
             Description = description,
-            Fields = await ResolveFieldsAsync(fields),
-            SchemaType = schemaType
+            Fields = await ResolveFieldsAsync(fields)
         });
     }
 
@@ -101,9 +98,7 @@ public class ContentTypeTools : ITransientDependency
             "The complete replacement arrangement. Omit this parameter entirely to leave the fields " +
             "untouched. Passing an empty list is different from omitting it: it clears the arrangement to " +
             "zero fields, which is rarely what you want.")]
-        List<McpContentTypeFieldInput>? fields = null,
-        [Description("New schema.org type. Omit to keep it.")]
-        SchemaOrgType? schemaType = null)
+        List<McpContentTypeFieldInput>? fields = null)
     {
         var pageDto = await NameResolver.GetPageAsync(page);
         var current = await NameResolver.GetContentTypeAsync(pageDto, contentType);
@@ -113,8 +108,7 @@ public class ContentTypeTools : ITransientDependency
             Name = name ?? current.Name,
             DisplayName = displayName ?? current.DisplayName,
             Description = description ?? current.Description,
-            Fields = fields == null ? null : await ResolveFieldsAsync(fields),
-            SchemaType = schemaType
+            Fields = fields == null ? null : await ResolveFieldsAsync(fields)
         });
     }
 
@@ -182,8 +176,7 @@ public class ContentTypeTools : ITransientDependency
                 Searchable = field.Searchable,
                 ShowInList = field.ShowInList,
                 DisplayName = field.DisplayName,
-                Order = field.Order,
-                SchemaProperty = field.SchemaProperty
+                Order = field.Order
             });
         }
 

@@ -4,23 +4,20 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
-using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
 using Dignite.Site.Routing;
 using Microsoft.Extensions.Logging;
 using Volo.Abp.Domain.Services;
-using Volo.Abp.Ui.Branding;
 
 namespace Dignite.Site.Seo;
 
 /// <summary>
-/// Everything that goes in one resolved route's <c>&lt;head&gt;</c> (总体设计 §5.3, §5.4, §5.5, §5.9 -
-/// GitHub issues #13, #16, #17, #20), composed from a single already-resolved <see cref="RouteMatch"/>
-/// rather than re-resolving a path itself - a Tier 0 renderer (#21) that already has a match in hand can
-/// call this directly with no further routing lookup, and a Tier 1 caller resolves once and feeds the
-/// result here.
+/// Everything that goes in one resolved route's <c>&lt;head&gt;</c> (总体设计 §5.3, §5.5, §5.9 - GitHub
+/// issues #13, #16, #17), composed from a single already-resolved <see cref="RouteMatch"/> rather than
+/// re-resolving a path itself - a Tier 0 renderer (#21) that already has a match in hand can call this
+/// directly with no further routing lookup, and a Tier 1 caller resolves once and feeds the result here.
 /// <para>
 /// Reuses rather than re-derives: title/description come from <c>ContentSummaryResolver</c>, canonical and
 /// every other absolute URL from <c>SiteUrlBuilder</c>, the noindex signal from <c>NoIndexRecognizer</c> -
@@ -40,26 +37,18 @@ public class HeadMetadataBuilder : DomainService
 
     protected IContentRepository ContentRepository { get; }
 
-    protected JsonLdContentDataResolver JsonLdContentDataResolver { get; }
-
-    protected IBrandingProvider BrandingProvider { get; }
-
     public HeadMetadataBuilder(
         SiteUrlBuilder urlBuilder,
         NoIndexRecognizer noIndexRecognizer,
         ContentSummaryResolver summaryResolver,
         IPageRepository pageRepository,
-        IContentRepository contentRepository,
-        JsonLdContentDataResolver jsonLdContentDataResolver,
-        IBrandingProvider brandingProvider)
+        IContentRepository contentRepository)
     {
         UrlBuilder = urlBuilder;
         NoIndexRecognizer = noIndexRecognizer;
         SummaryResolver = summaryResolver;
         PageRepository = pageRepository;
         ContentRepository = contentRepository;
-        JsonLdContentDataResolver = jsonLdContentDataResolver;
-        BrandingProvider = brandingProvider;
     }
 
     /// <param name="match">
@@ -86,7 +75,6 @@ public class HeadMetadataBuilder : DomainService
     {
         var page = match.Page!;
         var content = match.Content;
-        var contentType = match.ContentType;
 
         var context = await UrlBuilder.CreateContextAsync(cancellationToken);
         var asOf = Clock.Now;
@@ -103,6 +91,16 @@ public class HeadMetadataBuilder : DomainService
         string? description = null;
         string? ogImageUrl = null;
         var contentNoIndex = false;
+
+        // A partial match (SiteRouteResolver.TryMatchPartial - Kind is Page, FilterValues non-empty) has no
+        // URL of its own to build a canonicalUrl from: the page's own bare address is the only address
+        // PageRoute can render, yet the request actually named some of the page's placeholders, e.g.
+        // /news/2026-07 against /news/{publishTime:yyyy-MM}/{slug}. Reusing the bare-address canonical and
+        // hreflang set here without also forcing noindex would tell search engines that the filtered view
+        // IS the canonical page - the standard faceted-navigation fix is exactly what a bare match already
+        // gets for free (canonical -> the unfiltered page) plus noindex, so the filtered variant itself
+        // never competes with it in results while still being crawlable for its links.
+        var isPartialMatch = content == null && match.FilterValues.Count > 0;
 
         if (content != null)
         {
@@ -135,9 +133,6 @@ public class HeadMetadataBuilder : DomainService
         var hreflangAlternates = await BuildHreflangAlternatesAsync(
             page, content, cultureName, seoField, context, includeUnpublished, asOf, cancellationToken);
 
-        var siteData = new JsonLdSiteData(
-            BrandingProvider.AppName, BrandingProvider.LogoUrl, context.BaseUrl);
-
         // The content's own CultureName is authoritative when there is one; the requested language is only
         // a fallback for a bare page match, which carries no language of its own.
         var effectiveCultureName = content?.CultureName
@@ -145,24 +140,15 @@ public class HeadMetadataBuilder : DomainService
                                        ? normalized
                                        : context.DefaultCultureName);
 
-        var breadcrumb = BuildBreadcrumb(match, title, canonicalUrl, homePage, context, effectiveCultureName);
-
-        JsonLdContentData? contentData = content != null && contentType != null
-            ? await JsonLdContentDataResolver.ResolveAsync(contentType, content, cancellationToken)
-            : null;
-
         return new HeadMetadata(
             title,
             description,
             ogImageUrl,
             canonicalUrl,
             effectiveCultureName,
-            includeUnpublished || contentNoIndex,
+            includeUnpublished || contentNoIndex || isPartialMatch,
             hreflangAlternates,
-            xDefaultUrl,
-            siteData,
-            breadcrumb,
-            contentData);
+            xDefaultUrl);
     }
 
     /// <summary>
@@ -262,57 +248,5 @@ public class HeadMetadataBuilder : DomainService
         return cultures
             .Select(culture => new HreflangAlternate(culture, UrlBuilder.BuildPageUrl(context, page, culture)))
             .ToList();
-    }
-
-
-    /// <summary>
-    /// Home first, this route last.
-    /// <para>
-    /// Collapses to Home alone when this route <i>is</i> the home page's own URL (a bare page or
-    /// empty-slug match on the home page - a second node repeating that URL would say nothing new). A
-    /// real <see cref="RouteMatchKind.Content"/> living directly under the home page is a different URL
-    /// even though its <see cref="Page"/> is the home page, so it still gets its own crumb - only the
-    /// intermediate "page" crumb is skipped in that case, since the Home crumb already represents it.
-    /// </para>
-    /// </summary>
-    protected virtual IReadOnlyList<JsonLdBreadcrumbItem> BuildBreadcrumb(
-        RouteMatch match,
-        string title,
-        string canonicalUrl,
-        Page? homePage,
-        SiteUrlContext context,
-        string effectiveCultureName)
-    {
-        var items = new List<JsonLdBreadcrumbItem>();
-
-        // The "Home" crumb links to the home page in the language actually being viewed, not necessarily
-        // the default culture that x-default (a separate SEO concept) always points at.
-        if (homePage != null)
-        {
-            items.Add(new JsonLdBreadcrumbItem(
-                homePage.DisplayName, UrlBuilder.BuildPageUrl(context, homePage, effectiveCultureName)));
-        }
-
-        var isHomePage = homePage != null && homePage.Id == match.Page!.Id;
-
-        if (match.Kind == RouteMatchKind.Content)
-        {
-            if (!isHomePage)
-            {
-                // A real detail beneath its own list page: that page gets its own crumb first.
-                items.Add(new JsonLdBreadcrumbItem(
-                    match.Page!.DisplayName, UrlBuilder.BuildPageUrl(context, match.Page, effectiveCultureName)));
-            }
-
-            items.Add(new JsonLdBreadcrumbItem(title, canonicalUrl));
-        }
-        else if (!isHomePage)
-        {
-            // Page or ContentOfPage, not the home page itself: this route already collapses to the page's
-            // own URL, one crumb for it.
-            items.Add(new JsonLdBreadcrumbItem(match.Page!.DisplayName, canonicalUrl));
-        }
-
-        return items;
     }
 }

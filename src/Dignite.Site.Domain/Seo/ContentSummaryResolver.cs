@@ -53,6 +53,17 @@ public class ContentSummaryResolver : DomainService
         CancellationToken cancellationToken = default)
     {
         var contentTypes = await ContentTypeRepository.GetListByPageAsync(pageId, cancellationToken);
+        return await CreateLookupAsync(contentTypes, cancellationToken);
+    }
+
+    /// <summary>
+    /// Same as the <see cref="Guid"/> overload, for a caller that already holds the page's content types -
+    /// typically <c>Page.ContentTypes</c> fetched with <c>includeDetails: true</c> - and can skip the query.
+    /// </summary>
+    public virtual async Task<ContentSummaryLookup> CreateLookupAsync(
+        IEnumerable<ContentType> contentTypes,
+        CancellationToken cancellationToken = default)
+    {
         var fields = await FieldRepository.GetListAsync(cancellationToken: cancellationToken);
 
         var fieldsById = fields.ToDictionary(f => f.Id);

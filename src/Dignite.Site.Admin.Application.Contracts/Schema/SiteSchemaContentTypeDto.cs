@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Dignite.Site.ContentTypes;
 
 namespace Dignite.Site.Admin.Schema;
 
@@ -18,9 +17,6 @@ public class SiteSchemaContentTypeDto
     /// makes the difference between the tool surface working well and working badly.
     /// </summary>
     public string? Description { get; set; }
-
-    /// <summary>The schema.org type contents of this type represent, if any (总体设计 §5.4).</summary>
-    public SchemaOrgType SchemaType { get; set; }
 
     /// <summary>The arrangement, in this type's own order.</summary>
     public List<SiteSchemaFieldDto> Fields { get; set; } = new();

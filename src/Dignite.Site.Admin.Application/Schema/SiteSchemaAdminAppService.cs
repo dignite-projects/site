@@ -116,7 +116,6 @@ public class SiteSchemaAdminAppService : AdminAppService, ISiteSchemaAdminAppSer
             Name = contentType.Name,
             DisplayName = contentType.DisplayName,
             Description = contentType.Description,
-            SchemaType = contentType.SchemaType,
             Fields = fields.Select(MapField).ToList()
         };
     }
@@ -134,8 +133,7 @@ public class SiteSchemaAdminAppService : AdminAppService, ISiteSchemaAdminAppSer
             Required = field.Usage.Required,
             Searchable = field.Usage.Searchable,
             Order = field.Usage.Order,
-            ShowInList = field.Usage.ShowInList,
-            SchemaProperty = field.Usage.SchemaProperty
+            ShowInList = field.Usage.ShowInList
         };
     }
 }

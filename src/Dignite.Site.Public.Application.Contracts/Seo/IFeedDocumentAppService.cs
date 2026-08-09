@@ -9,14 +9,14 @@ namespace Dignite.Site.Public.Seo;
 /// </summary>
 public interface IFeedDocumentAppService : IApplicationService
 {
-    /// <param name="pageRoute">The page's route, e.g. <c>/blog</c>. Normalized before it is looked up.</param>
+    /// <param name="pagePath">The page's own address, e.g. <c>/blog</c>. Normalized before it is looked up.</param>
     /// <param name="cultureName">Which language's contents the feed carries.</param>
-    /// <returns><see langword="null"/> when no active page has that route, or the culture is not a real one.</returns>
-    Task<SiteDocument?> GetAsync(string pageRoute, string cultureName, SiteFeedFormat format);
+    /// <returns><see langword="null"/> when no active page has that address, or the culture is not a real one.</returns>
+    Task<SiteDocument?> GetAsync(string pagePath, string cultureName, SiteFeedFormat format);
 
     /// <summary>
     /// Takes apart a feed request path - <c>zh-Hans/about/feed.xml</c>, <c>blog/atom.xml</c> - into
-    /// language, page route and format, then serves it.
+    /// language, page address and format, then serves it.
     /// <para>
     /// Lives here rather than in the endpoint because the language prefix is stripped with the same
     /// <c>SiteUrlContext</c> that put it on: the two directions have to stay in one place, or the site

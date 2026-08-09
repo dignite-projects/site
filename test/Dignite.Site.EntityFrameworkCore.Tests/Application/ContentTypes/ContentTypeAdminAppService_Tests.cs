@@ -60,42 +60,16 @@ public class ContentTypeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         created.Fields[1].FieldId.ShouldBe(SiteTestData.BodyFieldId);
     }
 
-    /// <summary>
-    /// End-to-end proof that <c>SchemaType</c>/<c>Fields[].SchemaProperty</c> (GitHub issue #20) survive
-    /// the DTO round trip - <c>ContentTypeManager_Tests</c> already covers the domain layer directly, this
-    /// covers the mapping code (<c>ContentTypeFieldDtoExtensions</c>, the Mapperly-generated
-    /// <c>ContentType</c> → <c>ContentTypeDto</c> mapper) one layer up.
-    /// </summary>
     [Fact]
-    public async Task Should_Round_Trip_SchemaType_And_SchemaProperty_Through_Create_And_Update()
+    public async Task Should_Get_Every_Content_Type_Across_All_Pages()
     {
-        var created = await _contentTypeAppService.CreateAsync(new CreateContentTypeDto
-        {
-            PageId = SiteTestData.BlogPageId,
-            Name = "admin-schema-org-test",
-            DisplayName = "Schema.org Test",
-            SchemaType = SchemaOrgType.Article,
-            Fields = new List<ContentTypeFieldDto>
-            {
-                new() { FieldId = SiteTestData.TitleFieldId, Order = 0, SchemaProperty = "headline" }
-            }
-        });
+        var result = await _contentTypeAppService.GetListAsync();
 
-        created.SchemaType.ShouldBe(SchemaOrgType.Article);
-        created.Fields.Single().SchemaProperty.ShouldBe("headline");
-
-        var updated = await _contentTypeAppService.UpdateAsync(created.Id, new UpdateContentTypeDto
-        {
-            Name = created.Name,
-            DisplayName = created.DisplayName,
-            SchemaType = null // leaves the Article mapping in place
-        });
-
-        updated.SchemaType.ShouldBe(SchemaOrgType.Article);
-
-        var reloaded = await _contentTypeAppService.GetAsync(created.Id);
-        reloaded.SchemaType.ShouldBe(SchemaOrgType.Article);
-        reloaded.Fields.Single().SchemaProperty.ShouldBe("headline");
+        // Spans multiple pages - BlogPageId contributes two, NewsPageId a third - so this cannot be
+        // answered by GetListByPageAsync alone.
+        result.Items.Select(ct => ct.Name).ShouldContain("post-article");
+        result.Items.Select(ct => ct.Name).ShouldContain("post-gallery");
+        result.Items.Select(ct => ct.Name).ShouldContain("news-item");
     }
 
     [Fact]

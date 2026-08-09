@@ -26,7 +26,4 @@ public class CreateContentTypeDto
     /// rejected by the domain entity, not re-checked here.
     /// </summary>
     public List<ContentTypeFieldDto>? Fields { get; set; }
-
-    /// <summary>The schema.org type this content type's contents represent. Defaults to none.</summary>
-    public SchemaOrgType SchemaType { get; set; }
 }

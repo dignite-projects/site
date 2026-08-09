@@ -31,7 +31,4 @@ public class McpContentTypeFieldInput
         "Position within this content type. Lower comes first. Entries that share the same value keep " +
         "the order they were listed in this call, so a duplicate value is safe but still worth avoiding.")]
     public int Order { get; set; }
-
-    [Description("The schema.org property this field maps to for JSON-LD, e.g. 'headline' or 'datePublished'. Omit if it plays no part.")]
-    public string? SchemaProperty { get; set; }
 }

@@ -11,7 +11,7 @@ namespace Dignite.Site.Seo;
 /// synchronously (总体设计 §4.2, §5.5).
 /// <para>
 /// <b>Both directions live here, and they have to agree</b> - the same reasoning as
-/// <see cref="ContentPathPattern"/> one level down. <see cref="ApplyCulturePrefix"/> puts the language
+/// <see cref="PageRoute"/> one level down. <see cref="ApplyCulturePrefix"/> puts the language
 /// segment on when a URL is emitted (sitemap, feeds, and later canonical and hreflang);
 /// <see cref="TryStripCulturePrefix"/> takes it off again when a request is routed. Split across two
 /// classes they would drift, and the site would advertise URLs it then 404s on.

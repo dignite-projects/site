@@ -131,6 +131,31 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         metadata.NoIndex.ShouldBeTrue();
     }
 
+    /// <summary>
+    /// A partial match (Kind is Page, FilterValues non-empty - e.g. "/news/2026-07" against
+    /// "/news/{publishTime:yyyy-MM}/{slug}") has no URL of its own: PageRoute can only render the page's
+    /// bare address, which is a different resource than what was actually requested. Reusing that bare
+    /// address as this response's canonical without also marking it noindex would tell search engines the
+    /// filtered view IS the canonical page - the standard faceted-navigation fix instead points canonical
+    /// at the unfiltered page (which a bare match already does for free) and keeps the filtered variant
+    /// itself out of results.
+    /// </summary>
+    [Fact]
+    public async Task NoIndex_Should_Be_True_For_A_Partial_Match()
+    {
+        var match = await WithUnitOfWorkAsync(() =>
+            _routeResolver.ResolveAsync("/news/2026-07", SiteTestData.EnglishCulture));
+
+        match.Kind.ShouldBe(RouteMatchKind.Page);
+        match.FilterValues.ShouldNotBeEmpty();
+
+        var metadata = await WithUnitOfWorkAsync(() =>
+            _builder.BuildAsync(match, SiteTestData.EnglishCulture));
+
+        metadata.NoIndex.ShouldBeTrue();
+        metadata.CanonicalUrl.ShouldBe($"{BaseUrl}/news");
+    }
+
     [Fact]
     public async Task OgImageUrl_Should_Be_Null_When_Unset()
     {
@@ -249,12 +274,14 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
             return contentType.Id;
         });
 
+        // Empty slug: "/bilingual-list" carries no {slug}/{slug?} placeholder at all, so this page has
+        // nothing beneath it but its own address (总体设计 §3.3) - these are its own content, translated.
         await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
-            contentTypeId, SiteTestData.EnglishCulture, "first", SiteTestData.PublishTime, ContentStatus.Published,
+            contentTypeId, SiteTestData.EnglishCulture, "", SiteTestData.PublishTime, ContentStatus.Published,
             new Dictionary<string, object?> { ["title"] = "First" }));
 
         await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
-            contentTypeId, SiteTestData.ChineseCulture, "first", SiteTestData.PublishTime, ContentStatus.Published,
+            contentTypeId, SiteTestData.ChineseCulture, "", SiteTestData.PublishTime, ContentStatus.Published,
             new Dictionary<string, object?> { ["title"] = "第一条" }));
 
         var metadata = await BuildAsync("/bilingual-list", SiteTestData.EnglishCulture);
@@ -356,12 +383,11 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// A deactivated page is not routable - <c>SiteRouteResolver</c> 404s it and the sitemap drops it. An
-    /// <c>x-default</c> (or a Home breadcrumb) still pointing there would have two derived SEO artifacts
-    /// contradicting each other about the same URL, and an x-default pointing at a 404 invalidates the
-    /// whole hreflang cluster.
+    /// <c>x-default</c> still pointing there would have two derived SEO artifacts contradicting each other
+    /// about the same URL, and an x-default pointing at a 404 invalidates the whole hreflang cluster.
     /// </summary>
     [Fact]
-    public async Task XDefaultUrl_And_Breadcrumb_Should_Ignore_A_Deactivated_Home_Page()
+    public async Task XDefaultUrl_Should_Ignore_A_Deactivated_Home_Page()
     {
         await WithUnitOfWorkAsync(async () =>
         {
@@ -373,118 +399,6 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
 
         metadata.XDefaultUrl.ShouldBeNull();
-        metadata.Breadcrumb.Select(b => b.Name).ShouldNotContain("Home");
-    }
-
-    /// <summary>
-    /// Proves <c>SiteBrandingProvider</c> is actually reachable from here - it was originally registered
-    /// only in the Host project, which no test module references, so this assertion could not previously
-    /// distinguish "wired up correctly" from "ABP's own DefaultBrandingProvider answered instead". The
-    /// literal is the platform default text (<c>Branding:DefaultAppName</c> in the Site resource), not
-    /// ABP's own "MyApplication" placeholder.
-    /// </summary>
-    [Fact]
-    public async Task SiteData_Should_Fall_Back_To_The_Platform_Default_Name_When_Branding_Is_Unset()
-    {
-        var metadata = await BuildAsync("/blog", SiteTestData.EnglishCulture);
-
-        metadata.SiteData.BaseUrl.ShouldBe(BaseUrl);
-        metadata.SiteData.OrganizationName.ShouldBe("Site");
-    }
-
-    [Fact]
-    public async Task SiteData_Should_Reflect_A_Configured_Branding_Name()
-    {
-        _settings.Set(SiteSettings.Branding.AppName, "Acme Travel");
-
-        var metadata = await BuildAsync("/blog", SiteTestData.EnglishCulture);
-
-        metadata.SiteData.OrganizationName.ShouldBe("Acme Travel");
-    }
-
-    [Fact]
-    public async Task Breadcrumb_Should_Go_Home_Then_Page_Then_Content()
-    {
-        var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
-
-        metadata.Breadcrumb.Select(b => b.Name).ShouldBe(new[] { "Home", "Blog", "My trip" });
-        metadata.Breadcrumb.Select(b => b.Url).ShouldBe(new[]
-        {
-            $"{BaseUrl}/", $"{BaseUrl}/blog", $"{BaseUrl}/blog/my-trip"
-        });
-    }
-
-    [Fact]
-    public async Task Breadcrumb_Should_Collapse_To_A_Single_Entry_For_The_Home_Page_Itself()
-    {
-        var metadata = await BuildAsync("/", SiteTestData.EnglishCulture);
-
-        metadata.Breadcrumb.Count.ShouldBe(1);
-        metadata.Breadcrumb.Single().Name.ShouldBe("Home");
-        metadata.Breadcrumb.Single().Url.ShouldBe($"{BaseUrl}/");
-    }
-
-    /// <summary>
-    /// The home page's own content (empty slug) correctly collapses to a single "Home" crumb, but a
-    /// genuinely different content living directly under the home page's route must not disappear behind
-    /// that collapse, and must not repeat "Home" a second time as a redundant intermediate "page" crumb.
-    /// </summary>
-    [Fact]
-    public async Task Breadcrumb_Should_Not_Collapse_For_A_Real_Content_Living_Directly_Under_The_Home_Page()
-    {
-        var contentTypeId = await WithUnitOfWorkAsync(async () =>
-        {
-            var titleField = await _fieldRepository.GetAsync(SiteTestData.TitleFieldId);
-            var contentType = await _contentTypeManager.CreateAsync(
-                SiteTestData.HomePageId, $"home-item-{Guid.NewGuid():N}", "Home item",
-                fields: new[] { new ContentTypeField(titleField.Id, order: 0) });
-            return contentType.Id;
-        });
-
-        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
-            contentTypeId, SiteTestData.EnglishCulture, "hello-world", SiteTestData.PublishTime,
-            ContentStatus.Published, new Dictionary<string, object?> { ["title"] = "Hello world" }));
-
-        var metadata = await BuildAsync("/hello-world", SiteTestData.EnglishCulture);
-
-        metadata.Breadcrumb.Select(b => b.Name).ShouldBe(new[] { "Home", "Hello world" });
-        metadata.Breadcrumb.Select(b => b.Url).ShouldBe(new[] { $"{BaseUrl}/", $"{BaseUrl}/hello-world" });
-    }
-
-    [Fact]
-    public async Task ContentData_Should_Be_Null_When_The_Content_Type_Has_No_Schema_Mapping()
-    {
-        var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
-
-        metadata.ContentData.ShouldBeNull();
-    }
-
-    [Fact]
-    public async Task ContentData_Should_Be_Null_For_A_Bare_Page_Match()
-    {
-        var metadata = await BuildAsync("/blog", SiteTestData.EnglishCulture);
-
-        metadata.ContentData.ShouldBeNull();
-    }
-
-    [Fact]
-    public async Task ContentData_Should_Reflect_An_Article_Schema_Mapping()
-    {
-        var slug = $"article-schema-{Guid.NewGuid():N}";
-        var contentTypeId = await WithUnitOfWorkAsync(async () => (await _contentTypeManager.CreateAsync(
-            SiteTestData.BlogPageId, $"article-schema-type-{Guid.NewGuid():N}", "Article schema type",
-            fields: new[] { new ContentTypeField(SiteTestData.TitleFieldId, order: 0, schemaProperty: "headline") },
-            schemaType: SchemaOrgType.Article)).Id);
-
-        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
-            contentTypeId, SiteTestData.EnglishCulture, slug, SiteTestData.PublishTime, ContentStatus.Published,
-            new Dictionary<string, object?> { ["title"] = "Mapped headline" }));
-
-        var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
-
-        metadata.ContentData.ShouldNotBeNull();
-        metadata.ContentData!.SchemaType.ShouldBe(SchemaOrgType.Article);
-        metadata.ContentData.PropertyValues["headline"].ShouldBe("Mapped headline");
     }
 
     private async Task<HeadMetadata> BuildAsync(string path, string cultureName)

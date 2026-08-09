@@ -46,21 +46,19 @@ public class SiteUrlBuilder : DomainService
         return new SiteUrlContext(baseUrl!, languages[0], languages);
     }
 
-    /// <summary>The absolute URL of a page's own route - its list view, or its single content.</summary>
+    /// <summary>The absolute URL of a page's own address - its list view, or its single content.</summary>
     public virtual string BuildPageUrl(SiteUrlContext context, Page page, string cultureName)
     {
-        return context.BuildAbsolute(page.Route, cultureName);
+        return context.BuildAbsolute(page.GetPath(), cultureName);
     }
 
     /// <summary>
-    /// The absolute URL of one content, composed through its page's content path pattern. An empty slug
-    /// yields the page route itself - the single content of a home or "about" page.
+    /// The absolute URL of one content, composed through its page's route template. An empty slug yields
+    /// the page's own address - the single content of a home or "about" page.
     /// </summary>
     public virtual string BuildContentUrl(SiteUrlContext context, Page page, Content content)
     {
-        return context.BuildAbsolute(
-            page.BuildContentPath(content.PublishTime, content.Slug),
-            content.CultureName);
+        return context.BuildAbsolute(page.BuildContentPath(content), content.CultureName);
     }
 
     /// <summary>
@@ -70,7 +68,8 @@ public class SiteUrlBuilder : DomainService
     /// </summary>
     public virtual string BuildFeedUrl(SiteUrlContext context, Page page, string cultureName, SiteFeedFormat format)
     {
-        var route = page.Route == "/" ? "/" + FeedConsts.GetFileName(format) : page.Route + "/" + FeedConsts.GetFileName(format);
+        var path = page.GetPath();
+        var route = path == "/" ? "/" + FeedConsts.GetFileName(format) : path + "/" + FeedConsts.GetFileName(format);
 
         return context.BuildAbsolute(route, cultureName);
     }

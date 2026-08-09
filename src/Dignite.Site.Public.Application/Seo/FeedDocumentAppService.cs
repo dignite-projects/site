@@ -54,27 +54,29 @@ public class FeedDocumentAppService : PublicAppService, IFeedDocumentAppService
 
         // Both out values are meaningful either way: no prefix means the default language and the path
         // unchanged, which is exactly what an unprefixed URL asks for.
-        context.TryStripCulturePrefix(remainder, out var cultureName, out var pageRoute);
+        context.TryStripCulturePrefix(remainder, out var cultureName, out var pagePath);
 
         // The context above already resolved this request's settings once - handed straight to the shared
         // overload rather than through the public GetAsync, which would resolve them a second time.
-        return await GetAsync(pageRoute, cultureName, format, context);
+        return await GetAsync(pagePath, cultureName, format, context);
     }
 
-    public virtual async Task<SiteDocument?> GetAsync(string pageRoute, string cultureName, SiteFeedFormat format)
+    public virtual async Task<SiteDocument?> GetAsync(string pagePath, string cultureName, SiteFeedFormat format)
     {
-        return await GetAsync(pageRoute, cultureName, format, await UrlBuilder.CreateContextAsync());
+        return await GetAsync(pagePath, cultureName, format, await UrlBuilder.CreateContextAsync());
     }
 
     protected virtual async Task<SiteDocument?> GetAsync(
-        string pageRoute, string cultureName, SiteFeedFormat format, SiteUrlContext context)
+        string pagePath, string cultureName, SiteFeedFormat format, SiteUrlContext context)
     {
         if (!CultureNameNormalizer.TryNormalize(cultureName, out var normalizedCulture))
         {
             return null;
         }
 
-        var page = await PageRepository.FindByRouteAsync(Page.NormalizeRoute(pageRoute));
+        // includeDetails: true - FeedSource resolves title/summary through ContentSummaryResolver, which
+        // needs this page's content types and would otherwise have to re-query them itself.
+        var page = await PageRepository.FindByPathAsync(Page.NormalizeRoute(pagePath), includeDetails: true);
         if (page is not { IsActive: true })
         {
             return null;

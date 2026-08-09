@@ -55,7 +55,7 @@ public class FeedSource : DomainService
         var normalizedCulture = CultureNameNormalizer.Normalize(cultureName);
 
         var seoField = await NoIndexRecognizer.FindFieldAsync(cancellationToken);
-        var lookup = await SummaryResolver.CreateLookupAsync(page.Id, cancellationToken);
+        var lookup = await SummaryResolver.CreateLookupAsync(page.ContentTypes, cancellationToken);
 
         var items = new List<FeedItem>();
         var asOf = Clock.Now;
