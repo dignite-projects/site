@@ -1,15 +1,13 @@
 using System;
 using System.Threading.Tasks;
 using Dignite.Site.Contents;
-using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
 namespace Dignite.Site.Admin.Contents;
 
-public interface IContentAdminAppService : IApplicationService
+public interface IContentAdminAppService :
+    ICrudAppService<ContentDto, Guid, GetContentListInput, CreateContentDto, UpdateContentDto>
 {
-    Task<ContentDto> GetAsync(Guid id);
-
     /// <summary>
     /// Finds a content by the triple that uniquely identifies it - page, language and slug - or null.
     /// This is the natural address for a caller working in names (总体设计 §6.2.4): it is the same
@@ -22,12 +20,4 @@ public interface IContentAdminAppService : IApplicationService
     /// </para>
     /// </summary>
     Task<ContentDto?> FindBySlugAsync(Guid pageId, string cultureName, string slug);
-
-    Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input);
-
-    Task<ContentDto> CreateAsync(CreateContentDto input);
-
-    Task<ContentDto> UpdateAsync(Guid id, UpdateContentDto input);
-
-    Task DeleteAsync(Guid id);
 }
