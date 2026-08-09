@@ -7,6 +7,15 @@
       "runtimeArgs": ["run", "--project", "host/Dignite.Site.Host/Dignite.Site.Host.csproj", "--urls", "https://localhost:44315"],
       "port": 44315,
       "url": "https://localhost:44315"
+    },
+    {
+      "name": "angular",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["--cwd", "angular", "run", "start"],
+      "port": 4200,
+      "url": "http://localhost:4200",
+      "//": "Port 4200 is not negotiable: the seeded OpenIddict client Host_App has RootUrl http://localhost:4200 and App:CorsOrigins matches it, so any other port fails the redirect_uri check.",
+      "autoPort": false
     }
   ]
 }
