@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Fields;
+using Dignite.Site.Pages;
 using Volo.Abp.Domain.Services;
 using Volo.Abp.Timing;
 using Volo.Abp.Validation;
@@ -31,6 +32,8 @@ public class ContentManager : DomainService
 
     protected IFieldRepository FieldRepository { get; }
 
+    protected IPageRepository PageRepository { get; }
+
     protected IFlexFieldValidator<Content> FlexFieldValidator { get; }
 
     protected IFlexFieldIndexManager<Content> IndexManager { get; }
@@ -41,6 +44,7 @@ public class ContentManager : DomainService
         IContentRepository contentRepository,
         IContentTypeRepository contentTypeRepository,
         IFieldRepository fieldRepository,
+        IPageRepository pageRepository,
         IFlexFieldValidator<Content> flexFieldValidator,
         IFlexFieldIndexManager<Content> indexManager,
         IClock clock)
@@ -48,6 +52,7 @@ public class ContentManager : DomainService
         ContentRepository = contentRepository;
         ContentTypeRepository = contentTypeRepository;
         FieldRepository = fieldRepository;
+        PageRepository = pageRepository;
         FlexFieldValidator = flexFieldValidator;
         IndexManager = indexManager;
         Clock = clock;
@@ -72,6 +77,7 @@ public class ContentManager : DomainService
         var normalizedCulture = CultureNameNormalizer.Normalize(cultureName);
         var normalizedSlug = slug ?? string.Empty;
 
+        await CheckSlugRequirementAsync(contentType.PageId, normalizedSlug, cancellationToken);
         await CheckSlugAsync(contentType.PageId, normalizedCulture, normalizedSlug, null, cancellationToken);
 
         var content = new Content(
@@ -118,6 +124,7 @@ public class ContentManager : DomainService
 
         if (!string.Equals(content.Slug, normalizedSlug, StringComparison.Ordinal))
         {
+            await CheckSlugRequirementAsync(content.PageId, normalizedSlug, cancellationToken);
             await CheckSlugAsync(content.PageId, content.CultureName, normalizedSlug, content.Id, cancellationToken);
             content.SetSlug(normalizedSlug);
         }
@@ -230,6 +237,39 @@ public class ContentManager : DomainService
         if (await ContentRepository.SlugExistsAsync(pageId, cultureName, slug, excludedId, cancellationToken))
         {
             throw new ContentSlugAlreadyExistException(cultureName, slug);
+        }
+    }
+
+    /// <summary>
+    /// Enforces what the owning page's route (总体设计 §3.3) says about slugs, ahead of
+    /// <see cref="CheckSlugAsync"/> - a structural rule is cheaper to fail on than a uniqueness query, and
+    /// more fundamental. A route with neither <c>{slug}</c> nor <c>{slug?}</c> never allows a non-empty
+    /// slug; a route with a mandatory <c>{slug}</c> never allows an empty one. Whether an <i>allowed</i>
+    /// empty slug is already taken by another content is a separate question, one <see cref="CheckSlugAsync"/>
+    /// answers - this method does not duplicate it.
+    /// <para>
+    /// A rule change here is prospective, not retroactive, the same as changing a page's route itself:
+    /// existing contents are not re-validated when the route changes underneath them, only the next write
+    /// to one of them is.
+    /// </para>
+    /// </summary>
+    protected virtual async Task CheckSlugRequirementAsync(Guid pageId, string slug, CancellationToken cancellationToken)
+    {
+        var page = await PageRepository.GetAsync(pageId, includeDetails: false, cancellationToken);
+
+        if (!PageRoute.HasSlug(page.Route))
+        {
+            if (slug.Length > 0)
+            {
+                throw new ContentSlugNotAllowedException(page.Route, slug);
+            }
+
+            return;
+        }
+
+        if (!PageRoute.IsSlugOptional(page.Route) && slug.Length == 0)
+        {
+            throw new ContentSlugRequiredException(page.Route);
         }
     }
 }

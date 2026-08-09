@@ -132,10 +132,12 @@ public class ContentTools : ITransientDependency
         [Description("Language tag. Must be one of the schema's enabledLanguages - do not invent a variant.")]
         string cultureName,
         [Description(
-            "The URL segment for this content, e.g. 'my-trip'. REQUIRED - state it explicitly. Pass an " +
-            "empty string ONLY when this content IS the page (a home or 'about' page whose URL is the " +
-            "page's own route); any other content needs a real slug or it will collide. A title is " +
-            "acceptable here and will be turned into a slug.")]
+            "The URL segment for this content, e.g. 'my-trip'. REQUIRED - state it explicitly. Whether an " +
+            "empty string is accepted depends on the page's route (get_site_schema): a route with '{slug}' " +
+            "requires a real slug from every content there; '{slug?}' also allows ONE content with an " +
+            "empty slug, served at the page's own address - if that slot is already taken, an empty slug " +
+            "fails with Site:040001, and if the route allows no slug at all, a non-empty one fails with " +
+            "Site:040004. A title is acceptable here and will be turned into a slug.")]
         string slug,
         [Description("Field values keyed by the field 'name' from get_site_schema. Not the display name.")]
         Dictionary<string, object?>? fieldValues = null,

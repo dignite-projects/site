@@ -20,6 +20,8 @@
     "Site:040001": "The slug '{Slug}' is already used by another '{CultureName}' content on this page.",
     "Site:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given.",
     "Site:040003": "A draft cannot have a publish time in the future ('{PublishTime}'). Set status to Published to schedule it for then.",
+    "Site:040004": "This page's route ('{Route}') has no slug placeholder, so its content cannot have a slug ('{Slug}' given).",
+    "Site:040005": "This page's route ('{Route}') requires a slug for every content beneath it; an empty slug is not allowed here.",
 
     "Site:050001": "This site has no primary domain configured, so absolute URLs cannot be generated. Set the 'Primary domain' setting.",
 

@@ -214,6 +214,56 @@ public class ContentManager_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// "about" has no {slug}/{slug?} in its route at all (总体设计 §3.3) - it has nothing beneath it but
+    /// its own address, so a non-empty slug there could never be reached by any request path.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_A_Slug_Under_A_Page_Whose_Route_Has_No_Slug_Placeholder()
+    {
+        await Should.ThrowAsync<ContentSlugNotAllowedException>(() => WithUnitOfWorkAsync(() =>
+            _contentManager.CreateAsync(
+                SiteTestData.AboutTypeId, SiteTestData.EnglishCulture, "history",
+                SiteTestData.PublishTime, ContentStatus.Draft,
+                new Dictionary<string, object?> { ["title"] = "Should never reach a route" })));
+    }
+
+    /// <summary>
+    /// "news" has a mandatory {slug} - unlike {slug?}, it never resolves to a default content at the
+    /// page's own address, so every content beneath it needs a slug of its own.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_An_Empty_Slug_Under_A_Page_Whose_Route_Requires_One()
+    {
+        await Should.ThrowAsync<ContentSlugRequiredException>(() => WithUnitOfWorkAsync(() =>
+            _contentManager.CreateAsync(
+                SiteTestData.NewsItemTypeId, SiteTestData.EnglishCulture, "",
+                SiteTestData.PublishTime, ContentStatus.Draft,
+                new Dictionary<string, object?> { ["title"] = "Should require its own slug" })));
+    }
+
+    /// <summary>
+    /// "blog" uses {slug?}: both an empty slug (the page's own default content) and a real one are
+    /// accepted, the same route serving both a listing's index and its individually-slugged posts.
+    /// </summary>
+    [Fact]
+    public async Task Should_Accept_Both_An_Empty_And_A_Non_Empty_Slug_Under_A_Page_Whose_Route_Makes_The_Slug_Optional()
+    {
+        var withoutSlug = await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostGalleryTypeId, SiteTestData.ChineseCulture, "",
+            SiteTestData.PublishTime, ContentStatus.Draft,
+            new Dictionary<string, object?> { ["title"] = "博客首页" }));
+
+        withoutSlug.Slug.ShouldBe(string.Empty);
+
+        var withSlug = await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostGalleryTypeId, SiteTestData.ChineseCulture, "optional-route-post",
+            SiteTestData.PublishTime, ContentStatus.Draft,
+            new Dictionary<string, object?> { ["title"] = "带别名的内容" }));
+
+        withSlug.Slug.ShouldBe("optional-route-post");
+    }
+
+    /// <summary>
     /// Another tenant's site is a separate site. Its contents must not be visible from here, and it must
     /// be able to use a slug this tenant already uses.
     /// </summary>

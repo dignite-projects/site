@@ -80,6 +80,38 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// The page/route-driven rules (总体设计 §3.3) surface through the app service the same way
+    /// <c>ContentManager</c> throws them - not just at the domain layer <c>ContentManager_Tests</c> covers.
+    /// "about" has no slug placeholder in its route at all.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_A_Slug_Under_A_Page_Whose_Route_Has_No_Slug_Placeholder()
+    {
+        await Should.ThrowAsync<ContentSlugNotAllowedException>(() => _contentAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.AboutTypeId,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = "history",
+            PublishTime = SiteTestData.PublishTime,
+            Status = ContentStatus.Draft
+        }));
+    }
+
+    /// <summary>"news" has a mandatory {slug} - every content beneath it needs one of its own.</summary>
+    [Fact]
+    public async Task Should_Reject_An_Empty_Slug_Under_A_Page_Whose_Route_Requires_One()
+    {
+        await Should.ThrowAsync<ContentSlugRequiredException>(() => _contentAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.NewsItemTypeId,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = "",
+            PublishTime = SiteTestData.PublishTime,
+            Status = ContentStatus.Draft
+        }));
+    }
+
+    /// <summary>
     /// Pushed down to the typed query index table (总体设计 §2.4) - this is the end-to-end proof that
     /// <c>GetContentListInput.FlexFieldConditions</c> actually reaches
     /// <c>IFlexFieldQueryExecutor&lt;Content&gt;</c> and comes back with the right rows.

@@ -17,6 +17,9 @@
 
     "Site:040001": "该页面下已存在 slug 为 '{Slug}' 的 '{CultureName}' 内容。",
     "Site:040002": "内容类型 '{ContentTypeId}' 不隶属于所指定的页面。",
+    "Site:040003": "草稿不能设置未来的发布时间（'{PublishTime}'）。要定时发布，请把状态改为「已发布」。",
+    "Site:040004": "该页面的路由（'{Route}'）没有别名占位符，其下内容不能带别名（传入的是 '{Slug}'）。",
+    "Site:040005": "该页面的路由（'{Route}'）要求每条内容都必须有别名，此处不允许别名为空。",
 
     "Permission:Site": "Site",
     "Permission:Admin": "管理端",
