@@ -7,9 +7,7 @@ import { Component } from '@angular/core';
       <div class="lpx-footbar">
         <div class="lpx-footbar-copyright">
           <span>{{ currentYear }}© </span>
-          <a href="https://leptontheme.com/" target="_blank">Lepton Theme</a>
-          <span> by </span>
-          <a href="https://volosoft.com/" target="_blank">Volosoft</a>
+          <a href="https://dignite.com/" target="_blank">Powered by Dignite</a>
         </div>
         <div class="lpx-footbar-solo-links">
           <a href="#">About</a>
