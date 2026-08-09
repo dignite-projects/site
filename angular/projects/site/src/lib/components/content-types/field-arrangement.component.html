@@ -1,0 +1,115 @@
+<div class="d-flex align-items-end gap-2 mb-3">
+  <div class="flex-grow-1">
+    <label class="form-label">{{ 'Site::AddField' | abpLocalization }}</label>
+    <!--
+      nzDropdownMatchSelectWidth defaults to true, but inside this abp-modal ng-zorro measures the
+      trigger's width before the modal's layout has settled and gets ~0 - the dropdown then renders
+      with no real width and swallows clicks. Forcing it off falls back to content-based auto-width,
+      which sidesteps the bad measurement entirely.
+    -->
+    <nz-select
+      class="form-select field-picker-select"
+      nzMode="multiple"
+      nzShowSearch
+      nzPlaceHolder="---"
+      [nzDropdownMatchSelectWidth]="false"
+      nzDropdownClassName="field-picker-dropdown"
+      [nzOptions]="addableFieldOptions"
+      [(ngModel)]="fieldsToAdd"
+      [ngModelOptions]="{ standalone: true }"
+    ></nz-select>
+  </div>
+  <button
+    type="button"
+    class="btn btn-outline-primary"
+    [disabled]="fieldsToAdd.length === 0"
+    (click)="addFields()"
+  >
+    <i class="fa fa-plus me-1"></i>{{ 'Site::AddField' | abpLocalization }}
+  </button>
+</div>
+
+@if (arrangement.length === 0) {
+  <p class="text-muted">{{ 'Site::NoFieldsArranged' | abpLocalization }}</p>
+} @else {
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width: 2rem"></th>
+          <th>{{ 'Site::DisplayName:Field.DisplayName' | abpLocalization }}</th>
+          <th>{{ 'Site::DisplayName:Field.FieldTypeName' | abpLocalization }}</th>
+          <th class="text-center">{{ 'Site::DisplayName:ContentTypeField.Required' | abpLocalization }}</th>
+          <th class="text-center">{{ 'Site::DisplayName:ContentTypeField.Searchable' | abpLocalization }}</th>
+          <th class="text-center">{{ 'Site::DisplayName:ContentTypeField.ShowInList' | abpLocalization }}</th>
+          <th>{{ 'Site::DisplayName:ContentTypeField.DisplayNameOverride' | abpLocalization }}</th>
+          <th style="width: 3rem"></th>
+        </tr>
+      </thead>
+      <tbody cdkDropList (cdkDropListDropped)="drop($event)">
+        @for (entry of arrangement; track entry.fieldId; let i = $index) {
+          <tr cdkDrag>
+            <td class="text-muted" cdkDragHandle style="cursor: move">
+              <i class="fa fa-grip-vertical"></i>
+            </td>
+            <td>
+              <div>{{ labelOf(entry) }}</div>
+              <small class="text-muted">{{ fieldOf(entry)?.name }}</small>
+            </td>
+            <td>{{ displayNameKeyOf(fieldOf(entry)?.fieldTypeName) | abpLocalization }}</td>
+            <td class="text-center">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                [(ngModel)]="entry.required"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </td>
+            <td class="text-center">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                [(ngModel)]="entry.searchable"
+                [ngModelOptions]="{ standalone: true }"
+                [disabled]="!isSearchableSupported(entry)"
+                (ngModelChange)="onSearchableChange(entry)"
+              />
+              @if (!isSearchableSupported(entry)) {
+                <div class="form-text small">
+                  {{ 'Site::FieldTypeNotSearchable' | abpLocalization }}
+                </div>
+              }
+            </td>
+            <td class="text-center">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                [(ngModel)]="entry.showInList"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                [(ngModel)]="entry.displayName"
+                [ngModelOptions]="{ standalone: true }"
+                [placeholder]="fieldOf(entry)?.displayName ?? ''"
+              />
+            </td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-sm btn-link"
+                (click)="removeField(i)"
+                [title]="'AbpUi::Delete' | abpLocalization"
+              >
+                <i class="fa fa-trash text-danger"></i>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

@@ -1,0 +1,20 @@
+<form [formGroup]="formEntity">
+  <div formGroupName="configuration">
+    <div class="mb-3">
+      <label class="form-label">{{ 'Site::Seo:MetaTitleCharLimit' | abpLocalization }}</label>
+      <input type="number" class="form-control" formControlName="Seo.MetaTitleCharLimit" min="1" />
+    </div>
+    <div class="mb-3">
+      <label class="form-label">{{ 'Site::Seo:MetaDescriptionCharLimit' | abpLocalization }}</label>
+      <input
+        type="number"
+        class="form-control"
+        formControlName="Seo.MetaDescriptionCharLimit"
+        min="1"
+      />
+    </div>
+    <div class="alert alert-light border py-2 mb-0">
+      <small class="text-muted">{{ 'Site::Seo:CharLimitAdvisoryHint' | abpLocalization }}</small>
+    </div>
+  </div>
+</form>

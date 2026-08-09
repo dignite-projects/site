@@ -1,0 +1,241 @@
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row align-items-end g-2">
+      <div class="col-md-3">
+        <label class="form-label">{{ 'Site::DisplayName:Page.IsActive' | abpLocalization }}</label>
+        <select class="form-select" [(ngModel)]="filters.isActive" (change)="applyFilters()">
+          <option [ngValue]="undefined">--</option>
+          <option [ngValue]="true">{{ 'AbpUi::Yes' | abpLocalization }}</option>
+          <option [ngValue]="false">{{ 'AbpUi::No' | abpLocalization }}</option>
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">{{ 'AbpUi::Search' | abpLocalization }}</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="filters.filter"
+          (keyup.enter)="applyFilters()"
+          [placeholder]="'AbpUi::Search' | abpLocalization"
+        />
+      </div>
+      <div class="col-md-4">
+        <button type="button" class="btn btn-primary me-2" (click)="applyFilters()">
+          <i class="fa fa-search me-1"></i>{{ 'AbpUi::Search' | abpLocalization }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          {{ 'AbpUi::Clear' | abpLocalization }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">{{ 'Site::Pages' | abpLocalization }}</h5>
+      <button
+        *abpPermission="policies.PagesCreate"
+        type="button"
+        class="btn btn-primary"
+        (click)="openCreate()"
+      >
+        <i class="fa fa-plus me-1"></i>{{ 'Site::NewPage' | abpLocalization }}
+      </button>
+    </div>
+
+    <ngx-datatable
+      class="material"
+      [rows]="data.items"
+      columnMode="flex"
+      [headerHeight]="42"
+      [footerHeight]="42"
+      rowHeight="auto"
+      treeFromRelation="parentId"
+      treeToRelation="id"
+      [rowDraggable]="canDrag"
+      (rowDragEvents)="onRowDragEvent($event)"
+      (treeAction)="onTreeAction($event)"
+    >
+      <ngx-datatable-column
+        prop="displayName"
+        [flexGrow]="2"
+        [isTreeColumn]="true"
+        [treeLevelIndent]="20"
+        [name]="'Site::DisplayName:Page.DisplayName' | abpLocalization"
+      >
+        <ng-template
+          let-row="row"
+          let-treeStatus="treeStatus"
+          let-onTreeAction="onTreeAction"
+          ngx-datatable-cell-template
+        >
+          @if (hasChildren(row)) {
+            <button type="button" class="page-tree-toggle" (click)="onTreeAction()">
+              <i
+                class="fa"
+                [ngClass]="treeStatus === 'collapsed' ? 'fa-caret-right' : 'fa-caret-down'"
+              ></i>
+            </button>
+          }
+          {{ row.displayName }}
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column
+        prop="name"
+        [flexGrow]="2"
+        [name]="'Site::DisplayName:Page.Name' | abpLocalization"
+      ></ngx-datatable-column>
+      <ngx-datatable-column
+        prop="route"
+        [flexGrow]="2"
+        [name]="'Site::DisplayName:Page.Route' | abpLocalization"
+      ></ngx-datatable-column>
+      <ngx-datatable-column
+        [flexGrow]="1"
+        [name]="'Site::DisplayName:Page.IsHomePage' | abpLocalization"
+        [sortable]="false"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <i class="fa" [ngClass]="row.isHomePage ? 'fa-check text-success' : 'fa-times text-muted'"></i>
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column
+        [flexGrow]="1"
+        [name]="'Site::DisplayName:Page.IsActive' | abpLocalization"
+        [sortable]="false"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <i class="fa" [ngClass]="row.isActive ? 'fa-check text-success' : 'fa-times text-muted'"></i>
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column
+        prop="order"
+        [flexGrow]="1"
+        [name]="'Site::DisplayName:Page.Order' | abpLocalization"
+      ></ngx-datatable-column>
+      <ngx-datatable-column [flexGrow]="2" [sortable]="false" [name]="'AbpUi::Actions' | abpLocalization">
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <a
+            *abpPermission="policies.ContentTypes"
+            class="btn btn-sm btn-light me-1"
+            [routerLink]="['/site/pages', row.id, 'content-types']"
+            [title]="'Site::ContentTypes' | abpLocalization"
+          >
+            <i class="fa fa-sitemap"></i>
+          </a>
+          <button
+            *abpPermission="policies.PagesUpdate"
+            type="button"
+            class="btn btn-sm btn-light me-1"
+            (click)="openEdit(row)"
+            [title]="'AbpUi::Edit' | abpLocalization"
+          >
+            <i class="fa fa-pencil"></i>
+          </button>
+          <button
+            *abpPermission="policies.PagesDelete"
+            type="button"
+            class="btn btn-sm btn-light"
+            (click)="delete(row)"
+            [title]="'AbpUi::Delete' | abpLocalization"
+          >
+            <i class="fa fa-trash text-danger"></i>
+          </button>
+        </ng-template>
+      </ngx-datatable-column>
+    </ngx-datatable>
+  </div>
+</div>
+
+<abp-modal [(visible)]="isModalOpen" [busy]="isModalBusy" (disappear)="closeModal()">
+  <ng-template #abpHeader>
+    <h3>{{ (editingPage ? 'Site::EditPage' : 'Site::NewPage') | abpLocalization }}</h3>
+  </ng-template>
+  <ng-template #abpBody>
+    @if (form) {
+      <form [formGroup]="form" (submit)="save()">
+        <button type="submit" #submitButton style="display: none"></button>
+
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Page.DisplayName' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="displayName" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Page.Name' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="name" />
+          <small class="form-text text-muted">
+            {{ 'Site::Description:Page.Name' | abpLocalization }}
+          </small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Page.Route' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="route" />
+          <small class="form-text text-muted">
+            {{ 'Site::Description:Page.Route' | abpLocalization }}
+          </small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Page.Template' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="template" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Page.ParentId' | abpLocalization }}</label>
+          <nz-tree-select
+            class="form-select parent-picker-select"
+            formControlName="parentId"
+            [nzNodes]="parentTreeNodes"
+            nzAllowClear
+            nzShowSearch
+            nzDefaultExpandAll
+            nzDropdownClassName="parent-picker-dropdown"
+            [nzPlaceHolder]="'Site::DisplayName:Page.ParentId' | abpLocalization"
+          ></nz-tree-select>
+          <small class="form-text text-muted">
+            {{ 'Site::Description:Page.ParentId' | abpLocalization }}
+          </small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Page.Order' | abpLocalization }}</label>
+          <input type="number" class="form-control" formControlName="order" />
+        </div>
+        <div class="form-check mb-2">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="site-page-is-home"
+            formControlName="isHomePage"
+          />
+          <label class="form-check-label" for="site-page-is-home">
+            {{ 'Site::DisplayName:Page.IsHomePage' | abpLocalization }}
+          </label>
+        </div>
+        <div class="form-check">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="site-page-is-active"
+            formControlName="isActive"
+          />
+          <label class="form-check-label" for="site-page-is-active">
+            {{ 'Site::DisplayName:Page.IsActive' | abpLocalization }}
+          </label>
+        </div>
+      </form>
+    }
+  </ng-template>
+  <ng-template #abpFooter>
+    <button type="button" class="btn btn-secondary" abpClose>
+      {{ 'AbpUi::Cancel' | abpLocalization }}
+    </button>
+    <abp-button
+      iconClass="fa fa-check"
+      [disabled]="!form?.valid"
+      [loading]="isModalBusy"
+      (click)="submitButton?.nativeElement?.click()"
+    >
+      {{ 'AbpUi::Save' | abpLocalization }}
+    </abp-button>
+  </ng-template>
+</abp-modal>

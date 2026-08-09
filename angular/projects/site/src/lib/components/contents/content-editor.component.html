@@ -1,0 +1,158 @@
+@if (!isLoading && form) {
+  <form [formGroup]="form" (submit)="save()">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="mb-0">
+          {{ (isEdit ? 'Site::EditContent' : 'Site::NewContent') | abpLocalization }}
+        </h5>
+        @if (page) {
+          <small class="text-muted">{{ page.displayName }}</small>
+        }
+      </div>
+      <div>
+        <a class="btn btn-secondary me-2" [routerLink]="['/site/contents']">
+          {{ 'AbpUi::Cancel' | abpLocalization }}
+        </a>
+        <!-- A plain submit button, not `abp-button`: that component declares its own `click` output,
+             so `(click)` binds to an EventEmitter instead of the DOM event, and it takes `buttonType`
+             rather than `type`. Both make it easy to end up with a button that quietly never submits.
+             Inside a form on a page, the native element says what it does. -->
+        <button type="submit" class="btn btn-primary" [disabled]="!form.valid || isBusy">
+          @if (isBusy) {
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+          } @else {
+            <i class="fa fa-check me-1"></i>
+          }
+          {{ 'AbpUi::Save' | abpLocalization }}
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <!-- Left: the content itself - whatever fields its content type defines. -->
+      <div class="col-lg-8">
+        <div class="card h-100">
+          <div class="card-body">
+            @if (hasMultipleContentTypes) {
+              <div class="mb-3 pb-3 border-bottom">
+                <label class="form-label">
+                  {{ 'Site::DisplayName:Content.ContentType' | abpLocalization }}
+                </label>
+                <select
+                  class="form-select"
+                  formControlName="contentTypeId"
+                  (change)="onContentTypeChange()"
+                >
+                  @for (contentType of contentTypes; track contentType.id) {
+                    <option [value]="contentType.id">{{ contentType.displayName }}</option>
+                  }
+                </select>
+                <small class="form-text text-muted">
+                  {{ 'Site::ContentTypeSwitchHint' | abpLocalization }}
+                </small>
+              </div>
+            }
+
+            @if (fields.length > 0) {
+              @for (fieldValue of fields; track fieldValue.field.name) {
+                <ff-flex-field-control
+                  [fields]="fieldValue"
+                  [entity]="form"
+                  parentFieldName="flexFields"
+                  [selected]="fieldValue.value"
+                ></ff-flex-field-control>
+              }
+            } @else {
+              <p class="text-muted mb-0">{{ 'Site::NoFieldsArranged' | abpLocalization }}</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: the system fields that place and schedule the content. -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-body">
+            @if (!hasMultipleContentTypes && contentTypes.length === 1) {
+              <div class="mb-3">
+                <label class="form-label">
+                  {{ 'Site::DisplayName:Content.ContentType' | abpLocalization }}
+                </label>
+                <input type="text" class="form-control" [value]="contentTypes[0].displayName" disabled />
+              </div>
+            }
+
+            <div class="mb-3">
+              <label class="form-label">
+                {{ 'Site::DisplayName:Content.CultureName' | abpLocalization }}
+              </label>
+              <select class="form-select" formControlName="cultureName" (change)="onCultureNameChange()">
+                @for (language of languages; track language) {
+                  <option [value]="language">{{ language }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- The page's route (总体设计 §3.3) decides this, not the editor: no {slug}/{slug?} at all
+                 means nothing is shown here - there is nothing to choose. -->
+            @if (slugState !== 'forbidden') {
+              <div class="mb-3">
+                <label class="form-label">{{ 'Site::DisplayName:Content.Slug' | abpLocalization }}</label>
+
+                @if (slugState === 'optional' && !emptySlotTaken) {
+                  <div class="form-check mb-2">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      id="site-use-page-own-address"
+                      formControlName="usePageOwnAddress"
+                      (change)="onUsePageOwnAddressChange()"
+                    />
+                    <label class="form-check-label" for="site-use-page-own-address">
+                      {{ 'Site::UsePageOwnAddress' | abpLocalization }}
+                    </label>
+                  </div>
+                }
+
+                @if (!usePageOwnAddress) {
+                  <input type="text" class="form-control" formControlName="slug" />
+                }
+
+                @if (slugState === 'optional' && emptySlotTaken) {
+                  <small class="form-text text-muted d-block mt-1">
+                    {{ 'Site::SlugSlotTaken' | abpLocalization }}
+                  </small>
+                }
+
+                <small class="form-text text-muted d-block mt-1">
+                  {{ 'Site::SlugPreview' | abpLocalization: slugPreview }}
+                </small>
+              </div>
+            }
+
+            <div class="mb-3">
+              <label class="form-label">{{ 'Site::DisplayName:Content.Status' | abpLocalization }}</label>
+              <select class="form-select" formControlName="status" (change)="onStatusChange()">
+                @for (status of statuses; track status) {
+                  <option [ngValue]="status">{{ statusKeyOf(status) | abpLocalization }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="mb-0">
+              <label class="form-label">
+                {{ 'Site::DisplayName:Content.PublishTime' | abpLocalization }}
+              </label>
+              <input type="datetime-local" class="form-control" formControlName="publishTime" />
+              @if (isDraft) {
+                <small class="form-text text-muted">
+                  {{ 'Site::DraftPublishTimeDisabledHint' | abpLocalization }}
+                </small>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+}

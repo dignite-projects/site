@@ -1,0 +1,297 @@
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">{{ 'Site::Fields' | abpLocalization }}</h5>
+      <button
+        *abpPermission="policies.FieldsCreate"
+        type="button"
+        class="btn btn-primary"
+        (click)="openCreate()"
+      >
+        <i class="fa fa-plus me-1"></i>{{ 'Site::NewField' | abpLocalization }}
+      </button>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="filters.filter"
+          (keyup.enter)="search()"
+          [placeholder]="'AbpUi::Search' | abpLocalization"
+        />
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>{{ 'Site::DisplayName:Field.DisplayName' | abpLocalization }}</th>
+            <th>{{ 'Site::DisplayName:Field.Name' | abpLocalization }}</th>
+            <th>{{ 'Site::DisplayName:Field.FieldTypeName' | abpLocalization }}</th>
+            <th>{{ 'AbpUi::Actions' | abpLocalization }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (section of sections; track section.groupName) {
+            <tr class="table-light">
+              <th colspan="4" class="fw-semibold">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span style="cursor: pointer" (click)="toggleGroup(section.groupName)">
+                    <i
+                      class="fa me-2 text-muted"
+                      [class.fa-chevron-down]="!isGroupCollapsed(section.groupName)"
+                      [class.fa-chevron-right]="isGroupCollapsed(section.groupName)"
+                    ></i>
+                    @if (section.groupName) {
+                      <i class="fa fa-folder me-1 text-muted"></i>{{ section.groupName }}
+                    } @else {
+                      <i class="fa fa-folder-open me-1 text-muted"></i>
+                      <span class="text-muted">{{ 'Site::Ungrouped' | abpLocalization }}</span>
+                    }
+                  </span>
+                  @if (section.groupName) {
+                    <span>
+                      <button
+                        *abpPermission="policies.FieldsUpdate"
+                        type="button"
+                        class="btn btn-sm btn-light me-1"
+                        (click)="openEditGroup(section.groupName!)"
+                        [title]="'AbpUi::Edit' | abpLocalization"
+                      >
+                        <i class="fa fa-pencil"></i>
+                      </button>
+                      <button
+                        *abpPermission="policies.FieldsUpdate"
+                        type="button"
+                        class="btn btn-sm btn-light"
+                        (click)="deleteGroup(section.groupName!)"
+                        [title]="'AbpUi::Delete' | abpLocalization"
+                      >
+                        <i class="fa fa-trash text-danger"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
+              </th>
+            </tr>
+            @if (!isGroupCollapsed(section.groupName)) {
+              @for (field of section.fields; track field.id) {
+                <tr>
+                  <td>
+                    <div>{{ field.displayName }}</div>
+                    @if (field.description) {
+                      <small class="text-muted">{{ field.description }}</small>
+                    }
+                  </td>
+                  <td>{{ field.name }}</td>
+                  <td>{{ displayNameKeyOf(field.fieldTypeName) | abpLocalization }}</td>
+                  <td class="text-nowrap text-end">
+                    <button
+                      *abpPermission="policies.FieldsUpdate"
+                      type="button"
+                      class="btn btn-sm btn-light me-1"
+                      (click)="openEdit(field)"
+                      [title]="'AbpUi::Edit' | abpLocalization"
+                    >
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <button
+                      *abpPermission="policies.FieldsRename"
+                      type="button"
+                      class="btn btn-sm btn-light me-1"
+                      (click)="openRename(field)"
+                      [title]="'Site::RenameField' | abpLocalization"
+                    >
+                      <i class="fa fa-i-cursor"></i>
+                    </button>
+                    <button
+                      *abpPermission="policies.FieldsDelete"
+                      type="button"
+                      class="btn btn-sm btn-light"
+                      (click)="delete(field)"
+                      [title]="'AbpUi::Delete' | abpLocalization"
+                    >
+                      <i class="fa fa-trash text-danger"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            }
+          } @empty {
+            <tr>
+              <td colspan="4" class="text-muted">
+                {{ 'AbpUi::NoDataAvailableInDatatable' | abpLocalization }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<abp-modal [(visible)]="isModalOpen" [busy]="isModalBusy" (disappear)="closeModal()">
+  <ng-template #abpHeader>
+    <h3>{{ (editingField ? 'Site::EditField' : 'Site::NewField') | abpLocalization }}</h3>
+  </ng-template>
+  <ng-template #abpBody>
+    @if (form) {
+      <form [formGroup]="form" (submit)="save()">
+        <button type="submit" #submitButton style="display: none"></button>
+
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Field.DisplayName' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="displayName" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Field.Name' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="name" />
+          <small class="form-text text-muted">
+            {{ 'Site::Description:Field.Name' | abpLocalization }}
+          </small>
+        </div>
+
+        <!-- Description sits high on purpose: it is product copy aimed at AI, which an MCP client
+             reads to fill the field correctly (总体设计 §6.2.6), not an optional footnote. -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            {{ 'Site::DisplayName:Field.Description' | abpLocalization }}
+          </label>
+          <textarea class="form-control" formControlName="description" rows="3"></textarea>
+          <small class="form-text text-muted">
+            {{ 'Site::Description:Field.Description' | abpLocalization }}
+          </small>
+        </div>
+
+        <!-- Above the field type, and free text: filing under a new group is just typing its name. -->
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Field.Group' | abpLocalization }}</label>
+          <input
+            type="text"
+            class="form-control"
+            formControlName="groupName"
+            [nzAutocomplete]="groupNameAuto"
+          />
+          <nz-autocomplete #groupNameAuto [nzDataSource]="filteredGroupNames"></nz-autocomplete>
+          <small class="form-text text-muted">
+            {{ 'Site::Description:Field.Group' | abpLocalization }}
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Field.FieldTypeName' | abpLocalization }}</label>
+          <select class="form-select" formControlName="fieldTypeName">
+            @for (fieldType of fieldTypes; track fieldType.name) {
+              <option [value]="fieldType.name">{{ fieldType.displayNameKey | abpLocalization }}</option>
+            }
+          </select>
+          @if (editingField) {
+            <small class="form-text text-muted">
+              {{ 'Site::FieldTypeFixedAfterCreation' | abpLocalization }}
+            </small>
+          }
+        </div>
+
+        <hr />
+        <h6>{{ 'Site::DisplayName:Field.Configuration' | abpLocalization }}</h6>
+
+        <ff-flex-field-config
+          [type]="form.getRawValue().fieldTypeName"
+          [selected]="selectedFieldData"
+          [form]="form"
+        ></ff-flex-field-config>
+      </form>
+    }
+  </ng-template>
+  <ng-template #abpFooter>
+    <button type="button" class="btn btn-secondary" abpClose>
+      {{ 'AbpUi::Cancel' | abpLocalization }}
+    </button>
+    <abp-button
+      iconClass="fa fa-check"
+      [disabled]="!form?.valid"
+      [loading]="isModalBusy"
+      (click)="submitButton?.nativeElement?.click()"
+    >
+      {{ 'AbpUi::Save' | abpLocalization }}
+    </abp-button>
+  </ng-template>
+</abp-modal>
+
+<abp-modal
+  [(visible)]="isRenameModalOpen"
+  [busy]="isRenameModalBusy"
+  (disappear)="closeRenameModal()"
+>
+  <ng-template #abpHeader>
+    <h3>{{ 'Site::RenameField' | abpLocalization }}</h3>
+  </ng-template>
+  <ng-template #abpBody>
+    @if (renameForm) {
+      <form [formGroup]="renameForm" (submit)="saveRename()">
+        <button type="submit" #renameSubmitButton style="display: none"></button>
+
+        <div class="alert alert-warning">
+          {{ 'Site::RenameFieldWarning' | abpLocalization }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Field.NewName' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="newName" />
+        </div>
+      </form>
+    }
+  </ng-template>
+  <ng-template #abpFooter>
+    <button type="button" class="btn btn-secondary" abpClose>
+      {{ 'AbpUi::Cancel' | abpLocalization }}
+    </button>
+    <abp-button
+      iconClass="fa fa-check"
+      [disabled]="!renameForm?.valid"
+      [loading]="isRenameModalBusy"
+      (click)="renameSubmitButton?.nativeElement?.click()"
+    >
+      {{ 'AbpUi::Save' | abpLocalization }}
+    </abp-button>
+  </ng-template>
+</abp-modal>
+
+<abp-modal
+  [(visible)]="isGroupModalOpen"
+  [busy]="isGroupModalBusy"
+  (disappear)="closeGroupModal()"
+>
+  <ng-template #abpHeader>
+    <h3>{{ 'Site::RenameGroup' | abpLocalization }}</h3>
+  </ng-template>
+  <ng-template #abpBody>
+    @if (groupForm) {
+      <form [formGroup]="groupForm" (submit)="saveGroupRename()">
+        <button type="submit" #groupSubmitButton style="display: none"></button>
+
+        <div class="mb-3">
+          <label class="form-label">{{ 'Site::DisplayName:Group.NewName' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="groupName" />
+        </div>
+      </form>
+    }
+  </ng-template>
+  <ng-template #abpFooter>
+    <button type="button" class="btn btn-secondary" abpClose>
+      {{ 'AbpUi::Cancel' | abpLocalization }}
+    </button>
+    <abp-button
+      iconClass="fa fa-check"
+      [disabled]="!groupForm?.valid"
+      [loading]="isGroupModalBusy"
+      (click)="groupSubmitButton?.nativeElement?.click()"
+    >
+      {{ 'AbpUi::Save' | abpLocalization }}
+    </abp-button>
+  </ng-template>
+</abp-modal>

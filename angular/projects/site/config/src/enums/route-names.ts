@@ -1,3 +1,6 @@
 export const enum eSiteRouteNames {
-  Site = 'Site',
+  Site = 'Site::Menu:Site',
+  Contents = 'Site::Menu:Contents',
+  Pages = 'Site::Menu:Pages',
+  Fields = 'Site::Menu:Fields',
 }

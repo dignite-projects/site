@@ -1,0 +1,28 @@
+@if (showInList) {
+  @if (hasValue) {
+    <span>{{ seo.metaTitle || ('Site::Seo:NoMetaTitle' | abpLocalization) }}</span>
+    @if (seo.noIndex) {
+      <span class="badge bg-warning text-dark ms-1">{{ 'Site::Seo:NoIndex' | abpLocalization }}</span>
+    }
+  } @else {
+    ---
+  }
+} @else {
+  <div class="mb-3">
+    <label class="form-label" *ngIf="fields?.field?.displayName">
+      {{ fields.field.displayName }}
+    </label>
+    <dl class="row mb-0">
+      <dt class="col-sm-4">{{ 'Site::Seo:MetaTitle' | abpLocalization }}</dt>
+      <dd class="col-sm-8">{{ seo.metaTitle || '---' }}</dd>
+      <dt class="col-sm-4">{{ 'Site::Seo:MetaDescription' | abpLocalization }}</dt>
+      <dd class="col-sm-8">{{ seo.metaDescription || '---' }}</dd>
+      <dt class="col-sm-4">{{ 'Site::Seo:OgImage' | abpLocalization }}</dt>
+      <dd class="col-sm-8">{{ seo.ogImage || '---' }}</dd>
+      <dt class="col-sm-4">{{ 'Site::Seo:NoIndex' | abpLocalization }}</dt>
+      <dd class="col-sm-8">
+        {{ (seo.noIndex ? 'AbpUi::Yes' : 'AbpUi::No') | abpLocalization }}
+      </dd>
+    </dl>
+  </div>
+}
