@@ -84,11 +84,6 @@ namespace Dignite.Site.Host.Migrations
                     b.Property<Guid>("PageId")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("SchemaType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("TEXT")
                         .HasColumnName("TenantId");
@@ -311,7 +306,8 @@ namespace Dignite.Site.Host.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("FieldTypeName");
 
-                    b.Property<Guid?>("GroupId")
+                    b.Property<string>("GroupName")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsDeleted")
@@ -340,37 +336,12 @@ namespace Dignite.Site.Host.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupId");
+                    b.HasIndex("TenantId", "GroupName");
 
                     b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
                     b.ToTable("SiteFields", (string)null);
-                });
-
-            modelBuilder.Entity("Dignite.Site.Fields.FieldGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid?>("TenantId")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("TenantId");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("SiteFieldGroups", (string)null);
                 });
 
             modelBuilder.Entity("Dignite.Site.Pages.Page", b =>
@@ -384,10 +355,6 @@ namespace Dignite.Site.Host.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("TEXT")
                         .HasColumnName("ConcurrencyStamp");
-
-                    b.Property<string>("ContentPathPattern")
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("TEXT")
@@ -443,6 +410,9 @@ namespace Dignite.Site.Host.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Route")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -458,8 +428,12 @@ namespace Dignite.Site.Host.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ParentId");
+
                     b.HasIndex("TenantId", "Name")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "ParentId");
 
                     b.HasIndex("TenantId", "Route")
                         .IsUnique();
@@ -2465,12 +2439,12 @@ namespace Dignite.Site.Host.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Dignite.Site.Fields.Field", b =>
+            modelBuilder.Entity("Dignite.Site.Pages.Page", b =>
                 {
-                    b.HasOne("Dignite.Site.Fields.FieldGroup", null)
-                        .WithMany("Fields")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("Dignite.Site.Pages.Page", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLogAction", b =>
@@ -2678,11 +2652,6 @@ namespace Dignite.Site.Host.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Dignite.Site.Fields.FieldGroup", b =>
-                {
-                    b.Navigation("Fields");
                 });
 
             modelBuilder.Entity("Dignite.Site.Pages.Page", b =>
