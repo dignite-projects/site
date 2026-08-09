@@ -34,7 +34,7 @@ public class PagePublicController : PublicController, IPagePublicAppService
     }
 
     [HttpGet]
-    public virtual Task<PagedResultDto<PageDto>> GetListAsync(GetPageListInput input)
+    public virtual Task<ListResultDto<PageDto>> GetListAsync(GetPageListInput input)
     {
         return PagePublicAppService.GetListAsync(input);
     }

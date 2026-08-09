@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
 using Dignite.Site.ContentTypes;
+using Dignite.Site.Contents;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 using Volo.Abp.MultiTenancy;
@@ -33,23 +36,23 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string name,
         string displayName,
         string route,
-        string? contentPathPattern = null,
         string? template = null,
         bool isHomePage = false,
         int order = 0,
         bool isActive = true,
-        Guid? tenantId = null)
+        Guid? tenantId = null,
+        Guid? parentId = null)
         : base(id)
     {
         SetName(name);
         SetDisplayName(displayName);
         SetRoute(route);
-        SetContentPathPattern(contentPathPattern);
         Template = template;
         IsHomePage = isHomePage;
         Order = order;
         IsActive = isActive;
         TenantId = tenantId;
+        ParentId = parentId;
 
         ContentTypes = new List<ContentType>();
     }
@@ -60,16 +63,11 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual string DisplayName { get; protected set; } = default!;
 
     /// <summary>
-    /// The base path this page occupies, normalized to a leading slash and no trailing one:
-    /// <c>/</c>, <c>/about</c>, <c>/blog</c>. This is the page's reason to exist.
+    /// The page's route, normalized to a leading slash and no trailing one. A route template, not just a
+    /// base path - see <see cref="PageRoute"/> for what that means and why. This is the page's reason to
+    /// exist.
     /// </summary>
     public virtual string Route { get; protected set; } = default!;
-
-    /// <summary>
-    /// How the URLs of contents beneath this page are composed - see <see cref="ContentPathPattern"/>.
-    /// Null means the default, <c>{slug}</c>.
-    /// </summary>
-    public virtual string? ContentPathPattern { get; protected set; }
 
     /// <summary>
     /// Optional rendering hint. Only a front end that lets the back end name a view uses it (总体设计 §7.3
@@ -83,8 +81,16 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// </summary>
     public virtual bool IsHomePage { get; protected set; }
 
-    /// <summary>Navigation ordering.</summary>
+    /// <summary>Navigation ordering, scoped to the pages sharing the same <see cref="ParentId"/>.</summary>
     public virtual int Order { get; protected set; }
+
+    /// <summary>
+    /// The page this one is organized under in the Admin UI, or null for a top-level page. This is
+    /// <b>purely organizational</b> - <see cref="Route"/> stays independent and free-form, and route
+    /// resolution (<c>SiteRouteResolver</c>) never looks at this field. A child page can carry a route
+    /// with no relation to its parent's; nothing here composes one from the other.
+    /// </summary>
+    public virtual Guid? ParentId { get; protected set; }
 
     /// <summary>
     /// An inactive page is not routable and contributes nothing to the sitemap, but keeps its contents.
@@ -111,25 +117,21 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     }
 
     /// <summary>
-    /// Normalizes and assigns the route. Normalization is not cosmetic: the route is matched against
-    /// request paths, so <c>blog</c>, <c>/blog</c> and <c>/blog/</c> reaching the table as three
+    /// Normalizes, validates and assigns the route. Normalization is not cosmetic: the route is matched
+    /// against request paths, so <c>blog</c>, <c>/blog</c> and <c>/blog/</c> reaching the table as three
     /// different strings would make "is this route taken?" answer no when it should answer yes.
+    /// Validation catches an unrecognized <c>{...}</c> placeholder - see <see cref="PageRoute.IsValid"/>.
     /// </summary>
     public virtual void SetRoute(string route)
     {
-        Route = NormalizeRoute(route);
-    }
+        var normalized = NormalizeRoute(route);
 
-    public virtual void SetContentPathPattern(string? contentPathPattern)
-    {
-        if (!string.IsNullOrWhiteSpace(contentPathPattern) && !Pages.ContentPathPattern.IsValid(contentPathPattern))
+        if (!PageRoute.IsValid(normalized))
         {
-            throw new InvalidContentPathPatternException(contentPathPattern);
+            throw new InvalidPageRouteException(normalized);
         }
 
-        ContentPathPattern = string.IsNullOrWhiteSpace(contentPathPattern)
-            ? null
-            : Pages.ContentPathPattern.Normalize(contentPathPattern);
+        Route = normalized;
     }
 
     public virtual void SetTemplate(string? template)
@@ -145,6 +147,17 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual void SetOrder(int order)
     {
         Order = order;
+    }
+
+    /// <summary>
+    /// Assigns the parent, or clears it with null. Existence and cycle checks are the caller's
+    /// responsibility (<c>PageManager.CheckParentAsync</c>) - they need repository access this entity
+    /// does not have, the same reason <see cref="Route"/> and <see cref="Name"/> uniqueness is checked
+    /// there rather than here.
+    /// </summary>
+    public virtual void SetParent(Guid? parentId)
+    {
+        ParentId = parentId;
     }
 
     public virtual void SetIsActive(bool isActive)
@@ -165,19 +178,74 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     }
 
     /// <summary>
-    /// The full path of one content beneath this page: the route, plus whatever
-    /// <see cref="ContentPathPattern"/> composes from the content's publish time and slug. A content
-    /// with an empty slug - the single content of a home or "about" page - is the page route itself.
+    /// The page's own address, independent of anything beneath it - see <see cref="PageRoute.GetPath"/>.
+    /// What sitemap, canonical, hreflang and feed URLs are built from; never <see cref="Route"/> directly,
+    /// since that may be a template carrying a placeholder.
+    /// <para>
+    /// A method, not a property: an expression-bodied property here is exactly the shape EF Core's
+    /// convention-based discovery goes looking for, and this must never become a mapped column.
+    /// </para>
     /// </summary>
-    public virtual string BuildContentPath(DateTime publishTime, string? slug)
+    public virtual string GetPath()
     {
-        var relative = Pages.ContentPathPattern.Build(ContentPathPattern, publishTime, slug);
+        return PageRoute.GetPath(Route);
+    }
 
-        if (relative.Length == 0)
+    /// <summary>
+    /// The full path of <paramref name="content"/> beneath this page. A content with an empty slug - the
+    /// single content of a home or "about" page - is this page's own address; otherwise every placeholder
+    /// in <see cref="Route"/> is filled in from <paramref name="content"/> - <c>{slug}</c> from
+    /// <see cref="Contents.Content.Slug"/> itself, and any other placeholder from whatever field of that
+    /// name the content has.
+    /// </summary>
+    public virtual string BuildContentPath(Content content)
+    {
+        return string.IsNullOrEmpty(content.Slug)
+            ? GetPath()
+            : PageRoute.Build(Route, (name, format) => ResolveFieldValue(content, name, format));
+    }
+
+    /// <summary>
+    /// Resolves one route placeholder's rendered text from <paramref name="content"/>: a real property
+    /// first (<c>Slug</c>, <c>PublishTime</c>, ...), by name and case-insensitively - the same lookup
+    /// Dignite.Cms's <c>EntryDtoExtensions.GetPropertyValue</c> does - then, failing that,
+    /// <see cref="Contents.Content.FlexFields"/>, since everything a content carries that is not one of
+    /// its four system fields lives there (总体设计 §2.4). A name that resolves to neither is a
+    /// configuration mistake in this page's route, not something to render around - it fails loudly, the
+    /// same way Dignite.Cms's own version does, rather than emitting a URL with the placeholder text still
+    /// in it.
+    /// </summary>
+    private static string ResolveFieldValue(Content content, string name, string? format)
+    {
+        var property = typeof(Content).GetProperty(
+            name, BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance);
+
+        if (property != null)
         {
-            return Route;
+            return FormatFieldValue(property.GetValue(content), format);
         }
 
-        return Route == "/" ? "/" + relative : Route + "/" + relative;
+        if (content.FlexFields.TryGetValue(name, out var value))
+        {
+            return FormatFieldValue(value, format);
+        }
+
+        throw new AbpException(
+            $"The route of page '{content.PageId}' refers to '{{{name}}}', but its content has no property or field of that name.");
+    }
+
+    /// <summary>
+    /// Invariant culture, always: a route's placeholders are URL structure, not text shown to anybody, so
+    /// they must not vary with the culture the request happens to run under. A Buddhist or Hijri calendar
+    /// on the ambient culture would otherwise silently emit a different year into the URL.
+    /// </summary>
+    private static string FormatFieldValue(object? value, string? format)
+    {
+        if (format != null && value is IFormattable formattable)
+        {
+            return formattable.ToString(format, CultureInfo.InvariantCulture);
+        }
+
+        return value?.ToString() ?? string.Empty;
     }
 }

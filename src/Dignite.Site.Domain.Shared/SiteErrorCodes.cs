@@ -10,7 +10,9 @@ public static class SiteErrorCodes
 {
     public const string PageRouteAlreadyExists = "Site:010001";
     public const string PageNameAlreadyExists = "Site:010002";
-    public const string InvalidContentPathPattern = "Site:010003";
+    public const string InvalidPageRoute = "Site:010003";
+    public const string PageParentCycle = "Site:010004";
+    public const string PageHasChildren = "Site:010005";
 
     public const string ContentTypeNameAlreadyExists = "Site:020001";
     public const string ContentTypeFieldDuplicated = "Site:020002";

@@ -11,11 +11,19 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
     Task<Page?> FindByNameAsync(string name, bool includeDetails = false, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Finds the page whose <see cref="Page.Route"/> is exactly <paramref name="route"/> - step 1 of
-    /// route resolution (总体设计 §3.4).
+    /// Finds the page whose own address (<see cref="Page.GetPath"/>) is exactly <paramref name="path"/> -
+    /// step 1 of route resolution (总体设计 §3.4). Not a literal match against <see cref="Page.Route"/>:
+    /// that may be a template (<c>/blog/{slug}</c>), whose own address (<c>/blog</c>) is a derived,
+    /// shorter string.
     /// </summary>
-    Task<Page?> FindByRouteAsync(string route, bool includeDetails = false, CancellationToken cancellationToken = default);
+    Task<Page?> FindByPathAsync(string path, bool includeDetails = false, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Whether any page's own address (<see cref="Page.GetPath"/>) would collide with
+    /// <paramref name="route"/>'s. Not a literal <see cref="Page.Route"/> comparison: <c>/blog</c> and
+    /// <c>/blog/{slug}</c> are different strings that both claim the address <c>/blog</c>, and only one
+    /// page may.
+    /// </summary>
     Task<bool> RouteExistsAsync(string route, Guid? excludedId = null, CancellationToken cancellationToken = default);
 
     Task<bool> NameExistsAsync(string name, Guid? excludedId = null, CancellationToken cancellationToken = default);
@@ -23,22 +31,27 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
     Task<Page?> FindHomePageAsync(bool includeDetails = false, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Every routable page, longest route first.
-    /// <para>
-    /// The ordering is the point, not a convenience: step 2 of route resolution matches a request path
-    /// against route prefixes, and <c>/blog</c> is a prefix of <c>/blog-archive</c>. Testing longer
-    /// routes first is what stops the shorter page from swallowing the longer one's URLs.
-    /// </para>
+    /// Every routable page, ordered the same way <see cref="GetListAsync"/> is (by <see cref="Page.Order"/>
+    /// then <see cref="Page.Route"/>) - a deterministic order, not one that disambiguates matches. Step 2
+    /// of route resolution matches a whole request path against each candidate's route as one anchored
+    /// template, so two distinct templates cannot both match a path unless an admin has deliberately
+    /// constructed overlapping ones - a case the engine does not try to resolve, only to answer
+    /// consistently.
     /// </summary>
     Task<List<Page>> GetRoutableListAsync(CancellationToken cancellationToken = default);
 
     Task<List<Page>> GetListAsync(
         bool? isActive = null,
         string? filter = null,
-        int maxResultCount = int.MaxValue,
-        int skipCount = 0,
-        string? sorting = null,
         CancellationToken cancellationToken = default);
 
-    Task<int> GetCountAsync(bool? isActive = null, string? filter = null, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// The children of <paramref name="parentId"/> (null meaning the top-level pages), ordered the same
+    /// way <see cref="GetListAsync"/> orders its whole result - by <see cref="Page.Order"/> then
+    /// <see cref="Page.Route"/>. Used both to renumber a sibling group after a move and, from
+    /// <see cref="PageManager"/>, to check whether a page has children before deleting it.
+    /// </summary>
+    Task<List<Page>> GetChildrenAsync(Guid? parentId, CancellationToken cancellationToken = default);
+
+    Task<bool> AnyChildAsync(Guid parentId, CancellationToken cancellationToken = default);
 }

@@ -1,8 +1,6 @@
-using Volo.Abp.Application.Dtos;
-
 namespace Dignite.Site.Admin.Pages;
 
-public class GetPageListInput : PagedAndSortedResultRequestDto
+public class GetPageListInput
 {
     public bool? IsActive { get; set; }
 

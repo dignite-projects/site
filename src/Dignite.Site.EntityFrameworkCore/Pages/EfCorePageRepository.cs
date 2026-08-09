@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Dynamic.Core;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.EntityFrameworkCore;
@@ -28,16 +27,36 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
             .FirstOrDefaultAsync(p => p.Name == name, GetCancellationToken(cancellationToken));
     }
 
-    public virtual async Task<Page?> FindByRouteAsync(
-        string route,
+    public virtual async Task<Page?> FindByPathAsync(
+        string path,
         bool includeDetails = false,
         CancellationToken cancellationToken = default)
     {
-        var normalized = Page.NormalizeRoute(route);
+        var normalized = Page.NormalizeRoute(path);
 
-        return await (await GetQueryableAsync())
+        // A page's route may be a template (/blog/{slug}) whose own address (/blog) is a shorter, derived
+        // string - so a literal Route match alone would miss it. The SQL side is a coarse net (anything
+        // that could possibly derive to this address); PageRoute.GetPath in memory is the actual judge -
+        // one place decides both directions, or "what is this page's address" could start disagreeing
+        // with itself the way SiteUrlBuilder used to before it read GetPath() too.
+        var prefix = normalized == "/" ? "/" : normalized + "/";
+
+        var candidates = await (await GetQueryableAsync())
             .IncludeDetails(includeDetails)
-            .FirstOrDefaultAsync(p => p.Route == normalized, GetCancellationToken(cancellationToken));
+            .Where(p => p.Route == normalized || p.Route.StartsWith(prefix))
+            .ToListAsync(GetCancellationToken(cancellationToken));
+
+        // More than one page can derive the same own address - a literal /blog and a templated
+        // /blog/{publishTime:yyyy}/{publishTime:MM}/{slug} both claim /blog, and neither creation is
+        // rejected for it (RouteExistsAsync only rejects a literal Route duplicate). A literal route
+        // always wins that address deterministically; among templated routes alone the tie-break is
+        // just a stable order, the same "admin's problem" territory GetRoutableListAsync already
+        // documents for two templates that overlap on purpose.
+        return candidates
+            .Where(p => PageRoute.GetPath(p.Route) == normalized)
+            .OrderBy(p => PageRoute.IsTemplate(p.Route) ? 1 : 0)
+            .ThenBy(p => p.Route, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     public virtual async Task<bool> RouteExistsAsync(
@@ -47,9 +66,13 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
     {
         var normalized = Page.NormalizeRoute(route);
 
-        return await (await GetDbSetAsync())
+        // A literal string duplicate, nothing more - /blog and /blog/{slug} are different strings that
+        // may both derive the same own address (see FindByPathAsync), and that is not a conflict: only
+        // one of them can ever win that address, deterministically, at resolution time, so there is
+        // nothing here for creation-time uniqueness to protect against.
+        return await (await GetDbSetAsync()).AsNoTracking()
             .AnyAsync(
-                p => p.Route == normalized && (excludedId == null || p.Id != excludedId),
+                p => (excludedId == null || p.Id != excludedId) && p.Route == normalized,
                 GetCancellationToken(cancellationToken));
     }
 
@@ -73,15 +96,11 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
             .FirstOrDefaultAsync(p => p.IsHomePage, GetCancellationToken(cancellationToken));
     }
 
-    /// <summary>
-    /// Longest route first. Route resolution walks this list testing prefixes, and <c>/blog</c> is a
-    /// prefix of <c>/blog-archive</c> - shorter-first would let the blog page claim the archive's URLs.
-    /// </summary>
     public virtual async Task<List<Page>> GetRoutableListAsync(CancellationToken cancellationToken = default)
     {
         return await (await GetDbSetAsync())
             .Where(p => p.IsActive)
-            .OrderByDescending(p => p.Route.Length)
+            .OrderBy(p => p.Order)
             .ThenBy(p => p.Route)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
@@ -89,24 +108,29 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
     public virtual async Task<List<Page>> GetListAsync(
         bool? isActive = null,
         string? filter = null,
-        int maxResultCount = int.MaxValue,
-        int skipCount = 0,
-        string? sorting = null,
         CancellationToken cancellationToken = default)
     {
         return await (await GetFilteredQueryableAsync(isActive, filter))
-            .OrderBy(sorting.IsNullOrWhiteSpace() ? $"{nameof(Page.Order)} asc,{nameof(Page.Route)} asc" : sorting!)
-            .PageBy(skipCount, maxResultCount)
+            .OrderBy(p => p.Order)
+            .ThenBy(p => p.Route)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
-    public virtual async Task<int> GetCountAsync(
-        bool? isActive = null,
-        string? filter = null,
+    public virtual async Task<List<Page>> GetChildrenAsync(
+        Guid? parentId,
         CancellationToken cancellationToken = default)
     {
-        return await (await GetFilteredQueryableAsync(isActive, filter))
-            .CountAsync(GetCancellationToken(cancellationToken));
+        return await (await GetDbSetAsync())
+            .Where(p => p.ParentId == parentId)
+            .OrderBy(p => p.Order)
+            .ThenBy(p => p.Route)
+            .ToListAsync(GetCancellationToken(cancellationToken));
+    }
+
+    public virtual async Task<bool> AnyChildAsync(Guid parentId, CancellationToken cancellationToken = default)
+    {
+        return await (await GetDbSetAsync())
+            .AnyAsync(p => p.ParentId == parentId, GetCancellationToken(cancellationToken));
     }
 
     protected virtual async Task<IQueryable<Page>> GetFilteredQueryableAsync(bool? isActive, string? filter)

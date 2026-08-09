@@ -2,6 +2,8 @@ using System.Threading.Tasks;
 using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Contents;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Fields;
+using Dignite.Site.Seo;
 using Shouldly;
 using Volo.Abp.Domain.Entities;
 using Xunit;
@@ -13,12 +15,14 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     private readonly IPageAdminAppService _pageAppService;
     private readonly IContentTypeAdminAppService _contentTypeAppService;
     private readonly IContentAdminAppService _contentAppService;
+    private readonly IFieldRepository _fieldRepository;
 
     public PageAdminAppService_Tests()
     {
         _pageAppService = GetRequiredService<IPageAdminAppService>();
         _contentTypeAppService = GetRequiredService<IContentTypeAdminAppService>();
         _contentAppService = GetRequiredService<IContentAdminAppService>();
+        _fieldRepository = GetRequiredService<IFieldRepository>();
     }
 
     [Fact]
@@ -27,8 +31,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         var page = await _pageAppService.GetAsync(SiteTestData.BlogPageId);
 
         page.Name.ShouldBe("blog");
-        page.Route.ShouldBe("/blog");
-        page.ContentPathPattern.ShouldBe("{slug}");
+        page.Route.ShouldBe("/blog/{slug?}");
     }
 
     [Fact]
@@ -96,6 +99,35 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         (await _contentTypeAppService.GetAsync(SiteTestData.NewsItemTypeId)).ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// A page starts with one content type of its own, carrying the seeded SEO field - closing the dead
+    /// end where a fresh page had no content type for the Contents screen to create into (Content always
+    /// needs an existing ContentType; see <c>PageAdminAppService.CreateDefaultContentTypeAsync</c>).
+    /// </summary>
+    [Fact]
+    public async Task Should_Create_A_Default_Content_Type_Carrying_The_Seo_Field_When_A_Page_Is_Created()
+    {
+        var seoField = await WithUnitOfWorkAsync(() => _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName));
+
+        var page = await _pageAppService.CreateAsync(new CreatePageDto
+        {
+            Name = "admin-default-content-type-test",
+            DisplayName = "Default Content Type Test",
+            Route = "/admin-default-content-type-test",
+            IsActive = true
+        });
+
+        var contentTypes = await _contentTypeAppService.GetListByPageAsync(page.Id);
+
+        contentTypes.Items.Count.ShouldBe(1);
+        var contentType = contentTypes.Items[0];
+        contentType.Name.ShouldBe(page.Name);
+        contentType.DisplayName.ShouldBe(page.DisplayName);
+
+        contentType.Fields.Count.ShouldBe(1);
+        contentType.Fields[0].FieldId.ShouldBe(seoField!.Id);
+    }
+
     [Fact]
     public async Task Should_Exclude_Inactive_Pages_When_Filtered_Active_Only()
     {
@@ -107,7 +139,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             IsActive = false
         });
 
-        var result = await _pageAppService.GetListAsync(new GetPageListInput { IsActive = true, MaxResultCount = 1000 });
+        var result = await _pageAppService.GetListAsync(new GetPageListInput { IsActive = true });
 
         result.Items.ShouldNotContain(p => p.Id == inactive.Id);
     }

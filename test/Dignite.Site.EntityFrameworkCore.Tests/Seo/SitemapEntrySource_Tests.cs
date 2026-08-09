@@ -67,7 +67,7 @@ public class SitemapEntrySource_Tests : SiteEntityFrameworkCoreTestBase
             $"{BaseUrl}/blog/summer-photos",
             $"{BaseUrl}/news",
             // The dated content path pattern, composed by the page itself.
-            $"{BaseUrl}/news/2026/07/launch"
+            $"{BaseUrl}/news/2026-07/launch"
         }, ignoreOrder: true);
     }
 

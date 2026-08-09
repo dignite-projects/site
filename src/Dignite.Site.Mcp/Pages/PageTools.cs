@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Pages;
@@ -35,45 +36,58 @@ public class PageTools : ITransientDependency
     [Description(
         "Creates a page - a node of the site's routing table, owning a URL prefix. Content types are " +
         "defined beneath a page, and contents beneath those, so a page is the first thing to create when " +
-        "building a new section.")]
+        "building a new section. Comes with one content type already, named the same as the page and " +
+        "carrying only the SEO field - call update_content_type on it to set the real field arrangement " +
+        "(or create_content_type for an additional type, if this page needs more than one shape of " +
+        "content).")]
     [Authorize(AdminPermissions.Pages.Create)]
-    public virtual Task<PageDto> CreatePageAsync(
+    public virtual async Task<PageDto> CreatePageAsync(
         [Description("Machine name, unique across the site, e.g. 'blog'. This is how every other tool addresses this page.")]
         string name,
         [Description("Human-readable name, e.g. 'Blog'.")]
         string displayName,
-        [Description("The URL prefix this page owns, starting with a slash, e.g. '/blog'. Use '/' for the home page.")]
-        string route,
         [Description(
-            "How a content's URL is arranged under the route, e.g. '{publishTime:yyyy/MM}/{slug}' for " +
-            "'<route>/2026/07/<slug>'. Omit for the usual '<route>/<slug>'. Must contain '{slug}'; the " +
-            "only other placeholder is '{publishTime:FORMAT}', FORMAT being a .NET date format such as " +
-            "'yyyy', 'yyyy/MM' or 'yyyy/MM/dd' - there is no separate '{year}', '{month}' or '{day}' token.")]
-        string? contentPathPattern = null,
+            "The page's route template, starting with a slash. No placeholder means no content beneath " +
+            "it, e.g. '/about' (use '/' for the home page). Embed '{slug}' where the slug goes to have " +
+            "content beneath it and require every content there to have one, e.g. '/blog/{slug}'; use " +
+            "'{slug?}' instead to also allow one content with an empty slug, served at this page's own " +
+            "address, e.g. '/about/{slug?}'. Any other field the content has can appear too - a system " +
+            "field or a custom one, it makes no difference - optionally with a ':FORMAT' suffix, e.g. " +
+            "'{publishTime:yyyy-MM}' for '2026-07', e.g. '/news/{publishTime:yyyy-MM}/{slug}' for " +
+            "'/news/2026-07/<slug>'. A FORMAT may only contain letters, digits, '.', '_', '-' - never " +
+            "'/', which would be indistinguishable from the slash between path segments.")]
+        string route,
         [Description("Whether this page is the site's home page. At most one page can be.")]
         bool isHomePage = false,
         [Description("Sort order among pages. Lower comes first.")]
         int order = 0,
+        [Description(
+            "The parent page's machine name, for organizing this page under it in the Admin UI's tree. " +
+            "Purely organizational - it has no effect on 'route' or on how requests are resolved against " +
+            "it. Omit for a top-level page. Ignored when 'isHomePage' is true: the home page is always " +
+            "the tree's root.")]
+        string? parent = null,
         [Description("Whether the page is live. An inactive page is not routed.")]
         bool isActive = true)
     {
-        return PageAppService.CreateAsync(new CreatePageDto
+        var parentId = parent != null ? (Guid?)(await NameResolver.GetPageAsync(parent)).Id : null;
+
+        return await PageAppService.CreateAsync(new CreatePageDto
         {
             Name = name,
             DisplayName = displayName,
             Route = route,
-            ContentPathPattern = contentPathPattern,
             IsHomePage = isHomePage,
             Order = order,
+            ParentId = parentId,
             IsActive = isActive
         });
     }
 
     [McpServerTool(Name = "update_page", Title = "Update a page", Idempotent = true)]
     [Description(
-        "Updates a page. Anything left null keeps its current value. Changing 'route' or " +
-        "'contentPathPattern' changes the URL of every content beneath this page, so old links stop " +
-        "working.")]
+        "Updates a page. Anything left null keeps its current value. Changing 'route' changes the URL " +
+        "of every content beneath this page, so old links stop working.")]
     [Authorize(AdminPermissions.Pages.Update)]
     public virtual async Task<PageDto> UpdatePageAsync(
         [Description("The page's current machine name, from get_site_schema.")]
@@ -82,37 +96,47 @@ public class PageTools : ITransientDependency
         string? name = null,
         [Description("New human-readable name. Omit to keep it.")]
         string? displayName = null,
-        [Description("New URL prefix. Omit to keep it - see the warning above before changing it.")]
-        string? route = null,
         [Description(
-            "New content path pattern - see create_page for the placeholder syntax. Omit to keep the " +
-            "current one; pass an empty string to clear it back to the default '{slug}'. See the warning " +
-            "above: either way, this changes the URL of every content beneath this page.")]
-        string? contentPathPattern = null,
+            "New route template - see create_page for the placeholder syntax. Omit to keep the current " +
+            "one; see the warning above before changing it. Dropping '{slug}'/'{slug?}' turns a page that " +
+            "has content beneath it into one that does not, and vice versa; switching between '{slug}' " +
+            "and '{slug?}' changes whether an empty slug is allowed there. None of this re-validates " +
+            "contents that already exist - only the next write to one of them sees the new rule.")]
+        string? route = null,
         [Description("Whether this is the home page. Omit to keep it.")]
         bool? isHomePage = null,
         [Description("New sort order. Omit to keep it.")]
         int? order = null,
+        [Description(
+            "New parent page's machine name, for reorganizing this page in the Admin UI's tree. Purely " +
+            "organizational - has no effect on 'route'. Omit to keep the current parent; pass an empty " +
+            "string to make this a top-level page. Ignored if this page is, or is becoming, the home " +
+            "page: the home page is always the tree's root.")]
+        string? parent = null,
         [Description("Whether the page is live. Omit to keep it.")]
         bool? isActive = null)
     {
         var current = await NameResolver.GetPageAsync(page);
+
+        var parentId = current.ParentId;
+        if (parent == string.Empty)
+        {
+            parentId = null;
+        }
+        else if (parent != null)
+        {
+            parentId = (await NameResolver.GetPageAsync(parent)).Id;
+        }
 
         return await PageAppService.UpdateAsync(current.Id, new UpdatePageDto
         {
             Name = name ?? current.Name,
             DisplayName = displayName ?? current.DisplayName,
             Route = route ?? current.Route,
-            // Omitting the argument means "keep the current pattern": null ?? current.X evaluates to
-            // current.X. An explicit empty string is different - "" is not null, so `??` leaves it alone
-            // and it reaches Page.SetContentPathPattern, which treats a blank string the same as null and
-            // clears the pattern back to the default '{slug}'. That is deliberate, not a gap: it mirrors
-            // how the domain already treats blank and null as the same value, and the parameter
-            // description above says so, so a model reaching for "" does not erase a pattern by accident.
-            ContentPathPattern = contentPathPattern ?? current.ContentPathPattern,
             Template = current.Template,
             IsHomePage = isHomePage ?? current.IsHomePage,
             Order = order ?? current.Order,
+            ParentId = parentId,
             IsActive = isActive ?? current.IsActive
         });
     }
@@ -121,9 +145,10 @@ public class PageTools : ITransientDependency
     [Description(
         "Deletes a page AND EVERYTHING UNDER IT - every content type defined on it and every content of " +
         "those types, in every language. This is the only tool here that removes a whole section of the " +
-        "site in one call, and it cannot be undone. If this page is the home page, the site is left with " +
-        "none, which is what hreflang's x-default points at - set another page as home first if that " +
-        "matters. Confirm with the user first.")]
+        "site in one call, and it cannot be undone. Fails if the page has child pages in the Admin UI's " +
+        "tree - move them elsewhere or delete them first with update_page/delete_page. If this page is " +
+        "the home page, the site is left with none, which is what hreflang's x-default points at - set " +
+        "another page as home first if that matters. Confirm with the user first.")]
     [Authorize(AdminPermissions.Pages.Delete)]
     public virtual async Task<string> DeletePageAsync(
         [Description("The page's machine name, from get_site_schema.")] string page)

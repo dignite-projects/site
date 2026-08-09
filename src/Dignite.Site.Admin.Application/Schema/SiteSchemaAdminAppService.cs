@@ -74,6 +74,10 @@ public class SiteSchemaAdminAppService : AdminAppService, ISiteSchemaAdminAppSer
         // not live yet is exactly the one a client is most likely to be filling in.
         var pages = await PageRepository.GetListAsync();
 
+        // Every reference in this schema is by name, never a Guid (总体设计 §6.2.4) - built once here
+        // rather than re-querying per page, since the whole list is already in memory.
+        var pageNamesById = pages.ToDictionary(page => page.Id, page => page.Name);
+
         var contentTypesByPage = (await ContentTypeRepository.GetListAsync())
             .GroupBy(contentType => contentType.PageId)
             .ToDictionary(g => g.Key, g => g.ToList());
@@ -88,9 +92,9 @@ public class SiteSchemaAdminAppService : AdminAppService, ISiteSchemaAdminAppSer
                 Name = page.Name,
                 DisplayName = page.DisplayName,
                 Route = page.Route,
-                ContentPathPattern = page.ContentPathPattern,
                 IsHomePage = page.IsHomePage,
-                IsActive = page.IsActive
+                IsActive = page.IsActive,
+                Parent = page.ParentId != null ? pageNamesById.GetValueOrDefault(page.ParentId.Value) : null
             };
 
             if (contentTypesByPage.TryGetValue(page.Id, out var contentTypes))

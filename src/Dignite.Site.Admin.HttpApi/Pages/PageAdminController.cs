@@ -44,7 +44,7 @@ public class PageAdminController : AdminController, IPageAdminAppService
     }
 
     [HttpGet]
-    public virtual Task<PagedResultDto<PageDto>> GetListAsync(GetPageListInput input)
+    public virtual Task<ListResultDto<PageDto>> GetListAsync(GetPageListInput input)
     {
         return PageAdminAppService.GetListAsync(input);
     }
@@ -62,6 +62,14 @@ public class PageAdminController : AdminController, IPageAdminAppService
     public virtual Task<PageDto> UpdateAsync(Guid id, UpdatePageDto input)
     {
         return PageAdminAppService.UpdateAsync(id, input);
+    }
+
+    [HttpPut]
+    [Route("{id}/move")]
+    [Authorize(AdminPermissions.Pages.Update)]
+    public virtual Task<PageDto> MoveAsync(Guid id, MovePageDto input)
+    {
+        return PageAdminAppService.MoveAsync(id, input);
     }
 
     [HttpDelete]

@@ -6,7 +6,9 @@
 
     "Site:010001": "The route '{Route}' is already used by another page.",
     "Site:010002": "A page named '{Name}' already exists.",
-    "Site:010003": "'{Pattern}' is not a valid content path pattern: it must contain the {{slug}} placeholder.",
+    "Site:010003": "'{Route}' is not a valid route: it contains a placeholder that is not recognized.",
+    "Site:010004": "A page cannot be organized under itself or under one of its own child pages.",
+    "Site:010005": "The page '{Name}' still has child pages; delete or move them first.",
 
     "Site:020001": "A content type named '{Name}' already exists on this page.",
     "Site:020002": "The field '{FieldId}' is referenced more than once by this content type.",

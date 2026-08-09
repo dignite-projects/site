@@ -12,13 +12,11 @@ public static class PageConsts
     /// <summary>Default value: 128.</summary>
     public static int MaxDisplayNameLength { get; set; } = 128;
 
-    /// <summary>Default value: 256. The base route, e.g. <c>/blog</c>.</summary>
-    public static int MaxRouteLength { get; set; } = 256;
-
     /// <summary>
-    /// Default value: 128. The content path pattern, e.g. <c>{slug}</c> or <c>{publishTime:yyyy/MM}/{slug}</c>.
+    /// Default value: 256. The route template, e.g. <c>/blog</c> or <c>/blog/{slug}</c> - see
+    /// <see cref="PageRoute"/>.
     /// </summary>
-    public static int MaxContentPathPatternLength { get; set; } = 128;
+    public static int MaxRouteLength { get; set; } = 256;
 
     /// <summary>Default value: 256. Optional template reference - only used by back-end-rendered front ends.</summary>
     public static int MaxTemplateLength { get; set; } = 256;

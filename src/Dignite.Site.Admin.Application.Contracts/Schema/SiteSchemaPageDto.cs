@@ -10,18 +10,21 @@ public class SiteSchemaPageDto
 
     public string DisplayName { get; set; } = default!;
 
-    /// <summary>The URL prefix this page owns, e.g. <c>/blog</c> (总体设计 §3.2).</summary>
-    public string Route { get; set; } = default!;
-
     /// <summary>
-    /// How a content's slug is arranged beneath the route, e.g. <c>{year}/{month}/{slug}</c>. Null means
-    /// the slug follows the route directly (总体设计 §3.3).
+    /// The page's route template, e.g. <c>/about</c> for a page with nothing beneath it, or
+    /// <c>/blog/{slug}</c> for one whose content is addressed by slug (总体设计 §3.2, §3.3).
     /// </summary>
-    public string? ContentPathPattern { get; set; }
+    public string Route { get; set; } = default!;
 
     public bool IsHomePage { get; set; }
 
     public bool IsActive { get; set; }
+
+    /// <summary>
+    /// The parent page's name, or null for a top-level page - organizational only, unrelated to
+    /// <see cref="Route"/>. Null, not a Guid: every other reference in this schema is by name too.
+    /// </summary>
+    public string? Parent { get; set; }
 
     /// <summary>The content types defined beneath this page (总体设计 §2.6).</summary>
     public List<SiteSchemaContentTypeDto> ContentTypes { get; set; } = new();

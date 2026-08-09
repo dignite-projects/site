@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Pages;
@@ -23,6 +24,14 @@ public class RouteMatchDto
 
     /// <summary>The matched content's shape - loaded alongside it, since a renderer needs it immediately.</summary>
     public ContentTypeDto? ContentType { get; set; }
+
+    /// <summary>
+    /// The values a request path named for <see cref="Page"/>'s placeholders short of a slug - e.g.
+    /// <c>{"publishTime:yyyy-MM": "2026-08"}</c> for <c>/blog/2026-08</c> against
+    /// <c>/blog/{publishTime:yyyy-MM}/{slug}</c> (总体设计 §3.4). Empty - never null - whenever
+    /// <see cref="Kind"/> is <see cref="RouteMatchKindDto.Page"/> from a bare address instead.
+    /// </summary>
+    public IDictionary<string, string> FilterValues { get; set; } = new Dictionary<string, string>();
 }
 
 /// <summary>

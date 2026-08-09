@@ -74,6 +74,41 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         match.Kind.ShouldBe(RouteMatchKindDto.None);
     }
 
+    /// <summary>A partial match's FilterValues has to survive the domain-to-DTO mapping, not just Kind/Page.</summary>
+    [Fact]
+    public async Task Should_Populate_FilterValues_For_A_Partial_Match()
+    {
+        var match = await ResolveAsync("/news/2026-07");
+
+        match.Matched.ShouldBeTrue();
+        match.Kind.ShouldBe(RouteMatchKindDto.Page);
+        match.Page!.Id.ShouldBe(SiteTestData.NewsPageId);
+        match.Content.ShouldBeNull();
+        match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-07");
+    }
+
+    [Fact]
+    public async Task Should_Have_Empty_FilterValues_For_A_Bare_Address()
+    {
+        var match = await ResolveAsync("/blog");
+
+        match.FilterValues.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// The domain's FilterValues dictionary is OrdinalIgnoreCase (PageRoute.TryMatchPartial's own
+    /// contract) - copying it into the DTO with `new Dictionary&lt;&gt;(source)` alone would silently drop
+    /// that comparer and fall back to the default ordinal one, so a lookup by a differently-cased key
+    /// would stop finding the value even though the key is "the same" by every rule this route uses.
+    /// </summary>
+    [Fact]
+    public async Task Should_Look_Up_FilterValues_Case_Insensitively()
+    {
+        var match = await ResolveAsync("/news/2026-07");
+
+        match.FilterValues["PUBLISHTIME:YYYY-MM"].ShouldBe("2026-07");
+    }
+
     private Task<RouteMatchDto> ResolveAsync(string path)
     {
         return _routingAppService.ResolveAsync(

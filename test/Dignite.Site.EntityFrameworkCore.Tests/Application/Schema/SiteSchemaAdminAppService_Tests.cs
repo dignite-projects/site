@@ -53,8 +53,7 @@ public class SiteSchemaAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             .ShouldBe(new[] { "home", "about", "blog", "news" }, ignoreOrder: true);
 
         var blog = schema.Pages.Single(page => page.Name == "blog");
-        blog.Route.ShouldBe("/blog");
-        blog.ContentPathPattern.ShouldBe("{slug}");
+        blog.Route.ShouldBe("/blog/{slug?}");
         blog.IsHomePage.ShouldBeFalse();
 
         schema.Pages.Single(page => page.Name == "home").IsHomePage.ShouldBeTrue();

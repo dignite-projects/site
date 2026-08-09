@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.ContentTypes;
@@ -9,7 +10,7 @@ namespace Dignite.Site.Pages;
 
 /// <summary>
 /// Creating and changing pages, with the uniqueness rules that keep the routing table unambiguous
-/// (总体设计 §3.1).
+/// (总体设计 §3.1), and the parent/child rules that keep the Admin UI's page tree a tree.
 /// </summary>
 public class PageManager : DomainService
 {
@@ -31,7 +32,11 @@ public class PageManager : DomainService
 
     /// <summary>
     /// Deletes a page and everything beneath it - every content type defined on it, and every content of
-    /// those types in every language (总体设计 §2.5).
+    /// those types in every language (总体设计 §2.5). <b>Refuses when the page has child pages</b>
+    /// (<see cref="PageHasChildrenException"/>) rather than taking them with it - unlike content types and
+    /// contents, child pages are not this page's own furniture, and each one can carry its own content
+    /// types and contents, so cascading through them would multiply the blast radius of one delete far
+    /// past what a confirmation dialog can convey. Move or delete the children first.
     /// <para>
     /// <b>The descendants are deleted here, explicitly, and that is not redundant with the database's
     /// cascading foreign keys.</b> These entities are all <c>FullAuditedAggregateRoot</c>, so ABP
@@ -48,6 +53,11 @@ public class PageManager : DomainService
     /// </summary>
     public virtual async Task DeleteAsync(Page page, CancellationToken cancellationToken = default)
     {
+        if (await PageRepository.AnyChildAsync(page.Id, cancellationToken))
+        {
+            throw new PageHasChildrenException(page.Name);
+        }
+
         var contentTypes = await ContentTypeRepository.GetListByPageAsync(page.Id, cancellationToken);
 
         foreach (var contentType in contentTypes)
@@ -70,29 +80,38 @@ public class PageManager : DomainService
         string name,
         string displayName,
         string route,
-        string? contentPathPattern = null,
         string? template = null,
         bool isHomePage = false,
         int order = 0,
         bool isActive = true,
+        Guid? parentId = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedRoute = Page.NormalizeRoute(route);
+        var effectiveParentId = NormalizeParent(isHomePage, parentId);
+
+        // Checked before the database round trips below - a malformed route is cheap to catch and does
+        // not need a uniqueness query to have already run first.
+        if (!PageRoute.IsValid(normalizedRoute))
+        {
+            throw new InvalidPageRouteException(normalizedRoute);
+        }
 
         await CheckNameAsync(name, null, cancellationToken);
         await CheckRouteAsync(normalizedRoute, null, cancellationToken);
+        await CheckParentAsync(null, effectiveParentId, cancellationToken);
 
         var page = new Page(
-            GuidGenerator.Create(),
-            name,
-            displayName,
-            normalizedRoute,
-            contentPathPattern,
-            template,
-            isHomePage,
-            order,
-            isActive,
-            CurrentTenant.Id);
+            id: GuidGenerator.Create(),
+            name: name,
+            displayName: displayName,
+            route: normalizedRoute,
+            template: template,
+            isHomePage: isHomePage,
+            order: order,
+            isActive: isActive,
+            tenantId: CurrentTenant.Id,
+            parentId: effectiveParentId);
 
         if (isHomePage)
         {
@@ -107,14 +126,19 @@ public class PageManager : DomainService
         string name,
         string displayName,
         string route,
-        string? contentPathPattern = null,
         string? template = null,
         bool isHomePage = false,
         int order = 0,
         bool isActive = true,
+        Guid? parentId = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedRoute = Page.NormalizeRoute(route);
+        // Computed up front, before IsHomePage is set below: NormalizeParent decides purely from the
+        // isHomePage argument (the new, incoming value), never from page.IsHomePage, so evaluating it
+        // early costs nothing - but doing so also means CheckParentAsync never walks an ancestor chain
+        // that is about to be discarded anyway when the page is becoming the home page.
+        var effectiveParentId = NormalizeParent(isHomePage, parentId);
 
         if (!string.Equals(page.Name, name, StringComparison.Ordinal))
         {
@@ -124,12 +148,23 @@ public class PageManager : DomainService
 
         if (!string.Equals(page.Route, normalizedRoute, StringComparison.Ordinal))
         {
+            // Checked before the database round trip below, same reasoning as CreateAsync.
+            if (!PageRoute.IsValid(normalizedRoute))
+            {
+                throw new InvalidPageRouteException(normalizedRoute);
+            }
+
             await CheckRouteAsync(normalizedRoute, page.Id, cancellationToken);
             page.SetRoute(normalizedRoute);
         }
 
+        if (page.ParentId != effectiveParentId)
+        {
+            await CheckParentAsync(page.Id, effectiveParentId, cancellationToken);
+            page.SetParent(effectiveParentId);
+        }
+
         page.SetDisplayName(displayName);
-        page.SetContentPathPattern(contentPathPattern);
         page.SetTemplate(template);
         page.SetOrder(order);
         page.SetIsActive(isActive);
@@ -142,6 +177,78 @@ public class PageManager : DomainService
         page.SetIsHomePage(isHomePage);
 
         return await PageRepository.UpdateAsync(page, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Reparents and/or repositions a page in one step - what a drag-and-drop in the Admin UI's page list
+    /// calls, rather than the full <see cref="UpdateAsync(Page,string,string,string,string,bool,int,bool,Guid?,CancellationToken)"/>,
+    /// so a drag does not have to resend every other field. <paramref name="order"/> is the target index
+    /// among the page's new siblings, not a literal value to store - the destination sibling group is
+    /// densely renumbered to <c>0..N</c> with the page spliced in there, and the group it left (if the
+    /// parent actually changed) is renumbered too, so <see cref="Page.Order"/> never accumulates gaps.
+    /// </summary>
+    public virtual async Task<Page> MoveAsync(
+        Page page,
+        Guid? parentId,
+        int order,
+        CancellationToken cancellationToken = default)
+    {
+        var effectiveParentId = NormalizeParent(page.IsHomePage, parentId);
+        var previousParentId = page.ParentId;
+        var parentChanged = previousParentId != effectiveParentId;
+
+        if (parentChanged)
+        {
+            await CheckParentAsync(page.Id, effectiveParentId, cancellationToken);
+            page.SetParent(effectiveParentId);
+        }
+
+        await ReorderSiblingsAsync(effectiveParentId, page, order, cancellationToken);
+
+        if (parentChanged)
+        {
+            await ReorderSiblingsAsync(previousParentId, null, 0, cancellationToken);
+        }
+
+        return await PageRepository.UpdateAsync(page, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Densely renumbers one sibling group - every page sharing <paramref name="parentId"/> - to
+    /// <c>0..N</c>. <paramref name="movedPage"/>, when given, is spliced into the group at
+    /// <paramref name="targetIndex"/> first (and removed from its old position in the group, if it was
+    /// already there). Its <c>Order</c> is set here but left for the caller to persist - <see cref="MoveAsync"/>
+    /// always saves it once at the end regardless of whether this method touched it; every other sibling
+    /// this method renumbers is saved here directly.
+    /// </summary>
+    protected virtual async Task ReorderSiblingsAsync(
+        Guid? parentId,
+        Page? movedPage,
+        int targetIndex,
+        CancellationToken cancellationToken)
+    {
+        var siblings = await PageRepository.GetChildrenAsync(parentId, cancellationToken);
+        siblings.RemoveAll(p => p.Id == movedPage?.Id);
+
+        if (movedPage != null)
+        {
+            siblings.Insert(Math.Clamp(targetIndex, 0, siblings.Count), movedPage);
+        }
+
+        for (var i = 0; i < siblings.Count; i++)
+        {
+            if (siblings[i].Order == i)
+            {
+                continue;
+            }
+
+            siblings[i].SetOrder(i);
+
+            if (siblings[i] != movedPage)
+            {
+                await PageRepository.UpdateAsync(siblings[i], cancellationToken: cancellationToken);
+            }
+        }
     }
 
     protected virtual async Task CheckNameAsync(string name, Guid? excludedId, CancellationToken cancellationToken)
@@ -157,6 +264,68 @@ public class PageManager : DomainService
         if (await PageRepository.RouteExistsAsync(route, excludedId, cancellationToken))
         {
             throw new PageRouteAlreadyExistException(route);
+        }
+    }
+
+    /// <summary>
+    /// The home page is always the tree's root - <c>"/"</c> has no meaningful parent - so a request to
+    /// make a page the home page silently drops whatever parent was supplied, rather than rejecting the
+    /// combination as an error.
+    /// </summary>
+    protected virtual Guid? NormalizeParent(bool isHomePage, Guid? parentId)
+    {
+        return isHomePage ? null : parentId;
+    }
+
+    /// <summary>
+    /// Confirms a candidate parent exists, and that assigning it would not create a cycle: walking its own
+    /// chain of parents back up must never reach <paramref name="pageId"/>. <paramref name="pageId"/> is
+    /// null when a page is still being created, which can be skipped past existence - a brand new id
+    /// cannot appear as anyone's ancestor yet.
+    /// </summary>
+    protected virtual async Task CheckParentAsync(Guid? pageId, Guid? parentId, CancellationToken cancellationToken)
+    {
+        if (parentId == null)
+        {
+            return;
+        }
+
+        // Confirms existence as a side effect - a non-existent id surfaces as the standard
+        // EntityNotFoundException rather than a bespoke "parent not found" error.
+        var parent = await PageRepository.GetAsync(parentId.Value, includeDetails: false, cancellationToken);
+
+        if (pageId == null)
+        {
+            return;
+        }
+
+        if (parentId == pageId)
+        {
+            throw new PageParentCycleException(parent.Name);
+        }
+
+        // Guards a pre-existing cycle upstream that does not involve pageId - not this call's problem to
+        // report, just something to not loop forever over.
+        var visited = new HashSet<Guid>();
+        var current = parent;
+
+        while (current.ParentId != null)
+        {
+            if (current.ParentId == pageId)
+            {
+                throw new PageParentCycleException(parent.Name);
+            }
+
+            if (!visited.Add(current.ParentId.Value))
+            {
+                break;
+            }
+
+            current = await PageRepository.FindAsync(current.ParentId.Value, includeDetails: false, cancellationToken);
+            if (current == null)
+            {
+                break;
+            }
         }
     }
 

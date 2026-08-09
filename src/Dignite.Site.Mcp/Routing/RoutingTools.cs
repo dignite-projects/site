@@ -31,7 +31,9 @@ public class RoutingTools : ITransientDependency
         "same page/content matching a visitor's request goes through. It does not consult the redirect " +
         "table, so a path that comes back unmatched may still work for a visitor if a redirect covers " +
         "it. Published content only: a draft resolves to nothing, so a match here means something is " +
-        "actually live at that URL through routing.")]
+        "actually live at that URL through routing. A path that names some but not all of a page's " +
+        "placeholders short of its slug (e.g. '/blog/2026-08' against '/blog/{publishTime:yyyy-MM}/{slug}') " +
+        "resolves to that page with filterValues populated instead of a specific content.")]
     public virtual Task<RouteMatchDto> ResolvePathAsync(
         [Description("The path to resolve, e.g. '/blog/my-trip' or '/'.")]
         string path,

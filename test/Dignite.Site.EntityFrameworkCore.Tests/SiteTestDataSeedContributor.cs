@@ -102,12 +102,15 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
         await _pageRepository.InsertAsync(
             new Page(SiteTestData.AboutPageId, "about", "About", "/about"), autoSave: true);
 
+        // {slug?}, not {slug}: Should_Accept_An_Explicitly_Empty_Slug_As_The_Pages_Own_Content
+        // (ContentTools_Tests) relies on this page allowing a default content at its own address
+        // alongside its individually-slugged posts.
         await _pageRepository.InsertAsync(
-            new Page(SiteTestData.BlogPageId, "blog", "Blog", "/blog", "{slug}"), autoSave: true);
+            new Page(SiteTestData.BlogPageId, "blog", "Blog", "/blog/{slug?}"), autoSave: true);
 
         // The dated variant of §3.3, so route resolution is exercised against both patterns.
         await _pageRepository.InsertAsync(
-            new Page(SiteTestData.NewsPageId, "news", "News", "/news", "{publishTime:yyyy/MM}/{slug}"), autoSave: true);
+            new Page(SiteTestData.NewsPageId, "news", "News", "/news/{publishTime:yyyy-MM}/{slug}"), autoSave: true);
 
         await _contentTypeRepository.InsertAsync(
             new ContentType(

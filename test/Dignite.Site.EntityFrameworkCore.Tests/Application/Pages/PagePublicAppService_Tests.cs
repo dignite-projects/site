@@ -40,7 +40,7 @@ public class PagePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         await Should.ThrowAsync<EntityNotFoundException>(() => _pagePublicAppService.GetAsync(inactive.Id));
         await Should.ThrowAsync<EntityNotFoundException>(() => _pagePublicAppService.GetByRouteAsync("/public-inactive-test"));
 
-        var list = await _pagePublicAppService.GetListAsync(new GetPageListInput { MaxResultCount = 1000 });
+        var list = await _pagePublicAppService.GetListAsync(new GetPageListInput());
         list.Items.ShouldNotContain(p => p.Id == inactive.Id);
     }
 }

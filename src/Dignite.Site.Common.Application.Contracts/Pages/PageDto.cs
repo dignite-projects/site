@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Dignite.Site.ContentTypes;
 using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Pages;
@@ -15,13 +17,24 @@ public class PageDto : FullAuditedEntityDto<Guid>
 
     public string Route { get; set; } = default!;
 
-    public string? ContentPathPattern { get; set; }
-
     public string? Template { get; set; }
 
     public bool IsHomePage { get; set; }
 
     public int Order { get; set; }
 
+    /// <summary>
+    /// The page this one is organized under in the Admin UI, or null for a top-level page. Purely
+    /// organizational - see <see cref="Dignite.Site.Pages.Page.ParentId"/>.
+    /// </summary>
+    public Guid? ParentId { get; set; }
+
     public bool IsActive { get; set; }
+
+    /// <summary>
+    /// The content types built beneath this page. Populated by a single-page read (<c>GetAsync</c>,
+    /// <c>GetByRouteAsync</c>) so a caller rendering a page never has to follow up with a separate
+    /// content-types-by-page call; left empty by list results, which stay flat by design.
+    /// </summary>
+    public List<ContentTypeDto> ContentTypes { get; set; } = new();
 }

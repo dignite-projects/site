@@ -46,7 +46,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
         await _pageTools.DeletePageAsync("blog");
 
         var recreated = await _pageTools.CreatePageAsync(
-            name: "blog", displayName: "Blog", route: "/blog", contentPathPattern: "{slug}");
+            name: "blog", displayName: "Blog", route: "/blog/{slug}");
 
         recreated.Name.ShouldBe("blog");
     }
@@ -74,54 +74,121 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// The only placeholder syntax the domain actually understands is '{slug}' and '{publishTime:FORMAT}' (see
-    /// ContentPathPattern.SupportedPlaceholders) - not the separate '{year}'/'{month}'/'{day}' tokens
-    /// create_page's own description named until round 3. Pinned through the tool because the description
-    /// is what a model actually reads, and it now has to be true.
+    /// A route's placeholders are not limited to '{slug}' and '{publishTime:FORMAT}' - any field the
+    /// content has can appear (see PageRoute's remarks) - but a FORMAT is restricted to characters that
+    /// can never collide with the slashes between path segments, so 'yyyy-MM' rather than 'yyyy/MM'.
+    /// Pinned through the tool because the description is what a model actually reads, and it now has to
+    /// be true.
     /// </summary>
     [Fact]
-    public async Task Should_Create_A_Page_With_A_Date_Based_Content_Path_Pattern()
+    public async Task Should_Create_A_Page_With_A_Date_Based_Route()
     {
         var created = await _pageTools.CreatePageAsync(
-            name: "events", displayName: "Events", route: "/events",
-            contentPathPattern: "{publishTime:yyyy/MM}/{slug}");
+            name: "events", displayName: "Events", route: "/events/{publishTime:yyyy-MM}/{slug}");
 
-        created.ContentPathPattern.ShouldBe("{publishTime:yyyy/MM}/{slug}");
+        created.Route.ShouldBe("/events/{publishTime:yyyy-MM}/{slug}");
     }
 
-    /// <summary>
-    /// `??` only substitutes on null, so an explicit empty string is not "omitted" - it flows through to
-    /// Page.SetContentPathPattern, which treats blank the same as null and clears the pattern back to the
-    /// default. update_page's own description says this is how to clear it; this pins that the claim is
-    /// actually true.
-    /// </summary>
+    /// <summary>...and omitting "route" entirely must keep the news page's route unchanged.</summary>
     [Fact]
-    public async Task Should_Clear_The_Content_Path_Pattern_With_An_Explicit_Empty_String()
-    {
-        var updated = await _pageTools.UpdatePageAsync(page: "news", contentPathPattern: "");
-
-        updated.ContentPathPattern.ShouldBeNull();
-    }
-
-    /// <summary>...and omitting it entirely must keep the news page's dated pattern, not also clear it.</summary>
-    [Fact]
-    public async Task Should_Keep_The_Content_Path_Pattern_When_Omitted()
+    public async Task Should_Keep_The_Route_When_Omitted()
     {
         var updated = await _pageTools.UpdatePageAsync(page: "news", displayName: "News (updated)");
 
-        updated.ContentPathPattern.ShouldBe("{publishTime:yyyy/MM}/{slug}");
+        updated.Route.ShouldBe("/news/{publishTime:yyyy-MM}/{slug}");
+    }
+
+    /// <summary>
+    /// Turning a page that has content beneath it back into one that does not is just an ordinary route
+    /// update - no separate flag or special value, since {slug}'s presence is the only signal there ever
+    /// was for whether a page has content.
+    /// </summary>
+    [Fact]
+    public async Task Should_Turn_A_Page_With_Content_Into_A_Single_Page_By_Dropping_The_Slug()
+    {
+        var updated = await _pageTools.UpdatePageAsync(page: "blog", route: "/blog");
+
+        updated.Route.ShouldBe("/blog");
     }
 
     /// <summary>
     /// Page.NormalizeRoute prepends the leading slash a model might omit, and PageManager checks
-    /// uniqueness against that normalized form - so "blog" (no leading slash) has to collide with the
-    /// already-seeded "/blog" exactly as if it had been spelled the same way, not slip through as a
-    /// distinct route.
+    /// uniqueness against that normalized form - so "about" (no leading slash) has to collide with the
+    /// already-seeded "/about" exactly as if it had been spelled the same way, not slip through as a
+    /// distinct route. Deliberately picked over "blog": the seeded blog page's route is the template
+    /// "/blog/{slug?}", a different literal string from "/blog" - RouteExistsAsync only rejects a literal
+    /// duplicate (see PageManager_Tests for why a literal route and a template route sharing an address
+    /// are allowed to coexist), so that pairing would not collide here.
     /// </summary>
     [Fact]
     public async Task Should_Reject_A_Route_That_Collides_After_Normalization()
     {
         await Should.ThrowAsync<PageRouteAlreadyExistException>(async () =>
-            await _pageTools.CreatePageAsync(name: "blog-2", displayName: "Blog Two", route: "blog"));
+            await _pageTools.CreatePageAsync(name: "about-2", displayName: "About Two", route: "about"));
+    }
+
+    /// <summary>create_page's "parent" takes a machine name like every other reference in this surface, not a Guid.</summary>
+    [Fact]
+    public async Task Should_Create_A_Page_Under_A_Parent_By_Name()
+    {
+        var created = await _pageTools.CreatePageAsync(
+            name: "parent-test-child", displayName: "Child", route: "/parent-test-child", parent: "blog");
+
+        created.ParentId.ShouldBe(SiteTestData.BlogPageId);
+    }
+
+    /// <summary>update_page's "parent" resolves the same way create_page's does.</summary>
+    [Fact]
+    public async Task Should_Reparent_A_Page_By_Name()
+    {
+        var updated = await _pageTools.UpdatePageAsync(page: "news", parent: "blog");
+
+        updated.ParentId.ShouldBe(SiteTestData.BlogPageId);
+    }
+
+    /// <summary>
+    /// Mirrors Should_Keep_The_Content_Path_Pattern_When_Omitted: omitting "parent" must not disturb a
+    /// parent set by an earlier call, the same null-keeps convention as every other optional field here.
+    /// </summary>
+    [Fact]
+    public async Task Should_Keep_The_Parent_When_Omitted()
+    {
+        await _pageTools.UpdatePageAsync(page: "news", parent: "blog");
+
+        var updated = await _pageTools.UpdatePageAsync(page: "news", displayName: "News (updated)");
+
+        updated.ParentId.ShouldBe(SiteTestData.BlogPageId);
+    }
+
+    /// <summary>
+    /// Mirrors Should_Clear_The_Content_Path_Pattern_With_An_Explicit_Empty_String: "parent" cannot reuse
+    /// null for "clear it", since null already means "leave it alone" - an explicit empty string is the
+    /// only way to ask for a top-level page back.
+    /// </summary>
+    [Fact]
+    public async Task Should_Clear_The_Parent_With_An_Explicit_Empty_String()
+    {
+        await _pageTools.UpdatePageAsync(page: "news", parent: "blog");
+
+        var updated = await _pageTools.UpdatePageAsync(page: "news", parent: "");
+
+        updated.ParentId.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The same PageHasChildrenException PageManager_Tests pins at the domain layer has to actually reach
+    /// an MCP caller, not get swallowed or rewrapped on the way through PageAdminAppService.
+    /// </summary>
+    [Fact]
+    public async Task Should_Fail_To_Delete_A_Page_That_Has_Children()
+    {
+        await _pageTools.CreatePageAsync(
+            name: "mcp-delete-guard-parent", displayName: "Parent", route: "/mcp-delete-guard-parent");
+        await _pageTools.CreatePageAsync(
+            name: "mcp-delete-guard-child", displayName: "Child", route: "/mcp-delete-guard-child",
+            parent: "mcp-delete-guard-parent");
+
+        await Should.ThrowAsync<PageHasChildrenException>(async () =>
+            await _pageTools.DeletePageAsync("mcp-delete-guard-parent"));
     }
 }

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dignite.Site.Common;
 using Dignite.Site.Contents;
@@ -29,7 +31,8 @@ public class RoutingPublicAppService : PublicAppService, IRoutingPublicAppServic
             Kind = MapKind(match.Kind),
             Page = match.Page == null ? null : ObjectMapper.Map<Page, PageDto>(match.Page),
             Content = match.Content == null ? null : MapContent(match.Content),
-            ContentType = match.ContentType == null ? null : MapContentType(match.ContentType)
+            ContentType = match.ContentType == null ? null : MapContentType(match.ContentType),
+            FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase)
         };
     }
 

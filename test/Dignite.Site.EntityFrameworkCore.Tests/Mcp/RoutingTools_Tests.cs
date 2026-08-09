@@ -99,4 +99,15 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
 
         match.Matched.ShouldBeFalse();
     }
+
+    /// <summary>The MCP wrapper passes RouteMatchDto through untouched, but FilterValues is new enough to pin explicitly.</summary>
+    [Fact]
+    public async Task Should_Return_Filter_Values_For_A_Partial_Match()
+    {
+        var match = await _routingTools.ResolvePathAsync("/news/2026-07", SiteTestData.EnglishCulture);
+
+        match.Matched.ShouldBeTrue();
+        match.Kind.ShouldBe(RouteMatchKindDto.Page);
+        match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-07");
+    }
 }

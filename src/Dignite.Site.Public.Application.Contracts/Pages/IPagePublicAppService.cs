@@ -17,5 +17,5 @@ public interface IPagePublicAppService : IApplicationService
     /// <summary>Step 1 of route resolution (总体设计 §3.4).</summary>
     Task<PageDto> GetByRouteAsync(string route);
 
-    Task<PagedResultDto<PageDto>> GetListAsync(GetPageListInput input);
+    Task<ListResultDto<PageDto>> GetListAsync(GetPageListInput input);
 }

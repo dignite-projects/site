@@ -29,17 +29,23 @@ public static class SiteDbContextModelCreatingExtensions
             b.Property(p => p.Name).IsRequired().HasMaxLength(PageConsts.MaxNameLength);
             b.Property(p => p.DisplayName).IsRequired().HasMaxLength(PageConsts.MaxDisplayNameLength);
             b.Property(p => p.Route).IsRequired().HasMaxLength(PageConsts.MaxRouteLength);
-            b.Property(p => p.ContentPathPattern).HasMaxLength(PageConsts.MaxContentPathPatternLength);
             b.Property(p => p.Template).HasMaxLength(PageConsts.MaxTemplateLength);
 
             b.HasMany(p => p.ContentTypes).WithOne().HasForeignKey(ct => ct.PageId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Self-referencing and declaratively Restrict, though that clause is largely decorative:
+            // Page is soft-deleted, so a delete is an UPDATE and this ON DELETE clause never actually
+            // fires. The real guard against deleting a page out from under its children is
+            // PageManager.DeleteAsync's explicit check.
+            b.HasOne<Page>().WithMany().HasForeignKey(p => p.ParentId).OnDelete(DeleteBehavior.Restrict);
 
             // Both unique per tenant. The route is what a request resolves against and the name is the
             // handle MCP tools and templates address a page by, so a duplicate of either is ambiguous
             // rather than merely untidy - worth a database constraint, not just a manager check.
             b.HasIndex(p => new { p.TenantId, p.Route }).IsUnique();
             b.HasIndex(p => new { p.TenantId, p.Name }).IsUnique();
+            b.HasIndex(p => new { p.TenantId, p.ParentId });
         });
 
         builder.Entity<ContentType>(b =>

@@ -16,8 +16,10 @@ namespace Dignite.Site.Public;
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class PageToPageDtoMapper : MapperBase<Page, PageDto>
 {
+    [MapperIgnoreTarget(nameof(PageDto.ContentTypes))]
     public override partial PageDto Map(Page source);
 
+    [MapperIgnoreTarget(nameof(PageDto.ContentTypes))]
     public override partial void Map(Page source, PageDto destination);
 }
 
