@@ -3,6 +3,7 @@ using System;
 using Dignite.Site.Host.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Volo.Abp.EntityFrameworkCore;
 
@@ -11,9 +12,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace Dignite.Site.Host.Migrations
 {
     [DbContext(typeof(HostDbContext))]
-    partial class HostDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260810013959_Site_FileExplorer")]
+    partial class Site_FileExplorer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2755,7 +2758,7 @@ namespace Dignite.Site.Host.Migrations
 
                             b1.HasKey("IdentityUserPasskeyCredentialId");
 
-                            b1.ToTable("AbpUserPasskeys", (string)null);
+                            b1.ToTable("AbpUserPasskeys");
 
                             b1
                                 .ToJson("Data")

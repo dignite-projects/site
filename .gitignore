@@ -431,3 +431,6 @@ FodyWeavers.xsd
 tunnel-config.json
 tempkey.rsa
 tempkey.jwk
+
+# Host runtime data (uploaded files, etc.)
+host/Dignite.Site.Host/App_Data/

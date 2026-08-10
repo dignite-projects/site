@@ -1,3 +1,6 @@
+using Dignite.FileExplorer.Directories;
+using Dignite.FileExplorer.EntityFrameworkCore;
+using Dignite.FileExplorer.Files;
 using Dignite.Site.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.DependencyInjection;
@@ -22,9 +25,22 @@ namespace Dignite.Site.Host.Data;
 /// <c>ISiteDbContext</c> - all share this context and therefore one unit of work. Without it, the
 /// derived index would be written through a different DbContext instance than the content it was
 /// derived from, and EF Core cannot compose a query across two.
+///
+/// <para>
+/// <see cref="IFileExplorerDbContext"/> is replaced the same way (GitHub issue #41's follow-up), so
+/// Dignite.FileExplorer's tables land in this same physical database rather than a separate one -
+/// FileExplorerDbContext's own <c>[ConnectionStringName]</c> is moot once replaced, the same way
+/// SiteDbContext's would be. The model itself is not configured here, though: FileExplorer is part of
+/// Site (same as FlexFields), so <c>ConfigureFileExplorer()</c> lives in
+/// <c>SiteDbContextModelCreatingExtensions.ConfigureSite()</c> alongside Site's own entities - this
+/// class only supplies the concrete DbSets and the interface implementation the replace attribute
+/// requires, the same division <see cref="ISiteDbContext"/> already has between here and
+/// <c>SiteDbContext</c>.
+/// </para>
 /// </summary>
 [ReplaceDbContext(typeof(ISiteDbContext))]
-public class HostDbContext : AbpDbContext<HostDbContext>, ISiteDbContext
+[ReplaceDbContext(typeof(IFileExplorerDbContext))]
+public class HostDbContext : AbpDbContext<HostDbContext>, ISiteDbContext, IFileExplorerDbContext
 {
     public DbSet<Dignite.Site.Pages.Page> Pages { get; set; } = default!;
 
@@ -36,6 +52,10 @@ public class HostDbContext : AbpDbContext<HostDbContext>, ISiteDbContext
     public DbSet<Dignite.Site.Contents.Content> Contents { get; set; } = default!;
 
     public DbSet<Dignite.Site.Contents.ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; } = default!;
+
+    public DbSet<DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
+
+    public DbSet<FileDescriptor> FileDescriptors { get; set; } = default!;
 
 
     public const string DbTablePrefix = "App";
@@ -64,6 +84,7 @@ public class HostDbContext : AbpDbContext<HostDbContext>, ISiteDbContext
 
         /* Configure your own entities here */
 
+        // Configures FileExplorer's entities too - see the class doc comment.
         builder.ConfigureSite();
     }
 }

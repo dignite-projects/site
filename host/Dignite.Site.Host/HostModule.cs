@@ -156,6 +156,10 @@ namespace Dignite.Site.Host;
     // maps an HTTP endpoint - it needs a host with a pipeline, and it needs to sit behind the same
     // authentication, multi-tenancy and unit-of-work middleware everything else here does.
     typeof(SiteMcpModule)
+
+    // Dignite.FileExplorer's own Application + HttpApi (GitHub issue #41's follow-up) reach this Host
+    // transitively through SiteApplicationModule/SiteHttpApiModule -> Admin/Public -> CommonApplication/
+    // CommonHttpApi, the same as FlexFields does - no direct dependency needed here.
 )]
 public class HostModule : AbpModule
 {

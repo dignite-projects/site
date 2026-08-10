@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dignite.Abp.FlexFields.EntityFrameworkCore;
+using Dignite.FileExplorer.EntityFrameworkCore;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore.ValueComparers;
@@ -143,5 +144,11 @@ public static class SiteDbContextModelCreatingExtensions
             b.HasIndex(x => new { x.FieldId, x.ValueType, x.NumberValue });
             b.HasIndex(x => new { x.FieldId, x.ValueType, x.DateTimeValue });
         });
+
+        // Dignite.FileExplorer (GitHub issue #41's follow-up) is consumed the same way FlexFields is
+        // (§8.2) - part of Site's own EF Core wiring, not something Host bolts on separately. Whatever
+        // DbContext calls ConfigureSite() - SiteDbContext for standalone use, HostDbContext once a host
+        // replaces it - gets FileExplorer's tables for free from this one call.
+        builder.ConfigureFileExplorer();
     }
 }

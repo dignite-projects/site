@@ -25,6 +25,10 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
   </ItemGroup>
 
+  <!-- No direct reference to Dignite.FileExplorer here (GitHub issue #41's follow-up): it is part of
+       Site, referenced from Dignite.Site.Common.Application(.Contracts)/HttpApi the same way FlexFields
+       is, and reaches this Host transitively through Dignite.Site.Application/Dignite.Site.HttpApi. -->
+
   <ItemGroup>
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />

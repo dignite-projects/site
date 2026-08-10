@@ -12,6 +12,9 @@
     <PackageReference Include="Volo.Abp.Ddd.Application.Contracts" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.Authorization" Version="10.5.0" />
     <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
+    <!-- Dignite.FileExplorer is part of Site (GitHub issue #41's follow-up), not a Host-level add-on -
+         referenced here the same layer its own contracts sit at. -->
+    <ProjectReference Include="..\..\..\abp-modules\file-storing\file-explorer\src\Dignite.FileExplorer.Application.Contracts\Dignite.FileExplorer.Application.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

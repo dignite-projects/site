@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Volo.Abp.AspNetCore.Mvc" Version="10.5.0"/>
     <ProjectReference Include="..\Dignite.Site.Common.Application.Contracts\Dignite.Site.Common.Application.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\abp-modules\file-storing\file-explorer\src\Dignite.FileExplorer.HttpApi\Dignite.FileExplorer.HttpApi.csproj" />
   </ItemGroup>
 
 </Project>

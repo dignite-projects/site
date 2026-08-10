@@ -1,5 +1,7 @@
 import { eLayoutType, RoutesService } from '@abp/ng.core';
 import { provideFlexFields } from '@dignite/ng.flex-fields';
+import { provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor';
+import { provideFileExplorerFieldType } from '@dignite/ng.flex-fields-file-explorer';
 import { SEO_FIELD_TYPE } from '@dignite/site';
 import {
   EnvironmentProviders,
@@ -65,6 +67,14 @@ const SITE_PROVIDERS: EnvironmentProviders[] = [
   // registry once when first injected, so this has to happen at application-config level - registering
   // from inside the lazy-loaded Site routes would come too late for a resolver already constructed.
   provideFlexFields(SEO_FIELD_TYPE),
+  // CKEditor (GitHub issue #43) and FileExplorer (#42) field types. Unlike the server, where DependsOn
+  // plus DI discovery is enough (总体设计 §8.2), the client has no equivalent - each field type's
+  // control/config/view trio has to be registered explicitly or FieldTypeResolver.get(...) throws and
+  // the content editor breaks on first use, the same failure mode SEO_FIELD_TYPE's own comment warns
+  // about. This was missing entirely until now, which is why a content type pulling in a CKEditor field
+  // failed to render at all - not just the field, the page around it.
+  provideCKEditorFieldType(),
+  provideFileExplorerFieldType(),
 ];
 
 export function provideSite() {

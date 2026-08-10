@@ -1,5 +1,4 @@
-﻿using Dignite.FileExplorer.EntityFrameworkCore;
-using Dignite.Site.Files;
+﻿using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -104,15 +103,13 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
+        // SiteDbContext.OnModelCreating -> ConfigureSite() now configures FileExplorer's entities too
+        // (GitHub issue #41's follow-up - FileExplorer is part of Site, not a separate model), so this one
+        // call creates its tables as well. FileDescriptorManager still resolves the default
+        // FileExplorerDbContext class at runtime, sharing this same connection via the AbpDbContextOptions
+        // default configured below - no [ReplaceDbContext] needed for that to work.
         new SiteDbContext(
             new DbContextOptionsBuilder<SiteDbContext>().UseSqlite(connection).Options
-        ).GetService<IRelationalDatabaseCreator>().CreateTables();
-
-        // FileExplorerDbContext (GitHub issue #41) is a second DbContext sharing this same connection,
-        // exactly as it shares Site's own database outside tests - so its tables need creating here too,
-        // the same way SiteDbContext's own are just above.
-        new FileExplorerDbContext(
-            new DbContextOptionsBuilder<FileExplorerDbContext>().UseSqlite(connection).Options
         ).GetService<IRelationalDatabaseCreator>().CreateTables();
 
         return connection;
