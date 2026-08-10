@@ -23,16 +23,25 @@ public class SiteUrlBuilder : DomainService
 
     protected SiteLanguageProvider LanguageProvider { get; }
 
-    public SiteUrlBuilder(ISiteBaseUrlResolver baseUrlResolver, SiteLanguageProvider languageProvider)
+    protected SiteUrlContextCache RequestCache { get; }
+
+    public SiteUrlBuilder(
+        ISiteBaseUrlResolver baseUrlResolver, SiteLanguageProvider languageProvider, SiteUrlContextCache requestCache)
     {
         BaseUrlResolver = baseUrlResolver;
         LanguageProvider = languageProvider;
+        RequestCache = requestCache;
     }
 
     /// <exception cref="PrimaryDomainNotConfiguredException">
     /// No base URL is configured and none could be inferred.
     /// </exception>
     public virtual async Task<SiteUrlContext> CreateContextAsync(CancellationToken cancellationToken = default)
+    {
+        return await RequestCache.GetOrCreateAsync(() => CreateContextCoreAsync(cancellationToken));
+    }
+
+    protected virtual async Task<SiteUrlContext> CreateContextCoreAsync(CancellationToken cancellationToken)
     {
         var baseUrl = await BaseUrlResolver.GetBaseUrlAsync(cancellationToken);
 
@@ -59,6 +68,18 @@ public class SiteUrlBuilder : DomainService
     public virtual string BuildContentUrl(SiteUrlContext context, Page page, Content content)
     {
         return context.BuildAbsolute(page.BuildContentPath(content), content.CultureName);
+    }
+
+    /// <summary>
+    /// The relative, culture-prefixed path of one content beneath its page - e.g. <c>/blog/my-trip</c> or
+    /// <c>/zh-Hans/blog/my-trip</c>. The same address <see cref="BuildContentUrl"/> makes absolute, for a
+    /// caller that wants a same-origin <c>&lt;a href&gt;</c> instead - correct behind a reverse proxy
+    /// where this tenant's configured/inferred <c>BaseUrl</c> may not be the host the browser is actually
+    /// talking to.
+    /// </summary>
+    public virtual string BuildContentPath(SiteUrlContext context, Page page, Content content)
+    {
+        return context.ApplyCulturePrefix(page.BuildContentPath(content), content.CultureName);
     }
 
     /// <summary>

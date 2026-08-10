@@ -35,15 +35,15 @@ public class RoutingTools : ITransientDependency
         "placeholders short of its slug (e.g. '/blog/2026-08' against '/blog/{publishTime:yyyy-MM}/{slug}') " +
         "resolves to that page with filterValues populated instead of a specific content.")]
     public virtual Task<RouteMatchDto> ResolvePathAsync(
-        [Description("The path to resolve, e.g. '/blog/my-trip' or '/'.")]
-        string path,
-        [Description("Language tag to resolve in, from the schema's enabledLanguages.")]
-        string cultureName)
+        [Description(
+            "The raw path to resolve, e.g. '/blog/my-trip', '/zh-Hans/blog/my-trip', or '/'. A served, " +
+            "non-default language's prefix is stripped automatically - the response's cultureName reports " +
+            "which language was actually resolved.")]
+        string path)
     {
         return RoutingAppService.ResolveAsync(new ResolvePathInput
         {
-            Path = path,
-            CultureName = cultureName
+            Path = path
         });
     }
 }

@@ -47,9 +47,13 @@ public partial class FieldToFieldDtoMapper : MapperBase<Field, FieldDto>
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class ContentToContentDtoMapper : MapperBase<Content, ContentDto>
 {
+    // Url has no source on Content itself, and Admin does not populate it by hand either - it stays at
+    // ContentDto.Url's own string.Empty default for every content this mapper produces.
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
+    [MapperIgnoreTarget(nameof(ContentDto.Url))]
     public override partial ContentDto Map(Content source);
 
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
+    [MapperIgnoreTarget(nameof(ContentDto.Url))]
     public override partial void Map(Content source, ContentDto destination);
 }

@@ -21,21 +21,30 @@ public class HeadMetadataPublicAppService : PublicAppService, IHeadMetadataPubli
 
     protected HeadMetadataBuilder HeadMetadataBuilder { get; }
 
-    public HeadMetadataPublicAppService(SiteRouteResolver routeResolver, HeadMetadataBuilder headMetadataBuilder)
+    protected SiteUrlBuilder UrlBuilder { get; }
+
+    public HeadMetadataPublicAppService(
+        SiteRouteResolver routeResolver, HeadMetadataBuilder headMetadataBuilder, SiteUrlBuilder urlBuilder)
     {
         RouteResolver = routeResolver;
         HeadMetadataBuilder = headMetadataBuilder;
+        UrlBuilder = urlBuilder;
     }
 
     public virtual async Task<HeadMetadataDto?> ResolveAsync(ResolveHeadMetadataInput input)
     {
+        // The one place a culture prefix is stripped off a raw request path - same reason and same
+        // mechanism as RoutingPublicAppService.ResolveAsync.
+        var urlContext = await UrlBuilder.CreateContextAsync();
+        urlContext.TryStripCulturePrefix(input.Path, out var cultureName, out var remainingPath);
+
         // includeUnpublished stays false explicitly - the public surface never previews a draft, the same
         // rule RoutingPublicAppService's own resolve-path endpoint follows. The noindex-forcing that
         // obligation demands is discharged through BuildDtoAsync instead, for a future authenticated
         // preview caller that passes true there.
-        var match = await RouteResolver.ResolveAsync(input.Path, input.CultureName, includeUnpublished: false);
+        var match = await RouteResolver.ResolveAsync(remainingPath, cultureName, includeUnpublished: false);
 
-        return match.IsMatch ? await BuildDtoAsync(match, input.CultureName, includeUnpublished: false) : null;
+        return match.IsMatch ? await BuildDtoAsync(match, cultureName, includeUnpublished: false) : null;
     }
 
     /// <summary>

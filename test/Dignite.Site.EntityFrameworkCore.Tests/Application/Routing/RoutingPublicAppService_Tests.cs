@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Settings;
 using Shouldly;
 using Xunit;
 
@@ -13,6 +14,10 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public RoutingPublicAppService_Tests()
     {
         _routingAppService = GetRequiredService<IRoutingPublicAppService>();
+
+        // ResolveAsync now strips a culture prefix itself, which needs a SiteUrlContext, which needs a
+        // configured base URL.
+        GetRequiredService<TestSettingValueProvider>().Set(SiteSettings.PrimaryDomain, "https://acme.example");
     }
 
     [Fact]
@@ -111,7 +116,6 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 
     private Task<RouteMatchDto> ResolveAsync(string path)
     {
-        return _routingAppService.ResolveAsync(
-            new ResolvePathInput { Path = path, CultureName = SiteTestData.EnglishCulture });
+        return _routingAppService.ResolveAsync(new ResolvePathInput { Path = path });
     }
 }

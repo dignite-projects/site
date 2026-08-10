@@ -21,10 +21,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dignite.Site.Application.Contracts\Dignite.Site.Application.Contracts.csproj" />
-    <!-- The default ISiteBaseUrlResolver is replaced here with one that can fall back to the incoming
-         request, which is why this layer needs the domain contract rather than just the app services. -->
-    <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
+    <!-- The only ProjectReference to anything in the Dignite.Site solution: this project is deliberately
+         portable (someday reusable inside a different host, e.g. Dignite.Cloud.Web.Public), so it must
+         never touch Domain, Common.Application, the unified Admin+Public Application.Contracts, or any
+         concrete Application-layer project - only this Contracts interface surface. The FlexFields.Web
+         references below are a separate, already-portable sibling repo (abp-modules) and are not subject
+         to this constraint. -->
+    <ProjectReference Include="..\Dignite.Site.Public.Application.Contracts\Dignite.Site.Public.Application.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Read-only field display for SiteRenderController's Views (<flex-field-view>) - the rendering
+         counterpart of the FlexFields kernel Dignite.Site.Domain already depends on. -->
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Web\Dignite.Abp.FlexFields.Web.csproj" />
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.CKEditor.Web\Dignite.Abp.FlexFields.CKEditor.Web.csproj" />
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.FileExplorer.Web\Dignite.Abp.FlexFields.FileExplorer.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

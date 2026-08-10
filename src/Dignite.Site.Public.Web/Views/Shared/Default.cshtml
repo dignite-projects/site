@@ -1,0 +1,48 @@
+@model SiteRenderViewModel
+@{
+    // Overrides any Layout an outer _ViewStart.cshtml assigns - ABP's theme contributes one that reaches
+    // across the merged virtual file system into every module's Views, this one included, which would
+    // otherwise nest this whole document inside the host app's own <body> instead of controlling the page.
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="@Model.CultureName">
+<head>
+    <meta charset="utf-8" />
+    <title>@(Model.HeadMetadata?.MetaTitle ?? Model.Page.DisplayName)</title>
+    @if (Model.HeadMetadata?.MetaDescription is { } description)
+    {
+        <meta name="description" content="@description" />
+    }
+</head>
+<body>
+@if (Model.List != null)
+{
+    <h1>@Model.Page.DisplayName</h1>
+    <ul>
+        @foreach (var item in Model.List.Items)
+        {
+            <li>
+                <a href="@item.Url">@item.Content.Slug</a>
+                @foreach (var field in item.Fields)
+                {
+                    <flex-field-view field="@field" show-in-list="true" />
+                }
+            </li>
+        }
+    </ul>
+    @if (Model.List.TotalCount > Model.List.Items.Count)
+    {
+        <p>@Model.List.Items.Count / @Model.List.TotalCount - v1 has no paging UI yet.</p>
+    }
+}
+else if (Model.Content != null)
+{
+    <h1>@Model.Page.DisplayName</h1>
+    @foreach (var field in Model.Content.Fields)
+    {
+        <flex-field-view field="@field" />
+    }
+}
+</body>
+</html>

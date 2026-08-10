@@ -3,6 +3,7 @@ using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
 using Dignite.Site.Public.Routing;
+using Dignite.Site.Settings;
 using Shouldly;
 using Xunit;
 
@@ -32,12 +33,16 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
     {
         _routingTools = GetRequiredService<RoutingTools>();
         _pageTools = GetRequiredService<PageTools>();
+
+        // ResolveAsync now strips a culture prefix itself, which needs a SiteUrlContext, which needs a
+        // configured base URL.
+        GetRequiredService<TestSettingValueProvider>().Set(SiteSettings.PrimaryDomain, "https://acme.example");
     }
 
     [Fact]
     public async Task Should_Resolve_A_Published_Content_Beneath_A_Page()
     {
-        var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.TripSlug, SiteTestData.EnglishCulture);
+        var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.TripSlug);
 
         match.Matched.ShouldBeTrue();
         match.Kind.ShouldBe(RouteMatchKindDto.Content);
@@ -48,7 +53,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Not_Resolve_A_Draft_Content()
     {
-        var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.DraftSlug, SiteTestData.EnglishCulture);
+        var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.DraftSlug);
 
         match.Matched.ShouldBeFalse();
         match.Kind.ShouldBe(RouteMatchKindDto.None);
@@ -65,7 +70,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
     {
         await _pageTools.UpdatePageAsync(page: "about", isActive: false);
 
-        var match = await _routingTools.ResolvePathAsync("/about", SiteTestData.EnglishCulture);
+        var match = await _routingTools.ResolvePathAsync("/about");
 
         match.Matched.ShouldBeFalse();
         match.Kind.ShouldBe(RouteMatchKindDto.None);
@@ -80,31 +85,17 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
     {
         await _pageTools.UpdatePageAsync(page: "blog", isActive: false);
 
-        var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.TripSlug, SiteTestData.EnglishCulture);
+        var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.TripSlug);
 
         match.Matched.ShouldBeFalse();
         match.Kind.ShouldBe(RouteMatchKindDto.None);
-    }
-
-    /// <summary>
-    /// A culture no CultureInfo recognizes is not a lookup miss to investigate - it cannot name a row, so
-    /// it resolves to nothing rather than throwing into a tool that carries no [Authorize] of its own. An
-    /// ArgumentException surfacing as an opaque internal error would be the worse failure mode here, not
-    /// just an inconvenient one (总体设计 §2.4).
-    /// </summary>
-    [Fact]
-    public async Task Should_Return_No_Match_Rather_Than_Throw_For_An_Unrecognized_Culture()
-    {
-        var match = await _routingTools.ResolvePathAsync("/about", "not-a-culture");
-
-        match.Matched.ShouldBeFalse();
     }
 
     /// <summary>The MCP wrapper passes RouteMatchDto through untouched, but FilterValues is new enough to pin explicitly.</summary>
     [Fact]
     public async Task Should_Return_Filter_Values_For_A_Partial_Match()
     {
-        var match = await _routingTools.ResolvePathAsync("/news/2026-07", SiteTestData.EnglishCulture);
+        var match = await _routingTools.ResolvePathAsync("/news/2026-07");
 
         match.Matched.ShouldBeTrue();
         match.Kind.ShouldBe(RouteMatchKindDto.Page);

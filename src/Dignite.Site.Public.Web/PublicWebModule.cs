@@ -11,14 +11,21 @@ using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.UI.Navigation;
 using Volo.Abp.VirtualFileSystem;
-using Dignite.Site.Permissions;
+using Dignite.Abp.FlexFields.Web;
+using Dignite.Abp.FlexFields.CKEditor.Web;
+using Dignite.Abp.FlexFields.FileExplorer.Web;
 
 namespace Dignite.Site.Public;
 
 [DependsOn(
-    typeof(SiteApplicationContractsModule),
+    typeof(PublicApplicationContractsModule),
     typeof(AbpAspNetCoreMvcUiThemeSharedModule),
-    typeof(AbpMapperlyModule)
+    typeof(AbpMapperlyModule),
+    // Read-only field display (<flex-field-view>) for SiteRenderController's Views - each self-registers
+    // its own compiled Razor assembly part, nothing else to wire here.
+    typeof(FlexFieldsWebModule),
+    typeof(FlexFieldsCKEditorWebModule),
+    typeof(FlexFieldsFileExplorerWebModule)
     )]
 public class PublicWebModule : AbpModule
 {
@@ -38,6 +45,11 @@ public class PublicWebModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var hostingEnvironment = context.Services.GetHostingEnvironment();
+
+        // First classic MVC View() consumer in this project (SiteRenderController) - explicit rather than
+        // relying on it being present transitively, since AddControllersWithViews()/AddMvc()/AddRazorPages()
+        // are additive/idempotent no matter how many modules across the graph call them.
+        context.Services.AddControllersWithViews();
 
         Configure<AbpNavigationOptions>(options =>
         {

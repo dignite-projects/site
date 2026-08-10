@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Common;
 using Dignite.Site.Contents;
+using Dignite.Site.Pages;
+using Dignite.Site.Seo;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Timing;
@@ -14,19 +17,26 @@ public class ContentPublicAppService : PublicAppService, IContentPublicAppServic
 {
     protected IContentRepository ContentRepository { get; }
 
-    protected IClock Clock { get; }
+    protected IPageRepository PageRepository { get; }
 
-    public ContentPublicAppService(IContentRepository contentRepository, IClock clock)
+    protected SiteUrlBuilder UrlBuilder { get; }
+
+    public ContentPublicAppService(
+        IContentRepository contentRepository, IPageRepository pageRepository, SiteUrlBuilder urlBuilder)
     {
         ContentRepository = contentRepository;
-        Clock = clock;
+        PageRepository = pageRepository;
+        UrlBuilder = urlBuilder;
     }
 
     public virtual async Task<ContentDto> GetAsync(Guid id)
     {
         var content = await ContentRepository.GetAsync(id);
         EnsurePublished(content);
-        return MapToDto(content);
+
+        var page = await PageRepository.FindAsync(content.PageId);
+        var urlContext = await UrlBuilder.CreateContextAsync();
+        return MapToDto(content, page, urlContext);
     }
 
     public virtual async Task<ContentDto> GetBySlugAsync(Guid pageId, string cultureName, string slug)
@@ -38,7 +48,9 @@ public class ContentPublicAppService : PublicAppService, IContentPublicAppServic
             throw new EntityNotFoundException(typeof(Content));
         }
 
-        return MapToDto(content);
+        var page = await PageRepository.FindAsync(pageId);
+        var urlContext = await UrlBuilder.CreateContextAsync();
+        return MapToDto(content, page, urlContext);
     }
 
     public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetPublicContentListInput input)
@@ -56,7 +68,15 @@ public class ContentPublicAppService : PublicAppService, IContentPublicAppServic
             flexFieldConditions: input.FlexFieldConditions, maxResultCount: input.MaxResultCount,
             skipCount: input.SkipCount, sorting: input.Sorting);
 
-        return new PagedResultDto<ContentDto>(totalCount, contents.Select(MapToDto).ToList());
+        // Batched by distinct PageId - not one lookup per item - regardless of whether the caller filtered
+        // to a single page (the common case for a page render) or left it open.
+        var pageIds = contents.Select(c => c.PageId).Distinct().ToList();
+        var pagesById = (await PageRepository.GetListAsync(pageIds)).ToDictionary(p => p.Id);
+        var urlContext = await UrlBuilder.CreateContextAsync();
+
+        return new PagedResultDto<ContentDto>(
+            totalCount,
+            contents.Select(c => MapToDto(c, pagesById.GetValueOrDefault(c.PageId), urlContext)).ToList());
     }
 
     public virtual async Task<ListResultDto<ContentDto>> GetTranslationsAsync(
@@ -65,8 +85,11 @@ public class ContentPublicAppService : PublicAppService, IContentPublicAppServic
         var translations = await ContentRepository.GetTranslationsAsync(pageId, contentTypeId, slug);
         var asOf = Clock.Now;
 
+        var page = await PageRepository.FindAsync(pageId);
+        var urlContext = await UrlBuilder.CreateContextAsync();
+
         return new ListResultDto<ContentDto>(
-            translations.Where(c => c.IsPublished(asOf)).Select(MapToDto).ToList());
+            translations.Where(c => c.IsPublished(asOf)).Select(c => MapToDto(c, page, urlContext)).ToList());
     }
 
     protected virtual void EnsurePublished(Content content)
@@ -77,10 +100,16 @@ public class ContentPublicAppService : PublicAppService, IContentPublicAppServic
         }
     }
 
-    protected virtual ContentDto MapToDto(Content content)
+    /// <summary>
+    /// <paramref name="page"/> is null only in the practically-unreachable case that this content's own
+    /// page could not be found (e.g. a narrow admin-delete race) - <see cref="ContentDto.Url"/> comes back
+    /// empty rather than throwing, since the rest of the content read is still perfectly valid.
+    /// </summary>
+    protected virtual ContentDto MapToDto(Content content, Page? page, SiteUrlContext urlContext)
     {
         var dto = ObjectMapper.Map<Content, ContentDto>(content);
         dto.FieldValues = content.FlexFields.ToValueDictionary();
+        dto.Url = page != null ? UrlBuilder.BuildContentPath(urlContext, page, content) : string.Empty;
         return dto;
     }
 }

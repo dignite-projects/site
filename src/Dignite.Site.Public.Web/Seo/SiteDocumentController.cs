@@ -4,13 +4,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Threading.Tasks;
-using Dignite.Site.Seo;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using Dignite.Site.Public.Application.Contracts.Seo;
 using Microsoft.Net.Http.Headers;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Caching;
-using Volo.Abp.Timing;
 
 namespace Dignite.Site.Public.Seo;
 

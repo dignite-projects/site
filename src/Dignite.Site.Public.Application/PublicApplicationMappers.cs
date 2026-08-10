@@ -46,9 +46,13 @@ public partial class FieldToFieldDtoMapper : MapperBase<Field, FieldDto>
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class ContentToContentDtoMapper : MapperBase<Content, ContentDto>
 {
+    // Url has no source on Content itself - ContentPublicAppService.MapToDto sets it by hand afterward,
+    // the same way it already handles FieldValues.
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
+    [MapperIgnoreTarget(nameof(ContentDto.Url))]
     public override partial ContentDto Map(Content source);
 
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
+    [MapperIgnoreTarget(nameof(ContentDto.Url))]
     public override partial void Map(Content source, ContentDto destination);
 }

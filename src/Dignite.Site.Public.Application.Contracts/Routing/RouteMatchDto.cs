@@ -16,6 +16,12 @@ public class RouteMatchDto
 
     public RouteMatchKindDto Kind { get; set; }
 
+    /// <summary>
+    /// The culture this match was resolved in - the path's own prefix if it named a served, non-default
+    /// culture, otherwise the default culture. Always populated, even when <see cref="Matched"/> is false.
+    /// </summary>
+    public string CultureName { get; set; } = default!;
+
     /// <summary>The matched page. Null only when <see cref="Matched"/> is false.</summary>
     public PageDto? Page { get; set; }
 

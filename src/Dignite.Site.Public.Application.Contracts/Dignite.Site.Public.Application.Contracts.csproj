@@ -11,6 +11,9 @@
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Ddd.Application.Contracts" Version="10.5.0" />
     <PackageReference Include="Volo.Abp.Authorization" Version="10.5.0" />
+    <!-- IClock.Normalize - ClockExtensions.ToOffset, shared with Dignite.Site.Public.Web (which cannot
+         reference Dignite.Site.Domain, where the equivalent Seo.SeoClock.ToOffset lives). -->
+    <PackageReference Include="Volo.Abp.Timing" Version="10.5.0" />
     <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application.Contracts\Dignite.Site.Common.Application.Contracts.csproj" />
     <!-- FlexFieldQueryCondition (Content list filtering by field value) - see the matching comment in

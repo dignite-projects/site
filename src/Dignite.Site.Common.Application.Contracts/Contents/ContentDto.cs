@@ -24,5 +24,15 @@ public class ContentDto : FullAuditedEntityDto<Guid>
 
     public ContentStatus Status { get; set; }
 
+    /// <summary>
+    /// This content's own address - relative, culture-prefixed (e.g. <c>/blog/my-trip</c>), suitable for
+    /// an <c>&lt;a href&gt;</c> with no assumption about scheme/host, correct behind a reverse proxy. An
+    /// absolute equivalent is <c>HeadMetadataDto</c>'s job. Populated only by producers that resolved this
+    /// content's owning page alongside it (currently: the Public surface); left at <see cref="string.Empty"/>
+    /// - never <see langword="null"/> - by others, so a consumer that forgets to check which producer it
+    /// called can still safely call string members on it instead of risking a NullReferenceException.
+    /// </summary>
+    public string Url { get; set; } = string.Empty;
+
     public IDictionary<string, object?> FieldValues { get; set; } = new Dictionary<string, object?>();
 }

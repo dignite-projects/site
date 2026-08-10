@@ -66,9 +66,15 @@ public class ContentFlexFieldProvider : IFlexFieldProvider<Content>, ITransientD
 
         foreach (var field in resolved)
         {
+            // ToFlexFieldData() only ever knows the definition's own DisplayName; ResolvedContentTypeField
+            // already carries the correctly-resolved one (usage override, falling back to the definition),
+            // so it overwrites it here rather than leaving the two to silently disagree.
+            var data = field.Definition.ToFlexFieldData();
+            data.DisplayName = field.DisplayName;
+
             // Source 3, the only one that is this provider's own business.
             values.Add(new FlexFieldValue(
-                field.Definition.ToFlexFieldData(),
+                data,
                 field.Usage.Required,
                 field.Usage.Searchable,
                 entity.GetField(field.Definition.Name)));

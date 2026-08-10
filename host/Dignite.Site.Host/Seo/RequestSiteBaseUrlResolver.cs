@@ -5,12 +5,20 @@ using Microsoft.AspNetCore.Http;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Settings;
 
-namespace Dignite.Site.Public.Seo;
+namespace Dignite.Site.Host.Seo;
 
 /// <summary>
 /// Adds the "whatever host this request arrived on" fallback to
 /// <see cref="SettingSiteBaseUrlResolver"/>, so a tenant that has not configured a primary domain still
 /// gets working absolute URLs.
+/// <para>
+/// Lives in the Host project, not <c>Dignite.Site.Public.Web</c>: <c>Public.Web</c> is deliberately kept
+/// portable (only references <c>Dignite.Site.Public.Application.Contracts</c>, no Domain access at all -
+/// see its own csproj), and this override needs both <c>ISiteBaseUrlResolver</c> (Domain) and
+/// <c>IHttpContextAccessor</c> (ASP.NET Core), which only a real host - the one thing every deployment of
+/// this backend genuinely has - can offer both of at once. <see cref="ISiteBaseUrlResolver"/>'s own doc
+/// comment already anticipated this being supplied by "the web layer" rather than living in Domain itself.
+/// </para>
 /// <para>
 /// <b>The setting always wins when it is set</b>, and that is the point rather than a detail. Serving a
 /// custom domain and a platform subdomain both at 200 with self-referencing URLs is the classic

@@ -40,7 +40,7 @@ public class HeadMetadataPublicAppService_Tests : SiteEntityFrameworkCoreTestBas
     public async Task ResolveAsync_Should_Return_Null_For_A_Path_That_Does_Not_Resolve()
     {
         var result = await WithUnitOfWorkAsync(() => _headMetadata.ResolveAsync(
-            new ResolveHeadMetadataInput { Path = "/does-not-exist", CultureName = SiteTestData.EnglishCulture }));
+            new ResolveHeadMetadataInput { Path = "/does-not-exist" }));
 
         result.ShouldBeNull();
     }
@@ -50,11 +50,7 @@ public class HeadMetadataPublicAppService_Tests : SiteEntityFrameworkCoreTestBas
     public async Task ResolveAsync_Should_Return_Null_For_An_Unpublished_Slug()
     {
         var result = await WithUnitOfWorkAsync(() => _headMetadata.ResolveAsync(
-            new ResolveHeadMetadataInput
-            {
-                Path = $"/blog/{SiteTestData.DraftSlug}",
-                CultureName = SiteTestData.EnglishCulture
-            }));
+            new ResolveHeadMetadataInput { Path = $"/blog/{SiteTestData.DraftSlug}" }));
 
         result.ShouldBeNull();
     }
@@ -63,7 +59,7 @@ public class HeadMetadataPublicAppService_Tests : SiteEntityFrameworkCoreTestBas
     public async Task ResolveAsync_Should_Return_A_Populated_Dto_For_A_Resolving_Path()
     {
         var dto = await WithUnitOfWorkAsync(() => _headMetadata.ResolveAsync(
-            new ResolveHeadMetadataInput { Path = "/blog/my-trip", CultureName = SiteTestData.EnglishCulture }));
+            new ResolveHeadMetadataInput { Path = "/blog/my-trip" }));
 
         dto.ShouldNotBeNull();
         dto!.MetaTitle.ShouldBe("My trip");
@@ -97,7 +93,7 @@ public class HeadMetadataPublicAppService_Tests : SiteEntityFrameworkCoreTestBas
             }));
 
         var dto = await WithUnitOfWorkAsync(() => _headMetadata.ResolveAsync(
-            new ResolveHeadMetadataInput { Path = $"/blog/{slug}", CultureName = SiteTestData.EnglishCulture }));
+            new ResolveHeadMetadataInput { Path = $"/blog/{slug}" }));
 
         dto!.OgImageUrl.ShouldBe("https://acme.example/share.jpg");
         dto.TwitterCardType.ShouldBe("summary_large_image");

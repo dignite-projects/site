@@ -43,6 +43,9 @@
         <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.Abstractions/Dignite.Abp.FlexFields.Abstractions.csproj" />
         <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.Domain/Dignite.Abp.FlexFields.Domain.csproj" />
         <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.EntityFrameworkCore/Dignite.Abp.FlexFields.EntityFrameworkCore.csproj" />
+        <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.Web/Dignite.Abp.FlexFields.Web.csproj" />
+        <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.CKEditor.Web/Dignite.Abp.FlexFields.CKEditor.Web.csproj" />
+        <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.FileExplorer.Web/Dignite.Abp.FlexFields.FileExplorer.Web.csproj" />
     </Folder>
 
     <Folder Name="/test/">

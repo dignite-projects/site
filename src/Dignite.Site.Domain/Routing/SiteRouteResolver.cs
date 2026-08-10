@@ -6,7 +6,6 @@ using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Pages;
 using Volo.Abp.Domain.Services;
-using Volo.Abp.Timing;
 
 namespace Dignite.Site.Routing;
 
@@ -31,18 +30,18 @@ public class SiteRouteResolver : DomainService
 
     protected IContentTypeRepository ContentTypeRepository { get; }
 
-    protected IClock Clock { get; }
+    protected RouteMatchCache RequestCache { get; }
 
     public SiteRouteResolver(
         IPageRepository pageRepository,
         IContentRepository contentRepository,
         IContentTypeRepository contentTypeRepository,
-        IClock clock)
+        RouteMatchCache requestCache)
     {
         PageRepository = pageRepository;
         ContentRepository = contentRepository;
         ContentTypeRepository = contentTypeRepository;
-        Clock = clock;
+        RequestCache = requestCache;
     }
 
     /// <summary>
@@ -74,6 +73,19 @@ public class SiteRouteResolver : DomainService
         string cultureName,
         bool includeUnpublished = false,
         CancellationToken cancellationToken = default)
+    {
+        return await RequestCache.GetOrResolveAsync(
+            path,
+            cultureName,
+            includeUnpublished,
+            () => ResolveCoreAsync(path, cultureName, includeUnpublished, cancellationToken));
+    }
+
+    protected virtual async Task<RouteMatch> ResolveCoreAsync(
+        string path,
+        string cultureName,
+        bool includeUnpublished,
+        CancellationToken cancellationToken)
     {
         if (!CultureNameNormalizer.TryNormalize(cultureName, out var normalizedCulture))
         {
