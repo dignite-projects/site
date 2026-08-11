@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,6 +10,7 @@ using Volo.Abp.AspNetCore.Mvc.Localization;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
+using Volo.Abp.MultiTenancy;
 using Volo.Abp.UI.Navigation;
 using Volo.Abp.VirtualFileSystem;
 using Dignite.Abp.FlexFields.Web;
@@ -62,6 +64,12 @@ public class PublicWebModule : AbpModule
         });
 
         context.Services.AddMapperlyObjectMapper<PublicWebModule>();
+
+        Configure<RazorViewEngineOptions>(options =>
+        {
+            var currentTenantLazy = context.Services.GetServiceLazy<ICurrentTenant>();
+            options.ViewLocationExpanders.Add(new TenantViewLocationExpander(currentTenantLazy));
+        });
 
         Configure<RazorPagesOptions>(options =>
         {
