@@ -1,14 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Asp.Versioning;
 using Dignite.Site.Fields;
-using Dignite.Site.Public.ContentTypes;
 using Dignite.Site.Public.Contents;
+using Dignite.Site.Public.ContentTypes;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Seo;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Volo.Abp.AspNetCore.Mvc;
 
 namespace Dignite.Site.Public.Routing;
@@ -33,8 +34,10 @@ namespace Dignite.Site.Public.Routing;
 /// already claimed the URL.
 /// </para>
 /// </summary>
+[ControllerName(ControllerName)]
 public class SiteRenderController : AbpController
 {
+    public const string ControllerName = "SiteRender";
     public const string FallbackTemplateName = "Default";
 
     protected IRoutingPublicAppService RoutingAppService { get; }
