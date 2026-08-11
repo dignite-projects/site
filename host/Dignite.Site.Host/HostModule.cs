@@ -557,9 +557,9 @@ public class HostModule : AbpModule
         }
 
         app.UseCorrelationId();
+        app.MapAbpStaticAssets();
         app.UseRouting();
         app.UseCors(DefaultCorsPolicyName);
-        app.MapAbpStaticAssets();
         app.UseAbpStudioLink();
         app.UseAbpSecurityHeaders();
         app.UseAuthentication();
