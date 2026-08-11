@@ -1,4 +1,4 @@
-import { CoreModule, ListResultDto, PermissionDirective, PermissionService } from '@abp/ng.core';
+import { CoreModule, ListResultDto, PermissionDirective } from '@abp/ng.core';
 import {
   Confirmation,
   ConfirmationService,
@@ -6,7 +6,7 @@ import {
   ToasterService,
 } from '@abp/ng.theme.shared';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
-import type { DragEventData, TreeStatus } from '@swimlane/ngx-datatable';
+import type { TreeStatus } from '@swimlane/ngx-datatable';
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import type { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -147,7 +147,6 @@ export class PagesComponent {
   private readonly fb = inject(FormBuilder);
   private readonly confirmation = inject(ConfirmationService);
   private readonly toaster = inject(ToasterService);
-  private readonly permission = inject(PermissionService);
 
   readonly policies = eSitePolicyNames;
 
@@ -166,16 +165,6 @@ export class PagesComponent {
     this.applyFilters();
   }
 
-  /**
-   * Gates `rowDraggable` on the list. `ngx-datatable` has no per-row drag switch - only this
-   * table-wide one - so a page a caller cannot update can still be picked up; `onRowDragEvent`
-   * would refuse the resulting `move` call anyway via the server's own authorization, but gating
-   * the drag here avoids the pointless round trip.
-   */
-  get canDrag(): boolean {
-    return this.permission.getGrantedPolicy(this.policies.PagesUpdate);
-  }
-
   /** Whether the tree-toggle template should render a toggle for this row at all. */
   hasChildren(row: PageRow): boolean {
     return this.data.items.some(page => page.parentId === row.id);
@@ -186,8 +175,8 @@ export class PagesComponent {
       // A page's parentId can point at a page the current filter excludes (isActive/filter are
       // backend params, so a match can survive while its parent does not). Rather than let such a
       // row vanish from the tree, it renders at the root - normalized here once so every reader of
-      // `data.items` (the datatable's tree grouping, the tree-select's candidate list, the drag
-      // guards) sees a consistent, dangling-free parentId.
+      // `data.items` (the datatable's tree grouping, the tree-select's candidate list) sees a
+      // consistent, dangling-free parentId.
       const ids = new Set(result.items.map(page => page.id));
 
       this.data = {
@@ -209,61 +198,6 @@ export class PagesComponent {
   onTreeAction(event: { row: PageRow }): void {
     event.row.treeStatus = event.row.treeStatus === 'collapsed' ? 'expanded' : 'collapsed';
     this.data = { items: [...this.data.items] };
-  }
-
-  /**
-   * Interprets a drop as "the dragged page becomes the dropped-on page's last child" - the only
-   * rule `rowDragEvents` needs, since the library hands back just `{ dragRow, dropRow }` and leaves
-   * every interaction choice to the caller. Reordering among existing siblings, and promoting a
-   * page back to the root, both go through the Order/"Parent page" fields in the edit form instead
-   * - drag here only ever reparents.
-   */
-  onRowDragEvent(event: DragEventData): void {
-    if (event.eventType !== 'drop' || !event.dropRow) {
-      return;
-    }
-
-    const dragRow = event.dragRow as PageRow;
-    const dropRow = event.dropRow as PageRow;
-
-    if (dragRow.id === dropRow.id) {
-      return;
-    }
-
-    if (dragRow.isHomePage) {
-      this.toaster.warn('Site::PageMoveHomePageRejected');
-      return;
-    }
-
-    if (this.isSelfOrDescendant(dropRow.id!, dragRow.id!)) {
-      this.toaster.warn('Site::PageMoveCycleRejected');
-      return;
-    }
-
-    const newSiblingCount = this.data.items.filter(page => page.parentId === dropRow.id).length;
-
-    this.pageService.move(dragRow.id!, { parentId: dropRow.id!, order: newSiblingCount }).subscribe({
-      // Refreshing on both outcomes matters, not just error: ngx-datatable has already mutated its
-      // own internal row order optimistically for the drag gesture, so even a *successful* move
-      // needs the reload to reconcile the client's guess with the server's actual renumbering.
-      next: () => this.applyFilters(),
-      error: () => this.applyFilters(),
-    });
-  }
-
-  /** Whether `candidateId` is `ancestorId` itself, or sits anywhere beneath it in the tree. */
-  private isSelfOrDescendant(candidateId: string, ancestorId: string): boolean {
-    let current = this.data.items.find(page => page.id === candidateId);
-
-    while (current) {
-      if (current.id === ancestorId) {
-        return true;
-      }
-
-      current = this.data.items.find(page => page.id === current!.parentId);
-    }
-
-    return false;
   }
 
   openCreate(): void {
@@ -400,7 +334,6 @@ export class PagesComponent {
       ],
       template: [page?.template ?? '', [Validators.maxLength(PAGE_CONSTS.maxTemplateLength)]],
       isHomePage: [page?.isHomePage ?? false],
-      order: [page?.order ?? 0],
       parentId: [page?.parentId ?? null],
       isActive: [page?.isActive ?? true],
     });

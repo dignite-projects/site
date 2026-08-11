@@ -100,8 +100,7 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
     {
         return await (await GetDbSetAsync())
             .Where(p => p.IsActive)
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.Route)
+            .OrderBy(p => p.Route)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
@@ -111,8 +110,7 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
         CancellationToken cancellationToken = default)
     {
         return await (await GetFilteredQueryableAsync(isActive, filter))
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.Route)
+            .OrderBy(p => p.Route)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
@@ -129,8 +127,7 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
     {
         return await (await GetDbSetAsync())
             .Where(p => p.ParentId == parentId)
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.Route)
+            .OrderBy(p => p.Route)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 

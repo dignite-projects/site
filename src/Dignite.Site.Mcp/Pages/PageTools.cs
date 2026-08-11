@@ -59,8 +59,6 @@ public class PageTools : ITransientDependency
         string route,
         [Description("Whether this page is the site's home page. At most one page can be.")]
         bool isHomePage = false,
-        [Description("Sort order among pages. Lower comes first.")]
-        int order = 0,
         [Description(
             "The parent page's machine name, for organizing this page under it in the Admin UI's tree. " +
             "Purely organizational - it has no effect on 'route' or on how requests are resolved against " +
@@ -78,7 +76,6 @@ public class PageTools : ITransientDependency
             DisplayName = displayName,
             Route = route,
             IsHomePage = isHomePage,
-            Order = order,
             ParentId = parentId,
             IsActive = isActive
         });
@@ -105,8 +102,6 @@ public class PageTools : ITransientDependency
         string? route = null,
         [Description("Whether this is the home page. Omit to keep it.")]
         bool? isHomePage = null,
-        [Description("New sort order. Omit to keep it.")]
-        int? order = null,
         [Description(
             "New parent page's machine name, for reorganizing this page in the Admin UI's tree. Purely " +
             "organizational - has no effect on 'route'. Omit to keep the current parent; pass an empty " +
@@ -135,7 +130,6 @@ public class PageTools : ITransientDependency
             Route = route ?? current.Route,
             Template = current.Template,
             IsHomePage = isHomePage ?? current.IsHomePage,
-            Order = order ?? current.Order,
             ParentId = parentId,
             IsActive = isActive ?? current.IsActive
         });

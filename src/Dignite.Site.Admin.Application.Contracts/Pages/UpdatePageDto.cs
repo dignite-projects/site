@@ -22,8 +22,6 @@ public class UpdatePageDto
 
     public bool IsHomePage { get; set; }
 
-    public int Order { get; set; }
-
     /// <summary>Null for a top-level page. Purely organizational - see <see cref="Dignite.Site.Pages.Page.ParentId"/>.</summary>
     public Guid? ParentId { get; set; }
 

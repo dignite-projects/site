@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
@@ -92,7 +91,7 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// Once the child is moved elsewhere, the same delete that
+    /// Once the child is reparented away, the same delete that
     /// Should_Reject_Deleting_A_Page_That_Has_Children blocks goes through - the guard checks the live
     /// parent/child relationship at delete time, not some sticky flag set when the child was created.
     /// </summary>
@@ -107,7 +106,9 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
         await WithUnitOfWorkAsync(async () =>
         {
             var reloadedChild = await _pageRepository.GetAsync(child.Id);
-            await _pageManager.MoveAsync(reloadedChild, parentId: null, order: 0);
+            await _pageManager.UpdateAsync(
+                reloadedChild, reloadedChild.Name, reloadedChild.DisplayName, reloadedChild.Route,
+                parentId: null);
         });
 
         await WithUnitOfWorkAsync(async () =>
@@ -137,40 +138,8 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// MoveAsync's destination sibling group is densely renumbered to 0..N with the moved page spliced
-    /// in - Order has to stay a clean index within siblings, not accumulate gaps every time a page is
-    /// dragged around in the Admin UI.
-    /// </summary>
-    [Fact]
-    public async Task Should_Densely_Renumber_Siblings_After_A_Move()
-    {
-        var parent = await WithUnitOfWorkAsync(() =>
-            _pageManager.CreateAsync("reorder-parent", "Parent", "/reorder-parent"));
-
-        var first = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
-            "reorder-child-1", "Child 1", "/reorder-child-1", parentId: parent.Id));
-        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
-            "reorder-child-2", "Child 2", "/reorder-child-2", parentId: parent.Id));
-        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
-            "reorder-child-3", "Child 3", "/reorder-child-3", parentId: parent.Id));
-
-        // All three share Order 0 at this point, so GetChildrenAsync's Route tie-break puts "first" (the
-        // lexicographically earliest route) at index 0. Moving it to index 2 puts it last.
-        await WithUnitOfWorkAsync(async () =>
-        {
-            var reloadedFirst = await _pageRepository.GetAsync(first.Id);
-            await _pageManager.MoveAsync(reloadedFirst, parentId: parent.Id, order: 2);
-        });
-
-        var siblings = await WithUnitOfWorkAsync(() => _pageRepository.GetChildrenAsync(parent.Id));
-
-        siblings.Select(p => p.Order).OrderBy(order => order).ShouldBe(new[] { 0, 1, 2 });
-        siblings.Single(p => p.Id == first.Id).Order.ShouldBe(2);
-    }
-
-    /// <summary>
-    /// Dragging a page out to the top level in the Admin UI's list calls MoveAsync with a null parent.
-    /// Doubles as the regression guard for EF Core's null-semantics translation of
+    /// Dragging a page out to the top level in the Admin UI's tree reparents it via UpdateAsync with a
+    /// null parent. Doubles as the regression guard for EF Core's null-semantics translation of
     /// "p.ParentId == parentId" when parentId is itself null - GetChildrenAsync(null) has to mean "the
     /// top-level pages", not "no rows, because nothing equals null".
     /// </summary>
@@ -185,11 +154,16 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
         await WithUnitOfWorkAsync(async () =>
         {
             var reloadedChild = await _pageRepository.GetAsync(child.Id);
-            await _pageManager.MoveAsync(reloadedChild, parentId: null, order: 0);
+            await _pageManager.UpdateAsync(
+                reloadedChild, reloadedChild.Name, reloadedChild.DisplayName, reloadedChild.Route,
+                parentId: null);
         });
 
         var reloaded = await WithUnitOfWorkAsync(() => _pageRepository.GetAsync(child.Id));
         reloaded.ParentId.ShouldBeNull();
+
+        var topLevel = await WithUnitOfWorkAsync(() => _pageRepository.GetChildrenAsync(null));
+        topLevel.ShouldContain(p => p.Id == child.Id);
     }
 
     /// <summary>

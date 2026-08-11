@@ -38,7 +38,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string route,
         string? template = null,
         bool isHomePage = false,
-        int order = 0,
         bool isActive = true,
         Guid? tenantId = null,
         Guid? parentId = null)
@@ -49,7 +48,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         SetRoute(route);
         Template = template;
         IsHomePage = isHomePage;
-        Order = order;
         IsActive = isActive;
         TenantId = tenantId;
         ParentId = parentId;
@@ -80,9 +78,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// (总体设计 §5.5).
     /// </summary>
     public virtual bool IsHomePage { get; protected set; }
-
-    /// <summary>Navigation ordering, scoped to the pages sharing the same <see cref="ParentId"/>.</summary>
-    public virtual int Order { get; protected set; }
 
     /// <summary>
     /// The page this one is organized under in the Admin UI, or null for a top-level page. This is
@@ -142,11 +137,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual void SetIsHomePage(bool isHomePage)
     {
         IsHomePage = isHomePage;
-    }
-
-    public virtual void SetOrder(int order)
-    {
-        Order = order;
     }
 
     /// <summary>

@@ -54,8 +54,6 @@
       rowHeight="auto"
       treeFromRelation="parentId"
       treeToRelation="id"
-      [rowDraggable]="canDrag"
-      (rowDragEvents)="onRowDragEvent($event)"
       (treeAction)="onTreeAction($event)"
     >
       <ngx-datatable-column
@@ -110,11 +108,6 @@
           <i class="fa" [ngClass]="row.isActive ? 'fa-check text-success' : 'fa-times text-muted'"></i>
         </ng-template>
       </ngx-datatable-column>
-      <ngx-datatable-column
-        prop="order"
-        [flexGrow]="1"
-        [name]="'Site::DisplayName:Page.Order' | abpLocalization"
-      ></ngx-datatable-column>
       <ngx-datatable-column [flexGrow]="2" [sortable]="false" [name]="'AbpUi::Actions' | abpLocalization">
         <ng-template let-row="row" ngx-datatable-cell-template>
           <a
@@ -195,10 +188,6 @@
           <small class="form-text text-muted">
             {{ 'Site::Description:Page.ParentId' | abpLocalization }}
           </small>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">{{ 'Site::DisplayName:Page.Order' | abpLocalization }}</label>
-          <input type="number" class="form-control" formControlName="order" />
         </div>
         <div class="form-check mb-2">
           <input

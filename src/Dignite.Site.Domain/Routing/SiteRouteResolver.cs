@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -49,18 +50,24 @@ public class SiteRouteResolver : DomainService
     /// <para>
     /// Tries the longest prefix of <paramref name="path"/> first - the whole path itself - and, failing
     /// that, one fewer trailing segment at a time, down to the root. At each length, every active page
-    /// whose own address is that prefix (总体设计 §3.4 - literal beats derived, then a stable order) is
-    /// tried in turn via <see cref="ResolveAgainstPageAsync"/>, not just the first one: more than one page
-    /// can legitimately derive the same address (see <c>EfCorePageRepository.RouteExistsAsync</c>'s own
-    /// remarks), and only inspecting the highest-priority candidate risks silently shadowing whichever one
-    /// actually has the requested content - see <see cref="ResolveAgainstPageAsync"/>'s remarks for what
-    /// "didn't pan out, try the next one" means. The first candidate, at the first length, that produces
-    /// an actual match wins outright: there is no backtracking to a shorter prefix once some candidate at
-    /// this length has matched. A page whose own address happens to sit in the middle of some other page's
-    /// deeper template - <c>/blog/abc</c> claimed by its own page, ahead of the derived address
-    /// <c>/blog/abc/{publishTime:yyyy-MM}/{slug}</c> would otherwise land on - is exactly why this has to
-    /// walk every length rather than only the full path or only each page's own address: the middle of a
-    /// request is not always still talking about the page whose template happens to be longest.
+    /// whose own address is that prefix (总体设计 §3.4) is a candidate, and more than one page legitimately
+    /// can derive the same address (see <c>EfCorePageRepository.RouteExistsAsync</c>'s own remarks) - so
+    /// each length is tried in two passes rather than picking one candidate by a fixed priority up front.
+    /// The first pass offers every candidate at this length to <see cref="ResolveAgainstPageAsync"/>, which
+    /// only ever answers when the request's remainder structurally fits that candidate's route (a full slug
+    /// or a partial filter): whichever candidate does so first wins outright, deepest information taking
+    /// priority over tie-break order. Only when nothing at this length structurally accounted for the
+    /// remainder does the second pass run, offering the same candidates - in a stable, literal-before-
+    /// template order - to <see cref="ResolvePageItselfAsync"/>'s unconditional "this page, as itself"
+    /// fallback. A page whose own address happens to sit in the middle of some other page's deeper template
+    /// - <c>/blog/abc</c> claimed by its own page, ahead of the derived address
+    /// <c>/blog/abc/{publishTime:yyyy-MM}/{slug}</c> would otherwise land on - only wins there when the
+    /// deeper template's own candidacy, tried first in the same pass, could not resolve this specific
+    /// request either; this is exactly why this has to walk every length <i>and</i> run two passes at each
+    /// one, rather than only the full path or only each page's own address: the middle of a request is not
+    /// always still talking about the page whose template happens to be longest, but it is not automatically
+    /// talking about a shorter literal page in the way either. Whichever length this settles on, once any
+    /// candidate there has matched (in either pass), there is no backtracking to a shorter prefix.
     /// </para>
     /// </summary>
     /// <param name="includeUnpublished">
@@ -124,12 +131,40 @@ public class SiteRouteResolver : DomainService
             var candidates = routablePages
                 .Where(p => PageRoute.GetPath(p.Route) == prefix)
                 .OrderBy(p => PageRoute.IsTemplate(p.Route) ? 1 : 0)
-                .ThenBy(p => p.Route, StringComparer.Ordinal);
+                .ThenBy(p => p.Route, StringComparer.Ordinal)
+                .ToList();
+
+            // A candidate with nothing structural to say about the remainder - neither TryMatchSlug nor
+            // TryMatchPartial applied at all, signalled by null - is the only kind still eligible for the
+            // page-itself fallback below. One that did structurally apply, even to a definitive miss (a
+            // slug naming no visible content), has already given its final answer for this request and
+            // must not get a second, different one from that fallback - see ResolveAgainstPageAsync's
+            // remarks for why a miss there is not the same as having nothing to say.
+            var eligibleForFallback = new List<Page>();
 
             foreach (var page in candidates)
             {
                 var match = await ResolveAgainstPageAsync(
                     page, normalizedPath, normalizedCulture, includeUnpublished, cancellationToken);
+
+                if (match == null)
+                {
+                    eligibleForFallback.Add(page);
+                    continue;
+                }
+
+                if (match.IsMatch)
+                {
+                    return match;
+                }
+            }
+
+            // Nothing at this length produced a visible structural answer - only now does the tie-break's
+            // loser get a claim, in the same literal-before-template order as above, and only among
+            // candidates that never had a structural opinion to begin with.
+            foreach (var page in eligibleForFallback)
+            {
+                var match = await ResolvePageItselfAsync(page, normalizedCulture, includeUnpublished, cancellationToken);
 
                 if (match.IsMatch)
                 {
@@ -144,22 +179,29 @@ public class SiteRouteResolver : DomainService
     }
 
     /// <summary>
-    /// What the rest of <paramref name="normalizedPath"/> means to <paramref name="page"/>, one candidate
-    /// among possibly several sharing the same address at this prefix length (总体设计 §3.4) - full detail,
-    /// partial filter, or neither, tried in that order (most specific first, same reasoning as
-    /// <see cref="ResolveAsync"/>'s own prefix walk one level up).
+    /// What the rest of <paramref name="normalizedPath"/> structurally means to <paramref name="page"/> -
+    /// full detail or partial filter, tried in that order (most specific first, same reasoning as
+    /// <see cref="ResolveCoreAsync"/>'s own prefix walk one level up) - or <see langword="null"/> when
+    /// <paramref name="page"/>'s route has no structural opinion about the remainder at all (neither shape
+    /// fits). That distinction is the whole point of the nullable return: a slug that structurally fit but
+    /// named no visible content is this candidate's final, definitive answer for this request - a
+    /// different request might still legitimately land on this same page's own address, but not this one -
+    /// so it comes back as non-null <see cref="RouteMatch.None"/>, not <see langword="null"/>, and
+    /// <see cref="ResolveCoreAsync"/> must not let it fall through to <see cref="ResolvePageItselfAsync"/>'s
+    /// unconditional fallback; a page with nothing to say has that fallback still open to it. Getting this
+    /// wrong once quietly served an unpublished draft's list page instead of a 404 for its own now-invisible
+    /// detail URL - exactly the regression this distinction exists to prevent.
     /// <para>
-    /// A full match whose slug actually resolves to visible content is definitive - <see cref="ResolveAsync"/>
-    /// returns it immediately, no other candidate or shorter prefix gets a look. Everything else this
-    /// method can return - <see cref="RouteMatch.None"/> from a slug that structurally fit but named no
-    /// visible content, included - is <see cref="RouteMatch.IsMatch"/> <c>false</c> or otherwise just this
-    /// one candidate's answer, and <see cref="ResolveAsync"/> moves on to the next candidate at the same
-    /// length before giving up on it: <c>page.Route</c> matching the shape of the request is not proof
-    /// that <c>page</c> is the one that actually owns the requested content when another page's route
-    /// could have matched just as well.
+    /// A full match whose slug actually resolves to visible content is definitive the other way too -
+    /// <see cref="ResolveCoreAsync"/> returns it immediately, no other candidate or shorter prefix gets a
+    /// look. Everything else non-null this method can return is <see cref="RouteMatch.IsMatch"/>
+    /// <c>false</c>, and <see cref="ResolveCoreAsync"/> moves on to the next candidate at the same length
+    /// before giving up on it: <c>page.Route</c> matching the shape of the request is not proof that
+    /// <c>page</c> is the one that actually owns the requested content when another page's route could have
+    /// matched just as well.
     /// </para>
     /// </summary>
-    protected virtual async Task<RouteMatch> ResolveAgainstPageAsync(
+    protected virtual async Task<RouteMatch?> ResolveAgainstPageAsync(
         Page page,
         string normalizedPath,
         string cultureName,
@@ -180,15 +222,21 @@ public class SiteRouteResolver : DomainService
             return RouteMatch.ForPage(page, filterValues);
         }
 
-        return await ResolvePageItselfAsync(page, cultureName, includeUnpublished, cancellationToken);
+        return null;
     }
 
     /// <summary>
     /// A page's own route resolves to the page - unless the page carries a single content with an empty
-    /// slug, in which case that content is what the URL means. Also what a request lands on when it
-    /// matched some page's own address but the remainder trails off into a shape that page's route cannot
-    /// use at all - a literal page in the way of a longer template's own address, say - rather than
-    /// backtracking to try a different, shorter-addressed page instead (总体设计 §3.4).
+    /// slug, in which case that content is what the URL means. Also the last-resort answer for a request
+    /// that matched some page's own address but whose remainder trails off into a shape this page's route
+    /// cannot use at all - tried only in <see cref="ResolveCoreAsync"/>'s second pass over a length, and
+    /// only for a candidate whose <see cref="ResolveAgainstPageAsync"/> call came back <see langword="null"/>
+    /// (总体设计 §3.4): one that came back non-null - even <see cref="RouteMatch.None"/> - had a structural
+    /// opinion and already gave its final answer, so it is excluded from this fallback rather than getting
+    /// a second, different one here. A literal page sharing a longer template's own address therefore
+    /// shadows it only when the template itself had nothing structural to say about the specific request
+    /// either - not unconditionally, the way a single-pass walk would have it, and not merely because the
+    /// template's own structural attempt happened to miss.
     /// </summary>
     protected virtual async Task<RouteMatch> ResolvePageItselfAsync(
         Page page,

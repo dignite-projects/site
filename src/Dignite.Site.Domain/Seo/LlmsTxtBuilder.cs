@@ -56,8 +56,7 @@ public class LlmsTxtBuilder : DomainService
         var context = await UrlBuilder.CreateContextAsync(cancellationToken);
 
         var pages = (await PageRepository.GetRoutableListAsync(cancellationToken))
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.Route, StringComparer.Ordinal)
+            .OrderBy(p => p.Route, StringComparer.Ordinal)
             .ToList();
 
         var homePage = pages.FirstOrDefault(p => p.IsHomePage);

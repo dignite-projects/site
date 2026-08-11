@@ -1,4 +1,4 @@
-import type { CreatePageDto, GetPageListInput, MovePageDto, UpdatePageDto } from './models';
+import type { CreatePageDto, GetPageListInput, UpdatePageDto } from './models';
 import { RestService, Rest } from '@abp/ng.core';
 import type { ListResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
@@ -51,15 +51,6 @@ export class PageAdminService {
       method: 'GET',
       url: '/api/site-admin/pages',
       params: { isActive: input.isActive, filter: input.filter },
-    },
-    { apiName: this.apiName,...config });
-  
-
-  move = (id: string, input: MovePageDto, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, PageDto>({
-      method: 'PUT',
-      url: `/api/site-admin/pages/${id}/move`,
-      body: input,
     },
     { apiName: this.apiName,...config });
   

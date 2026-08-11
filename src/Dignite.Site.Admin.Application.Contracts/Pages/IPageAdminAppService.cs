@@ -23,12 +23,6 @@ public interface IPageAdminAppService : IApplicationService
     Task<PageDto> UpdateAsync(Guid id, UpdatePageDto input);
 
     /// <summary>
-    /// Reparents and/or repositions a page - what a drag-and-drop in the Admin UI's page list calls. See
-    /// <see cref="MovePageDto.Order"/> for why this is not just a thinner <see cref="UpdateAsync"/>.
-    /// </summary>
-    Task<PageDto> MoveAsync(Guid id, MovePageDto input);
-
-    /// <summary>
     /// Deleting a page cascades to its content types and contents - that cascade runs explicitly in
     /// <c>PageManager.DeleteAsync</c>, not at the database level, since these entities are soft-deleted so
     /// a delete is an UPDATE and a declared <c>ON DELETE CASCADE</c> never fires (总体设计 §2.5). It does

@@ -82,7 +82,6 @@ public class PageManager : DomainService
         string route,
         string? template = null,
         bool isHomePage = false,
-        int order = 0,
         bool isActive = true,
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
@@ -108,7 +107,6 @@ public class PageManager : DomainService
             route: normalizedRoute,
             template: template,
             isHomePage: isHomePage,
-            order: order,
             isActive: isActive,
             tenantId: CurrentTenant.Id,
             parentId: effectiveParentId);
@@ -128,7 +126,6 @@ public class PageManager : DomainService
         string route,
         string? template = null,
         bool isHomePage = false,
-        int order = 0,
         bool isActive = true,
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
@@ -166,7 +163,6 @@ public class PageManager : DomainService
 
         page.SetDisplayName(displayName);
         page.SetTemplate(template);
-        page.SetOrder(order);
         page.SetIsActive(isActive);
 
         if (isHomePage && !page.IsHomePage)
@@ -177,78 +173,6 @@ public class PageManager : DomainService
         page.SetIsHomePage(isHomePage);
 
         return await PageRepository.UpdateAsync(page, cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Reparents and/or repositions a page in one step - what a drag-and-drop in the Admin UI's page list
-    /// calls, rather than the full <see cref="UpdateAsync(Page,string,string,string,string,bool,int,bool,Guid?,CancellationToken)"/>,
-    /// so a drag does not have to resend every other field. <paramref name="order"/> is the target index
-    /// among the page's new siblings, not a literal value to store - the destination sibling group is
-    /// densely renumbered to <c>0..N</c> with the page spliced in there, and the group it left (if the
-    /// parent actually changed) is renumbered too, so <see cref="Page.Order"/> never accumulates gaps.
-    /// </summary>
-    public virtual async Task<Page> MoveAsync(
-        Page page,
-        Guid? parentId,
-        int order,
-        CancellationToken cancellationToken = default)
-    {
-        var effectiveParentId = NormalizeParent(page.IsHomePage, parentId);
-        var previousParentId = page.ParentId;
-        var parentChanged = previousParentId != effectiveParentId;
-
-        if (parentChanged)
-        {
-            await CheckParentAsync(page.Id, effectiveParentId, cancellationToken);
-            page.SetParent(effectiveParentId);
-        }
-
-        await ReorderSiblingsAsync(effectiveParentId, page, order, cancellationToken);
-
-        if (parentChanged)
-        {
-            await ReorderSiblingsAsync(previousParentId, null, 0, cancellationToken);
-        }
-
-        return await PageRepository.UpdateAsync(page, cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Densely renumbers one sibling group - every page sharing <paramref name="parentId"/> - to
-    /// <c>0..N</c>. <paramref name="movedPage"/>, when given, is spliced into the group at
-    /// <paramref name="targetIndex"/> first (and removed from its old position in the group, if it was
-    /// already there). Its <c>Order</c> is set here but left for the caller to persist - <see cref="MoveAsync"/>
-    /// always saves it once at the end regardless of whether this method touched it; every other sibling
-    /// this method renumbers is saved here directly.
-    /// </summary>
-    protected virtual async Task ReorderSiblingsAsync(
-        Guid? parentId,
-        Page? movedPage,
-        int targetIndex,
-        CancellationToken cancellationToken)
-    {
-        var siblings = await PageRepository.GetChildrenAsync(parentId, cancellationToken);
-        siblings.RemoveAll(p => p.Id == movedPage?.Id);
-
-        if (movedPage != null)
-        {
-            siblings.Insert(Math.Clamp(targetIndex, 0, siblings.Count), movedPage);
-        }
-
-        for (var i = 0; i < siblings.Count; i++)
-        {
-            if (siblings[i].Order == i)
-            {
-                continue;
-            }
-
-            siblings[i].SetOrder(i);
-
-            if (siblings[i] != movedPage)
-            {
-                await PageRepository.UpdateAsync(siblings[i], cancellationToken: cancellationToken);
-            }
-        }
     }
 
     protected virtual async Task CheckNameAsync(string name, Guid? excludedId, CancellationToken cancellationToken)

@@ -66,7 +66,6 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
             route: input.Route,
             template: input.Template,
             isHomePage: input.IsHomePage,
-            order: input.Order,
             isActive: input.IsActive,
             parentId: input.ParentId);
 
@@ -117,24 +116,8 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
             route: input.Route,
             template: input.Template,
             isHomePage: input.IsHomePage,
-            order: input.Order,
             isActive: input.IsActive,
             parentId: input.ParentId);
-
-        return MapToDto(page);
-    }
-
-    /// <summary>
-    /// Reparents and/or repositions a page - what a drag-and-drop in the Admin UI's page list calls.
-    /// Reuses the Update permission: moving a page in the tree is a kind of update, not a distinct action
-    /// worth its own permission entry.
-    /// </summary>
-    [Authorize(AdminPermissions.Pages.Update)]
-    public virtual async Task<PageDto> MoveAsync(Guid id, MovePageDto input)
-    {
-        var page = await PageRepository.GetAsync(id);
-
-        page = await PageManager.MoveAsync(page, input.ParentId, input.Order);
 
         return MapToDto(page);
     }

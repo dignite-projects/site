@@ -31,12 +31,11 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
     Task<Page?> FindHomePageAsync(bool includeDetails = false, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Every routable page, ordered the same way <see cref="GetListAsync"/> is (by <see cref="Page.Order"/>
-    /// then <see cref="Page.Route"/>) - a deterministic order, not one that disambiguates matches. Step 2
-    /// of route resolution matches a whole request path against each candidate's route as one anchored
-    /// template, so two distinct templates cannot both match a path unless an admin has deliberately
-    /// constructed overlapping ones - a case the engine does not try to resolve, only to answer
-    /// consistently.
+    /// Every routable page, ordered the same way <see cref="GetListAsync"/> is (by <see cref="Page.Route"/>)
+    /// - a deterministic order, not one that disambiguates matches. Step 2 of route resolution matches a
+    /// whole request path against each candidate's route as one anchored template, so two distinct
+    /// templates cannot both match a path unless an admin has deliberately constructed overlapping ones -
+    /// a case the engine does not try to resolve, only to answer consistently.
     /// </summary>
     Task<List<Page>> GetRoutableListAsync(CancellationToken cancellationToken = default);
 
@@ -50,9 +49,8 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
 
     /// <summary>
     /// The children of <paramref name="parentId"/> (null meaning the top-level pages), ordered the same
-    /// way <see cref="GetListAsync"/> orders its whole result - by <see cref="Page.Order"/> then
-    /// <see cref="Page.Route"/>. Used both to renumber a sibling group after a move and, from
-    /// <see cref="PageManager"/>, to check whether a page has children before deleting it.
+    /// way <see cref="GetListAsync"/> orders its whole result - by <see cref="Page.Route"/>. The Admin UI's
+    /// page-tree read for one level.
     /// </summary>
     Task<List<Page>> GetChildrenAsync(Guid? parentId, CancellationToken cancellationToken = default);
 

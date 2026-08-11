@@ -64,14 +64,6 @@ public class PageAdminController : AdminController, IPageAdminAppService
         return PageAdminAppService.UpdateAsync(id, input);
     }
 
-    [HttpPut]
-    [Route("{id}/move")]
-    [Authorize(AdminPermissions.Pages.Update)]
-    public virtual Task<PageDto> MoveAsync(Guid id, MovePageDto input)
-    {
-        return PageAdminAppService.MoveAsync(id, input);
-    }
-
     [HttpDelete]
     [Route("{id}")]
     [Authorize(AdminPermissions.Pages.Delete)]

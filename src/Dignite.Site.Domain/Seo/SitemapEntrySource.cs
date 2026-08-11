@@ -74,8 +74,7 @@ public class SitemapEntrySource : DomainService
         // Inactive pages are already filtered out by the repository - an inactive page is not routable and
         // contributes nothing here.
         var pages = (await PageRepository.GetRoutableListAsync(cancellationToken))
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.Route, StringComparer.Ordinal)
+            .OrderBy(p => p.Route, StringComparer.Ordinal)
             .ToList();
 
         foreach (var page in pages)

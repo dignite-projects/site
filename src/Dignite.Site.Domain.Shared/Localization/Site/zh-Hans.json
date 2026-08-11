@@ -54,11 +54,7 @@
     "DisplayName:Page.IsHomePage": "设为主页",
     "DisplayName:Page.ParentId": "上级页面",
     "Description:Page.ParentId": "该页面在后台里归属的上级页面，仅用于组织展示，不影响路由。留空表示顶级页面。",
-    "DisplayName:Page.Order": "排序",
     "DisplayName:Page.IsActive": "启用",
-    "PageMoveHomePageRejected": "主页不能设置上级页面。",
-    "PageMoveCycleRejected": "不能把页面拖到它自己的下级页面下。",
-
     "ContentTypes": "内容类型",
     "ContentTypesOfPage": "'{0}' 的内容类型",
     "NewContentType": "新建内容类型",

@@ -251,16 +251,19 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// The scenario that overturned the first version of this design: an intermediate literal segment
-    /// ("/shop/electronics") is not automatically the deep templated page's own territory just because
-    /// that page's derived address happens to land there too - a separately-created, unrelated literal
-    /// page at that exact address wins the moment it exists, at every length below it in the same request,
-    /// including a path that would otherwise have been the deep page's own detail URL. The engine commits
-    /// to the longest matching address and never backtracks to a shorter, different page just because what
-    /// follows does not fit - see SiteRouteResolver.ResolveAsync's remarks.
+    /// An intermediate literal segment ("/shop/electronics") is not automatically the deep templated
+    /// page's own territory just because that page's derived address happens to land there too - but
+    /// since the fix for the scenario that overturned the first version of this design, it only wins when
+    /// nothing at this length structurally accounts for the rest of the path. Here the deep page's own
+    /// TryMatchSlug does fill every placeholder including slug, shaped exactly like its own detail URL -
+    /// but no content was ever published under it, so that structural attempt is itself a miss, and the
+    /// literal page is what is left once both candidates at this length have had their turn (总体设计 §3.4,
+    /// SiteRouteResolver.ResolveCoreAsync's two-pass remarks). A request where real content backs that
+    /// slug instead is Should_Resolve_Content_Under_A_Deeper_Template_Even_When_An_Unrelated_Literal_Page_
+    /// Shares_Its_Own_Address's job, not this one's.
     /// </summary>
     [Fact]
-    public async Task Should_Let_An_Unrelated_Literal_Page_Shadow_A_Deeper_Templates_Own_Prefix()
+    public async Task Should_Let_An_Unrelated_Literal_Page_Win_When_The_Deeper_Templates_Structural_Match_Finds_No_Content()
     {
         await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
             "shop-electronics-deep", "Electronics deep",
@@ -268,20 +271,83 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
         var literal = await WithUnitOfWorkAsync(() =>
             _pageManager.CreateAsync("shop-electronics-index", "Electronics index", "/shop/electronics"));
 
-        var partialShapedMatch = await WithUnitOfWorkAsync(() =>
-            _resolver.ResolveAsync("/shop/electronics/2026-08", SiteTestData.EnglishCulture));
-
-        partialShapedMatch.Kind.ShouldBe(RouteMatchKind.Page);
-        partialShapedMatch.Page!.Id.ShouldBe(literal.Id);
-        partialShapedMatch.FilterValues.ShouldBeEmpty();
-
-        // Even a path shaped like the deep page's own detail URL never reaches it - the literal page at
-        // "/shop/electronics" wins first and is final, with nothing left to backtrack to.
         var detailShapedMatch = await WithUnitOfWorkAsync(() =>
             _resolver.ResolveAsync("/shop/electronics/2026-08/some-item", SiteTestData.EnglishCulture));
 
         detailShapedMatch.Kind.ShouldBe(RouteMatchKind.Page);
         detailShapedMatch.Page!.Id.ShouldBe(literal.Id);
+    }
+
+    /// <summary>
+    /// The flip side of the test above, and of the pre-fix design: a request shaped like a partial match
+    /// against the deep page's own placeholders (short of slug) is itself a structural answer -
+    /// PageRoute.TryMatchPartial needs no content to succeed, unlike TryMatchSlug - so it wins over an
+    /// unrelated literal page sharing the same derived address, rather than being shadowed by it.
+    /// </summary>
+    [Fact]
+    public async Task Should_Prefer_The_Deeper_Templates_Partial_Match_Over_An_Unrelated_Literal_Page()
+    {
+        var deep = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "shop-furniture-deep", "Furniture deep",
+            "/shop/furniture/{publishTime:yyyy-MM}/{slug}"));
+        await WithUnitOfWorkAsync(() =>
+            _pageManager.CreateAsync("shop-furniture-index", "Furniture index", "/shop/furniture"));
+
+        var match = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/shop/furniture/2026-08", SiteTestData.EnglishCulture));
+
+        match.Kind.ShouldBe(RouteMatchKind.Page);
+        match.Page!.Id.ShouldBe(deep.Id);
+        match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-08");
+    }
+
+    /// <summary>
+    /// The actual shape of bug report GitHub issue #46: a literal page built after a templated page
+    /// already existed, deriving the same own address, used to shadow every deeper URL under that address
+    /// unconditionally - even ones with real, published content behind them, not just the never-populated
+    /// pages the two tests above exercise. It no longer does: the templated page's own TryMatchSlug fills
+    /// every placeholder and finds the real content first, in the same pass, before the literal page's
+    /// fallback ever runs. A fresh route family (not "/news" or "/blog") - this test class shares one
+    /// database across every test in the assembly, so creating a colliding literal page against the seeded
+    /// News/Blog pages here would leak into whichever other test happens to run after it.
+    /// </summary>
+    [Fact]
+    public async Task Should_Resolve_Content_Under_A_Deeper_Template_Even_When_An_Unrelated_Literal_Page_Shares_Its_Own_Address()
+    {
+        var deep = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "press-releases-deep", "Press releases deep",
+            "/press-releases/{publishTime:yyyy-MM}/{slug}"));
+        var literal = await WithUnitOfWorkAsync(() =>
+            _pageManager.CreateAsync("press-releases-index", "Press releases index", "/press-releases"));
+
+        var titleField = await WithUnitOfWorkAsync(() => _fieldRepository.GetAsync(SiteTestData.TitleFieldId));
+
+        var contentTypeId = await WithUnitOfWorkAsync(async () =>
+        {
+            var contentType = await _contentTypeManager.CreateAsync(
+                deep.Id, "press-release-item", "Press release item",
+                fields: new[] { new ContentTypeField(titleField.Id, order: 0) });
+            return contentType.Id;
+        });
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, "launch-day", SiteTestData.PublishTime,
+            ContentStatus.Published, new Dictionary<string, object?> { ["title"] = "Launch day" }));
+
+        var detailMatch = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/press-releases/2026-07/launch-day", SiteTestData.EnglishCulture));
+
+        detailMatch.Kind.ShouldBe(RouteMatchKind.Content);
+        detailMatch.Page!.Id.ShouldBe(deep.Id);
+        detailMatch.Content!.Slug.ShouldBe("launch-day");
+
+        // The bare address is still the literal page's own, unambiguously - fixing the detail URL above
+        // must not touch it.
+        var bareMatch = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/press-releases", SiteTestData.EnglishCulture));
+
+        bareMatch.Kind.ShouldBe(RouteMatchKind.Page);
+        bareMatch.Page!.Id.ShouldBe(literal.Id);
     }
 
     /// <summary>

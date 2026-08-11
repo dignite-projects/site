@@ -21,8 +21,6 @@ public class PageDto : FullAuditedEntityDto<Guid>
 
     public bool IsHomePage { get; set; }
 
-    public int Order { get; set; }
-
     /// <summary>
     /// The page this one is organized under in the Admin UI, or null for a top-level page. Purely
     /// organizational - see <see cref="Dignite.Site.Pages.Page.ParentId"/>.

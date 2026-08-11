@@ -91,11 +91,7 @@
     "DisplayName:Page.IsHomePage": "Home page",
     "DisplayName:Page.ParentId": "Parent page",
     "Description:Page.ParentId": "The page this one is organized under in the admin UI. Organizational only - it does not affect routing. Leave empty for a top-level page.",
-    "DisplayName:Page.Order": "Order",
     "DisplayName:Page.IsActive": "Active",
-    "PageMoveHomePageRejected": "The home page cannot have a parent.",
-    "PageMoveCycleRejected": "A page cannot be moved under its own descendant.",
-
     "ContentTypes": "Content types",
     "ContentTypesOfPage": "Content types of '{0}'",
     "NewContentType": "New content type",
