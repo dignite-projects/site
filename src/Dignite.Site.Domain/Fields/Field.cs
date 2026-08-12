@@ -107,7 +107,13 @@ public class Field : FullAuditedAggregateRoot<Guid>, IFlexField, IMultiTenant
     /// </summary>
     public virtual void SetName(string name)
     {
-        Name = Check.NotNullOrWhiteSpace(name, nameof(name), FlexFieldConsts.MaxNameLength);
+        var checkedName = Check.NotNullOrWhiteSpace(name, nameof(name), FlexFieldConsts.MaxNameLength);
+        if (!IdentifierName.IsValid(checkedName))
+        {
+            throw new InvalidValueFormatException(nameof(Name), checkedName);
+        }
+
+        Name = checkedName;
     }
 
     public virtual void SetDisplayName(string displayName)

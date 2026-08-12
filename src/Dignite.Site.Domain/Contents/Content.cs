@@ -128,6 +128,11 @@ public class Content : FullAuditedAggregateRoot<Guid>, IHasFlexFields, IMultiTen
     {
         var value = slug ?? string.Empty;
         Check.Length(value, nameof(slug), ContentConsts.MaxSlugLength);
+        if (!SlugNormalizer.IsWellFormed(value))
+        {
+            throw new InvalidValueFormatException(nameof(Slug), value);
+        }
+
         Slug = value;
     }
 

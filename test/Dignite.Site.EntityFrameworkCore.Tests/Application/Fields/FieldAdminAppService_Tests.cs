@@ -6,6 +6,7 @@ using Dignite.Site.Admin.Contents;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
+using Volo.Abp.Validation;
 using Xunit;
 
 namespace Dignite.Site.Admin.Fields;
@@ -91,5 +92,23 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         // Restore the seed's own name so later tests in this shared database still see "views".
         await _fieldAppService.RenameAsync(SiteTestData.ViewsFieldId, new RenameFieldDto { NewName = "views" });
+    }
+
+    [Fact]
+    public async Task Should_Reject_A_Name_With_An_Invalid_Format()
+    {
+        await Should.ThrowAsync<AbpValidationException>(() => _fieldAppService.CreateAsync(new CreateFieldDto
+        {
+            Name = "Not Valid",
+            DisplayName = "Bad name",
+            FieldTypeName = "TextEdit"
+        }));
+    }
+
+    [Fact]
+    public async Task Should_Reject_A_Rename_To_A_New_Name_With_An_Invalid_Format()
+    {
+        await Should.ThrowAsync<AbpValidationException>(() => _fieldAppService.RenameAsync(
+            SiteTestData.ViewsFieldId, new RenameFieldDto { NewName = "Not Valid" }));
     }
 }

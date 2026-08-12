@@ -94,4 +94,31 @@ public class SlugNormalizer_Tests
         SlugNormalizer.TryNormalize("My Trip", out var slug).ShouldBeTrue();
         slug.ShouldBe("my-trip");
     }
+
+    /// <summary>
+    /// IsWellFormed is a separate, looser check from Normalize: it accepts whatever Normalize itself
+    /// could produce (script-neutral, case preserved - unlike Normalize it does not lowercase) since the
+    /// admin API stores a slug verbatim rather than running it through Normalize (Content.SetSlug's
+    /// remarks). Empty passes too - a content's own legitimate "no slug" value.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("my-post")]
+    [InlineData("Legacy-Slug")]
+    [InlineData("post_2026")]
+    [InlineData("我的旅行")]
+    public void Should_Report_A_Well_Formed_Slug(string value)
+    {
+        SlugNormalizer.IsWellFormed(value).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("has space")]
+    [InlineData("has/slash")]
+    [InlineData("has?query")]
+    [InlineData("has#hash")]
+    public void Should_Report_A_Malformed_Slug(string value)
+    {
+        SlugNormalizer.IsWellFormed(value).ShouldBeFalse();
+    }
 }

@@ -26,6 +26,9 @@ const MAX_FIELD_DISPLAY_NAME_LENGTH = 128;
 const MAX_FIELD_DESCRIPTION_LENGTH = 256;
 const MAX_GROUP_NAME_LENGTH = 64;
 
+/** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
+const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
+
 /**
  * localStorage key for per-group collapse state the user has explicitly chosen, keyed by group name
  * (`''` for Ungrouped - a real group name is never empty after {@link FieldsComponent.rebuildSections}
@@ -306,7 +309,7 @@ export class FieldsComponent {
     this.renameForm = this.fb.group({
       newName: [
         field.name ?? '',
-        [Validators.required, Validators.maxLength(MAX_FIELD_NAME_LENGTH)],
+        [Validators.required, Validators.maxLength(MAX_FIELD_NAME_LENGTH), Validators.pattern(NAME_PATTERN)],
       ],
     });
     this.isRenameModalOpen = true;
@@ -440,7 +443,7 @@ export class FieldsComponent {
       // modal can show what it is.
       name: [
         { value: field?.name ?? '', disabled: !!field },
-        [Validators.required, Validators.maxLength(MAX_FIELD_NAME_LENGTH)],
+        [Validators.required, Validators.maxLength(MAX_FIELD_NAME_LENGTH), Validators.pattern(NAME_PATTERN)],
       ],
       displayName: [
         field?.displayName ?? '',

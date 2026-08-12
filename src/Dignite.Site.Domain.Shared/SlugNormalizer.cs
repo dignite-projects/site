@@ -75,4 +75,21 @@ public static class SlugNormalizer
         slug = Normalize(value);
         return slug.Length > 0;
     }
+
+    /// <summary>
+    /// The same character class <see cref="SlugHelper"/> above keeps: Unicode letters, decimal digits,
+    /// hyphen and underscore. Matches the empty string too - an empty slug is its own legitimate value
+    /// (see <see cref="Normalize"/>'s remarks), not a malformed one.
+    /// <para>
+    /// Exposed separately from <see cref="Normalize"/> because the admin API stores a slug exactly as
+    /// given rather than normalizing it - so this is what stands between a hand-typed slug and a stray
+    /// space, "/" or "?" reaching the routing table.
+    /// </para>
+    /// </summary>
+    public const string AllowedCharactersPattern = @"^[\p{L}\p{Nd}\-_]*$";
+
+    private static readonly Regex AllowedCharacters = new(AllowedCharactersPattern, RegexOptions.Compiled);
+
+    /// <summary>Whether <paramref name="value"/> is empty or made up only of <see cref="AllowedCharactersPattern"/>'s characters.</summary>
+    public static bool IsWellFormed(string value) => AllowedCharacters.IsMatch(value);
 }

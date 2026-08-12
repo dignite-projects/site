@@ -6,6 +6,7 @@ using Dignite.Site.Fields;
 using Dignite.Site.Seo;
 using Shouldly;
 using Volo.Abp.Domain.Entities;
+using Volo.Abp.Validation;
 using Xunit;
 
 namespace Dignite.Site.Admin.Pages;
@@ -62,6 +63,22 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         await _pageAppService.DeleteAsync(created.Id);
 
         await Should.ThrowAsync<EntityNotFoundException>(() => _pageAppService.GetAsync(created.Id));
+    }
+
+    /// <summary>
+    /// [RegularExpression] on the DTO, checked at the same boundary as [Required]/[DynamicStringLength] -
+    /// see Page_Tests for the domain-level guard this backstops (an MCP call bypasses the DTO entirely).
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_A_Name_With_An_Invalid_Format()
+    {
+        await Should.ThrowAsync<AbpValidationException>(() => _pageAppService.CreateAsync(new CreatePageDto
+        {
+            Name = "Not Valid",
+            DisplayName = "Bad name",
+            Route = "/admin-bad-name-test",
+            IsActive = true
+        }));
     }
 
     /// <summary>

@@ -13,11 +13,32 @@ public static class PageConsts
     public static int MaxDisplayNameLength { get; set; } = 128;
 
     /// <summary>
-    /// Default value: 256. The route template, e.g. <c>/blog</c> or <c>/blog/{slug}</c> - see
-    /// <see cref="PageRoute"/>.
+    /// Default value: 512. The route template, e.g. <c>/blog</c> or <c>/blog/{slug}</c> - see
+    /// <see cref="PageRoute"/>. Wider than the other lengths here on purpose: a placeholder's
+    /// <c>:REGEX</c> segment can be much longer than a plain <c>:FORMAT</c> one - an enum-shaped
+    /// constraint like <c>{category:^(electronics|clothing|...)$}</c> grows with every alternative -
+    /// and unlike a <c>:FORMAT</c>, that text never reaches a resolved URL (<see cref="PageRoute.Build"/>
+    /// strips it), so widening this has no effect on URL length.
     /// </summary>
-    public static int MaxRouteLength { get; set; } = 256;
+    public static int MaxRouteLength { get; set; } = 512;
 
     /// <summary>Default value: 256. Optional template reference - only used by back-end-rendered front ends.</summary>
     public static int MaxTemplateLength { get; set; } = 256;
+
+    /// <summary>
+    /// No whitespace anywhere in the route - the one rule simple enough to express as a single pattern.
+    /// Everything else about a route's shape (placeholders, embedded regex segments, format specifiers)
+    /// is <see cref="PageRoute"/>'s own grammar, checked separately by <see cref="PageRoute.IsValid"/>.
+    /// A <c>const</c>, not a mutable static like the lengths above - a <c>[RegularExpression]</c>
+    /// attribute's pattern must be a compile-time constant.
+    /// </summary>
+    public const string RoutePattern = @"^\S+$";
+
+    /// <summary>
+    /// An MVC view name: letters, digits, underscore or hyphen, optionally grouped into folders with
+    /// "/", e.g. <c>Default</c> or <c>Blog/Article</c>. Matches empty too - <see cref="Template"/> is
+    /// optional. "." is deliberately not in the allowed set at all, which also means "../" path
+    /// traversal cannot be spelled here, not merely disallowed by a separate check.
+    /// </summary>
+    public const string TemplatePattern = @"^(\/?[A-Za-z0-9_][A-Za-z0-9_\-\/]*)?$";
 }

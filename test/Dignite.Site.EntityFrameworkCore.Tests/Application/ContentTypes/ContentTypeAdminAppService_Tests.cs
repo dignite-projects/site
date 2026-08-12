@@ -6,6 +6,7 @@ using Dignite.Site.ContentTypes;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
 using Volo.Abp;
+using Volo.Abp.Validation;
 using Xunit;
 
 namespace Dignite.Site.Admin.ContentTypes;
@@ -58,6 +59,17 @@ public class ContentTypeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         created.Fields[0].FieldId.ShouldBe(SiteTestData.TitleFieldId);
         created.Fields[0].DisplayName.ShouldBe("Headline");
         created.Fields[1].FieldId.ShouldBe(SiteTestData.BodyFieldId);
+    }
+
+    [Fact]
+    public async Task Should_Reject_A_Name_With_An_Invalid_Format()
+    {
+        await Should.ThrowAsync<AbpValidationException>(() => _contentTypeAppService.CreateAsync(new CreateContentTypeDto
+        {
+            PageId = SiteTestData.BlogPageId,
+            Name = "Not Valid",
+            DisplayName = "Bad name"
+        }));
     }
 
     [Fact]

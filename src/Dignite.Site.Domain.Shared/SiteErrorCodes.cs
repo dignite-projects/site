@@ -28,4 +28,11 @@ public static class SiteErrorCodes
     public const string ContentSlugRequired = "Site:040005";
 
     public const string PrimaryDomainNotConfigured = "Site:050001";
+
+    /// <summary>
+    /// Shared across every "shaped identifier" property (Page.Name/Route/Template, ContentType.Name,
+    /// Field.Name, Content.Slug) rather than one code per property - the recovery is always the same
+    /// (fix the value's characters), so the reason does not need its own number per field.
+    /// </summary>
+    public const string InvalidValueFormat = "Site:060001";
 }

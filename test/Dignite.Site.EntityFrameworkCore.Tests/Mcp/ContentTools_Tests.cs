@@ -194,11 +194,11 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Still_Address_A_Content_Whose_Stored_Slug_Was_Never_Normalized()
     {
-        await CreateVerbatimAsync("Legacy Slug", "Written before MCP");
+        await CreateVerbatimAsync("Legacy-Slug", "Written before MCP");
 
-        var read = await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "Legacy Slug");
+        var read = await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "Legacy-Slug");
 
-        read.Slug.ShouldBe("Legacy Slug");
+        read.Slug.ShouldBe("Legacy-Slug");
     }
 
     /// <summary>
@@ -210,20 +210,20 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Prefer_The_Exact_Slug_Over_Its_Normalized_Form_When_Both_Exist()
     {
-        var verbatim = await CreateVerbatimAsync("Legacy Slug", "The verbatim one");
+        var verbatim = await CreateVerbatimAsync("Legacy-Slug", "The verbatim one");
 
         var normalized = await _contentTools.CreateContentAsync(
             page: "blog",
             contentType: "post-article",
             cultureName: SiteTestData.EnglishCulture,
-            slug: "Legacy Slug",
+            slug: "Legacy-Slug",
             fieldValues: new Dictionary<string, object?> { ["title"] = "The normalized one" },
             publishTime: SiteTestData.PublishTime);
 
         normalized.Slug.ShouldBe("legacy-slug");
         normalized.Id.ShouldNotBe(verbatim.Id);
 
-        (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "Legacy Slug"))
+        (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "Legacy-Slug"))
             .Id.ShouldBe(verbatim.Id, "the exact address must not be shadowed by the normalized one");
 
         (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "legacy-slug"))
@@ -586,20 +586,20 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Report_The_Slug_It_Actually_Deleted()
     {
-        await CreateVerbatimAsync("Legacy Slug", "The verbatim one");
+        await CreateVerbatimAsync("Legacy-Slug", "The verbatim one");
 
         await _contentTools.CreateContentAsync(
             page: "blog",
             contentType: "post-article",
             cultureName: SiteTestData.EnglishCulture,
-            slug: "Legacy Slug",
+            slug: "Legacy-Slug",
             fieldValues: new Dictionary<string, object?> { ["title"] = "The normalized one" },
             publishTime: SiteTestData.PublishTime);
 
-        var first = await _contentTools.DeleteContentAsync("blog", SiteTestData.EnglishCulture, "Legacy Slug");
-        var second = await _contentTools.DeleteContentAsync("blog", SiteTestData.EnglishCulture, "Legacy Slug");
+        var first = await _contentTools.DeleteContentAsync("blog", SiteTestData.EnglishCulture, "Legacy-Slug");
+        var second = await _contentTools.DeleteContentAsync("blog", SiteTestData.EnglishCulture, "Legacy-Slug");
 
-        first.ShouldContain("Legacy Slug");
+        first.ShouldContain("Legacy-Slug");
         second.ShouldContain("legacy-slug");
         first.ShouldNotBe(second, "two different contents were deleted and must not read identically");
     }

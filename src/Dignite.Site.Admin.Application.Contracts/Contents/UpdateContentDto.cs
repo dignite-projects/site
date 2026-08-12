@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Dignite.Site.Contents;
+using Volo.Abp.Validation;
 
 namespace Dignite.Site.Admin.Contents;
 
 public class UpdateContentDto
 {
-    [StringLength(256)]
+    [DynamicStringLength(typeof(ContentConsts), nameof(ContentConsts.MaxSlugLength))]
+    [RegularExpression(SlugNormalizer.AllowedCharactersPattern)]
     public string Slug { get; set; } = string.Empty;
 
     [Required]

@@ -1,27 +1,32 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Dignite.Abp.FlexFields;
+using Dignite.Site.Fields;
+using Volo.Abp.Validation;
 
 namespace Dignite.Site.Admin.Fields;
 
 public class CreateFieldDto
 {
     [Required]
-    [StringLength(64)]
+    [DynamicStringLength(typeof(FlexFieldConsts), nameof(FlexFieldConsts.MaxNameLength))]
+    [RegularExpression(IdentifierName.Pattern)]
     public string Name { get; set; } = default!;
 
     [Required]
-    [StringLength(128)]
+    [DynamicStringLength(typeof(FlexFieldConsts), nameof(FlexFieldConsts.MaxDisplayNameLength))]
     public string DisplayName { get; set; } = default!;
 
     [Required]
-    [StringLength(64)]
+    [DynamicStringLength(typeof(FlexFieldConsts), nameof(FlexFieldConsts.MaxFieldTypeNameLength))]
     public string FieldTypeName { get; set; } = default!;
 
-    [StringLength(256)]
+    [DynamicStringLength(typeof(FlexFieldConsts), nameof(FlexFieldConsts.MaxDescriptionLength))]
     public string? Description { get; set; }
 
     public IDictionary<string, object?>? Configuration { get; set; }
 
+    [DynamicStringLength(typeof(FieldConsts), nameof(FieldConsts.MaxGroupNameLength))]
     public string? GroupName { get; set; }
 }

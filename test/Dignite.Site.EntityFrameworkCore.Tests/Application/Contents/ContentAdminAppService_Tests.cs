@@ -80,6 +80,24 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// [RegularExpression] on the DTO - the admin API stores a slug verbatim (no SlugNormalizer pass, see
+    /// Content.SetSlug's remarks), so this is the only thing standing between a stray space or "/" and
+    /// the routing table for a slug entered here rather than through create_content.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_A_Slug_With_An_Invalid_Format()
+    {
+        await Should.ThrowAsync<AbpValidationException>(() => _contentAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.PostArticleTypeId,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = "has a space",
+            PublishTime = SiteTestData.PublishTime,
+            FieldValues = new Dictionary<string, object?> { ["title"] = "Bad slug" }
+        }));
+    }
+
+    /// <summary>
     /// The page/route-driven rules (总体设计 §3.3) surface through the app service the same way
     /// <c>ContentManager</c> throws them - not just at the domain layer <c>ContentManager_Tests</c> covers.
     /// "about" has no slug placeholder in its route at all.

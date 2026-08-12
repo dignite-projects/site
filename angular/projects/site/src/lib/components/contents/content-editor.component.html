@@ -116,6 +116,9 @@
 
                 @if (!usePageOwnAddress) {
                   <input type="text" class="form-control" formControlName="slug" />
+                  <small class="form-text text-muted d-block mt-1">
+                    {{ 'Site::Description:Content.Slug' | abpLocalization }}
+                  </small>
                 }
 
                 @if (slugState === 'optional' && emptySlotTaken) {

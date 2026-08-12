@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Volo.Abp;
@@ -103,7 +104,13 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
 
     public virtual void SetName(string name)
     {
-        Name = Check.NotNullOrWhiteSpace(name, nameof(name), PageConsts.MaxNameLength);
+        var checkedName = Check.NotNullOrWhiteSpace(name, nameof(name), PageConsts.MaxNameLength);
+        if (!IdentifierName.IsValid(checkedName))
+        {
+            throw new InvalidValueFormatException(nameof(Name), checkedName);
+        }
+
+        Name = checkedName;
     }
 
     public virtual void SetDisplayName(string displayName)
@@ -121,6 +128,11 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         var normalized = NormalizeRoute(route);
 
+        if (!Regex.IsMatch(normalized, PageConsts.RoutePattern))
+        {
+            throw new InvalidValueFormatException(nameof(Route), normalized);
+        }
+
         if (!PageRoute.IsValid(normalized))
         {
             throw new InvalidPageRouteException(normalized);
@@ -131,7 +143,19 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
 
     public virtual void SetTemplate(string? template)
     {
-        Template = string.IsNullOrWhiteSpace(template) ? null : template.Trim().RemovePreFix("/");
+        if (string.IsNullOrWhiteSpace(template))
+        {
+            Template = null;
+            return;
+        }
+
+        var trimmed = template.Trim().RemovePreFix("/");
+        if (!Regex.IsMatch(trimmed, PageConsts.TemplatePattern))
+        {
+            throw new InvalidValueFormatException(nameof(Template), trimmed);
+        }
+
+        Template = trimmed;
     }
 
     public virtual void SetIsHomePage(bool isHomePage)

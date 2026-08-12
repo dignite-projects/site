@@ -1,23 +1,28 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Dignite.Site.Pages;
+using Volo.Abp.Validation;
 
 namespace Dignite.Site.Admin.Pages;
 
 public class CreatePageDto
 {
     [Required]
-    [StringLength(64)]
+    [DynamicStringLength(typeof(PageConsts), nameof(PageConsts.MaxNameLength))]
+    [RegularExpression(IdentifierName.Pattern)]
     public string Name { get; set; } = default!;
 
     [Required]
-    [StringLength(128)]
+    [DynamicStringLength(typeof(PageConsts), nameof(PageConsts.MaxDisplayNameLength))]
     public string DisplayName { get; set; } = default!;
 
     [Required]
-    [StringLength(256)]
+    [DynamicStringLength(typeof(PageConsts), nameof(PageConsts.MaxRouteLength))]
+    [RegularExpression(PageConsts.RoutePattern)]
     public string Route { get; set; } = default!;
 
-    [StringLength(256)]
+    [DynamicStringLength(typeof(PageConsts), nameof(PageConsts.MaxTemplateLength))]
+    [RegularExpression(PageConsts.TemplatePattern)]
     public string? Template { get; set; }
 
     public bool IsHomePage { get; set; }

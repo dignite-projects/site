@@ -79,7 +79,13 @@ public class ContentType : FullAuditedAggregateRoot<Guid>, IMultiTenant
 
     public virtual void SetName(string name)
     {
-        Name = Check.NotNullOrWhiteSpace(name, nameof(name), ContentTypeConsts.MaxNameLength);
+        var checkedName = Check.NotNullOrWhiteSpace(name, nameof(name), ContentTypeConsts.MaxNameLength);
+        if (!IdentifierName.IsValid(checkedName))
+        {
+            throw new InvalidValueFormatException(nameof(Name), checkedName);
+        }
+
+        Name = checkedName;
     }
 
     public virtual void SetDisplayName(string displayName)

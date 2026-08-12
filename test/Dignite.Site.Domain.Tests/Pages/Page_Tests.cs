@@ -167,6 +167,32 @@ public class Page_Tests
         Should.Throw<InvalidPageRouteException>(() => NewPage("/blog/{slug}/{"));
     }
 
+    /// <summary>
+    /// SetName's own rule, checked after Check.NotNullOrWhiteSpace - see IdentifierName_Tests for the
+    /// full truth table this pattern follows; this only pins that Page actually calls it.
+    /// </summary>
+    [Fact]
+    public void Should_Reject_A_Name_With_An_Invalid_Format()
+    {
+        Should.Throw<InvalidValueFormatException>(() => new Page(Guid.NewGuid(), "Not Valid", "Test", "/blog"));
+    }
+
+    /// <summary>
+    /// The one route rule simple enough for a plain pattern - see PageConsts.RoutePattern's remarks for
+    /// why everything else about a route's shape stays PageRoute.IsValid's job, not this one's.
+    /// </summary>
+    [Fact]
+    public void Should_Reject_A_Route_Containing_Whitespace()
+    {
+        Should.Throw<InvalidValueFormatException>(() => new Page(Guid.NewGuid(), "test-page", "Test", "/blog post"));
+    }
+
+    [Fact]
+    public void Should_Reject_A_Template_With_An_Invalid_Format()
+    {
+        Should.Throw<InvalidValueFormatException>(() => NewPage("/blog").SetTemplate("Bad Template!"));
+    }
+
     private static Page NewPage(string route)
     {
         return new Page(Guid.NewGuid(), "test-page", "Test Page", route);

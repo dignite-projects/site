@@ -21,6 +21,9 @@ const MAX_SLUG_LENGTH = 256;
 const OPTIONAL_SLUG_TOKEN = '{slug?}';
 const REQUIRED_SLUG_TOKEN = '{slug}';
 
+/** Mirrors `SlugNormalizer.AllowedCharactersPattern` (`src/Dignite.Site.Domain.Shared/SlugNormalizer.cs`). */
+const SLUG_PATTERN = /^[\p{L}\p{Nd}_-]*$/u;
+
 /** Mirrors `PageRoute.HasSlug`/`PageRoute.IsSlugOptional` (总体设计 §3.3) - see {@link ContentEditorComponent.slugState}. */
 type SlugState = 'forbidden' | 'required' | 'optional';
 
@@ -309,7 +312,7 @@ export class ContentEditorComponent {
       // otherwise applySlugAvailability would immediately overwrite its empty slug with a forced-required
       // value the moment the form builds.
       usePageOwnAddress: [!!content && !content.slug],
-      slug: [content?.slug ?? '', [Validators.maxLength(MAX_SLUG_LENGTH)]],
+      slug: [content?.slug ?? '', [Validators.maxLength(MAX_SLUG_LENGTH), Validators.pattern(SLUG_PATTERN)]],
       publishTime: [this.toLocalDateTime(content?.publishTime), Validators.required],
       status: [content?.status ?? ContentStatus.Draft],
       flexFields: this.fb.group({}),
@@ -343,7 +346,11 @@ export class ContentEditorComponent {
       slug.disable();
     } else {
       slug.enable();
-      slug.setValidators([Validators.required, Validators.maxLength(MAX_SLUG_LENGTH)]);
+      slug.setValidators([
+        Validators.required,
+        Validators.maxLength(MAX_SLUG_LENGTH),
+        Validators.pattern(SLUG_PATTERN),
+      ]);
     }
 
     slug.updateValueAndValidity();

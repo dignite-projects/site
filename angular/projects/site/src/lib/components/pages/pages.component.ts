@@ -8,7 +8,6 @@ import {
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import type { TreeStatus } from '@swimlane/ngx-datatable';
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
-import type { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
@@ -22,42 +21,21 @@ import { eSitePolicyNames } from '../../enums/policy-names';
 const PAGE_CONSTS = {
   maxNameLength: 64,
   maxDisplayNameLength: 128,
-  maxRouteLength: 256,
+  maxRouteLength: 512,
   maxTemplateLength: 256,
 } as const;
 
+/** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
+const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
+
+/** Mirrors `PageConsts.RoutePattern`. */
+const ROUTE_PATTERN = /^\S+$/;
+
+/** Mirrors `PageConsts.TemplatePattern`. Empty matches too - `template` is optional. */
+const TEMPLATE_PATTERN = /^(\/?[A-Za-z0-9_][A-Za-z0-9_/-]*)?$/;
+
 /** A page, plus the expand/collapse state `ngx-datatable`'s tree mode keeps on each row. */
 type PageRow = PageDto & { treeStatus?: TreeStatus };
-
-/** Matches every `{name:FORMAT}` placeholder in a route, to check FORMAT - see {@link routeFormatValidator}. */
-const FORMAT_SUFFIX = /\{[a-zA-Z][a-zA-Z0-9]*:([^}]+)\}/g;
-
-/** What `FORMAT` may contain - mirrors `PageRoute.IsValid`'s server-side regex exactly. */
-const ALLOWED_FORMAT_CHARACTERS = /^[a-zA-Z0-9_.-]+$/;
-
-/**
- * Catches a `:FORMAT` suffix containing `/` before the round trip to the server does -
- * `PageRoute.IsValid` rejects it there for the same reason (总体设计 §3.3): `/` in a formatted value
- * would be indistinguishable from the `/` that separates one path segment from the next. Not a rule
- * about dates specifically - it runs the same way whatever the placeholder's name is.
- */
-function routeFormatValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const value = control.value as string | null;
-    if (!value) {
-      return null;
-    }
-
-    FORMAT_SUFFIX.lastIndex = 0;
-    for (let match = FORMAT_SUFFIX.exec(value); match; match = FORMAT_SUFFIX.exec(value)) {
-      if (!ALLOWED_FORMAT_CHARACTERS.test(match[1])) {
-        return { invalidPlaceholderFormat: true };
-      }
-    }
-
-    return null;
-  };
-}
 
 @Component({
   selector: 'site-pages',
@@ -322,7 +300,7 @@ export class PagesComponent {
     return this.fb.group({
       name: [
         page?.name ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxNameLength)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxNameLength), Validators.pattern(NAME_PATTERN)],
       ],
       displayName: [
         page?.displayName ?? '',
@@ -330,9 +308,12 @@ export class PagesComponent {
       ],
       route: [
         page?.route ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxRouteLength), routeFormatValidator()],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxRouteLength), Validators.pattern(ROUTE_PATTERN)],
       ],
-      template: [page?.template ?? '', [Validators.maxLength(PAGE_CONSTS.maxTemplateLength)]],
+      template: [
+        page?.template ?? '',
+        [Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
+      ],
       isHomePage: [page?.isHomePage ?? false],
       parentId: [page?.parentId ?? null],
       isActive: [page?.isActive ?? true],
