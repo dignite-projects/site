@@ -230,18 +230,64 @@ public class PageRoute_Tests
     }
 
     /// <summary>
-    /// {slug}/{slug?} must be a route's last placeholder - what makes "the placeholders before slug" in
-    /// TryMatchPartial a well-defined, contiguous prefix to cut at. Every route in this repository already
-    /// puts slug last, so this only closes off a shape nothing legitimately used.
+    /// {slug}/{slug?} no longer has to be a route's last placeholder - a decorative placeholder after it
+    /// is exactly as legitimate as one before it (总体设计 §3.3). What TryMatchPartial does about "the
+    /// placeholders before slug" once one follows it too is pinned separately, in
+    /// Should_Never_Let_TryMatchPartial_Reach_Past_Slug.
     /// </summary>
     [Fact]
-    public void Should_Reject_A_Route_Where_Slug_Is_Not_The_Last_Placeholder()
+    public void Should_Accept_A_Placeholder_After_Slug()
     {
-        PageRoute.IsValid("/blog/{slug}/{publishTime:yyyy-MM}").ShouldBeFalse();
-        PageRoute.IsValid("/blog/{slug?}/{publishTime:yyyy-MM}").ShouldBeFalse();
+        PageRoute.IsValid("/blog/{slug}/{publishTime:yyyy-MM}").ShouldBeTrue();
+        PageRoute.IsValid("/blog/{slug?}/{publishTime:yyyy-MM}").ShouldBeTrue();
+        PageRoute.IsValid("/news/{publishTime:yyyy-MM}/{slug}-{title}").ShouldBeTrue();
 
         PageRoute.IsValid("/blog/{publishTime:yyyy-MM}/{slug}").ShouldBeTrue();
         PageRoute.IsValid("/blog/{publishTime:yyyy-MM}/{slug?}").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// TryMatchSlug extracts every placeholder by name, not position, so one after slug is exactly as
+    /// reachable as one before it - Build and TryMatchSlug still agree on the same URL.
+    /// </summary>
+    [Fact]
+    public void Should_Round_Trip_A_Placeholder_After_Slug()
+    {
+        const string route = @"/news/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}/{title}";
+
+        PageRoute.IsValid(route).ShouldBeTrue();
+
+        var path = PageRoute.Build(route, (name, format) => name switch
+        {
+            "publishTime" => PublishTime.ToString(format, CultureInfo.InvariantCulture),
+            "slug" => "my-post",
+            "title" => "how-to-cook-rice",
+            _ => throw new InvalidOperationException()
+        });
+
+        path.ShouldBe("/news/2026-07/my-post/how-to-cook-rice");
+
+        PageRoute.TryMatchSlug(route, path, out var slug).ShouldBeTrue();
+        slug.ShouldBe("my-post");
+    }
+
+    /// <summary>
+    /// The boundary between a placeholder and the literal that follows it is found by IndexOf - the
+    /// <i>first</i> occurrence, not the one the route's author had in mind (see TryExtract's remarks).
+    /// A literal that can also occur inside the captured value itself - '-' immediately after {slug},
+    /// when the slug itself is hyphenated, as slugs conventionally are - silently captures too little
+    /// instead of failing loudly. This is not a bug this change introduces: the same leftmost-match
+    /// behavior already applied to every literal boundary before slug could have anything after it at
+    /// all. It is pinned here because a placeholder directly after slug, separated only by a single
+    /// punctuation character, is the shape most likely to hit it in practice.
+    /// </summary>
+    [Fact]
+    public void Should_Truncate_At_The_First_Occurrence_Of_A_Separator_The_Slug_Itself_Contains()
+    {
+        PageRoute.TryMatchSlug("/news/{slug}-{title}", "/news/my-post-how-to-cook-rice", out var slug)
+            .ShouldBeTrue();
+
+        slug.ShouldBe("my"); // wrong in spirit - "my-post" was intended - but this is what IndexOf does
     }
 
     /// <summary>
@@ -273,6 +319,27 @@ public class PageRoute_Tests
         PageRoute.TryMatchPartial(
             "/blog/{cultureName}/{publishTime:yyyy-MM}/{slug}", "/blog/en/2026-08/my-post", out _)
             .ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// TryMatchPartial's cuts must never reach slug itself, even now that a decorative placeholder may
+    /// follow it in the route - otherwise the deepest cut would be computed short of the trailing
+    /// placeholder instead of short of slug, and a path that fills slug (but not what follows it) would
+    /// wrongly come back as a valid partial match, with slug's own value folded into "the placeholders
+    /// before slug" the same way <see cref="Should_Not_Treat_A_Full_Match_As_Partial"/> already pins for
+    /// the simpler, slug-last shape.
+    /// </summary>
+    [Fact]
+    public void Should_Never_Let_TryMatchPartial_Reach_Past_Slug()
+    {
+        const string route = "/news/{publishTime:yyyy-MM}/{slug}/{title}";
+
+        PageRoute.TryMatchPartial(route, "/news/2026-08", out var values).ShouldBeTrue();
+        values.Count.ShouldBe(1);
+        values["publishTime:yyyy-MM"].ShouldBe("2026-08");
+
+        PageRoute.TryMatchPartial(route, "/news/2026-08/my-post", out _).ShouldBeFalse();
+        PageRoute.TryMatchPartial(route, "/news/2026-08/my-post/how-to-cook-rice", out _).ShouldBeFalse();
     }
 
     /// <summary>
@@ -405,5 +472,154 @@ public class PageRoute_Tests
 
         PageRoute.TryMatchPartial(
             "/blog/post-{category}/{slug}", "/blog/POST-travel", out _).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Should_Accept_A_Placeholder_With_Only_A_Regex_Constraint()
+    {
+        PageRoute.IsValid("/updates/{code:^[A-Z]{3}$}/{slug}").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Should_Accept_A_Placeholder_With_Both_Format_And_Regex()
+    {
+        PageRoute.IsValid(@"/news/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// "yyyy-MM" is technically also a syntactically valid (if pointless) regex - letters and a hyphen
+    /// outside a character class are just literal characters. If FormatCharacters were not checked before
+    /// ever trying to compile a segment as a regex, this value - which does not contain the literal
+    /// substring "yyyy-MM" - would fail an implicit regex constraint no pre-existing {name:FORMAT} route
+    /// ever asked for.
+    /// </summary>
+    [Fact]
+    public void Should_Classify_A_Format_Shaped_Segment_As_Format_Even_Though_It_Would_Also_Compile_As_A_Regex()
+    {
+        PageRoute.TryMatchPartial("/news/{publishTime:yyyy-MM}/{slug}", "/news/2026-07", out var values)
+            .ShouldBeTrue();
+        values["publishTime:yyyy-MM"].ShouldBe("2026-07");
+    }
+
+    [Fact]
+    public void Should_Reject_A_Placeholder_Whose_Regex_Does_Not_Compile()
+    {
+        PageRoute.IsValid("/updates/{code:[unterminated}/{slug}").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Should_Reject_A_Slash_Anywhere_In_A_Regex_Segment()
+    {
+        PageRoute.IsValid("/updates/{code:^[A-Z/]+$}/{slug}").ShouldBeFalse();
+        PageRoute.IsValid(@"/news/{publishTime:yyyy-MM:^.*/.*$}/{slug}").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Should_Strip_The_Regex_Segment_When_Building_A_Url()
+    {
+        PageRoute.Build(
+                @"/news/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}",
+                (name, format) => ResolveSlugAndPublishTime(name, format, "my-post"))
+            .ShouldBe("/news/2026-07/my-post");
+    }
+
+    [Fact]
+    public void Should_Match_A_Value_Satisfying_Its_Regex_Constraint()
+    {
+        const string route = @"/news/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}";
+
+        PageRoute.TryMatchSlug(route, "/news/2026-07/my-post", out var slug).ShouldBeTrue();
+        slug.ShouldBe("my-post");
+    }
+
+    [Fact]
+    public void Should_Reject_A_Value_Failing_Its_Regex_Constraint()
+    {
+        const string route = @"/news/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}";
+
+        PageRoute.TryMatchSlug(route, "/news/not-a-date/my-post", out _).ShouldBeFalse();
+        PageRoute.TryMatchSlug(route, "/news/2026-13/my-post", out _).ShouldBeFalse(); // month "13" fails (0[1-9]|1[0-2])
+    }
+
+    /// <summary>
+    /// Multiple placeholders sharing one path segment, separated only by literal text ("abc-"/"-") rather
+    /// than by "/", already worked before regex support existed - this pins that it still does now that
+    /// parsing owns brace-depth tracking instead of delegating to ABP's own tokenizer.
+    /// </summary>
+    [Fact]
+    public void Should_Support_Multiple_Placeholders_Sharing_One_Path_Segment()
+    {
+        const string route = @"/news/abc-{cultureName}-{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}";
+
+        var path = PageRoute.Build(route, (name, format) => name switch
+        {
+            "cultureName" => "en",
+            "publishTime" => new DateTime(2026, 7, 15).ToString(format, CultureInfo.InvariantCulture),
+            "slug" => "my-post",
+            _ => throw new InvalidOperationException()
+        });
+
+        path.ShouldBe("/news/abc-en-2026-07/my-post");
+
+        PageRoute.TryMatchSlug(route, path, out var slug).ShouldBeTrue();
+        slug.ShouldBe("my-post");
+    }
+
+    /// <summary>
+    /// \d{4} and \d{2,4} - ordinary regex quantifiers - each open and close their own brace pair inside a
+    /// placeholder's regex segment. The parser has to track that depth to find the placeholder's own true
+    /// closing brace rather than stopping at the first one it sees.
+    /// </summary>
+    [Fact]
+    public void Should_Handle_A_Regex_Containing_Balanced_Braces()
+    {
+        const string route = @"/updates/{code:^[A-Z]{3}\d{2,4}$}/{slug}";
+
+        PageRoute.IsValid(route).ShouldBeTrue();
+
+        PageRoute.TryMatchSlug(route, "/updates/ABC123/my-post", out var slug).ShouldBeTrue();
+        slug.ShouldBe("my-post");
+
+        PageRoute.TryMatchSlug(route, "/updates/AB123/my-post", out _).ShouldBeFalse(); // only 2 letters, needs {3}
+    }
+
+    [Fact]
+    public void Should_Match_Every_Placeholder_With_Zero_Truncation_Via_TryMatchExact()
+    {
+        PageRoute.TryMatchExact("/updates/{publishTime:yyyy-MM}", "/updates/2026-07", out var values)
+            .ShouldBeTrue();
+        values.Count.ShouldBe(1);
+        values["publishTime:yyyy-MM"].ShouldBe("2026-07");
+
+        PageRoute.TryMatchExact("/blog/{category}/{publishTime:yyyy-MM}", "/blog/travel/2026-07", out var both)
+            .ShouldBeTrue();
+        both.Count.ShouldBe(2);
+        both["category"].ShouldBe("travel");
+        both["publishTime:yyyy-MM"].ShouldBe("2026-07");
+    }
+
+    [Fact]
+    public void Should_Not_Match_Via_TryMatchExact_When_The_Route_Has_No_Placeholders_Or_Ends_In_Slug()
+    {
+        PageRoute.TryMatchExact("/about", "/about", out _).ShouldBeFalse();
+        PageRoute.TryMatchExact("/blog/{slug}", "/blog/my-post", out _).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// The leftover-consumption fix: a template whose own last token is literal (not a placeholder) used
+    /// to report a match even when the input had unconsumed text left over past that literal - see the
+    /// class remarks on PageRoute for why. Without the fix, TryMatchExact would be unsound: it never
+    /// truncates, so an over-long path would otherwise silently "match" the same way GetPath's own bare
+    /// address used to be able to (before this method existed).
+    /// </summary>
+    [Fact]
+    public void Should_Not_Match_Via_TryMatchExact_When_Placeholders_Dont_Fully_Consume_The_Path()
+    {
+        const string route = "/updates/{publishTime:yyyy-MM}-archive";
+
+        PageRoute.TryMatchExact(route, "/updates/2026-07-archive", out var values).ShouldBeTrue();
+        values["publishTime:yyyy-MM"].ShouldBe("2026-07");
+
+        PageRoute.TryMatchExact(route, "/updates/2026-07-archive-extra", out _).ShouldBeFalse();
     }
 }

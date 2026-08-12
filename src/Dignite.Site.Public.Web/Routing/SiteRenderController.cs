@@ -1,7 +1,5 @@
 using Asp.Versioning;
 using Dignite.Site.Fields;
-using Dignite.Site.Public.Contents;
-using Dignite.Site.Public.ContentTypes;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Seo;
 using Microsoft.AspNetCore.Mvc;
@@ -41,23 +39,17 @@ public class SiteRenderController : AbpController
     public const string FallbackTemplateName = "Default";
 
     protected IRoutingPublicAppService RoutingAppService { get; }
-    protected IContentPublicAppService ContentAppService { get; }
-    protected IContentTypePublicAppService ContentTypeAppService { get; }
     protected IFieldPublicAppService FieldAppService { get; }
     protected IHeadMetadataPublicAppService HeadMetadataAppService { get; }
     protected ICompositeViewEngine ViewEngine { get; }
 
     public SiteRenderController(
         IRoutingPublicAppService routingAppService,
-        IContentPublicAppService contentAppService,
-        IContentTypePublicAppService contentTypeAppService,
         IFieldPublicAppService fieldAppService,
         IHeadMetadataPublicAppService headMetadataAppService,
         ICompositeViewEngine viewEngine)
     {
         RoutingAppService = routingAppService;
-        ContentAppService = contentAppService;
-        ContentTypeAppService = contentTypeAppService;
         FieldAppService = fieldAppService;
         HeadMetadataAppService = headMetadataAppService;
         ViewEngine = viewEngine;
@@ -79,15 +71,21 @@ public class SiteRenderController : AbpController
             return NotFound();
         }
 
-        // Sequential, not concurrent: ContentTypeAppService/ContentAppService/HeadMetadataAppService all
-        // ultimately share one EF Core DbContext instance per ambient UnitOfWork (one HTTP request) -
-        // running two of their calls at once risks EF Core's "a second operation started on this context
-        // before a previous operation completed".
+        // Sequential, not concurrent: FieldAppService/HeadMetadataAppService both ultimately share one EF
+        // Core DbContext instance per ambient UnitOfWork (one HTTP request) - running two of their calls at
+        // once risks EF Core's "a second operation started on this context before a previous operation
+        // completed".
         var headMetadata = await HeadMetadataAppService.ResolveAsync(new ResolveHeadMetadataInput { Path = rawPath });
 
         SiteRenderViewModel? viewModel = match.Kind switch
         {
-            RouteMatchKindDto.Page => await BuildListViewModelAsync(match, headMetadata),
+            RouteMatchKindDto.Page => new SiteRenderViewModel
+            {
+                Page = match.Page!,
+                CultureName = match.CultureName,
+                FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
+                HeadMetadata = headMetadata
+            },
             RouteMatchKindDto.ContentOfPage or RouteMatchKindDto.Content
                 => await BuildContentViewModelAsync(match, headMetadata),
             _ => null
@@ -125,8 +123,8 @@ public class SiteRenderController : AbpController
         if (match.Content == null || match.ContentType == null)
         {
             // RouteMatchDto.Content/.ContentType are genuinely nullable (e.g. the content's own content
-            // type was deleted out from under it in a narrow admin-delete race) - treat exactly like the
-            // list branch treats the same situation: nothing to render, not a crash.
+            // type was deleted out from under it in a narrow admin-delete race) - nothing to render, not a
+            // crash.
             return null;
         }
 
@@ -142,52 +140,8 @@ public class SiteRenderController : AbpController
             {
                 Content = match.Content,
                 ContentType = match.ContentType,
-                Fields = SiteRenderFieldMapper.Build(match.Content, match.ContentType, fieldsById, listFieldsOnly: false)
+                Fields = SiteRenderFieldMapper.Build(match.Content, match.ContentType, fieldsById)
             }
-        };
-    }
-
-    protected virtual async Task<SiteRenderViewModel> BuildListViewModelAsync(RouteMatchDto match, HeadMetadataDto? headMetadata)
-    {
-        var page = match.Page!;
-
-        // Sequential - see the DbContext-sharing note on RenderAsync.
-        var contentTypes = await ContentTypeAppService.GetListByPageAsync(page.Id);
-        var contentTypesById = contentTypes.Items.ToDictionary(ct => ct.Id);
-
-        var fieldsById = await GetFieldsByIdAsync(contentTypesById.Values.SelectMany(ct => ct.Fields).Select(f => f.FieldId));
-
-        var contents = await ContentAppService.GetListAsync(new GetPublicContentListInput
-        {
-            PageId = page.Id,
-            CultureName = match.CultureName,
-            MaxResultCount = 100 // v1: no paging UI - see plan
-        });
-
-        var items = new List<ContentListItemViewModel>(contents.Items.Count);
-        foreach (var content in contents.Items)
-        {
-            if (!contentTypesById.TryGetValue(content.ContentTypeId, out var contentType))
-            {
-                continue; // content type removed since this content was written - skip, don't break the list
-            }
-
-            items.Add(new ContentListItemViewModel
-            {
-                Content = content,
-                ContentType = contentType,
-                Url = content.Url, // computed server-side by ContentPublicAppService
-                Fields = SiteRenderFieldMapper.Build(content, contentType, fieldsById, listFieldsOnly: true)
-            });
-        }
-
-        return new SiteRenderViewModel
-        {
-            Page = page,
-            CultureName = match.CultureName,
-            FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
-            HeadMetadata = headMetadata,
-            List = new ContentListRenderViewModel { Items = items, TotalCount = (int)contents.TotalCount }
         };
     }
 

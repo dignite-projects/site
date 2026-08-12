@@ -279,26 +279,95 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// The flip side of the test above, and of the pre-fix design: a request shaped like a partial match
-    /// against the deep page's own placeholders (short of slug) is itself a structural answer -
-    /// PageRoute.TryMatchPartial needs no content to succeed, unlike TryMatchSlug - so it wins over an
-    /// unrelated literal page sharing the same derived address, rather than being shadowed by it.
+    /// Superseded by Should_Prefer_An_Unrelated_Literal_Page_Over_The_Deeper_Templates_Partial_Match_When_
+    /// Both_Share_An_Address below: a deep template's truncated (short-of-slug) reading of an address is no
+    /// longer offered at all once a second page shares that same address - literal or not, and regardless
+    /// of whether that second page can itself answer the request (总体设计 §3.4). A truncated reading is
+    /// only ever tried when the deep template is the address's sole candidate - see
+    /// Should_Resolve_A_Dated_Path_Without_A_Slug_As_A_Partial_Match(_With_A_Real_Month) above for that case,
+    /// and Should_Prefer_A_Dedicated_Non_Slug_Template_Over_The_Deeper_Templates_Truncated_Match below for
+    /// the sibling that is meant to win instead when one exists.
     /// </summary>
     [Fact]
-    public async Task Should_Prefer_The_Deeper_Templates_Partial_Match_Over_An_Unrelated_Literal_Page()
+    public async Task Should_Prefer_An_Unrelated_Literal_Page_Over_The_Deeper_Templates_Partial_Match_When_Both_Share_An_Address()
     {
-        var deep = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
             "shop-furniture-deep", "Furniture deep",
             "/shop/furniture/{publishTime:yyyy-MM}/{slug}"));
-        await WithUnitOfWorkAsync(() =>
+        var literal = await WithUnitOfWorkAsync(() =>
             _pageManager.CreateAsync("shop-furniture-index", "Furniture index", "/shop/furniture"));
 
         var match = await WithUnitOfWorkAsync(() =>
             _resolver.ResolveAsync("/shop/furniture/2026-08", SiteTestData.EnglishCulture));
 
         match.Kind.ShouldBe(RouteMatchKind.Page);
-        match.Page!.Id.ShouldBe(deep.Id);
-        match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-08");
+        match.Page!.Id.ShouldBe(literal.Id);
+        match.FilterValues.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// The capability the whole three-tier redesign exists to unlock: a page dedicated to the month-index
+    /// view (no {slug} at all) sharing an address with a deeper detail template wins outright via
+    /// PageRoute.TryMatchExact - tier 1, not a truncated guess - so the deep template's own truncated
+    /// reading is never even attempted, and the FilterValues an admin-built month-index page actually needs
+    /// come from the dedicated page, not a borrowed reading of the detail template.
+    /// </summary>
+    [Fact]
+    public async Task Should_Prefer_A_Dedicated_Non_Slug_Template_Over_The_Deeper_Templates_Truncated_Match()
+    {
+        var dedicated = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "updates-month-index", "Updates month index", "/updates/{publishTime:yyyy-MM}"));
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "updates-deep", "Updates deep", "/updates/{publishTime:yyyy-MM}/{slug}"));
+
+        var match = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/updates/2026-07", SiteTestData.EnglishCulture));
+
+        match.Kind.ShouldBe(RouteMatchKind.Page);
+        match.Page!.Id.ShouldBe(dedicated.Id);
+        match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-07");
+    }
+
+    /// <summary>
+    /// The precise shape of the motivating example: a page that declares slug support (so it is not merely
+    /// a bare, mechanism-less literal - see the test above for that case) shares an address with a deeper
+    /// template, but no content exists at either candidate's reading of "2026-07" - not as this page's own
+    /// slug, and not (since a second candidate exists here) via the deep template's suppressed truncated
+    /// reading either. Both candidates give their final answer within tier 1 - one a definitive miss, the
+    /// other excluded because its own placeholders leave "2026-07" unaccounted for - so tier 2's "page
+    /// itself" fallback is never reached by either, and this whole prefix length fails outright: a 404, not
+    /// a silent, misleading render of the wrong page.
+    /// </summary>
+    [Fact]
+    public async Task Should_Not_Resolve_When_A_Slug_Declaring_Siblings_Own_Lookup_Misses_And_The_Deeper_Template_Cannot_Naturally_Fit()
+    {
+        await WithUnitOfWorkAsync(() =>
+            _pageManager.CreateAsync("archive-index", "Archive index", "/archive/{slug?}"));
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "archive-deep", "Archive deep", "/archive/{publishTime:yyyy-MM}/{slug}"));
+
+        var match = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/archive/2026-07", SiteTestData.EnglishCulture));
+
+        match.IsMatch.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// The regex constraint (Part 1) rejecting a wrongly-shaped segment is a separate mechanism from the
+    /// tier-3 sole-candidacy gate (Part 2) - this pins it independently, on a route with no sibling at all,
+    /// so the rejection can only be the regex, not suppression.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_A_Partial_Match_Whose_Captured_Value_Fails_Its_Regex_Constraint()
+    {
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "bulletins-deep", "Bulletins deep",
+            @"/bulletins/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}"));
+
+        var match = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/bulletins/not-a-date", SiteTestData.EnglishCulture));
+
+        match.IsMatch.ShouldBeFalse();
     }
 
     /// <summary>

@@ -23,11 +23,8 @@ public class SiteRenderViewModel
 
     public HeadMetadataDto? HeadMetadata { get; init; }
 
-    /// <summary>Populated for RouteMatchKindDto.ContentOfPage / .Content. Mutually exclusive with <see cref="List"/>.</summary>
+    /// <summary>Populated for RouteMatchKindDto.ContentOfPage / .Content. Null for RouteMatchKindDto.Page - a front end queries a list itself (总体设计 §7's "rendering is handed to the front end"), this no longer pre-fetches one.</summary>
     public ContentRenderViewModel? Content { get; init; }
-
-    /// <summary>Populated for RouteMatchKindDto.Page. Mutually exclusive with <see cref="Content"/>.</summary>
-    public ContentListRenderViewModel? List { get; init; }
 }
 
 /// <summary>One content, full detail - every non-Seo field the content type declares.</summary>
@@ -36,25 +33,6 @@ public class ContentRenderViewModel
     public required ContentDto Content { get; init; }
 
     public required ContentTypeDto ContentType { get; init; }
-
-    public required IReadOnlyList<FlexFieldValue> Fields { get; init; }
-}
-
-public class ContentListRenderViewModel
-{
-    public required IReadOnlyList<ContentListItemViewModel> Items { get; init; }
-
-    public required int TotalCount { get; init; }
-}
-
-/// <summary>One list row - only ContentTypeFieldDto.ShowInList fields, plus the link to its own detail page.</summary>
-public class ContentListItemViewModel
-{
-    public required ContentDto Content { get; init; }
-
-    public required ContentTypeDto ContentType { get; init; }
-
-    public required string Url { get; init; }
 
     public required IReadOnlyList<FlexFieldValue> Fields { get; init; }
 }
