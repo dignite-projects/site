@@ -28,6 +28,13 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
 
     Task<bool> NameExistsAsync(string name, Guid? excludedId = null, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Finds the site's home page - the one whose own address (<see cref="Page.GetPath"/>) is the site
+    /// root, not a stored flag (<see cref="PageRoute.IsHomeRoute"/>). More than one page can derive that
+    /// address at once - a literal <c>/</c> and a template like <c>/{slug?}</c> both can - and that is not
+    /// a conflict any more than it is for <see cref="FindByPathAsync"/>'s address: the same tie-break
+    /// applies here too, so this always returns at most one page.
+    /// </summary>
     Task<Page?> FindHomePageAsync(bool includeDetails = false, CancellationToken cancellationToken = default);
 
     /// <summary>

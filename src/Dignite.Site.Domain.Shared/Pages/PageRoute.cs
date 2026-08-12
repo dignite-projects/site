@@ -446,6 +446,16 @@ public static class PageRoute
     }
 
     /// <summary>
+    /// Whether <paramref name="route"/> is the site's home route - whether its own address
+    /// (<see cref="GetPath"/>) is exactly <c>/</c>, the site root. Not a literal comparison against
+    /// <c>"/"</c>: a route like <c>/{slug?}</c> or <c>/{category}/{slug?}</c> also has no literal segment
+    /// before its first placeholder, so its own address is the root exactly the same way a bare <c>/</c>
+    /// is. Whether a page is the home page is therefore never a stored flag either, the same reasoning the
+    /// class remarks already give for whether a page has content at all.
+    /// </summary>
+    public static bool IsHomeRoute(string route) => GetPath(route) == "/";
+
+    /// <summary>
     /// Whether <paramref name="route"/> carries any placeholder at all - a template rather than a plain
     /// literal path. This is the tie-break a literal route wins when it shares its own address with a
     /// template (总体设计 §3.4): a route this returns false for is already its own address, never a

@@ -287,8 +287,9 @@ IContentRepository.GetTranslationsAsync already returns exactly that set — use
 - CultureName is stored in canonical CultureInfo.Name BCP 47 form specifically so it can be
   used as the hreflang value VERBATIM. Do not build a mapping table.
 - Reciprocal, self-referencing, absolute URLs.
-- x-default points at the home page (Page.IsHomePage; PageManager already enforces that
-  exactly one page holds it).
+- x-default points at the home page (PageRoute.IsHomeRoute - a page's own address landing on
+  the site root, not a stored flag. FindHomePageAsync resolves ties the same way
+  SiteRouteResolver does for any other shared address, so there's always at most one).
 - Default URL strategy is the subdirectory form (/en/, /zh/). Slugs are identical across
   languages by design (§2.4), so alternates differ only by prefix.
 

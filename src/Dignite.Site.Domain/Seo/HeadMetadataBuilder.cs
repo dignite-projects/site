@@ -118,9 +118,9 @@ public class HeadMetadataBuilder : DomainService
             title = page.DisplayName;
         }
 
-        // IsActive matters as much as IsHomePage here: FindHomePageAsync filters only on the flag, but a
-        // deactivated page is not routable (SiteRouteResolver 404s it, and the sitemap drops it). An
-        // x-default or a Home crumb pointing at a 404 is worse than having neither - a bad x-default
+        // IsActive matters as much as being the home route here: FindHomePageAsync judges Route alone,
+        // but a deactivated page is not routable (SiteRouteResolver 404s it, and the sitemap drops it).
+        // An x-default or a Home crumb pointing at a 404 is worse than having neither - a bad x-default
         // invalidates the whole hreflang cluster.
         var homePage = await PageRepository.FindHomePageAsync(cancellationToken: cancellationToken);
         if (homePage is { IsActive: false })

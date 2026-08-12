@@ -91,9 +91,21 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
         bool includeDetails = false,
         CancellationToken cancellationToken = default)
     {
-        return await (await GetQueryableAsync())
+        // Not a flag to filter by in SQL - a page is the home page when PageRoute.IsHomeRoute(p.Route) is
+        // true, and that is string-slicing logic EF Core cannot translate, the same reason FindByPathAsync
+        // judges its own address in memory rather than in the query. More than one page can pass it - an
+        // admin could have both "/" and "/{slug?}" in the table at once - so the same tie-break
+        // FindByPathAsync applies to a shared address applies here too: a literal route beats a template,
+        // then alphabetically by Route, so there is always at most one winner.
+        var candidates = await (await GetQueryableAsync())
             .IncludeDetails(includeDetails)
-            .FirstOrDefaultAsync(p => p.IsHomePage, GetCancellationToken(cancellationToken));
+            .ToListAsync(GetCancellationToken(cancellationToken));
+
+        return candidates
+            .Where(p => p.IsHomeRoute())
+            .OrderBy(p => PageRoute.IsTemplate(p.Route) ? 1 : 0)
+            .ThenBy(p => p.Route, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     public virtual async Task<List<Page>> GetRoutableListAsync(CancellationToken cancellationToken = default)

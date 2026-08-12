@@ -65,7 +65,6 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
             displayName: input.DisplayName,
             route: input.Route,
             template: input.Template,
-            isHomePage: input.IsHomePage,
             isActive: input.IsActive,
             parentId: input.ParentId);
 
@@ -115,7 +114,6 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
             displayName: input.DisplayName,
             route: input.Route,
             template: input.Template,
-            isHomePage: input.IsHomePage,
             isActive: input.IsActive,
             parentId: input.ParentId);
 

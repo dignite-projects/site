@@ -97,7 +97,7 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
     private async Task SeedPagesAndTypesAsync()
     {
         await _pageRepository.InsertAsync(
-            new Page(SiteTestData.HomePageId, "home", "Home", "/", isHomePage: true), autoSave: true);
+            new Page(SiteTestData.HomePageId, "home", "Home", "/"), autoSave: true);
 
         await _pageRepository.InsertAsync(
             new Page(SiteTestData.AboutPageId, "about", "About", "/about"), autoSave: true);

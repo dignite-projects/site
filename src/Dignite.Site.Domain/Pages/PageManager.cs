@@ -81,13 +81,12 @@ public class PageManager : DomainService
         string displayName,
         string route,
         string? template = null,
-        bool isHomePage = false,
         bool isActive = true,
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedRoute = Page.NormalizeRoute(route);
-        var effectiveParentId = NormalizeParent(isHomePage, parentId);
+        var effectiveParentId = NormalizeParent(normalizedRoute, parentId);
 
         // Checked before the database round trips below - a malformed route is cheap to catch and does
         // not need a uniqueness query to have already run first.
@@ -106,15 +105,9 @@ public class PageManager : DomainService
             displayName: displayName,
             route: normalizedRoute,
             template: template,
-            isHomePage: isHomePage,
             isActive: isActive,
             tenantId: CurrentTenant.Id,
             parentId: effectiveParentId);
-
-        if (isHomePage)
-        {
-            await DemoteExistingHomePageAsync(page.Id, cancellationToken);
-        }
 
         return await PageRepository.InsertAsync(page, cancellationToken: cancellationToken);
     }
@@ -125,17 +118,14 @@ public class PageManager : DomainService
         string displayName,
         string route,
         string? template = null,
-        bool isHomePage = false,
         bool isActive = true,
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedRoute = Page.NormalizeRoute(route);
-        // Computed up front, before IsHomePage is set below: NormalizeParent decides purely from the
-        // isHomePage argument (the new, incoming value), never from page.IsHomePage, so evaluating it
-        // early costs nothing - but doing so also means CheckParentAsync never walks an ancestor chain
-        // that is about to be discarded anyway when the page is becoming the home page.
-        var effectiveParentId = NormalizeParent(isHomePage, parentId);
+        // Computed from the new, incoming route - not page.Route - so CheckParentAsync never walks an
+        // ancestor chain that is about to be discarded anyway when the page is becoming the home page.
+        var effectiveParentId = NormalizeParent(normalizedRoute, parentId);
 
         if (!string.Equals(page.Name, name, StringComparison.Ordinal))
         {
@@ -165,13 +155,6 @@ public class PageManager : DomainService
         page.SetTemplate(template);
         page.SetIsActive(isActive);
 
-        if (isHomePage && !page.IsHomePage)
-        {
-            await DemoteExistingHomePageAsync(page.Id, cancellationToken);
-        }
-
-        page.SetIsHomePage(isHomePage);
-
         return await PageRepository.UpdateAsync(page, cancellationToken: cancellationToken);
     }
 
@@ -196,9 +179,9 @@ public class PageManager : DomainService
     /// make a page the home page silently drops whatever parent was supplied, rather than rejecting the
     /// combination as an error.
     /// </summary>
-    protected virtual Guid? NormalizeParent(bool isHomePage, Guid? parentId)
+    protected virtual Guid? NormalizeParent(string normalizedRoute, Guid? parentId)
     {
-        return isHomePage ? null : parentId;
+        return PageRoute.IsHomeRoute(normalizedRoute) ? null : parentId;
     }
 
     /// <summary>
@@ -250,23 +233,6 @@ public class PageManager : DomainService
             {
                 break;
             }
-        }
-    }
-
-    /// <summary>
-    /// Clears the flag on whatever page currently holds it. Enforced rather than merely validated,
-    /// because <c>x-default</c> in the hreflang set (总体设计 §5.5) has to resolve to exactly one page -
-    /// a site with two home pages emits contradictory alternates, and one with none emits no
-    /// <c>x-default</c> at all.
-    /// </summary>
-    protected virtual async Task DemoteExistingHomePageAsync(Guid newHomePageId, CancellationToken cancellationToken)
-    {
-        var current = await PageRepository.FindHomePageAsync(cancellationToken: cancellationToken);
-
-        if (current != null && current.Id != newHomePageId)
-        {
-            current.SetIsHomePage(false);
-            await PageRepository.UpdateAsync(current, cancellationToken: cancellationToken);
         }
     }
 }

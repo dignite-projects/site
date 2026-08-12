@@ -38,7 +38,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string displayName,
         string route,
         string? template = null,
-        bool isHomePage = false,
         bool isActive = true,
         Guid? tenantId = null,
         Guid? parentId = null)
@@ -48,7 +47,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         SetDisplayName(displayName);
         SetRoute(route);
         Template = template;
-        IsHomePage = isHomePage;
         IsActive = isActive;
         TenantId = tenantId;
         ParentId = parentId;
@@ -73,12 +71,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// Tier 0); a Razor Pages or external front end resolves its own templates and leaves this null.
     /// </summary>
     public virtual string? Template { get; protected set; }
-
-    /// <summary>
-    /// Whether this is the site's home page. Also what <c>hreflang</c>'s <c>x-default</c> points at
-    /// (总体设计 §5.5).
-    /// </summary>
-    public virtual bool IsHomePage { get; protected set; }
 
     /// <summary>
     /// The page this one is organized under in the Admin UI, or null for a top-level page. This is
@@ -158,11 +150,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         Template = trimmed;
     }
 
-    public virtual void SetIsHomePage(bool isHomePage)
-    {
-        IsHomePage = isHomePage;
-    }
-
     /// <summary>
     /// Assigns the parent, or clears it with null. Existence and cycle checks are the caller's
     /// responsibility (<c>PageManager.CheckParentAsync</c>) - they need repository access this entity
@@ -203,6 +190,16 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual string GetPath()
     {
         return PageRoute.GetPath(Route);
+    }
+
+    /// <summary>
+    /// Whether this page is the site's home page - see <see cref="PageRoute.IsHomeRoute"/>. A method, not
+    /// a property, for the same reason <see cref="GetPath"/> is one: this must never become a mapped
+    /// column.
+    /// </summary>
+    public virtual bool IsHomeRoute()
+    {
+        return PageRoute.IsHomeRoute(Route);
     }
 
     /// <summary>

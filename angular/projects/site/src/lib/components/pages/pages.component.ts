@@ -314,7 +314,6 @@ export class PagesComponent {
         page?.template ?? '',
         [Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
       ],
-      isHomePage: [page?.isHomePage ?? false],
       parentId: [page?.parentId ?? null],
       isActive: [page?.isActive ?? true],
     });

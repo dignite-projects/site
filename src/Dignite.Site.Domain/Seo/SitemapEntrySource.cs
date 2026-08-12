@@ -144,7 +144,7 @@ public class SitemapEntrySource : DomainService
                 .OrderBy(c => c, StringComparer.Ordinal));
 
         var pageOwnLastModified = page.LastModificationTime ?? page.CreationTime;
-        var pagePriority = page.IsHomePage ? SitemapConsts.HomePagePriority : SitemapConsts.PagePriority;
+        var pagePriority = page.IsHomeRoute() ? SitemapConsts.HomePagePriority : SitemapConsts.PagePriority;
 
         var pageEntries = pageCultures
             .Select(culture => new SitemapEntry(

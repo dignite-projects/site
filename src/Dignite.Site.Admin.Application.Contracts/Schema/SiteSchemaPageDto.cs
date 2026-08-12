@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dignite.Site.Pages;
 
 namespace Dignite.Site.Admin.Schema;
 
@@ -16,7 +17,8 @@ public class SiteSchemaPageDto
     /// </summary>
     public string Route { get; set; } = default!;
 
-    public bool IsHomePage { get; set; }
+    /// <summary>Whether this is the site's home page - derived from <see cref="Route"/>, not settable.</summary>
+    public bool IsHomePage => PageRoute.IsHomeRoute(Route);
 
     public bool IsActive { get; set; }
 

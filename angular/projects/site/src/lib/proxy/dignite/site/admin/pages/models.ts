@@ -4,7 +4,6 @@ export interface CreatePageDto {
   displayName: string;
   route: string;
   template?: string | null;
-  isHomePage?: boolean;
   parentId?: string | null;
   isActive?: boolean;
 }
@@ -19,7 +18,6 @@ export interface UpdatePageDto {
   displayName: string;
   route: string;
   template?: string | null;
-  isHomePage?: boolean;
   parentId?: string | null;
   isActive?: boolean;
 }

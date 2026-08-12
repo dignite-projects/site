@@ -154,6 +154,17 @@ public class Page_Tests
     }
 
     /// <summary>
+    /// Delegates straight to PageRoute.IsHomeRoute - see PageRoute_Tests for the actual truth table this
+    /// only pins Page actually calls.
+    /// </summary>
+    [Fact]
+    public void Should_Report_Whether_It_Is_The_Home_Route()
+    {
+        NewPage("/").IsHomeRoute().ShouldBeTrue();
+        NewPage("/blog/{slug}").IsHomeRoute().ShouldBeFalse();
+    }
+
+    /// <summary>
     /// SetRoute is where a route is validated. A stray, unmatched brace is rejected - it cannot be a
     /// well-formed placeholder under any name. An unfamiliar placeholder <i>name</i> - {year}, {category} -
     /// is not rejected here, unlike before Route and ContentPathPattern merged: whether a name resolves to

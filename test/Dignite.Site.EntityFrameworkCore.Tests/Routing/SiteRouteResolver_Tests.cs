@@ -55,7 +55,7 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
 
         match.Kind.ShouldBe(RouteMatchKind.ContentOfPage);
         match.Page!.Id.ShouldBe(SiteTestData.HomePageId);
-        match.Page.IsHomePage.ShouldBeTrue();
+        match.Page.IsHomeRoute().ShouldBeTrue();
     }
 
     /// <summary>

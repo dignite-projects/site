@@ -121,8 +121,11 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// "/" has no meaningful parent, so making a page the home page silently drops whatever parent was
-    /// supplied rather than rejecting the combination - see PageManager.NormalizeParent.
+    /// "/" has no meaningful parent, so a route whose own address is the root silently drops whatever
+    /// parent was supplied rather than rejecting the combination - see PageManager.NormalizeParent. Uses
+    /// "/{slug?}" rather than the literal "/" itself: the seed data already has a page there, and Route's
+    /// own uniqueness index would reject a second one - any route whose own address is the root works the
+    /// same for NormalizeParent's purposes (PageRoute.IsHomeRoute), not just the literal spelling.
     /// </summary>
     [Fact]
     public async Task Should_Clear_The_Parent_When_The_Page_Becomes_The_Home_Page()
@@ -131,10 +134,29 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
             _pageManager.CreateAsync("home-parent-test", "Parent", "/home-parent-test"));
 
         var page = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
-            "home-parent-child", "Child", "/home-parent-child",
-            isHomePage: true, parentId: parent.Id));
+            "home-parent-child", "Child", "/{slug?}", parentId: parent.Id));
 
         page.ParentId.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// FindHomePageAsync is not "whichever page has the flag" any more - it is derived from Route, and
+    /// more than one page can structurally sit at the root at once, the same non-conflict RouteExistsAsync
+    /// already tolerates for any other address two routes both derive (see the coexistence tests below). A
+    /// literal "/" - the seeded home page - must still win over a template that also resolves there, the
+    /// same tie-break SiteRouteResolver applies to a live request.
+    /// </summary>
+    [Fact]
+    public async Task Should_Prefer_The_Literal_Home_Route_Over_A_Template_Sharing_The_Root_Address()
+    {
+        await WithUnitOfWorkAsync(() =>
+            _pageManager.CreateAsync("home-tiebreak-template", "Also home-shaped", "/{slug?}"));
+
+        var homePage = await WithUnitOfWorkAsync(() => _pageRepository.FindHomePageAsync());
+
+        homePage.ShouldNotBeNull();
+        homePage!.Id.ShouldBe(SiteTestData.HomePageId);
+        homePage.Route.ShouldBe("/");
     }
 
     /// <summary>

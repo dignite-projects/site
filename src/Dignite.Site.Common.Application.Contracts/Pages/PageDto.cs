@@ -19,7 +19,11 @@ public class PageDto : FullAuditedEntityDto<Guid>
 
     public string? Template { get; set; }
 
-    public bool IsHomePage { get; set; }
+    /// <summary>
+    /// Whether this is the site's home page - derived from <see cref="Route"/>, not an independently
+    /// settable flag. See <see cref="Page.IsHomeRoute"/> for why.
+    /// </summary>
+    public bool IsHomePage => PageRoute.IsHomeRoute(Route);
 
     /// <summary>
     /// The page this one is organized under in the Admin UI, or null for a top-level page. Purely

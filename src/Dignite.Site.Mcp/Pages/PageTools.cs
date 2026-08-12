@@ -48,22 +48,22 @@ public class PageTools : ITransientDependency
         string displayName,
         [Description(
             "The page's route template, starting with a slash. No placeholder means no content beneath " +
-            "it, e.g. '/about' (use '/' for the home page). Embed '{slug}' where the slug goes to have " +
-            "content beneath it and require every content there to have one, e.g. '/blog/{slug}'; use " +
-            "'{slug?}' instead to also allow one content with an empty slug, served at this page's own " +
-            "address, e.g. '/about/{slug?}'. Any other field the content has can appear too - a system " +
-            "field or a custom one, it makes no difference - optionally with a ':FORMAT' suffix, e.g. " +
-            "'{publishTime:yyyy-MM}' for '2026-07', e.g. '/news/{publishTime:yyyy-MM}/{slug}' for " +
-            "'/news/2026-07/<slug>'. A FORMAT may only contain letters, digits, '.', '_', '-' - never " +
-            "'/', which would be indistinguishable from the slash between path segments.")]
+            "it, e.g. '/about' (use '/' for the home page - more generally, a route with nothing before " +
+            "its first placeholder, e.g. '{slug?}' on its own, is the home page too). Embed '{slug}' " +
+            "where the slug goes to have content beneath it and require every content there to have " +
+            "one, e.g. '/blog/{slug}'; use '{slug?}' instead to also allow one content with an empty " +
+            "slug, served at this page's own address, e.g. '/about/{slug?}'. Any other field the " +
+            "content has can appear too - a system field or a custom one, it makes no difference - " +
+            "optionally with a ':FORMAT' suffix, e.g. '{publishTime:yyyy-MM}' for '2026-07', e.g. " +
+            "'/news/{publishTime:yyyy-MM}/{slug}' for '/news/2026-07/<slug>'. A FORMAT may only contain " +
+            "letters, digits, '.', '_', '-' - never '/', which would be indistinguishable from the " +
+            "slash between path segments.")]
         string route,
-        [Description("Whether this page is the site's home page. At most one page can be.")]
-        bool isHomePage = false,
         [Description(
             "The parent page's machine name, for organizing this page under it in the Admin UI's tree. " +
             "Purely organizational - it has no effect on 'route' or on how requests are resolved against " +
-            "it. Omit for a top-level page. Ignored when 'isHomePage' is true: the home page is always " +
-            "the tree's root.")]
+            "it. Omit for a top-level page. Ignored when 'route' makes this the home page: the home page " +
+            "is always the tree's root.")]
         string? parent = null,
         [Description("Whether the page is live. An inactive page is not routed.")]
         bool isActive = true)
@@ -75,7 +75,6 @@ public class PageTools : ITransientDependency
             Name = name,
             DisplayName = displayName,
             Route = route,
-            IsHomePage = isHomePage,
             ParentId = parentId,
             IsActive = isActive
         });
@@ -97,16 +96,16 @@ public class PageTools : ITransientDependency
             "New route template - see create_page for the placeholder syntax. Omit to keep the current " +
             "one; see the warning above before changing it. Dropping '{slug}'/'{slug?}' turns a page that " +
             "has content beneath it into one that does not, and vice versa; switching between '{slug}' " +
-            "and '{slug?}' changes whether an empty slug is allowed there. None of this re-validates " +
-            "contents that already exist - only the next write to one of them sees the new rule.")]
+            "and '{slug?}' changes whether an empty slug is allowed there. Changing this to or from a " +
+            "route with nothing before its first placeholder also changes whether this page is the home " +
+            "page - see create_page's note on 'route'. None of this re-validates contents that already " +
+            "exist - only the next write to one of them sees the new rule.")]
         string? route = null,
-        [Description("Whether this is the home page. Omit to keep it.")]
-        bool? isHomePage = null,
         [Description(
             "New parent page's machine name, for reorganizing this page in the Admin UI's tree. Purely " +
             "organizational - has no effect on 'route'. Omit to keep the current parent; pass an empty " +
-            "string to make this a top-level page. Ignored if this page is, or is becoming, the home " +
-            "page: the home page is always the tree's root.")]
+            "string to make this a top-level page. Ignored if this page's route is, or is becoming, the " +
+            "home route: the home page is always the tree's root.")]
         string? parent = null,
         [Description("Whether the page is live. Omit to keep it.")]
         bool? isActive = null)
@@ -129,7 +128,6 @@ public class PageTools : ITransientDependency
             DisplayName = displayName ?? current.DisplayName,
             Route = route ?? current.Route,
             Template = current.Template,
-            IsHomePage = isHomePage ?? current.IsHomePage,
             ParentId = parentId,
             IsActive = isActive ?? current.IsActive
         });

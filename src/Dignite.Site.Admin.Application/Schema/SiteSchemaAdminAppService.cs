@@ -92,7 +92,6 @@ public class SiteSchemaAdminAppService : AdminAppService, ISiteSchemaAdminAppSer
                 Name = page.Name,
                 DisplayName = page.DisplayName,
                 Route = page.Route,
-                IsHomePage = page.IsHomePage,
                 IsActive = page.IsActive,
                 Parent = page.ParentId != null ? pageNamesById.GetValueOrDefault(page.ParentId.Value) : null
             };

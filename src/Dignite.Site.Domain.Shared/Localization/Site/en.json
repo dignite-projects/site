@@ -88,7 +88,7 @@
     "Description:Page.Name": "The page's identifier, used by MCP tools and templates. Lowercase letters, digits, hyphen or underscore only, e.g. \"blog-posts\".",
     "DisplayName:Page.DisplayName": "Display name",
     "DisplayName:Page.Route": "Route",
-    "Description:Page.Route": "This page's own address, e.g. \"/about\". Add \"{slug}\" (or \"{slug?}\") to give it content, e.g. \"/blog/{slug}\". No spaces.",
+    "Description:Page.Route": "This page's own address, e.g. \"/about\". Add \"{slug}\" (or \"{slug?}\") to give it content, e.g. \"/blog/{slug}\". No spaces. Use \"/\" to make this page the home page.",
     "DisplayName:Page.Template": "Template",
     "Description:Page.Template": "An MVC view name this page renders with, e.g. \"Default\" or \"Blog/Article\". Only used by back-end-rendered front ends. Letters, digits, hyphen, underscore and \"/\" only.",
     "DisplayName:Page.IsHomePage": "Home page",

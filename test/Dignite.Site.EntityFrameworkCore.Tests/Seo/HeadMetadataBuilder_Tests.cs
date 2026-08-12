@@ -370,10 +370,13 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task XDefaultUrl_Should_Be_Null_When_No_Page_Is_The_Home_Page()
     {
+        // Being the home page is derived from Route now, not a flag that can be cleared while Route stays
+        // "/" - the only way for no page to be the home page is for no page's own address to be the root,
+        // so this moves the seeded home page's route away from it instead.
         await WithUnitOfWorkAsync(async () =>
         {
             var home = await _pageRepository.GetAsync(SiteTestData.HomePageId);
-            await _pageManager.UpdateAsync(home, home.Name, home.DisplayName, home.Route, isHomePage: false);
+            await _pageManager.UpdateAsync(home, home.Name, home.DisplayName, "/home-moved");
         });
 
         var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
@@ -392,8 +395,7 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         await WithUnitOfWorkAsync(async () =>
         {
             var home = await _pageRepository.GetAsync(SiteTestData.HomePageId);
-            await _pageManager.UpdateAsync(
-                home, home.Name, home.DisplayName, home.Route, isHomePage: true, isActive: false);
+            await _pageManager.UpdateAsync(home, home.Name, home.DisplayName, home.Route, isActive: false);
         });
 
         var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);

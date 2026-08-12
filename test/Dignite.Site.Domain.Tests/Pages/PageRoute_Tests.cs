@@ -207,6 +207,27 @@ public class PageRoute_Tests
         PageRoute.GetPath(route).ShouldBe(expectedPath);
     }
 
+    /// <summary>
+    /// Whether a route is the home route is derived the same way GetPath is - the page's own address has
+    /// to be the site root, not merely that the route starts with "/" (every route does). Not limited to
+    /// the literal "/" or "{slug?}": any route with nothing but the leading slash before its first
+    /// placeholder - even literal text with no separating "/", like "/ab{cd}" - has that same own
+    /// address, the same way GetPath does not distinguish them either.
+    /// </summary>
+    [Theory]
+    [InlineData("/", true)]
+    [InlineData("/{slug?}", true)]
+    [InlineData("/{slug}", true)]
+    [InlineData("/{category}/{slug?}", true)]
+    [InlineData("/ab{cd}", true)]
+    [InlineData("/about", false)]
+    [InlineData("/about/{slug?}", false)]
+    [InlineData("/blog/{slug}", false)]
+    public void Should_Report_Whether_A_Route_Is_The_Home_Route(string route, bool expected)
+    {
+        PageRoute.IsHomeRoute(route).ShouldBe(expected);
+    }
+
     [Fact]
     public void Should_Report_Whether_A_Route_Has_A_Slug()
     {
