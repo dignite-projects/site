@@ -17,6 +17,10 @@
          that this project is meant to reference directly (Dignite.Abp.FlexFields.Abstractions' own
          module doc says so); Dignite.Abp.FlexFields.Domain is not referenced here on purpose. -->
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Abstractions\Dignite.Abp.FlexFields.Abstractions.csproj" />
+    <!-- FlexFieldConsts alone, for CreateFieldDto/UpdateFieldDto/RenameFieldDto's [DynamicStringLength] -
+         deliberately dependency-free (just Volo.Abp.Core), unlike referencing Dignite.Abp.FlexFields.Domain
+         itself would be. -->
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Domain.Shared\Dignite.Abp.FlexFields.Domain.Shared.csproj" />
   </ItemGroup>
 
 </Project>
