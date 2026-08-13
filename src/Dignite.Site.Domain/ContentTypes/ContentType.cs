@@ -125,13 +125,4 @@ public class ContentType : FullAuditedAggregateRoot<Guid>, IMultiTenant
     {
         return _fields.Select(f => f.FieldId).ToList();
     }
-
-    /// <summary>
-    /// Whether this type pulls in the given field. Used before deleting a field definition, to find out
-    /// whether anything still references it.
-    /// </summary>
-    public virtual bool HasField(Guid fieldId)
-    {
-        return _fields.Any(f => f.FieldId == fieldId);
-    }
 }

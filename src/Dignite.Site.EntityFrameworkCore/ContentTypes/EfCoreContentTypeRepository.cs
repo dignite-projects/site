@@ -49,32 +49,4 @@ public class EfCoreContentTypeRepository : EfCoreRepository<ISiteDbContext, Cont
                 ct => ct.PageId == pageId && ct.Name == name && (excludedId == null || ct.Id != excludedId),
                 GetCancellationToken(cancellationToken));
     }
-
-    public virtual async Task<List<ContentType>> GetListAsync(
-        IEnumerable<Guid> ids,
-        CancellationToken cancellationToken = default)
-    {
-        return await (await GetDbSetAsync())
-            .Where(ct => ids.Contains(ct.Id))
-            .ToListAsync(GetCancellationToken(cancellationToken));
-    }
-
-    /// <summary>
-    /// Which content types pull in a given field.
-    /// <para>
-    /// Evaluated in memory, deliberately and with a bounded cost: the field arrangement is a JSON
-    /// column, so there is no queryable column to filter on, and the alternative - a join table - would
-    /// exist solely for this call. The set being scanned is content types, of which a site has tens, not
-    /// contents, of which it has thousands. This is not the in-memory filtering §2.4 rules out; that one
-    /// was over the content table on every list query.
-    /// </para>
-    /// </summary>
-    public virtual async Task<List<ContentType>> GetListByFieldAsync(
-        Guid fieldId,
-        CancellationToken cancellationToken = default)
-    {
-        var all = await (await GetDbSetAsync()).ToListAsync(GetCancellationToken(cancellationToken));
-
-        return all.Where(ct => ct.HasField(fieldId)).ToList();
-    }
 }
