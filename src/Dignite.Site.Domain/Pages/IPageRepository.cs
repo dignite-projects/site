@@ -54,12 +54,5 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
     /// <summary>Every page whose id is in <paramref name="ids"/> - a batched lookup for a caller that already has a set of PageIds (e.g. building one Url per Content across a list) and needs their owning Pages without an N+1.</summary>
     Task<List<Page>> GetListAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// The children of <paramref name="parentId"/> (null meaning the top-level pages), ordered the same
-    /// way <see cref="GetListAsync"/> orders its whole result - by <see cref="Page.Route"/>. The Admin UI's
-    /// page-tree read for one level.
-    /// </summary>
-    Task<List<Page>> GetChildrenAsync(Guid? parentId, CancellationToken cancellationToken = default);
-
     Task<bool> AnyChildAsync(Guid parentId, CancellationToken cancellationToken = default);
 }

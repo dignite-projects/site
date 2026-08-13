@@ -133,16 +133,6 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
-    public virtual async Task<List<Page>> GetChildrenAsync(
-        Guid? parentId,
-        CancellationToken cancellationToken = default)
-    {
-        return await (await GetDbSetAsync())
-            .Where(p => p.ParentId == parentId)
-            .OrderBy(p => p.Route)
-            .ToListAsync(GetCancellationToken(cancellationToken));
-    }
-
     public virtual async Task<bool> AnyChildAsync(Guid parentId, CancellationToken cancellationToken = default)
     {
         return await (await GetDbSetAsync())

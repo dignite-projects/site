@@ -161,9 +161,7 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// Dragging a page out to the top level in the Admin UI's tree reparents it via UpdateAsync with a
-    /// null parent. Doubles as the regression guard for EF Core's null-semantics translation of
-    /// "p.ParentId == parentId" when parentId is itself null - GetChildrenAsync(null) has to mean "the
-    /// top-level pages", not "no rows, because nothing equals null".
+    /// null parent.
     /// </summary>
     [Fact]
     public async Task Should_Allow_Moving_A_Page_To_The_Root()
@@ -183,9 +181,6 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
 
         var reloaded = await WithUnitOfWorkAsync(() => _pageRepository.GetAsync(child.Id));
         reloaded.ParentId.ShouldBeNull();
-
-        var topLevel = await WithUnitOfWorkAsync(() => _pageRepository.GetChildrenAsync(null));
-        topLevel.ShouldContain(p => p.Id == child.Id);
     }
 
     /// <summary>
