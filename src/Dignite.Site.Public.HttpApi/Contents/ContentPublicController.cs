@@ -35,7 +35,7 @@ public class ContentPublicController : PublicController, IContentPublicAppServic
     }
 
     [HttpGet]
-    public virtual Task<PagedResultDto<ContentDto>> GetListAsync(GetPublicContentListInput input)
+    public virtual Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
     {
         return ContentPublicAppService.GetListAsync(input);
     }

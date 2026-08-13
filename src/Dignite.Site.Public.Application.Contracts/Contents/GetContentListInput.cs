@@ -9,7 +9,7 @@ namespace Dignite.Site.Public.Contents;
 /// No status or publish-window filter - the service forces "published as of now" unconditionally, so
 /// exposing those here would only invite a caller to ask for drafts.
 /// </summary>
-public class GetPublicContentListInput : PagedAndSortedResultRequestDto
+public class GetContentListInput : PagedAndSortedResultRequestDto
 {
     public Guid? PageId { get; set; }
 

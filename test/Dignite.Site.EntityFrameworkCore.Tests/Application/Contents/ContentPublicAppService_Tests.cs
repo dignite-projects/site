@@ -65,7 +65,7 @@ public class ContentPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Never_List_Draft_Content_Even_Without_Asking_For_A_Status_Filter()
     {
         var result = await _contentPublicAppService.GetListAsync(
-            new GetPublicContentListInput { PageId = SiteTestData.BlogPageId, MaxResultCount = 1000 });
+            new GetContentListInput { PageId = SiteTestData.BlogPageId, MaxResultCount = 1000 });
 
         result.Items.ShouldNotContain(c => c.Slug == SiteTestData.DraftSlug);
         result.Items.ShouldContain(c => c.Slug == SiteTestData.TripSlug);
@@ -80,7 +80,7 @@ public class ContentPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Compute_Each_Items_Own_Url_When_Listing_Content_Across_Multiple_Pages()
     {
         var result = await _contentPublicAppService.GetListAsync(
-            new GetPublicContentListInput { MaxResultCount = 1000 });
+            new GetContentListInput { MaxResultCount = 1000 });
 
         result.Items.Single(c => c.PageId == SiteTestData.AboutPageId && c.CultureName == SiteTestData.EnglishCulture)
             .Url.ShouldBe("/about");

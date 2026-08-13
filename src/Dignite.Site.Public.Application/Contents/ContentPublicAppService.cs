@@ -53,7 +53,7 @@ public class ContentPublicAppService : PublicAppService, IContentPublicAppServic
         return MapToDto(content, page, urlContext);
     }
 
-    public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetPublicContentListInput input)
+    public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
     {
         var asOf = Clock.Now;
 

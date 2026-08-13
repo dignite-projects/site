@@ -8,7 +8,7 @@ namespace Dignite.Site.Public.Contents;
 
 /// <summary>Published content only - a draft or scheduled content is invisible here regardless of id or slug.</summary>
 public interface IContentPublicAppService : IReadOnlyAppService
-    <ContentDto, Guid, GetPublicContentListInput>
+    <ContentDto, Guid, GetContentListInput>
 {
     /// <summary>Step 2 of route resolution (总体设计 §3.4).</summary>
     Task<ContentDto> GetBySlugAsync(Guid pageId, string cultureName, string slug);
