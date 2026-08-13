@@ -96,6 +96,6 @@ public class ContentFlexFieldProvider : IFlexFieldProvider<Content>, ITransientD
         int maxResultCount,
         CancellationToken cancellationToken = default)
     {
-        return await ContentRepository.GetPagedListByIdAsync(skipCount, maxResultCount, cancellationToken);
+        return await ContentRepository.GetPagedListOrderByIdAsync(skipCount, maxResultCount, cancellationToken);
     }
 }

@@ -64,7 +64,7 @@ public class EfCoreContentRepository : EfCoreRepository<ISiteDbContext, Content,
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
-    public virtual async Task<List<Content>> GetPagedListByIdAsync(
+    public virtual async Task<List<Content>> GetPagedListOrderByIdAsync(
         int skipCount,
         int maxResultCount,
         CancellationToken cancellationToken = default)

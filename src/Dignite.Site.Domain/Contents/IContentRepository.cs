@@ -43,7 +43,7 @@ public interface IContentRepository : IBasicRepository<Content, Guid>
     /// <see cref="GetListAsync"/> because a rebuild needs a stable order above all else, whereas a list
     /// view needs a meaningful one.
     /// </summary>
-    Task<List<Content>> GetPagedListByIdAsync(
+    Task<List<Content>> GetPagedListOrderByIdAsync(
         int skipCount,
         int maxResultCount,
         CancellationToken cancellationToken = default);
