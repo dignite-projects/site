@@ -22,8 +22,19 @@ public static class PageConsts
     /// </summary>
     public static int MaxRouteLength { get; set; } = 512;
 
-    /// <summary>Default value: 256. Optional template reference - only used by back-end-rendered front ends.</summary>
+    /// <summary>
+    /// Default value: 256. Optional template reference, used when a request resolves to the page itself
+    /// (a list/index, no specific content) - only used by back-end-rendered front ends.
+    /// </summary>
     public static int MaxTemplateLength { get; set; } = 256;
+
+    /// <summary>
+    /// Default value: 256. Optional template reference, used when a request resolves to one piece of
+    /// content beneath the page - independent of <see cref="MaxTemplateLength"/> because the two are
+    /// rendered by different views with different data shapes (list vs. one hydrated content), not
+    /// variations of the same template. Only used by back-end-rendered front ends.
+    /// </summary>
+    public static int MaxContentTemplateLength { get; set; } = 256;
 
     /// <summary>
     /// No whitespace anywhere in the route - the one rule simple enough to express as a single pattern.

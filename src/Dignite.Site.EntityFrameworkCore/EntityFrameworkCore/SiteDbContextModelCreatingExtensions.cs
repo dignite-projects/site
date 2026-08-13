@@ -31,6 +31,7 @@ public static class SiteDbContextModelCreatingExtensions
             b.Property(p => p.DisplayName).IsRequired().HasMaxLength(PageConsts.MaxDisplayNameLength);
             b.Property(p => p.Route).IsRequired().HasMaxLength(PageConsts.MaxRouteLength);
             b.Property(p => p.Template).HasMaxLength(PageConsts.MaxTemplateLength);
+            b.Property(p => p.ContentTemplate).HasMaxLength(PageConsts.MaxContentTemplateLength);
 
             b.HasMany(p => p.ContentTypes).WithOne().HasForeignKey(ct => ct.PageId)
                 .OnDelete(DeleteBehavior.Cascade);

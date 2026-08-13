@@ -128,6 +128,7 @@ public class PageTools : ITransientDependency
             DisplayName = displayName ?? current.DisplayName,
             Route = route ?? current.Route,
             Template = current.Template,
+            ContentTemplate = current.ContentTemplate,
             ParentId = parentId,
             IsActive = isActive ?? current.IsActive
         });

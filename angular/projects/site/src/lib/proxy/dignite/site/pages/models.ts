@@ -6,6 +6,7 @@ export interface PageDto extends FullAuditedEntityDto<string> {
   displayName?: string;
   route?: string;
   template?: string | null;
+  contentTemplate?: string | null;
   isHomePage?: boolean;
   parentId?: string | null;
   isActive?: boolean;

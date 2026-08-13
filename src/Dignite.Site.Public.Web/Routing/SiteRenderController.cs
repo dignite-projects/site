@@ -96,16 +96,22 @@ public class SiteRenderController : AbpController
             return NotFound();
         }
 
-        var templateName = ResolveTemplateName(match.Page.Template);
+        // Page.Template and Page.ContentTemplate name two independent views, not two ends of one
+        // branching template - RouteMatchKindDto.Page has no content fetched yet (a list/index), while
+        // ContentOfPage/Content already carry one fully hydrated Content, so picking between them here
+        // rather than inside a shared view keeps each view free of "which case am I in" checks.
+        var templateName = ResolveTemplateName(
+            match.Kind == RouteMatchKindDto.Page ? match.Page.Template : match.Page.ContentTemplate);
         return View(templateName, viewModel);
     }
 
     /// <summary>
-    /// Falls back to <see cref="FallbackTemplateName"/> not only when <c>Page.Template</c> is blank, but
-    /// also when it names a view that does not actually exist - <c>Template</c> predates this controller
-    /// (总体设计 §7.3 "a front end that lets the back end name a view") and nothing has ever validated it
-    /// points at a real MVC view, so a stale, misspelled or repurposed value must degrade gracefully
-    /// rather than 500 every request to the page that carries it.
+    /// Falls back to <see cref="FallbackTemplateName"/> not only when the resolved template name is blank,
+    /// but also when it names a view that does not actually exist - <c>Page.Template</c>/
+    /// <c>Page.ContentTemplate</c> predate this controller (总体设计 §7.3 "a front end that lets the back
+    /// end name a view") and nothing has ever validated either one points at a real MVC view, so a stale,
+    /// misspelled or repurposed value must degrade gracefully rather than 500 every request to the page
+    /// that carries it.
     /// </summary>
     protected virtual string ResolveTemplateName(string? template)
     {

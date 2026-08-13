@@ -23,6 +23,7 @@ const PAGE_CONSTS = {
   maxDisplayNameLength: 128,
   maxRouteLength: 512,
   maxTemplateLength: 256,
+  maxContentTemplateLength: 256,
 } as const;
 
 /** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
@@ -325,6 +326,10 @@ export class PagesComponent {
       template: [
         page?.template ?? '',
         [Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
+      ],
+      contentTemplate: [
+        page?.contentTemplate ?? '',
+        [Validators.maxLength(PAGE_CONSTS.maxContentTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
       ],
       parentId: [page?.parentId ?? null],
       isActive: [page?.isActive ?? true],

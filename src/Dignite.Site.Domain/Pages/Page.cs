@@ -38,6 +38,7 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string displayName,
         string route,
         string? template = null,
+        string? contentTemplate = null,
         bool isActive = true,
         Guid? tenantId = null,
         Guid? parentId = null)
@@ -47,6 +48,7 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         SetDisplayName(displayName);
         SetRoute(route);
         Template = template;
+        ContentTemplate = contentTemplate;
         IsActive = isActive;
         TenantId = tenantId;
         ParentId = parentId;
@@ -67,10 +69,23 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual string Route { get; protected set; } = default!;
 
     /// <summary>
-    /// Optional rendering hint. Only a front end that lets the back end name a view uses it (总体设计 §7.3
-    /// Tier 0); a Razor Pages or external front end resolves its own templates and leaves this null.
+    /// Optional rendering hint, used when a request resolves to this page itself - a list/index, with no
+    /// specific content (<c>RouteMatchKind.Page</c>). Only a front end that lets the back end name a view
+    /// uses it (总体设计 §7.3 Tier 0); a Razor Pages or external front end resolves its own templates and
+    /// leaves this null. See <see cref="ContentTemplate"/> for the sibling used once a specific content is
+    /// resolved - deliberately a separate field rather than one branching internally, since the two are
+    /// rendered from different data shapes (no content fetched yet vs. one fully hydrated) and their
+    /// layouts diverge enough that forcing them through one view means every section of it re-deriving
+    /// "which case am I in" rather than each view simply handling its own case.
     /// </summary>
     public virtual string? Template { get; protected set; }
+
+    /// <summary>
+    /// Optional rendering hint, used when a request resolves to one piece of content beneath this page
+    /// (<c>RouteMatchKind.ContentOfPage</c> / <c>.Content</c>). See <see cref="Template"/> for why this is
+    /// a second field rather than a shared one.
+    /// </summary>
+    public virtual string? ContentTemplate { get; protected set; }
 
     /// <summary>
     /// The page this one is organized under in the Admin UI, or null for a top-level page. This is
@@ -135,19 +150,28 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
 
     public virtual void SetTemplate(string? template)
     {
+        Template = CheckTemplate(template, nameof(Template));
+    }
+
+    public virtual void SetContentTemplate(string? contentTemplate)
+    {
+        ContentTemplate = CheckTemplate(contentTemplate, nameof(ContentTemplate));
+    }
+
+    private static string? CheckTemplate(string? template, string propertyName)
+    {
         if (string.IsNullOrWhiteSpace(template))
         {
-            Template = null;
-            return;
+            return null;
         }
 
         var trimmed = template.Trim().RemovePreFix("/");
         if (!Regex.IsMatch(trimmed, PageConsts.TemplatePattern))
         {
-            throw new InvalidValueFormatException(nameof(Template), trimmed);
+            throw new InvalidValueFormatException(propertyName, trimmed);
         }
 
-        Template = trimmed;
+        return trimmed;
     }
 
     /// <summary>

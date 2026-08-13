@@ -204,6 +204,12 @@ public class Page_Tests
         Should.Throw<InvalidValueFormatException>(() => NewPage("/blog").SetTemplate("Bad Template!"));
     }
 
+    [Fact]
+    public void Should_Reject_A_Content_Template_With_An_Invalid_Format()
+    {
+        Should.Throw<InvalidValueFormatException>(() => NewPage("/blog").SetContentTemplate("Bad Template!"));
+    }
+
     private static Page NewPage(string route)
     {
         return new Page(Guid.NewGuid(), "test-page", "Test Page", route);
