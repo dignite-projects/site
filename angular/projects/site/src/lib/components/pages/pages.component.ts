@@ -1,4 +1,4 @@
-import { CoreModule, ListResultDto, PermissionDirective } from '@abp/ng.core';
+import { CoreModule, ListResultDto, PermissionDirective, PermissionService } from '@abp/ng.core';
 import {
   Confirmation,
   ConfirmationService,
@@ -9,7 +9,7 @@ import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import type { TreeStatus } from '@swimlane/ngx-datatable';
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
 import type { NzTreeNodeOptions } from 'ng-zorro-antd/tree';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
@@ -125,6 +125,8 @@ export class PagesComponent {
   private readonly fb = inject(FormBuilder);
   private readonly confirmation = inject(ConfirmationService);
   private readonly toaster = inject(ToasterService);
+  private readonly router = inject(Router);
+  private readonly permission = inject(PermissionService);
 
   readonly policies = eSitePolicyNames;
 
@@ -203,17 +205,27 @@ export class PagesComponent {
 
     this.isModalBusy = true;
     const value = this.form.getRawValue();
+    const isCreating = !this.editingPage;
 
     const request$ = this.editingPage
       ? this.pageService.update(this.editingPage.id!, value)
       : this.pageService.create(value);
 
     request$.subscribe({
-      next: () => {
+      next: page => {
         this.isModalBusy = false;
         this.closeModal();
-        this.applyFilters();
         this.toaster.success('AbpUi::SavedSuccessfully');
+
+        // A fresh page always has exactly one auto-created content type
+        // (PageAdminAppService.CreateDefaultContentTypeAsync) still waiting for its fields - go straight
+        // there instead of leaving the user to find the sitemap icon themselves.
+        if (isCreating && this.permission.getGrantedPolicy(this.policies.ContentTypes)) {
+          this.router.navigate(['/site/pages', page.id, 'content-types']);
+          return;
+        }
+
+        this.applyFilters();
       },
       error: () => (this.isModalBusy = false),
     });

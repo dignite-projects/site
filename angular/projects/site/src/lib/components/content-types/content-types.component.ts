@@ -1,4 +1,4 @@
-import { CoreModule, PermissionDirective } from '@abp/ng.core';
+import { CoreModule, PermissionDirective, PermissionService } from '@abp/ng.core';
 import {
   Confirmation,
   ConfirmationService,
@@ -48,6 +48,7 @@ export class ContentTypesComponent {
   private readonly fb = inject(FormBuilder);
   private readonly confirmation = inject(ConfirmationService);
   private readonly toaster = inject(ToasterService);
+  private readonly permission = inject(PermissionService);
 
   readonly policies = eSitePolicyNames;
 
@@ -83,13 +84,27 @@ export class ContentTypesComponent {
       this.indexableByFieldType = indexable;
     });
 
-    this.load();
+    this.load(true);
   }
 
-  load(): void {
-    this.contentTypeService
-      .getListByPage(this.pageId)
-      .subscribe(result => (this.contentTypes = result.items ?? []));
+  /**
+   * `autoOpenIfSingle` only applies to this initial load: a page with exactly one content type has
+   * nothing to disambiguate, so arriving here always means "go edit it". Reloads after a save or delete
+   * must not repeat this - otherwise closing the edit modal after a successful save would immediately
+   * reopen it.
+   */
+  load(autoOpenIfSingle = false): void {
+    this.contentTypeService.getListByPage(this.pageId).subscribe(result => {
+      this.contentTypes = result.items ?? [];
+
+      if (
+        autoOpenIfSingle &&
+        this.contentTypes.length === 1 &&
+        this.permission.getGrantedPolicy(this.policies.ContentTypesUpdate)
+      ) {
+        this.openEdit(this.contentTypes[0]);
+      }
+    });
   }
 
   fieldCountOf(contentType: ContentTypeDto): number {
