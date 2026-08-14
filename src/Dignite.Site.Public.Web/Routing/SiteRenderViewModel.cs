@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Dignite.Abp.FlexFields;
 using Dignite.Site.ContentTypes;
@@ -19,8 +20,22 @@ public class SiteRenderViewModel
 
     public required string CultureName { get; init; }
 
-    /// <summary>Placeholders a partial page-route match resolved short of a slug. Display only in v1 - not used to filter <see cref="List"/>'s query.</summary>
-    public required IReadOnlyDictionary<string, string> FilterValues { get; init; }
+    /// <summary>
+    /// Placeholders a partial page-route match resolved short of a slug, minus <c>PublishTime</c> - see
+    /// <see cref="PublishedAfter"/>. Forwarded as-is to <c>ContentListTagHelper.FieldFilters</c>, which
+    /// resolves each entry against FlexFields.
+    /// </summary>
+    public required IReadOnlyDictionary<string, string> FieldFilters { get; init; }
+
+    /// <summary>
+    /// Lower bound carved out of a <c>publishTime</c> route placeholder, if the match captured one - see
+    /// <c>SiteRenderFilterValueMapper</c>. <c>PublishTime</c> is <c>Content</c>'s own system field, not a
+    /// FlexFields field (总体设计 §2.4), so it never appears in <see cref="FieldFilters"/> itself.
+    /// </summary>
+    public DateTime? PublishedAfter { get; init; }
+
+    /// <summary>Upper bound carved out of a <c>publishTime</c> route placeholder - see <see cref="PublishedAfter"/>.</summary>
+    public DateTime? PublishedBefore { get; init; }
 
     public HeadMetadataDto? HeadMetadata { get; init; }
 

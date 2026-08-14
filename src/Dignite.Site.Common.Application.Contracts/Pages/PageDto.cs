@@ -37,8 +37,14 @@ public class PageDto : FullAuditedEntityDto<Guid>
 
     /// <summary>
     /// The content types built beneath this page. Populated by a single-page read (<c>GetAsync</c>,
-    /// <c>GetByRouteAsync</c>) so a caller rendering a page never has to follow up with a separate
-    /// content-types-by-page call; left empty by list results, which stay flat by design.
+    /// <c>GetByRouteAsync</c>, <c>FindByNameAsync</c>) so a caller rendering a page never has to follow up
+    /// with a separate content-types-by-page call. Null - not empty - from a list result or a route
+    /// resolution's own mapping: both leave <c>Page.ContentTypes</c>, the underlying EF navigation
+    /// collection, un-<c>Include</c>d (<c>IPageRepository</c>'s <c>includeDetails</c> defaults to
+    /// <see langword="false"/>), so mapping it unconditionally would silently misreport "never asked for
+    /// this" as "genuinely has none". Null is how this type stays honest about that distinction, even
+    /// though the one current consumer (<c>ContentListTagHelper</c>) chooses not to rely on it and
+    /// re-fetches unconditionally instead.
     /// </summary>
-    public List<ContentTypeDto> ContentTypes { get; set; } = new();
+    public List<ContentTypeDto>? ContentTypes { get; set; }
 }

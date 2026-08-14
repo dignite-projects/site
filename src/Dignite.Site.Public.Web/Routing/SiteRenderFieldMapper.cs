@@ -20,12 +20,18 @@ public static class SiteRenderFieldMapper
     public static IReadOnlyList<FlexFieldValue> Build(
         ContentDto content,
         ContentTypeDto contentType,
-        IReadOnlyDictionary<Guid, FieldDto> fieldsById)
+        IReadOnlyDictionary<Guid, FieldDto> fieldsById,
+        bool listFieldsOnly)
     {
         var result = new List<FlexFieldValue>(contentType.Fields.Count);
 
         foreach (var usage in contentType.Fields) // already content-type order, per ContentTypeDto.Fields
         {
+            if (listFieldsOnly && !usage.ShowInList)
+            {
+                continue;
+            }
+
             if (!fieldsById.TryGetValue(usage.FieldId, out var field))
             {
                 continue; // definition deleted since the content type referenced it - skip, don't error

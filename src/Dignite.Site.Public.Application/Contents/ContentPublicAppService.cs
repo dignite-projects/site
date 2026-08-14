@@ -57,15 +57,22 @@ public class ContentPublicAppService : PublicAppService, IContentPublicAppServic
     {
         var asOf = Clock.Now;
 
+        // input.PublishedBefore can only ever narrow this - never widen it past "now" - regardless of what
+        // a caller passes, so a scheduled-future content (Status=Published, PublishTime still ahead of
+        // "now" - 总体设计 §2.4) never surfaces early just because a caller's own filter window happens to
+        // reach past it. input.PublishedAfter needs no such cap: a lower bound cannot reveal anything that
+        // was not already visible.
+        var effectiveBefore = input.PublishedBefore is { } before && before < asOf ? before : asOf;
+
         var totalCount = await ContentRepository.GetCountAsync(
             pageId: input.PageId, cultureName: input.CultureName, contentTypeId: input.ContentTypeId,
-            status: ContentStatus.Published, publishedBefore: asOf, filter: input.Filter,
-            flexFieldConditions: input.FlexFieldConditions);
+            status: ContentStatus.Published, publishedBefore: effectiveBefore, publishedAfter: input.PublishedAfter,
+            filter: input.Filter, flexFieldConditions: input.FlexFieldConditions);
 
         var contents = await ContentRepository.GetListAsync(
             pageId: input.PageId, cultureName: input.CultureName, contentTypeId: input.ContentTypeId,
-            status: ContentStatus.Published, publishedBefore: asOf, filter: input.Filter,
-            flexFieldConditions: input.FlexFieldConditions, maxResultCount: input.MaxResultCount,
+            status: ContentStatus.Published, publishedBefore: effectiveBefore, publishedAfter: input.PublishedAfter,
+            filter: input.Filter, flexFieldConditions: input.FlexFieldConditions, maxResultCount: input.MaxResultCount,
             skipCount: input.SkipCount, sorting: input.Sorting);
 
         // Batched by distinct PageId - not one lookup per item - regardless of whether the caller filtered

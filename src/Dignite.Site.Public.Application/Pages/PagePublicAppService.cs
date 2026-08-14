@@ -37,6 +37,12 @@ public class PagePublicAppService : PublicAppService, IPagePublicAppService
         return MapToDto(page);
     }
 
+    public virtual async Task<PageDto?> FindByNameAsync(string name)
+    {
+        var page = await PageRepository.FindByNameAsync(name, includeDetails: true);
+        return page == null || !page.IsActive ? null : MapToDto(page);
+    }
+
     public virtual async Task<ListResultDto<PageDto>> GetListAsync(GetPageListInput input)
     {
         var pages = await PageRepository.GetListAsync(isActive: true, filter: input.Filter);

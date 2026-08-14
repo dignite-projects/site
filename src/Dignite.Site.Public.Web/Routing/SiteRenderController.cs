@@ -79,13 +79,7 @@ public class SiteRenderController : AbpController
 
         SiteRenderViewModel? viewModel = match.Kind switch
         {
-            RouteMatchKindDto.Page => new SiteRenderViewModel
-            {
-                Page = match.Page!,
-                CultureName = match.CultureName,
-                FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
-                HeadMetadata = headMetadata
-            },
+            RouteMatchKindDto.Page => BuildPageViewModel(match, headMetadata),
             RouteMatchKindDto.ContentOfPage or RouteMatchKindDto.Content
                 => await BuildContentViewModelAsync(match, headMetadata),
             _ => null
@@ -124,6 +118,20 @@ public class SiteRenderController : AbpController
         return result.Success ? template : FallbackTemplateName;
     }
 
+    protected virtual SiteRenderViewModel BuildPageViewModel(RouteMatchDto match, HeadMetadataDto? headMetadata)
+    {
+        var (fieldFilters, publishedAfter, publishedBefore) = SiteRenderFilterValueMapper.Build(match.FilterValues);
+        return new SiteRenderViewModel
+        {
+            Page = match.Page!,
+            CultureName = match.CultureName,
+            FieldFilters = fieldFilters,
+            PublishedAfter = publishedAfter,
+            PublishedBefore = publishedBefore,
+            HeadMetadata = headMetadata
+        };
+    }
+
     protected virtual async Task<SiteRenderViewModel?> BuildContentViewModelAsync(RouteMatchDto match, HeadMetadataDto? headMetadata)
     {
         if (match.Content == null || match.ContentType == null)
@@ -135,18 +143,21 @@ public class SiteRenderController : AbpController
         }
 
         var fieldsById = await GetFieldsByIdAsync(match.ContentType.Fields.Select(f => f.FieldId));
+        var (fieldFilters, publishedAfter, publishedBefore) = SiteRenderFilterValueMapper.Build(match.FilterValues);
 
         return new SiteRenderViewModel
         {
             Page = match.Page!,
             CultureName = match.CultureName,
-            FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
+            FieldFilters = fieldFilters,
+            PublishedAfter = publishedAfter,
+            PublishedBefore = publishedBefore,
             HeadMetadata = headMetadata,
             Content = new ContentRenderViewModel
             {
                 Content = match.Content,
                 ContentType = match.ContentType,
-                Fields = SiteRenderFieldMapper.Build(match.Content, match.ContentType, fieldsById)
+                Fields = SiteRenderFieldMapper.Build(match.Content, match.ContentType, fieldsById, listFieldsOnly: false)
             }
         };
     }

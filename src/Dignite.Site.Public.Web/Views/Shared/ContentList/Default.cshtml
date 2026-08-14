@@ -1,0 +1,17 @@
+@model ContentListRenderViewModel
+<ul>
+@foreach (var item in Model.Items)
+{
+    <li>
+        <a href="@item.Content.Url">@item.Content.Slug</a>
+        @foreach (var field in item.Fields)
+        {
+            <flex-field-view field="@field" show-in-list="true" />
+        }
+    </li>
+}
+</ul>
+@if (Model.TotalCount > Model.Items.Count)
+{
+    <p>@Model.Items.Count / @Model.TotalCount - no paging UI yet.</p>
+}

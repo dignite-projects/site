@@ -33,6 +33,14 @@ public class PagePublicController : PublicController, IPagePublicAppService
         return PagePublicAppService.GetByRouteAsync(route);
     }
 
+    /// <summary>The name is a query parameter, not a route segment - see <c>PageAdminController</c>'s own remarks.</summary>
+    [HttpGet]
+    [Route("by-name")]
+    public virtual Task<PageDto?> FindByNameAsync(string name)
+    {
+        return PagePublicAppService.FindByNameAsync(name);
+    }
+
     [HttpGet]
     public virtual Task<ListResultDto<PageDto>> GetListAsync(GetPageListInput input)
     {

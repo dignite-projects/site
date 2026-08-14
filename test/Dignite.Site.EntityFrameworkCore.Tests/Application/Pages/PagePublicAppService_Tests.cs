@@ -27,6 +27,27 @@ public class PagePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Should_Resolve_Seeded_Page_By_Name()
+    {
+        var page = await _pagePublicAppService.FindByNameAsync("blog");
+
+        page.ShouldNotBeNull();
+        page.Id.ShouldBe(SiteTestData.BlogPageId);
+        // includeDetails: true, same as GetAsync/GetByRouteAsync - non-null (fetched) and non-empty (the
+        // blog page's seeded content types actually come back), not left for a caller to fetch separately.
+        page.ContentTypes.ShouldNotBeNull();
+        page.ContentTypes.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_Return_Null_For_An_Unknown_Name()
+    {
+        var page = await _pagePublicAppService.FindByNameAsync("does-not-exist");
+
+        page.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Should_Not_Expose_An_Inactive_Page()
     {
         var inactive = await _pageAdminAppService.CreateAsync(new CreatePageDto
@@ -39,6 +60,7 @@ public class PagePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         await Should.ThrowAsync<EntityNotFoundException>(() => _pagePublicAppService.GetAsync(inactive.Id));
         await Should.ThrowAsync<EntityNotFoundException>(() => _pagePublicAppService.GetByRouteAsync("/public-inactive-test"));
+        (await _pagePublicAppService.FindByNameAsync("public-inactive-test")).ShouldBeNull();
 
         var list = await _pagePublicAppService.GetListAsync(new GetPageListInput());
         list.Items.ShouldNotContain(p => p.Id == inactive.Id);
