@@ -1,4 +1,6 @@
-﻿using Dignite.Site.Files;
+﻿using Dignite.Abp.FileStoring;
+using Dignite.Site.Admin.Permissions;
+using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -56,8 +58,10 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
     }
 
     /// <summary>
-    /// The same container name and provider kind (GitHub issue #41) as the dev Host, pointed at a temp
-    /// directory instead of App_Data so tests never touch a real deployment's files.
+    /// The same container name, provider kind and authorization configuration (GitHub issue #41; the
+    /// upload-permission wiring) as the dev Host, pointed at a temp directory instead of App_Data so tests
+    /// never touch a real deployment's files. Kept in sync with HostModule.ConfigureBlobStoring by hand -
+    /// there is no shared source between the two, so a change to one needs the same change here.
     /// </summary>
     private void ConfigureBlobStoring()
     {
@@ -70,6 +74,11 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
                 container.UseFileSystem(fileSystem =>
                 {
                     fileSystem.BasePath = basePath;
+                });
+
+                container.SetAuthorizationConfiguration(config =>
+                {
+                    config.CreateFilePermissionName = AdminPermissions.Contents.Create;
                 });
             });
         });

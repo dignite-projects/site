@@ -66,6 +66,8 @@ using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Studio.Client.AspNetCore;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.BlobStoring.FileSystem;
+using Dignite.Abp.FileStoring;
+using Dignite.Site.Admin.Permissions;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Files;
 using Dignite.Site.Mcp;
@@ -268,6 +270,18 @@ public class HostModule : AbpModule
                 container.UseFileSystem(fileSystem =>
                 {
                     fileSystem.BasePath = Path.Combine(hostingEnvironment.ContentRootPath, "App_Data", "files");
+                });
+
+                // CreateFilePermissionName only, reusing AdminPermissions.Contents.Create rather than
+                // FileExplorerPermissions.Files.Management - an upload is how a content's images get here,
+                // so whoever may create content may upload, with no MCP-specific permission invented
+                // (总体设计 §6.2.5). GetFilePermissionName is deliberately left unset: unset means
+                // unauthenticated reads (FileDescriptorAuthorizationHandler's own default), which is correct
+                // for this container - a published content's images must load for anonymous site visitors,
+                // not just authenticated editors.
+                container.SetAuthorizationConfiguration(config =>
+                {
+                    config.CreateFilePermissionName = AdminPermissions.Contents.Create;
                 });
             });
         });
