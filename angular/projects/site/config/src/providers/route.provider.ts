@@ -27,7 +27,7 @@ export function configureRoutes() {
       layout: eLayoutType.application,
       order: 3,
       requiredPolicy:
-        'Admin.Pages || Admin.ContentTypes || Admin.Fields || Admin.Contents',
+        'SiteAdmin.Pages || SiteAdmin.ContentTypes || SiteAdmin.Fields || SiteAdmin.Contents',
     },
     {
       path: '/site/contents',
@@ -36,7 +36,7 @@ export function configureRoutes() {
       iconClass: 'fas fa-file-lines',
       layout: eLayoutType.application,
       order: 1,
-      requiredPolicy: 'Admin.Contents',
+      requiredPolicy: 'SiteAdmin.Contents',
     },
     {
       path: '/site/pages',
@@ -45,7 +45,7 @@ export function configureRoutes() {
       iconClass: 'fas fa-file-code',
       layout: eLayoutType.application,
       order: 2,
-      requiredPolicy: 'Admin.Pages',
+      requiredPolicy: 'SiteAdmin.Pages',
     },
     {
       path: '/site/fields',
@@ -54,7 +54,7 @@ export function configureRoutes() {
       iconClass: 'fas fa-list-check',
       layout: eLayoutType.application,
       order: 3,
-      requiredPolicy: 'Admin.Fields',
+      requiredPolicy: 'SiteAdmin.Fields',
     },
   ]);
 

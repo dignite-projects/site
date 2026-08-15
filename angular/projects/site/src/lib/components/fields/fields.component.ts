@@ -301,7 +301,7 @@ export class FieldsComponent {
 
   /**
    * Renaming is deliberately its own operation, not part of the edit form: `UpdateFieldDto` carries no
-   * name, the server guards it with its own permission (`Admin.Fields.Rename`), and it rewrites the
+   * name, the server guards it with its own permission (`SiteAdmin.Fields.Rename`), and it rewrites the
    * stored value of every content using the field.
    */
   openRename(field: FieldDto): void {

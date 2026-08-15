@@ -24,9 +24,9 @@
     "Site:060001": "'{PropertyName}' 的值 '{Value}' 格式不合法。",
 
     "Permission:Site": "Site",
-    "Permission:Admin": "管理端",
-    "Permission:Public": "公开端",
-    "Permission:Common": "公共",
+    "Permission:SiteAdmin": "管理端",
+    "Permission:SitePublic": "公开端",
+    "Permission:SiteCommon": "公共",
 
     "Permission:Pages": "页面",
     "Permission:ContentTypes": "内容类型",

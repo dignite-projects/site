@@ -57,9 +57,9 @@
     "Branding:DefaultAppName": "Site",
 
     "Permission:Site": "Site",
-    "Permission:Admin": "Admin",
-    "Permission:Public": "Public",
-    "Permission:Common": "Common",
+    "Permission:SiteAdmin": "Admin",
+    "Permission:SitePublic": "Public",
+    "Permission:SiteCommon": "Common",
 
     "Permission:Pages": "Pages",
     "Permission:ContentTypes": "Content Types",
