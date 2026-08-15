@@ -18,8 +18,8 @@ namespace Dignite.Site.Common;
 /// source/destination pair does not give either module "its own" copy - it gives the container two
 /// competing registrations for the same capability, and whichever loads last silently wins for every
 /// caller, not just that module's own. This module's own <c>ConfigureServices</c> already calls
-/// <c>AddMapperlyObjectMapper&lt;CommonApplicationModule&gt;()</c>, and both
-/// <c>AdminApplicationModule</c> and <c>PublicApplicationModule</c> already <c>DependsOn</c> it - so one
+/// <c>AddMapperlyObjectMapper&lt;SiteCommonApplicationModule&gt;()</c>, and both
+/// <c>SiteAdminApplicationModule</c> and <c>SitePublicApplicationModule</c> already <c>DependsOn</c> it - so one
 /// copy declared here reaches both without either needing its own.
 /// </para>
 /// <para>
