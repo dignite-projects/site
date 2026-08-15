@@ -11,7 +11,7 @@ namespace Dignite.Site.Public.Seo;
 /// the sitemap's <c>lastmod</c> avoids.
 /// </para>
 /// </summary>
-public class RobotsDocumentAppService : PublicAppService, IRobotsDocumentAppService
+public class RobotsDocumentAppService : SitePublicAppService, IRobotsDocumentAppService
 {
     public const string PlainTextContentType = "text/plain";
     public const string MarkdownContentType = "text/markdown";

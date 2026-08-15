@@ -9,7 +9,7 @@ using Volo.Abp.Domain.Entities;
 
 namespace Dignite.Site.Public.Pages;
 
-public class PagePublicAppService : PublicAppService, IPagePublicAppService
+public class PagePublicAppService : SitePublicAppService, IPagePublicAppService
 {
     protected IPageRepository PageRepository { get; }
 

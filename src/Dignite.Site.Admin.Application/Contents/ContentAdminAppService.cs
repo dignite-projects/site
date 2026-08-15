@@ -12,8 +12,8 @@ using Volo.Abp.Validation;
 
 namespace Dignite.Site.Admin.Contents;
 
-[Authorize(AdminPermissions.Contents.Default)]
-public class ContentAdminAppService : AdminAppService, IContentAdminAppService
+[Authorize(SiteAdminPermissions.Contents.Default)]
+public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppService
 {
     protected IContentRepository ContentRepository { get; }
 
@@ -81,7 +81,7 @@ public class ContentAdminAppService : AdminAppService, IContentAdminAppService
         return new PagedResultDto<ContentDto>(totalCount, contents.Select(MapToDto).ToList());
     }
 
-    [Authorize(AdminPermissions.Contents.Create)]
+    [Authorize(SiteAdminPermissions.Contents.Create)]
     public virtual async Task<ContentDto> CreateAsync(CreateContentDto input)
     {
         var content = await ContentManager.CreateAsync(
@@ -91,7 +91,7 @@ public class ContentAdminAppService : AdminAppService, IContentAdminAppService
         return MapToDto(content);
     }
 
-    [Authorize(AdminPermissions.Contents.Update)]
+    [Authorize(SiteAdminPermissions.Contents.Update)]
     public virtual async Task<ContentDto> UpdateAsync(Guid id, UpdateContentDto input)
     {
         var content = await ContentRepository.GetAsync(id);
@@ -102,7 +102,7 @@ public class ContentAdminAppService : AdminAppService, IContentAdminAppService
         return MapToDto(content);
     }
 
-    [Authorize(AdminPermissions.Contents.Delete)]
+    [Authorize(SiteAdminPermissions.Contents.Delete)]
     public virtual async Task DeleteAsync(Guid id)
     {
         // Nothing else references a content by FK except its own (cascading) query-index rows.

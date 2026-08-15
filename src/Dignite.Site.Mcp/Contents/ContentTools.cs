@@ -49,7 +49,7 @@ public class ContentTools : ITransientDependency
     [Description(
         "Lists contents, newest first, including drafts. Every filter is optional; with none, it lists " +
         "across the whole site.")]
-    [Authorize(AdminPermissions.Contents.Default)]
+    [Authorize(SiteAdminPermissions.Contents.Default)]
     public virtual async Task<PagedResultDto<ContentDto>> ListContentsAsync(
         [Description("Page name to list under, from get_site_schema. Omit to list across the whole site.")]
         string? page = null,
@@ -108,7 +108,7 @@ public class ContentTools : ITransientDependency
     [Description(
         "Reads one content by the triple that identifies it: page, language and slug. Returns its field " +
         "values keyed by field name, in the same shape update_content accepts.")]
-    [Authorize(AdminPermissions.Contents.Default)]
+    [Authorize(SiteAdminPermissions.Contents.Default)]
     public virtual async Task<ContentDto> GetContentAsync(
         [Description("Page name, from get_site_schema.")] string page,
         [Description("Language tag, from the schema's enabledLanguages.")] string cultureName,
@@ -123,7 +123,7 @@ public class ContentTools : ITransientDependency
         "Creates one content of the given type under the given page. Field values are validated against " +
         "the content type's field definitions; a value for a field the type does not declare is dropped, " +
         "and a missing required value is rejected with the field named.")]
-    [Authorize(AdminPermissions.Contents.Create)]
+    [Authorize(SiteAdminPermissions.Contents.Create)]
     public virtual async Task<ContentDto> CreateContentAsync(
         [Description("Page name, from get_site_schema.")]
         string page,
@@ -168,7 +168,7 @@ public class ContentTools : ITransientDependency
         "so this can publish a draft, or reschedule, without resending the body. Supplying fieldValues " +
         "REPLACES the whole set: read the content first and send it back with your edits merged in, or " +
         "omit it entirely.")]
-    [Authorize(AdminPermissions.Contents.Update)]
+    [Authorize(SiteAdminPermissions.Contents.Update)]
     public virtual async Task<ContentDto> UpdateContentAsync(
         [Description("Page name, from get_site_schema.")]
         string page,
@@ -209,7 +209,7 @@ public class ContentTools : ITransientDependency
 
     [McpServerTool(Name = "delete_content", Title = "Delete a content", Destructive = true)]
     [Description("Permanently deletes one content, addressed by page, language and slug. Other language versions of the same content are not affected.")]
-    [Authorize(AdminPermissions.Contents.Delete)]
+    [Authorize(SiteAdminPermissions.Contents.Delete)]
     public virtual async Task<string> DeleteContentAsync(
         [Description("Page name, from get_site_schema.")] string page,
         [Description("Language tag of the content to delete.")] string cultureName,

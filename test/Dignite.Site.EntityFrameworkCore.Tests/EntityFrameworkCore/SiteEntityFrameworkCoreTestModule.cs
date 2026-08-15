@@ -60,7 +60,7 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
     /// <summary>
     /// The same container name, provider kind and authorization configuration (GitHub issue #41; the
     /// upload-permission wiring) as the dev Host, pointed at a temp directory instead of App_Data so tests
-    /// never touch a real deployment's files. Kept in sync with HostModule.ConfigureBlobStoring by hand -
+    /// never touch a real deployment's files. Kept in sync with SiteHostModule.ConfigureBlobStoring by hand -
     /// there is no shared source between the two, so a change to one needs the same change here.
     /// </summary>
     private void ConfigureBlobStoring()
@@ -78,7 +78,7 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
 
                 container.SetAuthorizationConfiguration(config =>
                 {
-                    config.CreateFilePermissionName = AdminPermissions.Contents.Create;
+                    config.CreateFilePermissionName = SiteAdminPermissions.Contents.Create;
                 });
             });
         });

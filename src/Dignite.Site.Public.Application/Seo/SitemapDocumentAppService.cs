@@ -21,7 +21,7 @@ namespace Dignite.Site.Public.Seo;
 /// own private method does minus the file I/O.
 /// </para>
 /// </summary>
-public class SitemapDocumentAppService : PublicAppService, ISitemapDocumentAppService
+public class SitemapDocumentAppService : SitePublicAppService, ISitemapDocumentAppService
 {
     public const string XmlContentType = "application/xml";
 

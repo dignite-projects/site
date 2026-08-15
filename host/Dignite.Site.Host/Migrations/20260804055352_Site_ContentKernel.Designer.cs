@@ -11,7 +11,7 @@ using Volo.Abp.EntityFrameworkCore;
 
 namespace Dignite.Site.Host.Migrations
 {
-    [DbContext(typeof(HostDbContext))]
+    [DbContext(typeof(SiteHostDbContext))]
     [Migration("20260804055352_Site_ContentKernel")]
     partial class Site_ContentKernel
     {

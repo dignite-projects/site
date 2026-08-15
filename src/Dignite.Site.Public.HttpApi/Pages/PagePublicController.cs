@@ -7,10 +7,10 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Public.Pages;
 
-[RemoteService(Name = PublicRemoteServiceConsts.RemoteServiceName)]
-[Area(PublicRemoteServiceConsts.ModuleName)]
+[RemoteService(Name = SitePublicRemoteServiceConsts.RemoteServiceName)]
+[Area(SitePublicRemoteServiceConsts.ModuleName)]
 [Route("api/site-public/pages")]
-public class PagePublicController : PublicController, IPagePublicAppService
+public class PagePublicController : SitePublicController, IPagePublicAppService
 {
     protected IPagePublicAppService PagePublicAppService { get; }
 

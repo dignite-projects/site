@@ -7,8 +7,8 @@ using Dignite.Site.Public;
 namespace Dignite.Site;
 
 [DependsOn(
-    typeof(AdminApplicationContractsModule),
-    typeof(PublicApplicationContractsModule),
+    typeof(SiteAdminApplicationContractsModule),
+    typeof(SitePublicApplicationContractsModule),
     typeof(AbpDddApplicationContractsModule),
     typeof(AbpAuthorizationModule)
     )]

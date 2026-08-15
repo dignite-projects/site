@@ -11,7 +11,7 @@ using Volo.Abp.EntityFrameworkCore;
 
 namespace Dignite.Site.Host.Migrations
 {
-    [DbContext(typeof(HostDbContext))]
+    [DbContext(typeof(SiteHostDbContext))]
     [Migration("20260813081702_Site_AddPageContentTemplate")]
     partial class Site_AddPageContentTemplate
     {

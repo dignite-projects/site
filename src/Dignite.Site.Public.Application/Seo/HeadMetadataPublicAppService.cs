@@ -15,7 +15,7 @@ namespace Dignite.Site.Public.Seo;
 /// direct access to the same content and field data this service reads (总体设计 §5.4 decision), and can
 /// choose its own schema.org mapping rather than being bound to the one this backend used to hard-code.
 /// </summary>
-public class HeadMetadataPublicAppService : PublicAppService, IHeadMetadataPublicAppService
+public class HeadMetadataPublicAppService : SitePublicAppService, IHeadMetadataPublicAppService
 {
     protected SiteRouteResolver RouteResolver { get; }
 

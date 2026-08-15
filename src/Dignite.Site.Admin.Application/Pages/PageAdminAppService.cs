@@ -13,8 +13,8 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Admin.Pages;
 
-[Authorize(AdminPermissions.Pages.Default)]
-public class PageAdminAppService : AdminAppService, IPageAdminAppService
+[Authorize(SiteAdminPermissions.Pages.Default)]
+public class PageAdminAppService : SiteAdminAppService, IPageAdminAppService
 {
     protected IPageRepository PageRepository { get; }
 
@@ -57,7 +57,7 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
         return new ListResultDto<PageDto>(items);
     }
 
-    [Authorize(AdminPermissions.Pages.Create)]
+    [Authorize(SiteAdminPermissions.Pages.Create)]
     public virtual async Task<PageDto> CreateAsync(CreatePageDto input)
     {
         var page = await PageManager.CreateAsync(
@@ -104,7 +104,7 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
         await ContentTypeManager.CreateAsync(page.Id, page.Name, page.DisplayName, fields: fields);
     }
 
-    [Authorize(AdminPermissions.Pages.Update)]
+    [Authorize(SiteAdminPermissions.Pages.Update)]
     public virtual async Task<PageDto> UpdateAsync(Guid id, UpdatePageDto input)
     {
         var page = await PageRepository.GetAsync(id);
@@ -122,7 +122,7 @@ public class PageAdminAppService : AdminAppService, IPageAdminAppService
         return MapToDto(page);
     }
 
-    [Authorize(AdminPermissions.Pages.Delete)]
+    [Authorize(SiteAdminPermissions.Pages.Delete)]
     public virtual async Task DeleteAsync(Guid id)
     {
         // Through the manager, which removes the content types and contents beneath the page itself. The

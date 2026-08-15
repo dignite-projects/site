@@ -49,13 +49,13 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
 
     private async Task CreateApiScopeAsync()
     {
-        if (await _scopeManager.FindByNameAsync(HostConsts.ApiScopeName) == null)
+        if (await _scopeManager.FindByNameAsync(SiteHostConsts.ApiScopeName) == null)
         {
             await _scopeManager.CreateAsync(new OpenIddictScopeDescriptor
             {
-                Name = HostConsts.ApiScopeName,
+                Name = SiteHostConsts.ApiScopeName,
                 DisplayName = "Host API",
-                Resources = { HostConsts.ApiScopeName }
+                Resources = { SiteHostConsts.ApiScopeName }
             });
         }
     }
@@ -67,7 +67,7 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
             ?? "http://localhost:4200";
 
         await CreateApplicationAsync(
-            name: HostConsts.AngularClientId,
+            name: SiteHostConsts.AngularClientId,
             type: OpenIddictConstants.ClientTypes.Public,
             consentType: OpenIddictConstants.ConsentTypes.Implicit,
             displayName: "Host Angular Application",
@@ -85,7 +85,7 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Scopes.Roles,
                 OpenIddictConstants.Scopes.OfflineAccess,
-                HostConsts.ApiScopeName
+                SiteHostConsts.ApiScopeName
             },
             clientUri: angularRootUrl,
             redirectUri: angularRootUrl,
@@ -110,7 +110,7 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
             OpenIddictConstants.Permissions.Scopes.Profile,
             OpenIddictConstants.Permissions.Scopes.Roles,
             OpenIddictConstants.Scopes.OfflineAccess,
-            HostConsts.ApiScopeName
+            SiteHostConsts.ApiScopeName
         };
 
         // A public client: a desktop AI assistant cannot keep a secret, so it uses authorization_code
@@ -123,7 +123,7 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
         // HasApplicationTypeAsync(..., "native")); the default is "web", which falls back to exact
         // ordinal string equality and would reject every real callback.
         await CreateApplicationAsync(
-            name: HostConsts.McpClientId,
+            name: SiteHostConsts.McpClientId,
             type: OpenIddictConstants.ClientTypes.Public,
             applicationType: OpenIddictConstants.ApplicationTypes.Native,
             // Explicit, not Implicit: unlike the first-party Angular app, this token is handed to a
@@ -162,13 +162,13 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
         // key = this client id). Seeding Admin.* here would hand full authoring rights to a client whose
         // secret is a published default.
         await CreateApplicationAsync(
-            name: HostConsts.McpServiceClientId,
+            name: SiteHostConsts.McpServiceClientId,
             type: OpenIddictConstants.ClientTypes.Confidential,
             consentType: OpenIddictConstants.ConsentTypes.Implicit,
             displayName: "Site MCP Service Client",
             secret: _configuration["OpenIddict:Applications:Site_Mcp_Service:Secret"] ?? "1q2w3e*",
             grantTypes: new List<string> { OpenIddictConstants.GrantTypes.ClientCredentials },
-            scopes: new List<string> { HostConsts.ApiScopeName }
+            scopes: new List<string> { SiteHostConsts.ApiScopeName }
         );
     }
 

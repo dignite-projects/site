@@ -7,10 +7,10 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Public.Contents;
 
-[RemoteService(Name = PublicRemoteServiceConsts.RemoteServiceName)]
-[Area(PublicRemoteServiceConsts.ModuleName)]
+[RemoteService(Name = SitePublicRemoteServiceConsts.RemoteServiceName)]
+[Area(SitePublicRemoteServiceConsts.ModuleName)]
 [Route("api/site-public/contents")]
-public class ContentPublicController : PublicController, IContentPublicAppService
+public class ContentPublicController : SitePublicController, IContentPublicAppService
 {
     protected IContentPublicAppService ContentPublicAppService { get; }
 

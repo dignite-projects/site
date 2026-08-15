@@ -38,9 +38,9 @@ public class SiteSchemaResources : ITransientDependency
     [Description(
         "This site's languages, pages, content types and fields - the target shape for any content " +
         "written here, and the same document get_site_schema returns.")]
-    [Authorize(AdminPermissions.Pages.Default)]
-    [Authorize(AdminPermissions.ContentTypes.Default)]
-    [Authorize(AdminPermissions.Fields.Default)]
+    [Authorize(SiteAdminPermissions.Pages.Default)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Default)]
+    [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual async Task<string> GetSiteSchemaAsync()
     {
         return JsonSerializer.Serialize(await SiteSchemaAppService.GetAsync(), SerializerOptions);

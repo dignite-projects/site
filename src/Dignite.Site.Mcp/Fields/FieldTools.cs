@@ -38,7 +38,7 @@ public class FieldTools : ITransientDependency
         "Lists the tenant's whole field library, including fields no content type currently uses. Useful " +
         "before defining a content type: reuse an existing field rather than creating a near-duplicate, " +
         "since widening one definition then benefits every type that pulls it in.")]
-    [Authorize(AdminPermissions.Fields.Default)]
+    [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual Task<ListResultDto<FieldDto>> ListFieldsAsync(
         [Description("Free-text filter over name and display name. Omit for all.")]
         string? filter = null)
@@ -50,7 +50,7 @@ public class FieldTools : ITransientDependency
     [Description(
         "The field types a definition can be bound to, e.g. TextEdit or Select. Call this before " +
         "create_field if you are unsure what fieldTypeName to use.")]
-    [Authorize(AdminPermissions.Fields.Default)]
+    [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual Task<ListResultDto<FieldTypeDto>> ListFieldTypesAsync()
     {
         return FieldAppService.GetFieldTypesAsync();
@@ -60,7 +60,7 @@ public class FieldTools : ITransientDependency
     [Description(
         "Adds a definition to the field library. A field must exist before a content type can pull it " +
         "in. Definitions are shared across the whole site, so check list_fields first.")]
-    [Authorize(AdminPermissions.Fields.Create)]
+    [Authorize(SiteAdminPermissions.Fields.Create)]
     public virtual Task<FieldDto> CreateFieldAsync(
         [Description(
             "Machine name, unique across the site, e.g. 'title'. THIS IS THE KEY VALUES ARE STORED " +
@@ -92,7 +92,7 @@ public class FieldTools : ITransientDependency
     [Description(
         "Updates a field definition. Anything left null keeps its current value. The change applies " +
         "everywhere the field is used. Cannot rename - use rename_field.")]
-    [Authorize(AdminPermissions.Fields.Update)]
+    [Authorize(SiteAdminPermissions.Fields.Update)]
     public virtual async Task<FieldDto> UpdateFieldAsync(
         [Description("The field's machine name.")]
         string field,
@@ -123,7 +123,7 @@ public class FieldTools : ITransientDependency
         "This is a data migration, not an edit - the field's name is the key its values are stored " +
         "under. Separate from update_field, and separately permissioned, for that reason. Any external " +
         "template or front end referring to the old name breaks. Confirm with the user first.")]
-    [Authorize(AdminPermissions.Fields.Rename)]
+    [Authorize(SiteAdminPermissions.Fields.Rename)]
     public virtual async Task<FieldDto> RenameFieldAsync(
         [Description("The field's current machine name.")] string field,
         [Description("The new machine name. Must be unique across the site.")] string newName)
@@ -141,7 +141,7 @@ public class FieldTools : ITransientDependency
         "Deletes a field definition and strips its values from every content across the site. Content " +
         "types that still reference it are left as they are; the usage is simply skipped from then on. " +
         "Cannot be undone. Confirm with the user first.")]
-    [Authorize(AdminPermissions.Fields.Delete)]
+    [Authorize(SiteAdminPermissions.Fields.Delete)]
     public virtual async Task<string> DeleteFieldAsync(
         [Description("The field's machine name.")] string field)
     {

@@ -11,8 +11,8 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Admin.ContentTypes;
 
-[Authorize(AdminPermissions.ContentTypes.Default)]
-public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppService
+[Authorize(SiteAdminPermissions.ContentTypes.Default)]
+public class ContentTypeAdminAppService : SiteAdminAppService, IContentTypeAdminAppService
 {
     protected IContentTypeRepository ContentTypeRepository { get; }
 
@@ -54,7 +54,7 @@ public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppS
         return new ListResultDto<ContentTypeDto>(contentTypes.Select(MapToDto).ToList());
     }
 
-    [Authorize(AdminPermissions.ContentTypes.Create)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Create)]
     public virtual async Task<ContentTypeDto> CreateAsync(CreateContentTypeDto input)
     {
         var contentType = await ContentTypeManager.CreateAsync(
@@ -63,7 +63,7 @@ public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppS
         return MapToDto(contentType);
     }
 
-    [Authorize(AdminPermissions.ContentTypes.Update)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Update)]
     public virtual async Task<ContentTypeDto> UpdateAsync(Guid id, UpdateContentTypeDto input)
     {
         var contentType = await ContentTypeRepository.GetAsync(id);
@@ -74,7 +74,7 @@ public class ContentTypeAdminAppService : AdminAppService, IContentTypeAdminAppS
         return MapToDto(contentType);
     }
 
-    [Authorize(AdminPermissions.ContentTypes.Delete)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Delete)]
     public virtual async Task DeleteAsync(Guid id)
     {
         // This check is the only guard, not a friendlier duplicate of one the database also enforces.

@@ -11,7 +11,7 @@ using Volo.Abp.EntityFrameworkCore;
 
 namespace Dignite.Site.Host.Migrations
 {
-    [DbContext(typeof(HostDbContext))]
+    [DbContext(typeof(SiteHostDbContext))]
     [Migration("20260807114459_Site_MergeContentPathPatternIntoRoute")]
     partial class Site_MergeContentPathPatternIntoRoute
     {

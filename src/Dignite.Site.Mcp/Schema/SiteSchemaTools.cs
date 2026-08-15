@@ -30,9 +30,9 @@ public class SiteSchemaTools : ITransientDependency
         "field's option list, and so on - what a value has to fit), whether this content type requires " +
         "them, and a description of what belongs in them. Call this first - every other tool is " +
         "addressed by these names, and they are this site's own data, not anything that can be guessed.")]
-    [Authorize(AdminPermissions.Pages.Default)]
-    [Authorize(AdminPermissions.ContentTypes.Default)]
-    [Authorize(AdminPermissions.Fields.Default)]
+    [Authorize(SiteAdminPermissions.Pages.Default)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Default)]
+    [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual Task<SiteSchemaDto> GetSiteSchemaAsync()
     {
         return SiteSchemaAppService.GetAsync();

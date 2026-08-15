@@ -40,7 +40,7 @@ public class PageTools : ITransientDependency
         "carrying only the SEO field - call update_content_type on it to set the real field arrangement " +
         "(or create_content_type for an additional type, if this page needs more than one shape of " +
         "content).")]
-    [Authorize(AdminPermissions.Pages.Create)]
+    [Authorize(SiteAdminPermissions.Pages.Create)]
     public virtual async Task<PageDto> CreatePageAsync(
         [Description("Machine name, unique across the site, e.g. 'blog'. This is how every other tool addresses this page.")]
         string name,
@@ -84,7 +84,7 @@ public class PageTools : ITransientDependency
     [Description(
         "Updates a page. Anything left null keeps its current value. Changing 'route' changes the URL " +
         "of every content beneath this page, so old links stop working.")]
-    [Authorize(AdminPermissions.Pages.Update)]
+    [Authorize(SiteAdminPermissions.Pages.Update)]
     public virtual async Task<PageDto> UpdatePageAsync(
         [Description("The page's current machine name, from get_site_schema.")]
         string page,
@@ -142,7 +142,7 @@ public class PageTools : ITransientDependency
         "tree - move them elsewhere or delete them first with update_page/delete_page. If this page is " +
         "the home page, the site is left with none, which is what hreflang's x-default points at - set " +
         "another page as home first if that matters. Confirm with the user first.")]
-    [Authorize(AdminPermissions.Pages.Delete)]
+    [Authorize(SiteAdminPermissions.Pages.Delete)]
     public virtual async Task<string> DeletePageAsync(
         [Description("The page's machine name, from get_site_schema.")] string page)
     {

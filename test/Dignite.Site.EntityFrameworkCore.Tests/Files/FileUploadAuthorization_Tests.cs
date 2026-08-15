@@ -29,7 +29,7 @@ public class FileUploadAuthorization_Tests : SiteEntityFrameworkCoreTestBase
             .Get(SiteFileContainerNames.Default);
         var authorization = containerConfiguration.GetAuthorizationConfiguration();
 
-        authorization.CreateFilePermissionName.ShouldBe(AdminPermissions.Contents.Create);
+        authorization.CreateFilePermissionName.ShouldBe(SiteAdminPermissions.Contents.Create);
 
         // Unset, not locked down: a published content's images must load for anonymous site visitors, not
         // just authenticated editors (FileDescriptorAuthorizationHandler's own default for unset is

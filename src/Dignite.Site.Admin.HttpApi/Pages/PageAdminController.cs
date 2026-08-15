@@ -9,11 +9,11 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Admin.Pages;
 
-[RemoteService(Name = AdminRemoteServiceConsts.RemoteServiceName)]
-[Area(AdminRemoteServiceConsts.ModuleName)]
-[Authorize(AdminPermissions.Pages.Default)]
+[RemoteService(Name = SiteAdminRemoteServiceConsts.RemoteServiceName)]
+[Area(SiteAdminRemoteServiceConsts.ModuleName)]
+[Authorize(SiteAdminPermissions.Pages.Default)]
 [Route("api/site-admin/pages")]
-public class PageAdminController : AdminController, IPageAdminAppService
+public class PageAdminController : SiteAdminController, IPageAdminAppService
 {
     protected IPageAdminAppService PageAdminAppService { get; }
 
@@ -50,7 +50,7 @@ public class PageAdminController : AdminController, IPageAdminAppService
     }
 
     [HttpPost]
-    [Authorize(AdminPermissions.Pages.Create)]
+    [Authorize(SiteAdminPermissions.Pages.Create)]
     public virtual Task<PageDto> CreateAsync(CreatePageDto input)
     {
         return PageAdminAppService.CreateAsync(input);
@@ -58,7 +58,7 @@ public class PageAdminController : AdminController, IPageAdminAppService
 
     [HttpPut]
     [Route("{id}")]
-    [Authorize(AdminPermissions.Pages.Update)]
+    [Authorize(SiteAdminPermissions.Pages.Update)]
     public virtual Task<PageDto> UpdateAsync(Guid id, UpdatePageDto input)
     {
         return PageAdminAppService.UpdateAsync(id, input);
@@ -66,7 +66,7 @@ public class PageAdminController : AdminController, IPageAdminAppService
 
     [HttpDelete]
     [Route("{id}")]
-    [Authorize(AdminPermissions.Pages.Delete)]
+    [Authorize(SiteAdminPermissions.Pages.Delete)]
     public virtual Task DeleteAsync(Guid id)
     {
         return PageAdminAppService.DeleteAsync(id);

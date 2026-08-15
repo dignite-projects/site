@@ -7,7 +7,7 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Public.ContentTypes;
 
-public class ContentTypePublicAppService : PublicAppService, IContentTypePublicAppService
+public class ContentTypePublicAppService : SitePublicAppService, IContentTypePublicAppService
 {
     protected IContentTypeRepository ContentTypeRepository { get; }
 

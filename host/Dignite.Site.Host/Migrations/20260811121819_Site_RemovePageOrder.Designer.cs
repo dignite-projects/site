@@ -11,7 +11,7 @@ using Volo.Abp.EntityFrameworkCore;
 
 namespace Dignite.Site.Host.Migrations
 {
-    [DbContext(typeof(HostDbContext))]
+    [DbContext(typeof(SiteHostDbContext))]
     [Migration("20260811121819_Site_RemovePageOrder")]
     partial class Site_RemovePageOrder
     {

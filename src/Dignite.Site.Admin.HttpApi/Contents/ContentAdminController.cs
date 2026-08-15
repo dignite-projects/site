@@ -9,11 +9,11 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Admin.Contents;
 
-[RemoteService(Name = AdminRemoteServiceConsts.RemoteServiceName)]
-[Area(AdminRemoteServiceConsts.ModuleName)]
-[Authorize(AdminPermissions.Contents.Default)]
+[RemoteService(Name = SiteAdminRemoteServiceConsts.RemoteServiceName)]
+[Area(SiteAdminRemoteServiceConsts.ModuleName)]
+[Authorize(SiteAdminPermissions.Contents.Default)]
 [Route("api/site-admin/contents")]
-public class ContentAdminController : AdminController, IContentAdminAppService
+public class ContentAdminController : SiteAdminController, IContentAdminAppService
 {
     protected IContentAdminAppService ContentAdminAppService { get; }
 
@@ -47,7 +47,7 @@ public class ContentAdminController : AdminController, IContentAdminAppService
     }
 
     [HttpPost]
-    [Authorize(AdminPermissions.Contents.Create)]
+    [Authorize(SiteAdminPermissions.Contents.Create)]
     public virtual Task<ContentDto> CreateAsync(CreateContentDto input)
     {
         return ContentAdminAppService.CreateAsync(input);
@@ -55,7 +55,7 @@ public class ContentAdminController : AdminController, IContentAdminAppService
 
     [HttpPut]
     [Route("{id}")]
-    [Authorize(AdminPermissions.Contents.Update)]
+    [Authorize(SiteAdminPermissions.Contents.Update)]
     public virtual Task<ContentDto> UpdateAsync(Guid id, UpdateContentDto input)
     {
         return ContentAdminAppService.UpdateAsync(id, input);
@@ -63,7 +63,7 @@ public class ContentAdminController : AdminController, IContentAdminAppService
 
     [HttpDelete]
     [Route("{id}")]
-    [Authorize(AdminPermissions.Contents.Delete)]
+    [Authorize(SiteAdminPermissions.Contents.Delete)]
     public virtual Task DeleteAsync(Guid id)
     {
         return ContentAdminAppService.DeleteAsync(id);

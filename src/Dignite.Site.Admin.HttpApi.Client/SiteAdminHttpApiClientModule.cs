@@ -1,0 +1,28 @@
+﻿using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp.Http.Client;
+using Volo.Abp.Modularity;
+using Volo.Abp.VirtualFileSystem;
+using Dignite.Site.Common;
+
+namespace Dignite.Site.Admin;
+
+[DependsOn(
+    typeof(SiteAdminApplicationContractsModule),
+    typeof(SiteCommonHttpApiClientModule),
+    typeof(AbpHttpClientModule))]
+public class SiteAdminHttpApiClientModule : AbpModule
+{
+    public override void ConfigureServices(ServiceConfigurationContext context)
+    {
+        context.Services.AddHttpClientProxies(
+            typeof(SiteAdminApplicationContractsModule).Assembly,
+            SiteAdminRemoteServiceConsts.RemoteServiceName
+        );
+
+        Configure<AbpVirtualFileSystemOptions>(options =>
+        {
+            options.FileSets.AddEmbedded<SiteAdminHttpApiClientModule>();
+        });
+
+    }
+}

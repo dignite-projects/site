@@ -30,10 +30,10 @@ namespace Dignite.Site.Admin.Schema;
 /// it.
 /// </para>
 /// </summary>
-[Authorize(AdminPermissions.Pages.Default)]
-[Authorize(AdminPermissions.ContentTypes.Default)]
-[Authorize(AdminPermissions.Fields.Default)]
-public class SiteSchemaAdminAppService : AdminAppService, ISiteSchemaAdminAppService
+[Authorize(SiteAdminPermissions.Pages.Default)]
+[Authorize(SiteAdminPermissions.ContentTypes.Default)]
+[Authorize(SiteAdminPermissions.Fields.Default)]
+public class SiteSchemaAdminAppService : SiteAdminAppService, ISiteSchemaAdminAppService
 {
     protected IPageRepository PageRepository { get; }
 

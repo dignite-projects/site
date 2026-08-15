@@ -11,7 +11,7 @@ using Volo.Abp.EntityFrameworkCore;
 
 namespace Dignite.Site.Host.Migrations
 {
-    [DbContext(typeof(HostDbContext))]
+    [DbContext(typeof(SiteHostDbContext))]
     [Migration("20260807075603_Site_RemoveContentTypeSchemaType")]
     partial class Site_RemoveContentTypeSchemaType
     {

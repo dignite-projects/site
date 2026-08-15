@@ -18,7 +18,7 @@ namespace Dignite.Site.Public;
 /// unmodified candidate locations when nothing matches, so this is purely additive - safe to have
 /// registered even for a host that never ends up using the override.
 /// <para>
-/// Registered by <see cref="PublicWebModule"/> - a consumer only needs the module dependency, not its
+/// Registered by <see cref="SitePublicWebModule"/> - a consumer only needs the module dependency, not its
 /// own <c>Configure&lt;RazorViewEngineOptions&gt;</c>.
 /// </para>
 /// </summary>

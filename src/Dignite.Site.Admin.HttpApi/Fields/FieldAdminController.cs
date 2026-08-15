@@ -9,11 +9,11 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Admin.Fields;
 
-[RemoteService(Name = AdminRemoteServiceConsts.RemoteServiceName)]
-[Area(AdminRemoteServiceConsts.ModuleName)]
-[Authorize(AdminPermissions.Fields.Default)]
+[RemoteService(Name = SiteAdminRemoteServiceConsts.RemoteServiceName)]
+[Area(SiteAdminRemoteServiceConsts.ModuleName)]
+[Authorize(SiteAdminPermissions.Fields.Default)]
 [Route("api/site-admin/fields")]
-public class FieldAdminController : AdminController, IFieldAdminAppService
+public class FieldAdminController : SiteAdminController, IFieldAdminAppService
 {
     protected IFieldAdminAppService FieldAdminAppService { get; }
 
@@ -44,7 +44,7 @@ public class FieldAdminController : AdminController, IFieldAdminAppService
     }
 
     [HttpPost]
-    [Authorize(AdminPermissions.Fields.Create)]
+    [Authorize(SiteAdminPermissions.Fields.Create)]
     public virtual Task<FieldDto> CreateAsync(CreateFieldDto input)
     {
         return FieldAdminAppService.CreateAsync(input);
@@ -52,7 +52,7 @@ public class FieldAdminController : AdminController, IFieldAdminAppService
 
     [HttpPut]
     [Route("{id}")]
-    [Authorize(AdminPermissions.Fields.Update)]
+    [Authorize(SiteAdminPermissions.Fields.Update)]
     public virtual Task<FieldDto> UpdateAsync(Guid id, UpdateFieldDto input)
     {
         return FieldAdminAppService.UpdateAsync(id, input);
@@ -60,7 +60,7 @@ public class FieldAdminController : AdminController, IFieldAdminAppService
 
     [HttpPost]
     [Route("{id}/rename")]
-    [Authorize(AdminPermissions.Fields.Rename)]
+    [Authorize(SiteAdminPermissions.Fields.Rename)]
     public virtual Task<FieldDto> RenameAsync(Guid id, RenameFieldDto input)
     {
         return FieldAdminAppService.RenameAsync(id, input);
@@ -68,7 +68,7 @@ public class FieldAdminController : AdminController, IFieldAdminAppService
 
     [HttpDelete]
     [Route("{id}")]
-    [Authorize(AdminPermissions.Fields.Delete)]
+    [Authorize(SiteAdminPermissions.Fields.Delete)]
     public virtual Task DeleteAsync(Guid id)
     {
         return FieldAdminAppService.DeleteAsync(id);

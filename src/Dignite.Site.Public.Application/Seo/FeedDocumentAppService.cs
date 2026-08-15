@@ -21,7 +21,7 @@ namespace Dignite.Site.Public.Seo;
 /// endpoint cannot end up disagreeing about the address.
 /// </para>
 /// </summary>
-public class FeedDocumentAppService : PublicAppService, IFeedDocumentAppService
+public class FeedDocumentAppService : SitePublicAppService, IFeedDocumentAppService
 {
     protected IPageRepository PageRepository { get; }
 

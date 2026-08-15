@@ -9,8 +9,8 @@ namespace Dignite.Site;
 
 [DependsOn(
     typeof(SiteApplicationContractsModule),
-    typeof(AdminApplicationModule),
-    typeof(PublicApplicationModule),
+    typeof(SiteAdminApplicationModule),
+    typeof(SitePublicApplicationModule),
     typeof(AbpDddApplicationModule),
     typeof(AbpMapperlyModule)
     )]

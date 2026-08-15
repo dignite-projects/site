@@ -41,13 +41,13 @@ public class Program
             {
                 builder.Services.AddDataMigrationEnvironment();
             }
-            await builder.AddApplicationAsync<HostModule>();
+            await builder.AddApplicationAsync<SiteHostModule>();
             var app = builder.Build();
             await app.InitializeApplicationAsync();
 
             if (IsMigrateDatabase(args))
             {
-                await app.Services.GetRequiredService<HostDbMigrationService>().MigrateAsync();
+                await app.Services.GetRequiredService<SiteHostDbMigrationService>().MigrateAsync();
                 var previous = Console.ForegroundColor;
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Migration completed.");

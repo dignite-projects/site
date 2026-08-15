@@ -13,7 +13,7 @@ using Volo.Abp.Timing;
 namespace Dignite.Site.Public.Contents;
 
 /// <summary>Published content only, enforced on every path - by id, by slug, in lists, and in translations.</summary>
-public class ContentPublicAppService : PublicAppService, IContentPublicAppService
+public class ContentPublicAppService : SitePublicAppService, IContentPublicAppService
 {
     protected IContentRepository ContentRepository { get; }
 

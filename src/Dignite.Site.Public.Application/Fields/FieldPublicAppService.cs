@@ -8,7 +8,7 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Public.Fields;
 
-public class FieldPublicAppService : PublicAppService, IFieldPublicAppService
+public class FieldPublicAppService : SitePublicAppService, IFieldPublicAppService
 {
     protected IFieldRepository FieldRepository { get; }
 

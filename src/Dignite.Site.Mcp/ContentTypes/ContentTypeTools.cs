@@ -46,7 +46,7 @@ public class ContentTypeTools : ITransientDependency
         "library. Every field named here must already exist - call create_field for any that does not. " +
         "The same field can be pulled into any number of content types, with different required and " +
         "searchable flags in each.")]
-    [Authorize(AdminPermissions.ContentTypes.Create)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Create)]
     public virtual async Task<ContentTypeDto> CreateContentTypeAsync(
         [Description("The page this type belongs to, by name. A content type never moves to another page.")]
         string page,
@@ -82,7 +82,7 @@ public class ContentTypeTools : ITransientDependency
         "back, though it does not delete them. An empty 'fields' list is a real value, not a synonym for " +
         "omitting the parameter: it clears the arrangement down to zero fields. To leave fields alone, " +
         "do not pass the parameter at all.")]
-    [Authorize(AdminPermissions.ContentTypes.Update)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Update)]
     public virtual async Task<ContentTypeDto> UpdateContentTypeAsync(
         [Description("The page this type belongs to, by name.")]
         string page,
@@ -117,7 +117,7 @@ public class ContentTypeTools : ITransientDependency
         "Deletes a content type. Refused while any content still uses it - move or delete those contents " +
         "first. The field definitions it referenced are not affected; they live in the tenant-wide field " +
         "library and other types may still use them.")]
-    [Authorize(AdminPermissions.ContentTypes.Delete)]
+    [Authorize(SiteAdminPermissions.ContentTypes.Delete)]
     public virtual async Task<string> DeleteContentTypeAsync(
         [Description("The page this type belongs to, by name.")] string page,
         [Description("The type's machine name.")] string contentType)

@@ -148,7 +148,7 @@ public static class SiteDbContextModelCreatingExtensions
 
         // Dignite.FileExplorer (GitHub issue #41's follow-up) is consumed the same way FlexFields is
         // (§8.2) - part of Site's own EF Core wiring, not something Host bolts on separately. Whatever
-        // DbContext calls ConfigureSite() - SiteDbContext for standalone use, HostDbContext once a host
+        // DbContext calls ConfigureSite() - SiteDbContext for standalone use, SiteHostDbContext once a host
         // replaces it - gets FileExplorer's tables for free from this one call.
         builder.ConfigureFileExplorer();
     }

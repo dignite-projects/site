@@ -4,7 +4,7 @@
 @using Volo.Abp.Users
 @using Volo.Abp.AspNetCore.Mvc.UI.Layout;
 @using Dignite.Site.Host.Menus;
-@inject IHtmlLocalizer<HostResource> L
+@inject IHtmlLocalizer<SiteHostResource> L
 @model Dignite.Site.Host.Pages.IndexModel
 @inject ICurrentUser CurrentUser
 @inject IPageLayout PageLayout
@@ -12,7 +12,7 @@
     PageLayout.Content.Title = L["Menu:Home"].Value;    
     PageLayout.Content.BreadCrumb.ShowCurrent = false;
     PageLayout.Content.ShowToolbar = false;
-    PageLayout.Content.MenuItemName = HostMenus.Home;
+    PageLayout.Content.MenuItemName = SiteHostMenus.Home;
 }
 
 @section styles {

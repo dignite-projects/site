@@ -8,7 +8,7 @@ using Dignite.Site.Seo;
 
 namespace Dignite.Site.Public.Routing;
 
-public class RoutingPublicAppService : PublicAppService, IRoutingPublicAppService
+public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppService
 {
     protected SiteRouteResolver RouteResolver { get; }
 

@@ -9,7 +9,7 @@ public static class HealthChecksBuilderExtensions
     {
         // Add your health checks here
         var healthChecksBuilder = services.AddHealthChecks();
-        healthChecksBuilder.AddCheck<HostDatabaseCheck>("Host DbContext Check", tags: new string[] { "database" });
+        healthChecksBuilder.AddCheck<SiteHostDatabaseCheck>("Host DbContext Check", tags: new string[] { "database" });
 
         var configuration = services.GetConfiguration();
         var healthCheckUrl = configuration["App:HealthCheckUrl"];

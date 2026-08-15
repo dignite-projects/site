@@ -43,7 +43,7 @@ public class SiteMcpOptions
     /// The usual value is a single entry, <c>McpAuthenticationDefaults.AuthenticationScheme</c>. That
     /// scheme authenticates nothing on its own - it <i>forwards</i>, so the host also points its
     /// <c>ForwardAuthenticate</c> at whichever bearer scheme it runs (this solution's does so in
-    /// <c>HostModule.ConfigureMcpResourceMetadata</c>) - and it is what produces the 401 challenge. Which
+    /// <c>SiteHostModule.ConfigureMcpResourceMetadata</c>) - and it is what produces the 401 challenge. Which
     /// bearer scheme a host runs is the host's business, which is why this list is left to the host to
     /// state rather than guessed at here.
     /// </para>

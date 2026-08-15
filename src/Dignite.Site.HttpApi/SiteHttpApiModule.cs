@@ -11,8 +11,8 @@ namespace Dignite.Site;
 
 [DependsOn(
     typeof(SiteApplicationContractsModule),
-    typeof(AdminHttpApiModule),
-    typeof(PublicHttpApiModule),
+    typeof(SiteAdminHttpApiModule),
+    typeof(SitePublicHttpApiModule),
     typeof(AbpAspNetCoreMvcModule))]
 public class SiteHttpApiModule : AbpModule
 {

@@ -9,8 +9,8 @@ namespace Dignite.Site;
 
 [DependsOn(
     typeof(SiteApplicationContractsModule),
-    typeof(AdminHttpApiClientModule),
-    typeof(PublicHttpApiClientModule),
+    typeof(SiteAdminHttpApiClientModule),
+    typeof(SitePublicHttpApiClientModule),
     typeof(AbpHttpClientModule))]
 public class SiteHttpApiClientModule : AbpModule
 {

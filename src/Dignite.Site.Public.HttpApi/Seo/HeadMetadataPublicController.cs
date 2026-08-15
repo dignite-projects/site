@@ -4,10 +4,10 @@ using Volo.Abp;
 
 namespace Dignite.Site.Public.Seo;
 
-[RemoteService(Name = PublicRemoteServiceConsts.RemoteServiceName)]
-[Area(PublicRemoteServiceConsts.ModuleName)]
+[RemoteService(Name = SitePublicRemoteServiceConsts.RemoteServiceName)]
+[Area(SitePublicRemoteServiceConsts.ModuleName)]
 [Route("api/site-public/head-metadata")]
-public class HeadMetadataPublicController : PublicController, IHeadMetadataPublicAppService
+public class HeadMetadataPublicController : SitePublicController, IHeadMetadataPublicAppService
 {
     protected IHeadMetadataPublicAppService HeadMetadataPublicAppService { get; }
 

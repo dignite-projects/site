@@ -11,13 +11,13 @@ namespace Dignite.Site.Admin.Schema;
 /// an ordinary read like any other, so it is exposed here too - a back-office or an external front end
 /// building an editor form needs the same merged view.
 /// </summary>
-[RemoteService(Name = AdminRemoteServiceConsts.RemoteServiceName)]
-[Area(AdminRemoteServiceConsts.ModuleName)]
-[Authorize(AdminPermissions.Pages.Default)]
-[Authorize(AdminPermissions.ContentTypes.Default)]
-[Authorize(AdminPermissions.Fields.Default)]
+[RemoteService(Name = SiteAdminRemoteServiceConsts.RemoteServiceName)]
+[Area(SiteAdminRemoteServiceConsts.ModuleName)]
+[Authorize(SiteAdminPermissions.Pages.Default)]
+[Authorize(SiteAdminPermissions.ContentTypes.Default)]
+[Authorize(SiteAdminPermissions.Fields.Default)]
 [Route("api/site-admin/schema")]
-public class SiteSchemaAdminController : AdminController, ISiteSchemaAdminAppService
+public class SiteSchemaAdminController : SiteAdminController, ISiteSchemaAdminAppService
 {
     protected ISiteSchemaAdminAppService SiteSchemaAdminAppService { get; }
 

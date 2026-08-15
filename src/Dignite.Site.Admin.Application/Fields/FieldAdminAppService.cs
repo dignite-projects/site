@@ -10,8 +10,8 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Admin.Fields;
 
-[Authorize(AdminPermissions.Fields.Default)]
-public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
+[Authorize(SiteAdminPermissions.Fields.Default)]
+public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
 {
     protected IFieldRepository FieldRepository { get; }
 
@@ -48,7 +48,7 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
         return new ListResultDto<FieldDto>(fields.Select(MapToDto).ToList());
     }
 
-    [Authorize(AdminPermissions.Fields.Create)]
+    [Authorize(SiteAdminPermissions.Fields.Create)]
     public virtual async Task<FieldDto> CreateAsync(CreateFieldDto input)
     {
         var field = await FieldManager.CreateAsync(
@@ -58,7 +58,7 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
         return MapToDto(field);
     }
 
-    [Authorize(AdminPermissions.Fields.Update)]
+    [Authorize(SiteAdminPermissions.Fields.Update)]
     public virtual async Task<FieldDto> UpdateAsync(Guid id, UpdateFieldDto input)
     {
         var field = await FieldRepository.GetAsync(id);
@@ -70,7 +70,7 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
         return MapToDto(field);
     }
 
-    [Authorize(AdminPermissions.Fields.Rename)]
+    [Authorize(SiteAdminPermissions.Fields.Rename)]
     public virtual async Task<FieldDto> RenameAsync(Guid id, RenameFieldDto input)
     {
         var field = await FieldRepository.GetAsync(id);
@@ -81,7 +81,7 @@ public class FieldAdminAppService : AdminAppService, IFieldAdminAppService
         return MapToDto(field);
     }
 
-    [Authorize(AdminPermissions.Fields.Delete)]
+    [Authorize(SiteAdminPermissions.Fields.Delete)]
     public virtual async Task DeleteAsync(Guid id)
     {
         var field = await FieldRepository.GetAsync(id);
