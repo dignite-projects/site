@@ -1139,6 +1139,58 @@
       "rootPath": "app",
       "remoteServiceName": "Default",
       "controllers": {
+        "Dignite.Site.Public.Routing.SiteRenderController": {
+          "controllerName": "SiteRender",
+          "controllerGroupName": "SiteRender",
+          "isRemoteService": false,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Public.Routing.SiteRenderController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [],
+          "actions": {
+            "RenderAsync": {
+              "uniqueName": "RenderAsync",
+              "name": "RenderAsync",
+              "httpMethod": "GET",
+              "url": "{path}",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [
+                {
+                  "nameOnMethod": "path",
+                  "name": "path",
+                  "jsonName": null,
+                  "type": null,
+                  "typeSimple": null,
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Microsoft.AspNetCore.Mvc.IActionResult",
+                "typeSimple": "Microsoft.AspNetCore.Mvc.IActionResult",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Routing.SiteRenderController",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
         "Dignite.Site.Public.Seo.FeedController": {
           "controllerName": "Feed",
           "controllerGroupName": null,
@@ -1729,6 +1781,1660 @@
               "allowAnonymous": null,
               "authorizeDatas": [],
               "implementFrom": "Volo.Abp.FeatureManagement.IFeatureAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        }
+      }
+    },
+    "file-explorer": {
+      "rootPath": "file-explorer",
+      "remoteServiceName": "FileExplorer",
+      "controllers": {
+        "Dignite.FileExplorer.Directories.FileDescriptorController": {
+          "controllerName": "FileDescriptor",
+          "controllerGroupName": "FileDescriptor",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.FileExplorer.Directories.FileDescriptorController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.FileExplorer.Directories.IDirectoryDescriptorAppService",
+              "name": "IDirectoryDescriptorAppService",
+              "methods": [
+                {
+                  "name": "MoveAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.FileExplorer.Directories.MoveDirectoryInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Directories.MoveDirectoryInput",
+                      "typeSimple": "Dignite.FileExplorer.Directories.MoveDirectoryInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetListAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.FileExplorer.Directories.GetDirectoriesInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Directories.GetDirectoriesInput",
+                      "typeSimple": "Dignite.FileExplorer.Directories.GetDirectoriesInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto>",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "CreateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.FileExplorer.Directories.CreateDirectoryInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Directories.CreateDirectoryInput",
+                      "typeSimple": "Dignite.FileExplorer.Directories.CreateDirectoryInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "UpdateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.FileExplorer.Directories.UpdateDirectoryInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Directories.UpdateDirectoryInput",
+                      "typeSimple": "Dignite.FileExplorer.Directories.UpdateDirectoryInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "DeleteAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void",
+                    "summary": null
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "CreateAsyncByInput": {
+              "uniqueName": "CreateAsyncByInput",
+              "name": "CreateAsync",
+              "httpMethod": "POST",
+              "url": "api/file-explorer/directories",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.FileExplorer.Directories.CreateDirectoryInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Directories.CreateDirectoryInput",
+                  "typeSimple": "Dignite.FileExplorer.Directories.CreateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.FileExplorer.Directories.CreateDirectoryInput",
+                  "typeSimple": "Dignite.FileExplorer.Directories.CreateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.ICreateAppService<Dignite.FileExplorer.Directories.DirectoryDescriptorDto,Dignite.FileExplorer.Directories.CreateDirectoryInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DeleteAsyncById": {
+              "uniqueName": "DeleteAsyncById",
+              "name": "DeleteAsync",
+              "httpMethod": "DELETE",
+              "url": "api/file-explorer/directories/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IDeleteAppService<System.Guid>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetAsyncById": {
+              "uniqueName": "GetAsyncById",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/directories/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.FileExplorer.Directories.DirectoryDescriptorDto,Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto,System.Guid,Dignite.FileExplorer.Directories.GetDirectoriesInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetListAsyncByInput": {
+              "uniqueName": "GetListAsyncByInput",
+              "name": "GetListAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/directories",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.FileExplorer.Directories.GetDirectoriesInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Directories.GetDirectoriesInput",
+                  "typeSimple": "Dignite.FileExplorer.Directories.GetDirectoriesInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "ContainerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto>",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.FileExplorer.Directories.DirectoryDescriptorDto,Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto,System.Guid,Dignite.FileExplorer.Directories.GetDirectoriesInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "MoveAsyncByIdAndInput": {
+              "uniqueName": "MoveAsyncByIdAndInput",
+              "name": "MoveAsync",
+              "httpMethod": "PUT",
+              "url": "api/file-explorer/directories/{id}/move",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.FileExplorer.Directories.MoveDirectoryInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Directories.MoveDirectoryInput",
+                  "typeSimple": "Dignite.FileExplorer.Directories.MoveDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.FileExplorer.Directories.MoveDirectoryInput",
+                  "typeSimple": "Dignite.FileExplorer.Directories.MoveDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.FileExplorer.Directories.IDirectoryDescriptorAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UpdateAsyncByIdAndInput": {
+              "uniqueName": "UpdateAsyncByIdAndInput",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "api/file-explorer/directories/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.FileExplorer.Directories.UpdateDirectoryInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Directories.UpdateDirectoryInput",
+                  "typeSimple": "Dignite.FileExplorer.Directories.UpdateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.FileExplorer.Directories.UpdateDirectoryInput",
+                  "typeSimple": "Dignite.FileExplorer.Directories.UpdateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.FileExplorer.Directories.DirectoryDescriptorDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IUpdateAppService<Dignite.FileExplorer.Directories.DirectoryDescriptorDto,System.Guid,Dignite.FileExplorer.Directories.UpdateDirectoryInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.FileExplorer.Files.FileDescriptorController": {
+          "controllerName": "FileDescriptor",
+          "controllerGroupName": "FileDescriptor",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.FileExplorer.Files.FileDescriptorController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.FileExplorer.Files.IFileDescriptorAppService",
+              "name": "IFileDescriptorAppService",
+              "methods": [
+                {
+                  "name": "GetStreamAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "containerName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "blobName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "imageResize",
+                      "typeAsString": "Dignite.FileExplorer.Files.ImageResizeInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Files.ImageResizeInput",
+                      "typeSimple": "Dignite.FileExplorer.Files.ImageResizeInput",
+                      "isOptional": true,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Content.IRemoteStreamContent",
+                    "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetFileContainerConfigurationAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "containerName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Files.FileContainerConfigurationDto",
+                    "typeSimple": "Dignite.FileExplorer.Files.FileContainerConfigurationDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetListByEntityIdAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "containerName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "entityId",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "DeleteByEntityIdAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "containerName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "entityId",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                    "typeSimple": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetListAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.FileExplorer.Files.GetFilesInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Files.GetFilesInput",
+                      "typeSimple": "Dignite.FileExplorer.Files.GetFilesInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "CreateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.FileExplorer.Files.CreateFileInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Files.CreateFileInput",
+                      "typeSimple": "Dignite.FileExplorer.Files.CreateFileInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                    "typeSimple": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "UpdateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.FileExplorer.Files.UpdateFileInput, Dignite.FileExplorer.Application.Contracts",
+                      "type": "Dignite.FileExplorer.Files.UpdateFileInput",
+                      "typeSimple": "Dignite.FileExplorer.Files.UpdateFileInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                    "typeSimple": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "DeleteAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void",
+                    "summary": null
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "CreateAsyncByInput": {
+              "uniqueName": "CreateAsyncByInput",
+              "name": "CreateAsync",
+              "httpMethod": "POST",
+              "url": "api/file-explorer/files",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.FileExplorer.Files.CreateFileInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Files.CreateFileInput",
+                  "typeSimple": "Dignite.FileExplorer.Files.CreateFileInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "ContainerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "CellName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "DirectoryId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "EntityId",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "File",
+                  "jsonName": null,
+                  "type": "Volo.Abp.Content.IRemoteStreamContent",
+                  "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "FormFile",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                "typeSimple": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.ICreateAppService<Dignite.FileExplorer.Files.FileDescriptorDto,Dignite.FileExplorer.Files.CreateFileInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UpdateAsyncByIdAndInput": {
+              "uniqueName": "UpdateAsyncByIdAndInput",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "api/file-explorer/files/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.FileExplorer.Files.UpdateFileInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Files.UpdateFileInput",
+                  "typeSimple": "Dignite.FileExplorer.Files.UpdateFileInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.FileExplorer.Files.UpdateFileInput",
+                  "typeSimple": "Dignite.FileExplorer.Files.UpdateFileInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                "typeSimple": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IUpdateAppService<Dignite.FileExplorer.Files.FileDescriptorDto,System.Guid,Dignite.FileExplorer.Files.UpdateFileInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DeleteAsyncById": {
+              "uniqueName": "DeleteAsyncById",
+              "name": "DeleteAsync",
+              "httpMethod": "DELETE",
+              "url": "api/file-explorer/files/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IDeleteAppService<System.Guid>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DeleteByEntityIdAsyncByContainerNameAndEntityId": {
+              "uniqueName": "DeleteByEntityIdAsyncByContainerNameAndEntityId",
+              "name": "DeleteByEntityIdAsync",
+              "httpMethod": "DELETE",
+              "url": "api/file-explorer/files/{containerName}/{entityId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "containerName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "entityId",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "containerName",
+                  "name": "containerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "entityId",
+                  "name": "entityId",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.FileExplorer.Files.IFileDescriptorAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetAsyncById": {
+              "uniqueName": "GetAsyncById",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/files/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                "typeSimple": "Dignite.FileExplorer.Files.FileDescriptorDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.FileExplorer.Files.FileDescriptorDto,Dignite.FileExplorer.Files.FileDescriptorDto,System.Guid,Dignite.FileExplorer.Files.GetFilesInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetListAsyncByInput": {
+              "uniqueName": "GetListAsyncByInput",
+              "name": "GetListAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/files",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.FileExplorer.Files.GetFilesInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Files.GetFilesInput",
+                  "typeSimple": "Dignite.FileExplorer.Files.GetFilesInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "ContainerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "DirectoryId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "CreatorId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Filter",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "EntityId",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Sorting",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "SkipCount",
+                  "jsonName": null,
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "MaxResultCount",
+                  "jsonName": null,
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.FileExplorer.Files.FileDescriptorDto,Dignite.FileExplorer.Files.FileDescriptorDto,System.Guid,Dignite.FileExplorer.Files.GetFilesInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetListByEntityIdAsyncByContainerNameAndEntityId": {
+              "uniqueName": "GetListByEntityIdAsyncByContainerNameAndEntityId",
+              "name": "GetListByEntityIdAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/files/{containerName}/{entityId}/all",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "containerName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "entityId",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "containerName",
+                  "name": "containerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "entityId",
+                  "name": "entityId",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.FileExplorer.Files.FileDescriptorDto>",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.FileExplorer.Files.IFileDescriptorAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetFileContainerConfigurationAsyncByContainerName": {
+              "uniqueName": "GetFileContainerConfigurationAsyncByContainerName",
+              "name": "GetFileContainerConfigurationAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/files/{containerName}/configuration",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "containerName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "containerName",
+                  "name": "containerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.FileExplorer.Files.FileContainerConfigurationDto",
+                "typeSimple": "Dignite.FileExplorer.Files.FileContainerConfigurationDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.FileExplorer.Files.IFileDescriptorAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DownloadAsyncByContainerNameAndBlobNameAndFileName": {
+              "uniqueName": "DownloadAsyncByContainerNameAndBlobNameAndFileName",
+              "name": "DownloadAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/files/download/{containerName}/{blobName}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "containerName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "blobName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "fileName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "containerName",
+                  "name": "containerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "blobName",
+                  "name": "blobName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "fileName",
+                  "name": "fileName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Microsoft.AspNetCore.Mvc.FileResult",
+                "typeSimple": "Microsoft.AspNetCore.Mvc.FileResult",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.FileExplorer.Files.FileDescriptorController",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetStreamAsyncByContainerNameAndBlobNameAndImageResize": {
+              "uniqueName": "GetStreamAsyncByContainerNameAndBlobNameAndImageResize",
+              "name": "GetStreamAsync",
+              "httpMethod": "GET",
+              "url": "api/file-explorer/files/{containerName}/{blobName}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "containerName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "blobName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "imageResize",
+                  "typeAsString": "Dignite.FileExplorer.Files.ImageResizeInput, Dignite.FileExplorer.Application.Contracts",
+                  "type": "Dignite.FileExplorer.Files.ImageResizeInput",
+                  "typeSimple": "Dignite.FileExplorer.Files.ImageResizeInput",
+                  "isOptional": true,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "containerName",
+                  "name": "containerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "blobName",
+                  "name": "blobName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "imageResize",
+                  "name": "Width",
+                  "jsonName": null,
+                  "type": "System.Int32?",
+                  "typeSimple": "number?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "imageResize",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "imageResize",
+                  "name": "Height",
+                  "jsonName": null,
+                  "type": "System.Int32?",
+                  "typeSimple": "number?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "imageResize",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Content.IRemoteStreamContent",
+                "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.FileExplorer.Files.IFileDescriptorAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -6132,7 +7838,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Contents",
+                  "policy": "SiteAdmin.Contents",
                   "roles": null
                 }
               ],
@@ -6238,7 +7944,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Contents",
+                  "policy": "SiteAdmin.Contents",
                   "roles": null
                 }
               ],
@@ -6442,7 +8148,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Contents",
+                  "policy": "SiteAdmin.Contents",
                   "roles": null
                 }
               ],
@@ -6496,11 +8202,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Contents",
+                  "policy": "SiteAdmin.Contents",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Contents.Create",
+                  "policy": "SiteAdmin.Contents.Create",
                   "roles": null
                 }
               ],
@@ -6580,11 +8286,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Contents",
+                  "policy": "SiteAdmin.Contents",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Contents.Update",
+                  "policy": "SiteAdmin.Contents.Update",
                   "roles": null
                 }
               ],
@@ -6638,11 +8344,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Contents",
+                  "policy": "SiteAdmin.Contents",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Contents.Delete",
+                  "policy": "SiteAdmin.Contents.Delete",
                   "roles": null
                 }
               ],
@@ -6875,7 +8581,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 }
               ],
@@ -6929,7 +8635,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 }
               ],
@@ -6955,7 +8661,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 }
               ],
@@ -7035,7 +8741,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 }
               ],
@@ -7089,11 +8795,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.ContentTypes.Create",
+                  "policy": "SiteAdmin.ContentTypes.Create",
                   "roles": null
                 }
               ],
@@ -7173,11 +8879,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.ContentTypes.Update",
+                  "policy": "SiteAdmin.ContentTypes.Update",
                   "roles": null
                 }
               ],
@@ -7231,11 +8937,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.ContentTypes.Delete",
+                  "policy": "SiteAdmin.ContentTypes.Delete",
                   "roles": null
                 }
               ],
@@ -7489,7 +9195,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 }
               ],
@@ -7543,7 +9249,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 }
               ],
@@ -7597,7 +9303,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 }
               ],
@@ -7651,11 +9357,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Fields.Create",
+                  "policy": "SiteAdmin.Fields.Create",
                   "roles": null
                 }
               ],
@@ -7735,11 +9441,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Fields.Update",
+                  "policy": "SiteAdmin.Fields.Update",
                   "roles": null
                 }
               ],
@@ -7819,11 +9525,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Fields.Rename",
+                  "policy": "SiteAdmin.Fields.Rename",
                   "roles": null
                 }
               ],
@@ -7877,11 +9583,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Fields.Delete",
+                  "policy": "SiteAdmin.Fields.Delete",
                   "roles": null
                 }
               ],
@@ -7907,7 +9613,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 }
               ],
@@ -8052,38 +9758,6 @@
                   }
                 },
                 {
-                  "name": "MoveAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Pages.MovePageDto, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Pages.MovePageDto",
-                      "typeSimple": "Dignite.Site.Admin.Pages.MovePageDto",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Pages.PageDto",
-                    "typeSimple": "Dignite.Site.Pages.PageDto",
-                    "summary": null
-                  }
-                },
-                {
                   "name": "DeleteAsync",
                   "parametersOnMethod": [
                     {
@@ -8152,7 +9826,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Pages",
+                  "policy": "SiteAdmin.Pages",
                   "roles": null
                 }
               ],
@@ -8206,7 +9880,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Pages",
+                  "policy": "SiteAdmin.Pages",
                   "roles": null
                 }
               ],
@@ -8275,7 +9949,7 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Pages",
+                  "policy": "SiteAdmin.Pages",
                   "roles": null
                 }
               ],
@@ -8329,11 +10003,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Pages",
+                  "policy": "SiteAdmin.Pages",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Pages.Create",
+                  "policy": "SiteAdmin.Pages.Create",
                   "roles": null
                 }
               ],
@@ -8413,95 +10087,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Pages",
+                  "policy": "SiteAdmin.Pages",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Pages.Update",
-                  "roles": null
-                }
-              ],
-              "implementFrom": "Dignite.Site.Admin.Pages.IPageAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "MoveAsyncByIdAndInput": {
-              "uniqueName": "MoveAsyncByIdAndInput",
-              "name": "MoveAsync",
-              "httpMethod": "PUT",
-              "url": "api/site-admin/pages/{id}/move",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Pages.MovePageDto, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Pages.MovePageDto",
-                  "typeSimple": "Dignite.Site.Admin.Pages.MovePageDto",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Pages.MovePageDto",
-                  "typeSimple": "Dignite.Site.Admin.Pages.MovePageDto",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Pages.PageDto",
-                "typeSimple": "Dignite.Site.Pages.PageDto",
-                "summary": null
-              },
-              "allowAnonymous": false,
-              "authorizeDatas": [
-                {
-                  "policy": "Admin.Pages",
-                  "roles": null
-                },
-                {
-                  "policy": "Admin.Pages.Update",
+                  "policy": "SiteAdmin.Pages.Update",
                   "roles": null
                 }
               ],
@@ -8555,11 +10145,11 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Pages",
+                  "policy": "SiteAdmin.Pages",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Pages.Delete",
+                  "policy": "SiteAdmin.Pages.Delete",
                   "roles": null
                 }
               ],
@@ -8616,15 +10206,15 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "Admin.Pages",
+                  "policy": "SiteAdmin.Pages",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.ContentTypes",
+                  "policy": "SiteAdmin.ContentTypes",
                   "roles": null
                 },
                 {
-                  "policy": "Admin.Fields",
+                  "policy": "SiteAdmin.Fields",
                   "roles": null
                 }
               ],
@@ -8770,9 +10360,9 @@
                   "parametersOnMethod": [
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Public.Contents.GetPublicContentListInput, Dignite.Site.Public.Application.Contracts",
-                      "type": "Dignite.Site.Public.Contents.GetPublicContentListInput",
-                      "typeSimple": "Dignite.Site.Public.Contents.GetPublicContentListInput",
+                      "typeAsString": "Dignite.Site.Public.Contents.GetContentListInput, Dignite.Site.Public.Application.Contracts",
+                      "type": "Dignite.Site.Public.Contents.GetContentListInput",
+                      "typeSimple": "Dignite.Site.Public.Contents.GetContentListInput",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -8833,7 +10423,7 @@
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.Site.Contents.ContentDto,Dignite.Site.Contents.ContentDto,System.Guid,Dignite.Site.Public.Contents.GetPublicContentListInput>",
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.Site.Contents.ContentDto,Dignite.Site.Contents.ContentDto,System.Guid,Dignite.Site.Public.Contents.GetContentListInput>",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -8949,9 +10539,9 @@
               "parametersOnMethod": [
                 {
                   "name": "input",
-                  "typeAsString": "Dignite.Site.Public.Contents.GetPublicContentListInput, Dignite.Site.Public.Application.Contracts",
-                  "type": "Dignite.Site.Public.Contents.GetPublicContentListInput",
-                  "typeSimple": "Dignite.Site.Public.Contents.GetPublicContentListInput",
+                  "typeAsString": "Dignite.Site.Public.Contents.GetContentListInput, Dignite.Site.Public.Application.Contracts",
+                  "type": "Dignite.Site.Public.Contents.GetContentListInput",
+                  "typeSimple": "Dignite.Site.Public.Contents.GetContentListInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -9011,6 +10601,36 @@
                   "jsonName": null,
                   "type": "System.String",
                   "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "PublishedAfter",
+                  "jsonName": null,
+                  "type": "System.DateTime?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "PublishedBefore",
+                  "jsonName": null,
+                  "type": "System.DateTime?",
+                  "typeSimple": "string?",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -9088,7 +10708,7 @@
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.Site.Contents.ContentDto,Dignite.Site.Contents.ContentDto,System.Guid,Dignite.Site.Public.Contents.GetPublicContentListInput>",
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.Site.Contents.ContentDto,Dignite.Site.Contents.ContentDto,System.Guid,Dignite.Site.Public.Contents.GetContentListInput>",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -9580,6 +11200,27 @@
                   }
                 },
                 {
+                  "name": "FindByNameAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "name",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Pages.PageDto",
+                    "typeSimple": "Dignite.Site.Pages.PageDto",
+                    "summary": null
+                  }
+                },
+                {
                   "name": "GetListAsync",
                   "parametersOnMethod": [
                     {
@@ -9683,6 +11324,55 @@
                   "defaultValue": null,
                   "constraintTypes": null,
                   "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Pages.PageDto",
+                "typeSimple": "Dignite.Site.Pages.PageDto",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Pages.IPagePublicAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "FindByNameAsyncByName": {
+              "uniqueName": "FindByNameAsyncByName",
+              "name": "FindByNameAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/pages/by-name",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "name",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "name",
+                  "name": "name",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
                   "descriptorName": "",
                   "summary": null,
                   "description": null,
@@ -9828,21 +11518,6 @@
                   "summary": null,
                   "description": null,
                   "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "CultureName",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Query",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
                 }
               ],
               "returnValue": {
@@ -9924,21 +11599,6 @@
                 {
                   "nameOnMethod": "input",
                   "name": "Path",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Query",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "CultureName",
                   "jsonName": null,
                   "type": "System.String",
                   "typeSimple": "string",
@@ -10118,6 +11778,1036 @@
       "description": null,
       "displayName": null
     },
+    "Dignite.FileExplorer.Directories.CreateDirectoryInput": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ContainerName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": null,
+          "maxLength": 64,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": null,
+          "maxLength": 256,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "ParentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Directories.DirectoryDescriptorDto": {
+      "baseType": "Volo.Abp.Application.Dtos.ExtensibleAuditedEntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ContainerName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "ParentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Order",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto": {
+      "baseType": "Volo.Abp.Application.Dtos.ExtensibleEntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ContainerName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "ParentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Order",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Children",
+          "jsonName": null,
+          "type": "[Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto]",
+          "typeSimple": "[Dignite.FileExplorer.Directories.DirectoryDescriptorInfoDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Directories.GetDirectoriesInput": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ContainerName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Directories.MoveDirectoryInput": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ParentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Order",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Directories.UpdateDirectoryInput": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": null,
+          "maxLength": 256,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.CreateFileInput": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ContainerName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": 0,
+          "maxLength": 64,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "CellName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": 0,
+          "maxLength": 128,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "DirectoryId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "EntityId",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": 0,
+          "maxLength": 128,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "File",
+          "jsonName": null,
+          "type": "Volo.Abp.Content.IRemoteStreamContent",
+          "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+          "isRequired": true,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.FileCellDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.FileContainerConfigurationDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "MaxBlobSize",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "AllowedFileTypeNames",
+          "jsonName": null,
+          "type": "[System.String]",
+          "typeSimple": "[string]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "FileCells",
+          "jsonName": null,
+          "type": "[Dignite.FileExplorer.Files.FileCellDto]",
+          "typeSimple": "[Dignite.FileExplorer.Files.FileCellDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "CreateDirectoryPermissionName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "CreateFilePermissionName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "UpdateFilePermissionName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "DeleteFilePermissionName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "GetFilePermissionName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.FileDescriptorDto": {
+      "baseType": "Dignite.FileExplorer.Files.FileDescriptorListDto",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Url",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "TenantId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.FileDescriptorListDto": {
+      "baseType": "Volo.Abp.Application.Dtos.CreationAuditedEntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "EntityId",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "ContainerName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "BlobName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "CellName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "DirectoryId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Size",
+          "jsonName": null,
+          "type": "System.Int64",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "MimeType",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.GetFilesInput": {
+      "baseType": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ContainerName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "DirectoryId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "CreatorId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Filter",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "EntityId",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.ImageResizeInput": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Width",
+          "jsonName": null,
+          "type": "System.Int32?",
+          "typeSimple": "number?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Height",
+          "jsonName": null,
+          "type": "System.Int32?",
+          "typeSimple": "number?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Dignite.FileExplorer.Files.UpdateFileInput": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "CellName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": 0,
+          "maxLength": 128,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "CellNameSpecified",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "DirectoryId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "DirectoryIdSpecified",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": 0,
+          "maxLength": 128,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
     "Dignite.Site.Admin.Contents.CreateContentDto": {
       "baseType": null,
       "isEnum": false,
@@ -10167,7 +12857,7 @@
           "maxLength": 256,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[\\p{L}\\p{Nd}\\-_]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10385,7 +13075,7 @@
           "maxLength": 256,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[\\p{L}\\p{Nd}\\-_]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10494,7 +13184,7 @@
           "maxLength": 64,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[a-z0-9][a-z0-9_-]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10571,7 +13261,7 @@
           "maxLength": 64,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[a-z0-9][a-z0-9_-]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10648,7 +13338,7 @@
           "maxLength": 64,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[a-z0-9][a-z0-9_-]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10724,8 +13414,8 @@
           "type": "System.String",
           "typeSimple": "string",
           "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
+          "minLength": 0,
+          "maxLength": 64,
           "minimum": null,
           "maximum": null,
           "regex": null,
@@ -10786,7 +13476,7 @@
           "maxLength": 64,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[a-z0-9][a-z0-9_-]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10875,8 +13565,8 @@
           "type": "System.String",
           "typeSimple": "string",
           "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
+          "minLength": 0,
+          "maxLength": 64,
           "minimum": null,
           "maximum": null,
           "regex": null,
@@ -10908,7 +13598,7 @@
           "maxLength": 64,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[a-z0-9][a-z0-9_-]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10937,10 +13627,10 @@
           "typeSimple": "string",
           "isRequired": true,
           "minLength": 0,
-          "maxLength": 256,
+          "maxLength": 512,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^\\S+$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -10956,40 +13646,24 @@
           "maxLength": 256,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^(\\/?[A-Za-z0-9_][A-Za-z0-9_\\-\\/]*)?$",
           "isNullable": true,
           "summary": null,
           "description": null,
           "displayName": null
         },
         {
-          "name": "IsHomePage",
+          "name": "ContentTemplate",
           "jsonName": null,
-          "type": "System.Boolean",
-          "typeSimple": "boolean",
+          "type": "System.String",
+          "typeSimple": "string",
           "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
+          "minLength": 0,
+          "maxLength": 256,
           "minimum": null,
           "maximum": null,
-          "regex": null,
-          "isNullable": false,
-          "summary": null,
-          "description": null,
-          "displayName": null
-        },
-        {
-          "name": "Order",
-          "jsonName": null,
-          "type": "System.Int32",
-          "typeSimple": "number",
-          "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null,
-          "isNullable": false,
+          "regex": "^(\\/?[A-Za-z0-9_][A-Za-z0-9_\\-\\/]*)?$",
+          "isNullable": true,
           "summary": null,
           "description": null,
           "displayName": null
@@ -11077,51 +13751,6 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Admin.Pages.MovePageDto": {
-      "baseType": null,
-      "isEnum": false,
-      "enumNames": null,
-      "enumValues": null,
-      "genericArguments": null,
-      "properties": [
-        {
-          "name": "ParentId",
-          "jsonName": null,
-          "type": "System.Guid?",
-          "typeSimple": "string?",
-          "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null,
-          "isNullable": true,
-          "summary": null,
-          "description": null,
-          "displayName": null
-        },
-        {
-          "name": "Order",
-          "jsonName": null,
-          "type": "System.Int32",
-          "typeSimple": "number",
-          "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null,
-          "isNullable": false,
-          "summary": null,
-          "description": null,
-          "displayName": null
-        }
-      ],
-      "summary": null,
-      "remarks": null,
-      "description": null,
-      "displayName": null
-    },
     "Dignite.Site.Admin.Pages.UpdatePageDto": {
       "baseType": null,
       "isEnum": false,
@@ -11139,7 +13768,7 @@
           "maxLength": 64,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^[a-z0-9][a-z0-9_-]*$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -11168,10 +13797,10 @@
           "typeSimple": "string",
           "isRequired": true,
           "minLength": 0,
-          "maxLength": 256,
+          "maxLength": 512,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^\\S+$",
           "isNullable": false,
           "summary": null,
           "description": null,
@@ -11187,40 +13816,24 @@
           "maxLength": 256,
           "minimum": null,
           "maximum": null,
-          "regex": null,
+          "regex": "^(\\/?[A-Za-z0-9_][A-Za-z0-9_\\-\\/]*)?$",
           "isNullable": true,
           "summary": null,
           "description": null,
           "displayName": null
         },
         {
-          "name": "IsHomePage",
+          "name": "ContentTemplate",
           "jsonName": null,
-          "type": "System.Boolean",
-          "typeSimple": "boolean",
+          "type": "System.String",
+          "typeSimple": "string",
           "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
+          "minLength": 0,
+          "maxLength": 256,
           "minimum": null,
           "maximum": null,
-          "regex": null,
-          "isNullable": false,
-          "summary": null,
-          "description": null,
-          "displayName": null
-        },
-        {
-          "name": "Order",
-          "jsonName": null,
-          "type": "System.Int32",
-          "typeSimple": "number",
-          "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null,
-          "isNullable": false,
+          "regex": "^(\\/?[A-Za-z0-9_][A-Za-z0-9_\\-\\/]*)?$",
+          "isNullable": true,
           "summary": null,
           "description": null,
           "displayName": null
@@ -11803,6 +14416,22 @@
           "displayName": null
         },
         {
+          "name": "Url",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
           "name": "FieldValues",
           "jsonName": null,
           "type": "{System.String:System.Object}",
@@ -12272,26 +14901,26 @@
           "displayName": null
         },
         {
-          "name": "IsHomePage",
+          "name": "ContentTemplate",
           "jsonName": null,
-          "type": "System.Boolean",
-          "typeSimple": "boolean",
+          "type": "System.String",
+          "typeSimple": "string",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,
           "minimum": null,
           "maximum": null,
           "regex": null,
-          "isNullable": false,
+          "isNullable": true,
           "summary": null,
           "description": null,
           "displayName": null
         },
         {
-          "name": "Order",
+          "name": "IsHomePage",
           "jsonName": null,
-          "type": "System.Int32",
-          "typeSimple": "number",
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,
@@ -12346,7 +14975,7 @@
           "minimum": null,
           "maximum": null,
           "regex": null,
-          "isNullable": false,
+          "isNullable": true,
           "summary": null,
           "description": null,
           "displayName": null
@@ -12357,7 +14986,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Public.Contents.GetPublicContentListInput": {
+    "Dignite.Site.Public.Contents.GetContentListInput": {
       "baseType": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
       "isEnum": false,
       "enumNames": null,
@@ -12417,6 +15046,38 @@
           "jsonName": null,
           "type": "System.String",
           "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "PublishedAfter",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "PublishedBefore",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,
@@ -12501,22 +15162,6 @@
           "summary": null,
           "description": null,
           "displayName": null
-        },
-        {
-          "name": "CultureName",
-          "jsonName": null,
-          "type": "System.String",
-          "typeSimple": "string",
-          "isRequired": true,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null,
-          "isNullable": false,
-          "summary": null,
-          "description": null,
-          "displayName": null
         }
       ],
       "summary": null,
@@ -12552,6 +15197,22 @@
           "jsonName": null,
           "type": "Dignite.Site.Public.Routing.RouteMatchKindDto",
           "typeSimple": "enum",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "CultureName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,
@@ -12607,6 +15268,22 @@
           "maximum": null,
           "regex": null,
           "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "FilterValues",
+          "jsonName": null,
+          "type": "{System.String:System.String}",
+          "typeSimple": "{string:string}",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
           "summary": null,
           "description": null,
           "displayName": null
@@ -12863,13 +15540,102 @@
           "summary": null,
           "description": null,
           "displayName": null
-        },
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Microsoft.AspNetCore.Mvc.ActionResult": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Microsoft.AspNetCore.Mvc.FileResult": {
+      "baseType": "Microsoft.AspNetCore.Mvc.ActionResult",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
         {
-          "name": "CultureName",
+          "name": "ContentType",
           "jsonName": null,
           "type": "System.String",
           "typeSimple": "string",
-          "isRequired": true,
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "FileDownloadName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "LastModified",
+          "jsonName": null,
+          "type": "System.DateTimeOffset?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "EntityTag",
+          "jsonName": null,
+          "type": "Microsoft.Net.Http.Headers.EntityTagHeaderValue",
+          "typeSimple": "Microsoft.Net.Http.Headers.EntityTagHeaderValue",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "EnableRangeProcessing",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
           "minLength": null,
           "maxLength": null,
           "minimum": null,
@@ -12893,6 +15659,160 @@
       "enumValues": null,
       "genericArguments": null,
       "properties": [],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Microsoft.Extensions.Primitives.StringSegment": {
+      "baseType": "System.ValueType",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Buffer",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Offset",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Length",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Value",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "HasValue",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "Item",
+          "jsonName": null,
+          "type": "System.Char",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Microsoft.Net.Http.Headers.EntityTagHeaderValue": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Tag",
+          "jsonName": null,
+          "type": "Microsoft.Extensions.Primitives.StringSegment",
+          "typeSimple": "Microsoft.Extensions.Primitives.StringSegment",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "IsWeak",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
       "summary": null,
       "remarks": null,
       "description": null,
@@ -16837,6 +19757,67 @@
           "maximum": null,
           "regex": null,
           "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        }
+      ],
+      "summary": null,
+      "remarks": null,
+      "description": null,
+      "displayName": null
+    },
+    "Volo.Abp.Content.IRemoteStreamContent": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "FileName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "ContentType",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": false,
+          "summary": null,
+          "description": null,
+          "displayName": null
+        },
+        {
+          "name": "ContentLength",
+          "jsonName": null,
+          "type": "System.Int64?",
+          "typeSimple": "number?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null,
+          "isNullable": true,
           "summary": null,
           "description": null,
           "displayName": null

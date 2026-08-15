@@ -8,5 +8,6 @@ export interface ContentDto extends FullAuditedEntityDto<string> {
   slug?: string;
   publishTime?: string;
   status?: ContentStatus;
+  url?: string;
   fieldValues?: Record<string, object>;
 }
