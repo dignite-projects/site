@@ -200,12 +200,13 @@ jobs:
         # 21.2.x) already relies on that leniency. Not this task's problem to resolve.
         run: npm install --no-package-lock --legacy-peer-deps
 
-      # No lint or unit-test step here: `ng lint site` currently fails on ~14 pre-existing
-      # violations (component selector prefixes, ngIf vs. control-flow syntax), and the site
-      # library has no *.spec.ts files yet at all - `ng test site` errors with "No tests found".
-      # Both are pre-existing gaps in the library itself, not release-infra; fixing them is
-      # application-code work. abp-modules' own release.yml has a similar gap (no lint step for
-      # its `notifications` Angular library).
+      # No lint step here: `ng lint site` currently fails on ~14 pre-existing violations (component
+      # selector prefixes, ngIf vs. control-flow syntax) - a real fix, not release-infra, and left
+      # alone for now. abp-modules' own release.yml has a similar gap (no lint step for its
+      # `notifications` Angular library).
+      - name: Run site Angular library unit tests
+        working-directory: site/angular
+        run: yarn ng test site --watch=false
 
       - name: Build site Angular library
         working-directory: site/angular
