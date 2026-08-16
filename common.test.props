@@ -1,0 +1,10 @@
+<Project>
+    <PropertyGroup>
+        <LangVersion>latest</LangVersion>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+        <NuGetAudit>false</NuGetAudit>
+        <!-- Test projects are never published as NuGet packages - see release.yml's Pack step,
+             which only packs src/*/*.csproj. -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+</Project>
