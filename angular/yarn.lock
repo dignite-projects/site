@@ -2277,23 +2277,31 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-4.2.0.tgz#ba5d0b917303c0b3d3c14c4865cdc6ded25ac05f"
   integrity sha512-kzyuwOAQnXJNLS9PSyrk0CWk35nWJW/zl/6KvnTBMFK65gm7U1/Z5BqjxeapjZCIhQcM/DsrEmcbRwDyXyXK4A==
 
-"@dignite/ng.file-explorer@file:../../abp-modules/file-storing/angular/dist/file-explorer":
+"@dignite/ng.file-explorer@npm:@dignite-projects/ng.file-explorer@10.0.0-rc.4":
   version "10.0.0-rc.4"
+  resolved "https://npm.pkg.github.com/download/@dignite-projects/ng.file-explorer/10.0.0-rc.4/a4fc7949a0a2b540c566ccff259826ebe9dd2cc4#a4fc7949a0a2b540c566ccff259826ebe9dd2cc4"
+  integrity sha512-7wqpwhJqktP5wa+QSDwWR6p5ol6Wi+7NhpVHkfm0lbCgHapmZ661gNFpZAEsDm3/yXJgifoyYbPFwH6aiQDddw==
   dependencies:
     tslib "^2.0.0"
 
-"@dignite/ng.flex-fields-ckeditor@file:../../abp-modules/flex-fields/angular/dist/flex-fields-ckeditor":
+"@dignite/ng.flex-fields-ckeditor@npm:@dignite-projects/ng.flex-fields-ckeditor@10.0.0-rc.4":
   version "10.0.0-rc.4"
+  resolved "https://npm.pkg.github.com/download/@dignite-projects/ng.flex-fields-ckeditor/10.0.0-rc.4/288eb4483237d6cc18979b0bb6f85e03000e16d0#288eb4483237d6cc18979b0bb6f85e03000e16d0"
+  integrity sha512-BwgGgMB+DVfscK//vjMvP9taQUB8iHQPZJ5gTfLINa+D1O7hJvTI/auJ5/CT6ck523j0u5TDwdxxcgxROkaX7g==
   dependencies:
     tslib "^2.0.0"
 
-"@dignite/ng.flex-fields-file-explorer@file:../../abp-modules/flex-fields/angular/dist/flex-fields-file-explorer":
+"@dignite/ng.flex-fields-file-explorer@npm:@dignite-projects/ng.flex-fields-file-explorer@10.0.0-rc.4":
   version "10.0.0-rc.4"
+  resolved "https://npm.pkg.github.com/download/@dignite-projects/ng.flex-fields-file-explorer/10.0.0-rc.4/79f5b9c214338af440b167e1c3fb17a9c71c10b8#79f5b9c214338af440b167e1c3fb17a9c71c10b8"
+  integrity sha512-Hnyww7Wvqq61FKxlXI5AuOAn8H2jBiyt8Wfbtz/kPb8qlmE3QmFua9m2WxkHQsySL435oLG2jISCw1MN0nrrOg==
   dependencies:
     tslib "^2.0.0"
 
-"@dignite/ng.flex-fields@file:../../abp-modules/flex-fields/angular/dist/flex-fields":
+"@dignite/ng.flex-fields@npm:@dignite-projects/ng.flex-fields@10.0.0-rc.4":
   version "10.0.0-rc.4"
+  resolved "https://npm.pkg.github.com/download/@dignite-projects/ng.flex-fields/10.0.0-rc.4/0bb85861be5c8866650f5c180128cd93b5fdee3b#0bb85861be5c8866650f5c180128cd93b5fdee3b"
+  integrity sha512-QDpyl1cUKZ4qf9HZZlK7Q288LXo/ZKXi2yrfbFki3wN1qRhK7QGHlklhsZZDLQBgy42XOJg37SG1XMzziU53ng==
   dependencies:
     tslib "^2.0.0"
 

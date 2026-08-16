@@ -189,21 +189,7 @@ jobs:
       # to actually be present in the environment here.
       - name: Install Angular dependencies
         working-directory: site/angular
-        # Not --frozen-lockfile yet: angular/package.json just moved the FlexFields/FileExplorer
-        # deps off local file: paths onto these GitHub Packages names, and yarn.lock needs a real
-        # registry to re-resolve against, which only CI's token can currently reach. Re-lock and
-        # commit yarn.lock from a normal `yarn install` once this run succeeds, then switch back.
-        run: yarn install
-
-      # TEMPORARY: lets a re-resolved yarn.lock be pulled out of CI and committed, since nothing
-      # outside CI can currently authenticate to GitHub Packages for these deps. Remove this step
-      # and switch the install above to --frozen-lockfile once that commit lands.
-      - name: Upload yarn.lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: yarn-lock
-          path: site/angular/yarn.lock
-          if-no-files-found: error
+        run: yarn install --frozen-lockfile
 
       # No lint or unit-test step here: `ng lint site` currently fails on ~14 pre-existing
       # violations (component selector prefixes, ngIf vs. control-flow syntax), and the site
@@ -245,7 +231,16 @@ jobs:
           workdir=$(mktemp -d)
           tar -xzf "$tarball" -C "$workdir"
           npm pkg set name="@dignite-projects/site" --prefix "$workdir/package"
-          npm publish "$workdir/package" --registry https://npm.pkg.github.com
+          # npm publish has no --skip-duplicate equivalent (unlike the dotnet nuget push calls
+          # above); re-dispatching at an unchanged pre-release version is expected and shouldn't
+          # fail the run, so treat "already published" as a soft skip and let anything else fail.
+          if ! npm publish "$workdir/package" --registry https://npm.pkg.github.com 2>&1 | tee /tmp/npm-publish.log; then
+            if grep -q 'Cannot publish over existing version' /tmp/npm-publish.log; then
+              echo "::notice::@dignite-projects/site@${{ steps.channel.outputs.version }} is already published; skipping."
+            else
+              exit 1
+            fi
+          fi
 
       # Stable builds go to the public npmjs, under the real @dignite/site name. Same
       # skip-when-not-configured pattern as the NuGet.org push above.
