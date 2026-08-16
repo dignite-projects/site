@@ -195,6 +195,16 @@ jobs:
         # commit yarn.lock from a normal `yarn install` once this run succeeds, then switch back.
         run: yarn install
 
+      # TEMPORARY: lets a re-resolved yarn.lock be pulled out of CI and committed, since nothing
+      # outside CI can currently authenticate to GitHub Packages for these deps. Remove this step
+      # and switch the install above to --frozen-lockfile once that commit lands.
+      - name: Upload yarn.lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: yarn-lock
+          path: site/angular/yarn.lock
+          if-no-files-found: error
+
       # No lint or unit-test step here: `ng lint site` currently fails on ~14 pre-existing
       # violations (component selector prefixes, ngIf vs. control-flow syntax), and the site
       # library has no *.spec.ts files yet at all - `ng test site` errors with "No tests found".
