@@ -187,9 +187,15 @@ jobs:
       # FileExplorer live pre-release - see the Checkout abp-modules comment above); ${GITHUB_TOKEN}
       # in that file is a literal env-var placeholder npm/yarn substitute at read time, so it has
       # to actually be present in the environment here.
+      # Not --frozen-lockfile: Yarn Classic's frozen path fetches tarballs straight from
+      # yarn.lock's "resolved" URL without going back through the registry client that attaches
+      # auth (even with always-auth=true in .npmrc - tried it, still 401s), so it can't actually
+      # install from GitHub Packages this way. A plain `yarn install` re-resolves through the
+      # registry client normally and works. yarn.lock is still committed and still pins versions;
+      # it just isn't hash-verified against it in CI.
       - name: Install Angular dependencies
         working-directory: site/angular
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       # No lint or unit-test step here: `ng lint site` currently fails on ~14 pre-existing
       # violations (component selector prefixes, ngIf vs. control-flow syntax), and the site
