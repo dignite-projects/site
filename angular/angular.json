@@ -242,7 +242,7 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "tsConfig": "projects/site/tsconfig.spec.json",
-            "buildTarget": "projects/site:build",
+            "buildTarget": "site:build",
             "runner": "vitest"
           }
         },

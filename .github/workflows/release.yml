@@ -1,17 +1,21 @@
 # Release workflow. The version is read from <Version> in common.props (the single source of
-# truth); a pushed v* tag must match it (guard step below), but tags do not drive the number.
+# truth, also the version the Angular library at angular/projects/site must match); a pushed v*
+# tag must match it (guard step below), but tags do not drive the number.
 #
 # Routing by channel, derived from the SemVer pre-release suffix in <Version>:
-#   - Pre-release (e.g. 0.1.0-preview.1) -> NuGet packages pushed to GitHub Packages only.
-#   - Stable      (e.g. 0.1.0)           -> NuGet to NuGet.org.
+#   - Pre-release (e.g. 0.1.0-preview.1) -> NuGet + npm packages pushed to GitHub Packages only.
+#   - Stable      (e.g. 0.1.0)           -> NuGet to NuGet.org, npm to npmjs (@dignite/site).
+#
+# GitHub Packages' npm registry requires the package scope to equal the owning org login, so the
+# npm package publishes under @dignite-projects/site there - not the public @dignite/site name,
+# which is reserved for the real npmjs release. This mirrors abp-modules' own release workflow,
+# which is also where @dignite/ng.flex-fields (etc.) now come from for the same reason - see that
+# repo's .github/workflows/release.yml.
 #
 # Triggers: push a v* tag (e.g. v0.1.0 or v0.1.0-preview.1) or use workflow_dispatch. For churny
 # pre-release builds prefer workflow_dispatch: no tag, no draft Release, no lockstep check - just
-# bump <Version> in common.props, run, and the packages land in GitHub Packages.
-#
-# npm/Angular packaging (angular/projects/site) is intentionally out of scope for this workflow -
-# this pass only publishes the NuGet packages so Dignite.Cloud.SiteService can move off a
-# cross-repo relative ProjectReference. Revisit once a consumer actually needs the Angular lib.
+# bump <Version> in common.props (and angular/projects/site/package.json to match), run, and the
+# packages land in GitHub Packages.
 
 name: Release
 
@@ -34,7 +38,7 @@ jobs:
 
     permissions:
       contents: write # Required by softprops/action-gh-release to create a draft Release
-      packages: write # Required to push pre-release NuGet packages to GitHub Packages
+      packages: write # Required to push pre-release NuGet/npm packages to GitHub Packages
 
     steps:
       - name: Checkout site
@@ -42,14 +46,18 @@ jobs:
         with:
           path: site
 
-      # Several Dignite.Site projects (Domain, Common.Application(.Contracts)/HttpApi(.Client),
+      # Several Dignite.Site *.NET* projects (Domain, Common.Application(.Contracts)/HttpApi(.Client),
       # Public.Web, Admin.Application.Contracts, ...) carry relative ProjectReferences into the
       # sibling `abp-modules` repo for FlexFields / FileExplorer - see Dignite.Site.slnx's
       # "/flex-fields/" folder and its "..\..\..\abp-modules\..." paths. A single-repo checkout
-      # does not have that directory, so restore/build/pack would fail without this step. Both
-      # repos are public, so the default GITHUB_TOKEN is enough to check abp-modules out - no
-      # extra secret needed. This tracks abp-modules' default branch, the same moving target local
-      # development already builds against.
+      # does not have that directory, so restore/build/pack would fail without it. Both repos are
+      # public, so the default GITHUB_TOKEN is enough to check abp-modules out - no extra secret
+      # needed. This tracks abp-modules' default branch, the same moving target local development
+      # already builds against.
+      #
+      # The Angular side does NOT need this checkout: angular/package.json resolves FlexFields /
+      # FileExplorer as real @dignite-projects/* GitHub Packages dependencies (see angular/.npmrc),
+      # not local file: paths into this sibling.
       - name: Checkout abp-modules (sibling dependency for FlexFields / FileExplorer)
         uses: actions/checkout@v5
         with:
@@ -67,10 +75,15 @@ jobs:
             echo "::error::Tag $TAG does not match <Version>$VERSION</Version> in common.props."
             exit 1
           fi
+          NPM_VERSION=$(node -p "require('./angular/projects/site/package.json').version")
+          if [ "$NPM_VERSION" != "$VERSION" ]; then
+            echo "::error::npm version $NPM_VERSION (angular/projects/site/package.json) is not in lockstep with common.props $VERSION."
+            exit 1
+          fi
 
       # Derive the release channel from the SemVer pre-release suffix in common.props <Version>:
       # a hyphen (0.1.0-preview.1) routes packages to GitHub Packages only; a clean version
-      # (0.1.0) is a stable release that goes to NuGet.org. Runs on every trigger.
+      # (0.1.0) is a stable release that goes to NuGet.org / npmjs. Runs on every trigger.
       - name: Determine release channel
         id: channel
         run: |
@@ -78,10 +91,12 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if [[ "$VERSION" == *-* ]]; then
             echo "channel=preview" >> "$GITHUB_OUTPUT"
+            echo "npm-tag=next" >> "$GITHUB_OUTPUT"
             echo "::notice::Version $VERSION is a pre-release -> GitHub Packages only."
           else
             echo "channel=stable" >> "$GITHUB_OUTPUT"
-            echo "::notice::Version $VERSION is stable -> NuGet.org."
+            echo "npm-tag=latest" >> "$GITHUB_OUTPUT"
+            echo "::notice::Version $VERSION is stable -> NuGet.org / npmjs."
           fi
 
       - name: Setup .NET
@@ -153,6 +168,85 @@ jobs:
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: yarn
+          cache-dependency-path: site/angular/yarn.lock
+          registry-url: 'https://registry.npmjs.org'
+
+      # angular/.npmrc maps the @dignite-projects scope to GitHub Packages (where FlexFields /
+      # FileExplorer live pre-release - see the Checkout abp-modules comment above); ${GITHUB_TOKEN}
+      # in that file is a literal env-var placeholder npm/yarn substitute at read time, so it has
+      # to actually be present in the environment here.
+      - name: Install Angular dependencies
+        working-directory: site/angular
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Not --frozen-lockfile yet: angular/package.json just moved the FlexFields/FileExplorer
+        # deps off local file: paths onto these GitHub Packages names, and yarn.lock needs a real
+        # registry to re-resolve against, which only CI's token can currently reach. Re-lock and
+        # commit yarn.lock from a normal `yarn install` once this run succeeds, then switch back.
+        run: yarn install
+
+      # No lint or unit-test step here: `ng lint site` currently fails on ~14 pre-existing
+      # violations (component selector prefixes, ngIf vs. control-flow syntax), and the site
+      # library has no *.spec.ts files yet at all - `ng test site` errors with "No tests found".
+      # Both are pre-existing gaps in the library itself, not release-infra; fixing them is
+      # application-code work. abp-modules' own release.yml has a similar gap (no lint step for
+      # its `notifications` Angular library).
+
+      - name: Build site Angular library
+        working-directory: site/angular
+        run: yarn build:site
+
+      - name: Pack site Angular library
+        working-directory: site/angular
+        run: |
+          mkdir -p ../artifacts/npm/site
+          npm pack ./dist/site --pack-destination ../artifacts/npm/site
+
+      - name: Upload npm package
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: site/artifacts/npm/site/*.tgz
+          if-no-files-found: error
+
+      # npm equivalent of the GH Packages NuGet mirror above, and the same rename-in-a-scratch-copy
+      # trick abp-modules' release.yml uses: GitHub Packages' npm registry rejects any scope that
+      # doesn't match the owning org login, so @dignite/site can't be pushed there under its real
+      # name - only npmjs (tagged releases, below) can carry the public @dignite/* scope. The
+      # auth token has to be appended to $NPM_CONFIG_USERCONFIG specifically - that's the file
+      # setup-node's registry-url input points npm at for the rest of the job; a plain ~/.npmrc is
+      # silently ignored (this bit us once already in abp-modules' own release.yml).
+      - name: Publish pre-release Angular package to GitHub Packages
+        if: steps.channel.outputs.channel == 'preview'
+        run: |
+          echo "@dignite-projects:registry=https://npm.pkg.github.com" >> "$NPM_CONFIG_USERCONFIG"
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> "$NPM_CONFIG_USERCONFIG"
+          tarball=$(ls artifacts/npm/site/*.tgz)
+          workdir=$(mktemp -d)
+          tar -xzf "$tarball" -C "$workdir"
+          npm pkg set name="@dignite-projects/site" --prefix "$workdir/package"
+          npm publish "$workdir/package" --registry https://npm.pkg.github.com
+
+      # Stable builds go to the public npmjs, under the real @dignite/site name. Same
+      # skip-when-not-configured pattern as the NuGet.org push above.
+      - name: Publish to npm (stable)
+        if: steps.channel.outputs.channel == 'stable'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::notice::NPM_TOKEN secret is not configured; skipping npm publish (package was uploaded as a workflow artifact)."
+            exit 0
+          fi
+          npm publish artifacts/npm/site/*.tgz \
+            --access public \
+            --tag '${{ steps.channel.outputs.npm-tag }}'
+
       # Extract this version's section from CHANGELOG.md as the draft release body. The heading
       # line is dropped (the release title already carries the version). Missing section is a
       # warning, not an error: the draft is reviewed by a human who can still write the body.
@@ -177,4 +271,6 @@ jobs:
           draft: true
           prerelease: ${{ steps.channel.outputs.channel == 'preview' }}
           body_path: site/release-notes.md
-          files: site/artifacts/*.nupkg
+          files: |
+            site/artifacts/*.nupkg
+            site/artifacts/npm/site/*.tgz
