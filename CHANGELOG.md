@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-preview.5] - 2026-08-17
+
+### Fixed
+
+- `angular/projects/site/config/src/providers/route.provider.ts` (the `@dignite/site/config`
+  entry point) imports `provideCKEditorFieldType` from `@dignite/ng.flex-fields-ckeditor` and
+  `provideFileExplorerFieldType` from `@dignite/ng.flex-fields-file-explorer` - both called
+  unconditionally by `provideSite()` - but `angular/projects/site/package.json` only declared
+  `@dignite/ng.flex-fields`. Any consumer that only installed `@dignite/site` and called
+  `provideSite()` per the docs got a module-not-found error the moment a bundler resolved the
+  compiled `dignite-site-config.mjs`'s real imports - confirmed while integrating this package
+  into Dignite.Cloud. Both packages are now declared as direct `dependencies`, at the same
+  `^10.0.0-rc.5` floor as `@dignite/ng.flex-fields`.
+
+### Added
+
+- `angular/projects/site/README.md` now documents the four peer dependencies these two packages
+  require but don't install for you - `@ckeditor/ckeditor5-angular`, `ckeditor5`, `marked` (for
+  the CKEditor field type) and `@dignite/ng.file-explorer` (for the File Explorer field type).
+  Deliberately kept as `peerDependencies`, not bundled, so a consumer whose content types never
+  use rich-text or file-explorer fields isn't forced to install CKEditor's sizeable bundle;
+  skipping one of them surfaces as a module-not-found error rather than an `npm install` failure,
+  so the README spells out the full list instead of leaving it to be reconstructed one
+  `peerDependencies` field at a time, the way it was for the Dignite.Cloud integration.
+- A GitHub Packages install verification gate (`.github/scripts/verify-packed-npm-install.sh`),
+  the npm equivalent of the NuGet restore gate added in `0.1.0-preview.3`: after publishing,
+  installs the just-published `@dignite-projects/site` in an isolated scratch project - exactly as
+  a real consumer would, aliased as `@dignite/site` with its documented peers - then bundles a
+  file that imports `provideSite`. `npm install` alone would not have caught this release's bug:
+  the missing dependencies only broke a bundler actually resolving the compiled `.mjs`'s import
+  graph, not `npm install` or a `tsc --noEmit` type-check (`provideSite()`'s rolled-up `.d.ts`
+  only exposes the opaque `EnvironmentProviders` return type, so TypeScript never had a reason to
+  load the field types' own declarations).
+
 ## [0.1.0-preview.4] - 2026-08-17
 
 ### Fixed
@@ -88,4 +122,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.4...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.5...HEAD

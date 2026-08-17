@@ -1,6 +1,6 @@
 {
   "name": "@dignite/site",
-  "version": "0.1.0-preview.4",
+  "version": "0.1.0-preview.5",
   "dependencies": {
     "@abp/ng.core": "~10.5.0",
     "@abp/ng.oauth": "~10.5.0",
@@ -8,8 +8,16 @@
     "@abp/ng.components":"~10.5.0",
     "@volo/abp.commercial.ng.ui": "~10.5.0",
     "@dignite/ng.flex-fields": "^10.0.0-rc.5",
+    "@dignite/ng.flex-fields-ckeditor": "^10.0.0-rc.5",
+    "@dignite/ng.flex-fields-file-explorer": "^10.0.0-rc.5",
     "@swimlane/ngx-datatable": "~22.0.0",
     "@angular/cdk": "~21.2.0",
     "tslib": "^2.1.0"
+  },
+  "peerDependencies": {
+    "@ckeditor/ckeditor5-angular": "^11.2.0",
+    "ckeditor5": "^48.0.0",
+    "marked": "^18.0.0",
+    "@dignite/ng.file-explorer": "^10.0.0-rc.5"
   }
 }

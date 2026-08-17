@@ -3,7 +3,7 @@
         <LangVersion>latest</LangVersion>
         <!-- 0.y.z: not stable yet. Pre-release (-preview.N) builds publish to GitHub Packages only;
              dropping the suffix is what promotes a build to NuGet.org - see release.yml. -->
-        <Version>0.1.0-preview.4</Version>
+        <Version>0.1.0-preview.5</Version>
         <NoWarn>$(NoWarn);CS1591</NoWarn>
         <NuGetAudit>false</NuGetAudit>
         <AbpProjectType>module</AbpProjectType>

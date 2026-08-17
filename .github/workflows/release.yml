@@ -297,6 +297,17 @@ jobs:
             fi
           fi
 
+      # npm equivalent of the NuGet restore verification gate above: install what was just
+      # published, in an isolated scratch project, exactly as a real consumer would, then bundle a
+      # file that imports `provideSite`. `npm install` alone would not have caught 0.1.0-preview.4's
+      # bug (`@dignite/ng.flex-fields-ckeditor` / `@dignite/ng.flex-fields-file-explorer` imported by
+      # the compiled bundle but never declared as a dependency) - see CHANGELOG.md's
+      # 0.1.0-preview.5 entry and the script's own comment for why a bundler step, not just
+      # `tsc --noEmit`, is required to catch it.
+      - name: Verify published npm package installs and bundles cleanly
+        if: steps.channel.outputs.channel == 'preview'
+        run: bash .github/scripts/verify-packed-npm-install.sh '${{ steps.channel.outputs.version }}' '${{ secrets.GITHUB_TOKEN }}'
+
       # Stable builds go to the public npmjs, under the real @dignite/site name. Same
       # skip-when-not-configured pattern as the NuGet.org push above.
       - name: Publish to npm (stable)

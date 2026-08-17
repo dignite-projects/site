@@ -11,6 +11,8 @@
     "@abp/ng.components",
     "@volo/abp.commercial.ng.ui",
     "@dignite/ng.flex-fields",
+    "@dignite/ng.flex-fields-ckeditor",
+    "@dignite/ng.flex-fields-file-explorer",
     "@swimlane/ngx-datatable",
     "@angular/cdk"
   ]
