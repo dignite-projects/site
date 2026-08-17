@@ -107,17 +107,28 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
     ::ng-deep .parent-picker-dropdown .ant-select-dropdown {
       background: var(--lpx-content-bg, #fff) !important;
     }
-    ::ng-deep .parent-picker-dropdown .ant-tree-node-content-wrapper:hover {
+    /* nz-tree's per-node classes drop the "select-" infix outside of a select's dropdown
+       (NzTreeNodeComponent's host bindings key every tree class off selectMode - see
+       ng-zorro-antd-tree.mjs) - nz-tree-select's own embedded tree always runs in select mode, so
+       its nodes carry ant-select-tree-node-content-wrapper/-selected, never the plain
+       ant-tree-node-* classes a standalone <nz-tree> would use. The un-prefixed selectors here
+       matched nothing, silently leaving every node on ant-design's own default colors. */
+    ::ng-deep .parent-picker-dropdown .ant-select-tree-node-content-wrapper:hover {
       background-color: var(--bs-primary) !important;
       color: var(--bs-white) !important;
     }
-    ::ng-deep .parent-picker-dropdown .ant-tree-node-selected {
+    ::ng-deep .parent-picker-dropdown .ant-select-tree-node-content-wrapper.ant-select-tree-node-selected {
       background-color: var(--lpx-brand) !important;
       color: var(--bs-white) !important;
     }
+    /* !important, matching every other rule in this block - ant-design's own .ant-select-tree rule
+       (background: #fff, color: rgba(0,0,0,.85)) carries the same one-class specificity as this
+       override, and its stylesheet is injected lazily when nz-tree-select first opens, i.e. after
+       this component's styles - a same-specificity tie that source order was resolving in its
+       favor, keeping idle (non-hover, non-selected) nodes on ant-design's white/dark-gray default. */
     ::ng-deep .parent-picker-dropdown .ant-select-tree {
-      color: var(--bs-body-color);
-      background-color: transparent;
+      color: var(--bs-body-color) !important;
+      background-color: transparent !important;
     }
   `,
 })

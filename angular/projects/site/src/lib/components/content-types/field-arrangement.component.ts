@@ -60,9 +60,14 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
       background-color: var(--lpx-brand);
       color: var(--bs-white) !important;
     }
+    /* !important, matching every other rule in this block - ant-design's own .ant-select-item rule
+       (color: rgba(0,0,0,.85)) carries the same one-class specificity as this override, and its
+       stylesheet is injected lazily when nz-select first opens, i.e. after this component's styles -
+       a same-specificity tie that source order was resolving in its favor, keeping idle
+       (non-hover, non-selected) options on ant-design's default dark-gray-on-transparent. */
     ::ng-deep .field-picker-dropdown .ant-select-item {
-      color: var(--bs-body-color);
-      background-color: transparent;
+      color: var(--bs-body-color) !important;
+      background-color: transparent !important;
     }
   `,
 })

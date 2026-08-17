@@ -44,3 +44,29 @@
     background-image: url('assets/images/getting-started/x.svg');
   }
 }
+
+// CKEditor 5 ships one fixed light palette with no dark-mode switch of its own - its whole UI chrome
+// (toolbar, dropdown panels, inputs, tooltips, the balloon toolbar) is themed through a small set of
+// --ck-color-base-* custom properties that every other --ck-color-* token derives from via var(), so
+// remapping just these four re-themes the chrome without having to chase down every derived token
+// individually. This can't live as a ::ng-deep in the CKEditor field's own component the way the
+// nz-tree-select/nz-select dropdowns are handled in pages.component.ts/field-arrangement.component.ts -
+// the control comes from the separately-published @dignite/ng.flex-fields-ckeditor package, not this
+// repo, so the only reach this app has into its styling is this global stylesheet.
+//
+// Deliberately leaves the --ck-content-* tokens (ckeditor5-content.css) alone - those style the
+// editable canvas itself, i.e. what the saved HTML looks like, which is typically published on a
+// light-background front-end page regardless of this admin UI's theme. Re-theming the chrome only
+// keeps the editing canvas an accurate light-background preview of that real output.
+//
+// !important on every property: ckeditor5.css is only injected once a CKEditor field is first opened
+// (its multi-megabyte payload is dynamic-imported, see CKEditorControlComponent's own doc on why),
+// i.e. well after this stylesheet loads - at the same :root specificity, source order alone would
+// otherwise let ckeditor5's own light-mode :root win. Same class of bug already found and fixed in
+// pages.component.ts/field-arrangement.component.ts's dropdown styling.
+:root {
+  --ck-color-base-background: var(--lpx-content-bg, #fff) !important;
+  --ck-color-base-foreground: var(--lpx-content-bg, #fafafa) !important;
+  --ck-color-base-border: var(--bs-border-color, #ccced1) !important;
+  --ck-color-base-text: var(--bs-body-color, #333) !important;
+}
