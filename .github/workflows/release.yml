@@ -148,6 +148,17 @@ jobs:
           path: site/artifacts/*.nupkg
           if-no-files-found: error
 
+      # Restores every packed .nupkg in an isolated scratch project against the same sources a
+      # real consumer sees (this artifacts/ folder + GitHub Packages + nuget.org), so an
+      # unresolvable transitive dependency - e.g. a cross-repo abp-modules ProjectReference pinned
+      # to a version that was never published, the exact NU1102 failure documented in
+      # CHANGELOG.md's 0.1.0-preview.3 entry - fails this workflow instead of a downstream
+      # consumer's restore. Runs for both channels: a broken transitive dependency breaks a stable
+      # release exactly the same way it breaks a preview one.
+      - name: Verify packed NuGet packages restore cleanly
+        run: |
+          bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}' '${{ github.actor }}' '${{ secrets.GITHUB_TOKEN }}'
+
       # Pre-release builds go to GitHub Packages only (private to the org, authenticated with the
       # workflow's built-in GITHUB_TOKEN). The package's <RepositoryUrl> in common.props links it
       # to dignite-projects/site, which GitHub Packages requires for the push.
