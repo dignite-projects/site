@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.test.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Site.Public</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.extensibility.execution" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Volo.Abp.Autofac" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.AspNetCore.TestBase" Version="10.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Dignite.Site.Public.HttpApi\Dignite.Site.Public.HttpApi.csproj" />
+    <ProjectReference Include="..\..\src\Dignite.Site.Public.HttpApi.Client\Dignite.Site.Public.HttpApi.Client.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1307,6 +1307,242 @@
             }
           }
         },
+        "Dignite.Site.Public.Seo.FeedDocumentPublicController": {
+          "controllerName": "FeedDocumentPublic",
+          "controllerGroupName": "FeedDocumentPublic",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Public.Seo.FeedDocumentPublicController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Public.Seo.IFeedDocumentAppService",
+              "name": "IFeedDocumentAppService",
+              "methods": [
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "pagePath",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "cultureName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "format",
+                      "typeAsString": "Dignite.Site.Seo.SiteFeedFormat, Dignite.Site.Domain.Shared",
+                      "type": "Dignite.Site.Seo.SiteFeedFormat",
+                      "typeSimple": "enum",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Seo.SiteDocument",
+                    "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "ResolveAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "feedPath",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Seo.SiteDocument",
+                    "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                    "summary": null
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetAsyncByPagePathAndCultureNameAndFormat": {
+              "uniqueName": "GetAsyncByPagePathAndCultureNameAndFormat",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/feed",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "pagePath",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "cultureName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "format",
+                  "typeAsString": "Dignite.Site.Seo.SiteFeedFormat, Dignite.Site.Domain.Shared",
+                  "type": "Dignite.Site.Seo.SiteFeedFormat",
+                  "typeSimple": "enum",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "pagePath",
+                  "name": "pagePath",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "cultureName",
+                  "name": "cultureName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "format",
+                  "name": "format",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Seo.SiteFeedFormat",
+                  "typeSimple": "enum",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Seo.SiteDocument",
+                "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Seo.IFeedDocumentAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "ResolveAsyncByFeedPath": {
+              "uniqueName": "ResolveAsyncByFeedPath",
+              "name": "ResolveAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/feed/resolve",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "feedPath",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "feedPath",
+                  "name": "feedPath",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Seo.SiteDocument",
+                "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Seo.IFeedDocumentAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
         "Dignite.Site.Public.Seo.HeadMetadataPublicController": {
           "controllerName": "HeadMetadataPublic",
           "controllerGroupName": "HeadMetadataPublic",
@@ -1392,6 +1628,210 @@
               "allowAnonymous": null,
               "authorizeDatas": [],
               "implementFrom": "Dignite.Site.Public.Seo.IHeadMetadataPublicAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.Site.Public.Seo.RobotsDocumentPublicController": {
+          "controllerName": "RobotsDocumentPublic",
+          "controllerGroupName": "RobotsDocumentPublic",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Public.Seo.RobotsDocumentPublicController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Public.Seo.IRobotsDocumentAppService",
+              "name": "IRobotsDocumentAppService",
+              "methods": [
+                {
+                  "name": "GetRobotsTxtAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Seo.SiteDocument",
+                    "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetLlmsTxtAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Seo.SiteDocument",
+                    "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                    "summary": null
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetRobotsTxtAsync": {
+              "uniqueName": "GetRobotsTxtAsync",
+              "name": "GetRobotsTxtAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/robots",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Seo.SiteDocument",
+                "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Seo.IRobotsDocumentAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetLlmsTxtAsync": {
+              "uniqueName": "GetLlmsTxtAsync",
+              "name": "GetLlmsTxtAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/robots/llms-txt",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Seo.SiteDocument",
+                "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Seo.IRobotsDocumentAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.Site.Public.Seo.SitemapDocumentPublicController": {
+          "controllerName": "SitemapDocumentPublic",
+          "controllerGroupName": "SitemapDocumentPublic",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Public.Seo.SitemapDocumentPublicController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Public.Seo.ISitemapDocumentAppService",
+              "name": "ISitemapDocumentAppService",
+              "methods": [
+                {
+                  "name": "GetIndexAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Seo.SiteDocument",
+                    "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                    "summary": null
+                  }
+                },
+                {
+                  "name": "GetShardAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "shardNumber",
+                      "typeAsString": "System.Int32, System.Private.CoreLib",
+                      "type": "System.Int32",
+                      "typeSimple": "number",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Seo.SiteDocument",
+                    "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                    "summary": null
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetIndexAsync": {
+              "uniqueName": "GetIndexAsync",
+              "name": "GetIndexAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/sitemap",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Seo.SiteDocument",
+                "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Seo.ISitemapDocumentAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetShardAsyncByShardNumber": {
+              "uniqueName": "GetShardAsyncByShardNumber",
+              "name": "GetShardAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/sitemap/shard",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "shardNumber",
+                  "typeAsString": "System.Int32, System.Private.CoreLib",
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "shardNumber",
+                  "name": "shardNumber",
+                  "jsonName": null,
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Seo.SiteDocument",
+                "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Seo.ISitemapDocumentAppService",
               "summary": null,
               "remarks": null,
               "description": null,

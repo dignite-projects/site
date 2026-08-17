@@ -53,6 +53,7 @@
         <Project Path="test/Dignite.Site.Domain.Tests/Dignite.Site.Domain.Tests.csproj" />
         <Project Path="test/Dignite.Site.EntityFrameworkCore.Tests/Dignite.Site.EntityFrameworkCore.Tests.csproj" />
         <Project Path="test/Dignite.Site.MongoDB.Tests/Dignite.Site.MongoDB.Tests.csproj" />
+        <Project Path="test/Dignite.Site.Public.HttpApi.Client.Tests/Dignite.Site.Public.HttpApi.Client.Tests.csproj" />
         <Project Path="test/Dignite.Site.TestBase/Dignite.Site.TestBase.csproj" />
     </Folder>
 </Solution>
