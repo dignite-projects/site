@@ -232,6 +232,15 @@ jobs:
       # auth token has to be appended to $NPM_CONFIG_USERCONFIG specifically - that's the file
       # setup-node's registry-url input points npm at for the rest of the job; a plain ~/.npmrc is
       # silently ignored (this bit us once already in abp-modules' own release.yml).
+      #
+      # Every @dignite/* dependency (currently just ng.flex-fields) needs the same scope swap: the
+      # packed package.json still names it "@dignite/ng.flex-fields", the public npmjs name that
+      # only exists once the stable release ships there - pre-release, only @dignite-projects/*
+      # does. Rewritten to the npm alias form ("@dignite/ng.flex-fields":
+      # "npm:@dignite-projects/ng.flex-fields@<range>") rather than a plain key rename, so the
+      # dependency is still installed under the name the compiled bundle's bare-specifier imports
+      # expect, while actually resolving from @dignite-projects on GitHub Packages -
+      # angular/package.json uses the identical alias trick for this workspace's own Host app.
       - name: Publish pre-release Angular package to GitHub Packages
         if: steps.channel.outputs.channel == 'preview'
         run: |
@@ -241,6 +250,18 @@ jobs:
           workdir=$(mktemp -d)
           tar -xzf "$tarball" -C "$workdir"
           npm pkg set name="@dignite-projects/site" --prefix "$workdir/package"
+          PKG_DIR="$workdir/package" node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const pkgPath = path.join(process.env.PKG_DIR, "package.json");
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+            for (const [name, range] of Object.entries(pkg.dependencies || {})) {
+              if (name.startsWith("@dignite/")) {
+                pkg.dependencies[name] = `npm:@dignite-projects/${name.slice("@dignite/".length)}@${range}`;
+              }
+            }
+            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+          '
           # npm publish has no --skip-duplicate equivalent (unlike the dotnet nuget push calls
           # above); re-dispatching at an unchanged pre-release version is expected and shouldn't
           # fail the run, so treat "already published" as a soft skip and let anything else fail.
