@@ -327,7 +327,7 @@ export class ContentsComponent {
    * non-indexable, so the check belongs there, where it can explain itself, rather than here where it
    * would quietly drop a filter someone had configured.
    *
-   * `ff-flex-field-search` renders nothing for a type with no search component (`DateEdit` today); that
+   * `ff-flex-field-search` renders nothing for a type with no search component (`DateTime` today); that
    * is the library's documented behaviour, not something to pre-empt by hiding the field.
    */
   private rebuildSearchFields(): void {
@@ -398,7 +398,7 @@ export class ContentsComponent {
 
   private toConditions(field: ArrangedField, value: unknown): FlexFieldQueryCondition[] {
     switch (field.fieldTypeName) {
-      case 'TextEdit':
+      case 'Text':
         return this.isBlank(value)
           ? []
           : [
@@ -410,7 +410,7 @@ export class ContentsComponent {
               ),
             ];
 
-      case 'NumericEdit': {
+      case 'Number': {
         // `ff-number-search` writes one "min-max" string; the executor composes two conditions on the
         // same field as a range rather than a conflict.
         const range = typeof value === 'string' ? value.split('-') : [];
@@ -433,14 +433,14 @@ export class ContentsComponent {
         ];
       }
 
-      case 'Switch':
+      case 'Boolean':
         // A plain `<option [value]>` binding always stringifies, so this arrives as "true"/"false".
         return value === 'true' || value === 'false'
           ? [this.condition(field, FlexFieldQueryOperator.Equals, value, FlexFieldValueType.Boolean)]
           : [];
 
       case 'Select':
-      case 'TreeView': {
+      case 'Tree': {
         const values = Array.isArray(value) ? value : this.isBlank(value) ? [] : [value];
         return values.length === 0
           ? []

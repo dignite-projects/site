@@ -99,7 +99,7 @@ public class FieldManager_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Reject_Duplicate_Name_On_Create()
     {
         await Should.ThrowAsync<FieldNameAlreadyExistException>(() => WithUnitOfWorkAsync(() =>
-            _fieldManager.CreateAsync("title", "Another title", "TextEdit")));
+            _fieldManager.CreateAsync("title", "Another title", "Text")));
     }
 
     /// <summary>
@@ -111,7 +111,7 @@ public class FieldManager_Tests : SiteEntityFrameworkCoreTestBase
     {
         await WithUnitOfWorkAsync(async () =>
         {
-            var field = await _fieldManager.CreateAsync("doomed", "Doomed", "TextEdit");
+            var field = await _fieldManager.CreateAsync("doomed", "Doomed", "Text");
 
             var content = await FindTripAsync();
             content.SetField("doomed", "some value");

@@ -30,7 +30,7 @@ public class SiteSchemaFieldDto
     /// </summary>
     public string? Description { get; set; }
 
-    /// <summary>The FlexFields field type this field is bound to, e.g. <c>TextEdit</c>.</summary>
+    /// <summary>The FlexFields field type this field is bound to, e.g. <c>Text</c>.</summary>
     public string FieldTypeName { get; set; } = default!;
 
     /// <summary>

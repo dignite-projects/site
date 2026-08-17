@@ -107,7 +107,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
         var created = await _fieldTools.CreateFieldAsync(
             name: "summary",
             displayName: "Summary",
-            fieldTypeName: "TextEdit",
+            fieldTypeName: "Text",
             description: "A one-paragraph summary, used as the meta description.");
 
         created.Name.ShouldBe("summary");
@@ -146,7 +146,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
         {
             Name = "grouped-field",
             DisplayName = "Grouped field",
-            FieldTypeName = "TextEdit",
+            FieldTypeName = "Text",
             GroupName = "seo"
         });
         created.GroupName.ShouldBe("seo");
@@ -177,10 +177,10 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
             name: "docs", displayName: "Docs", route: "/docs/{slug}");
 
         await _fieldTools.CreateFieldAsync(
-            name: "doc-title", displayName: "Title", fieldTypeName: "TextEdit");
+            name: "doc-title", displayName: "Title", fieldTypeName: "Text");
 
         await _fieldTools.CreateFieldAsync(
-            name: "doc-body", displayName: "Body", fieldTypeName: "TextEdit");
+            name: "doc-body", displayName: "Body", fieldTypeName: "Text");
 
         var contentType = await _contentTypeTools.CreateContentTypeAsync(
             page: "docs",

@@ -19,7 +19,7 @@ describe('SiteReferenceDataService', () => {
     getFieldTypes: vi.fn(() =>
       of({
         items: [
-          { name: 'TextEdit', indexable: true },
+          { name: 'Text', indexable: true },
           { name: 'Seo', indexable: false },
           { name: 'NoAnswer' },
         ],
@@ -93,7 +93,7 @@ describe('SiteReferenceDataService', () => {
       service.getIndexableByFieldType().subscribe(resolve),
     );
 
-    expect(byType.get('TextEdit')).toBe(true);
+    expect(byType.get('Text')).toBe(true);
     expect(byType.get('Seo')).toBe(false);
     expect(byType.get('NoAnswer')).toBe(true);
   });

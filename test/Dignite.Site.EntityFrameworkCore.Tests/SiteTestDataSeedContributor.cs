@@ -65,10 +65,10 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
         // provider resolves the definitions). An unsaved insert is only in EF Core's change tracker,
         // which a query does not consult, so without this the reads find nothing.
         await _fieldRepository.InsertAsync(
-            new Field(SiteTestData.TitleFieldId, "title", "Title", "TextEdit"), autoSave: true);
+            new Field(SiteTestData.TitleFieldId, "title", "Title", "Text"), autoSave: true);
 
         await _fieldRepository.InsertAsync(
-            new Field(SiteTestData.BodyFieldId, "body", "Body", "TextEdit"), autoSave: true);
+            new Field(SiteTestData.BodyFieldId, "body", "Body", "Text"), autoSave: true);
 
         var categoryConfiguration = new SelectConfiguration
         {
@@ -88,10 +88,10 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
             autoSave: true);
 
         await _fieldRepository.InsertAsync(
-            new Field(SiteTestData.ViewsFieldId, "views", "Views", "NumericEdit"), autoSave: true);
+            new Field(SiteTestData.ViewsFieldId, "views", "Views", "Number"), autoSave: true);
 
         await _fieldRepository.InsertAsync(
-            new Field(SiteTestData.FeaturedFieldId, "featured", "Featured", "Switch"), autoSave: true);
+            new Field(SiteTestData.FeaturedFieldId, "featured", "Featured", "Boolean"), autoSave: true);
     }
 
     private async Task SeedPagesAndTypesAsync()

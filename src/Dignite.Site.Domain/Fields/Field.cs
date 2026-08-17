@@ -77,8 +77,8 @@ public class Field : FullAuditedAggregateRoot<Guid>, IFlexField, IMultiTenant
 
     /// <summary>
     /// Registration name of the FlexFields <c>IFieldType</c> this field is bound to. Six ship with the
-    /// kernel (<c>TextEdit</c>, <c>NumericEdit</c>, <c>DateEdit</c>, <c>Select</c>, <c>Switch</c>,
-    /// <c>TreeView</c>); Site registers its own extras through DI without touching the kernel.
+    /// kernel (<c>Text</c>, <c>Number</c>, <c>DateTime</c>, <c>Select</c>, <c>Boolean</c>,
+    /// <c>Tree</c>); Site registers its own extras through DI without touching the kernel.
     /// </summary>
     public virtual string FieldTypeName { get; protected set; } = default!;
 

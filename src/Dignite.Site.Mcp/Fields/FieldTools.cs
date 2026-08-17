@@ -48,7 +48,7 @@ public class FieldTools : ITransientDependency
 
     [McpServerTool(Name = "list_field_types", Title = "List available field types", ReadOnly = true)]
     [Description(
-        "The field types a definition can be bound to, e.g. TextEdit or Select. Call this before " +
+        "The field types a definition can be bound to, e.g. Text or Select. Call this before " +
         "create_field if you are unsure what fieldTypeName to use.")]
     [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual Task<ListResultDto<FieldTypeDto>> ListFieldTypesAsync()
@@ -68,7 +68,7 @@ public class FieldTools : ITransientDependency
         string name,
         [Description("Human-readable name, e.g. 'Title'.")]
         string displayName,
-        [Description("The field type this field is bound to, e.g. 'TextEdit'. Call list_field_types for what is available.")]
+        [Description("The field type this field is bound to, e.g. 'Text'. Call list_field_types for what is available.")]
         string fieldTypeName,
         [Description(
             "What belongs in this field, written for a future AI client to read while generating " +

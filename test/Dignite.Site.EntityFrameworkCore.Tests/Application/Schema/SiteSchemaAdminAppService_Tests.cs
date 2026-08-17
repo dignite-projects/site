@@ -94,7 +94,7 @@ public class SiteSchemaAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             .ShouldBe(new[] { "title", "body", "category", "views", "featured" });
 
         var title = article.Fields.Single(field => field.Name == "title");
-        title.FieldTypeName.ShouldBe("TextEdit");
+        title.FieldTypeName.ShouldBe("Text");
         title.Required.ShouldBeTrue();
         title.Searchable.ShouldBeTrue();
         title.Order.ShouldBe(0);

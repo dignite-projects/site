@@ -30,7 +30,7 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         var field = await _fieldAppService.GetAsync(SiteTestData.TitleFieldId);
 
         field.Name.ShouldBe("title");
-        field.FieldTypeName.ShouldBe("TextEdit");
+        field.FieldTypeName.ShouldBe("Text");
     }
 
     [Fact]
@@ -39,12 +39,12 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         var fieldTypes = await _fieldAppService.GetFieldTypesAsync();
 
         var names = fieldTypes.Items.Select(ft => ft.Name).ToList();
-        names.ShouldContain("TextEdit");
-        names.ShouldContain("NumericEdit");
-        names.ShouldContain("DateEdit");
+        names.ShouldContain("Text");
+        names.ShouldContain("Number");
+        names.ShouldContain("DateTime");
         names.ShouldContain("Select");
-        names.ShouldContain("Switch");
-        names.ShouldContain("TreeView");
+        names.ShouldContain("Boolean");
+        names.ShouldContain("Tree");
         names.ShouldContain("CKEditor");
         names.ShouldContain("FileExplorer");
     }
@@ -56,7 +56,7 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         {
             Name = "admin-config-round-trip",
             DisplayName = "Round trip",
-            FieldTypeName = "NumericEdit",
+            FieldTypeName = "Number",
             Configuration = new Dictionary<string, object?> { ["Min"] = 0, ["Max"] = 100 }
         });
 
@@ -101,7 +101,7 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         {
             Name = "Not Valid",
             DisplayName = "Bad name",
-            FieldTypeName = "TextEdit"
+            FieldTypeName = "Text"
         }));
     }
 
