@@ -17,15 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deployment that runs the Application layer as a separate service now has an HTTP surface to reach them
   through.
 
-### Fixed
-
-- The pre-release GitHub Packages publish step now rewrites every `@dignite/*` dependency in the
-  packed Angular library's `package.json` to the `npm:@dignite-projects/*` alias form, alongside
-  the existing package `name` rewrite. `@dignite-projects/site@0.1.0-preview.1` still declared a
-  dependency on `@dignite/ng.flex-fields` - the public npmjs name, which doesn't exist there
-  pre-release (only `@dignite-projects/ng.flex-fields` on GitHub Packages does) - so `npm install`
-  of that version 404'd on it. The stable/npmjs publish path is unaffected.
-
 ## [0.1.0-preview.1] - 2026-08-16
 
 First preview release. Introduces the NuGet packaging pipeline for Dignite.Site: `src/`'s Domain,
