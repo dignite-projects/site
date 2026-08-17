@@ -21,6 +21,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dignite.Site.Public.HttpApi\Dignite.Site.Public.HttpApi.csproj" />
     <ProjectReference Include="..\..\src\Dignite.Site.Public.HttpApi.Client\Dignite.Site.Public.HttpApi.Client.csproj" />
+    <!-- Pulls in Admin.HttpApi.Client/.Application.Contracts and the unified Application.Contracts
+         transitively (see Dignite.Site.HttpApi.Client.csproj's own ProjectReferences), so
+         ClientProxyCoverageTests can reflect over all four *.HttpApi.Client module pairs from this
+         one test project instead of needing one test project per module. -->
+    <ProjectReference Include="..\..\src\Dignite.Site.HttpApi.Client\Dignite.Site.HttpApi.Client.csproj" />
   </ItemGroup>
 
 </Project>

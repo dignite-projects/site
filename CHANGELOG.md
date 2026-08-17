@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-preview.4] - 2026-08-17
+
+### Fixed
+
+- All four `*.HttpApi.Client` modules (`Dignite.Site.Admin`, `.Common`, `.Public`, and the unified
+  `Dignite.Site`) called `AddHttpClientProxies` - dynamic proxies, which resolve each method by
+  fetching `/api/abp/api-definition` from the configured `BaseUrl` at call time. Behind an API
+  gateway, a downstream service's `BaseUrl` is the gateway itself, and the gateway's
+  `/api/abp/api-definition` aggregates a *different* service's action list (confirmed against
+  Dignite.Cloud: the gateway's definition document had zero `site-public` entries). Every call
+  through the gateway failed with `Volo.Abp.AbpException: Could not find remote action for method:
+  ...`, forcing downstream services to point `BaseUrl` at Site directly and bypass the gateway.
+  Switched all four modules to `AddStaticHttpClientProxies`, which uses the `ClientProxies/*.cs` /
+  `*.Generated.cs` classes `abp generate-proxy` already produces for Admin and Public (`dotnet pack`
+  included them in every prior release, but nothing ever registered them) - their routes are baked in
+  at generation time, so no live api-definition lookup is needed.
+
+### Added
+
+- `Dignite.Site.Public.HttpApi.Client.Tests`: `StaticClientProxyRegistrationTests` resolves an app
+  service by interface from the client-side container and asserts the concrete type is the generated
+  `*ClientProxy`, not a Castle dynamic proxy - a regression back to `AddHttpClientProxies` now fails
+  this test instead of only surfacing behind a gateway in production. `ClientProxyCoverageTests`
+  asserts, for each of the four modules, that its `Application.Contracts` assembly's app service
+  interfaces exactly match the interfaces its `HttpApi.Client` assembly has a generated proxy for -
+  static registration silently drops any app service that is missing one.
+
 ## [0.1.0-preview.3] - 2026-08-17
 
 ### Fixed
@@ -61,4 +88,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.3...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.4...HEAD

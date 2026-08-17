@@ -129,6 +129,12 @@ jobs:
       - name: Run MongoDB tests
         run: dotnet test test/Dignite.Site.MongoDB.Tests/Dignite.Site.MongoDB.Tests.csproj --no-build --configuration Release --verbosity normal
 
+      # Includes StaticClientProxyRegistrationTests / ClientProxyCoverageTests, the regression lock
+      # for the AddHttpClientProxies -> AddStaticHttpClientProxies switch (0.1.0-preview.4) - without
+      # this step they only ran when someone happened to run them locally.
+      - name: Run HttpApi.Client tests
+        run: dotnet test test/Dignite.Site.Public.HttpApi.Client.Tests/Dignite.Site.Public.HttpApi.Client.Tests.csproj --no-build --configuration Release --verbosity normal
+
       # Only src/*/*.csproj are packed - NOT `dotnet pack Dignite.Site.slnx`. The slnx also carries
       # the "/flex-fields/" folder (abp-modules' own packable projects, checked out above just so
       # they can be *referenced*) and host/ + test/ (IsPackable=false via common.test.props / the

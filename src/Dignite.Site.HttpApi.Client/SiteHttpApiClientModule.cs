@@ -16,7 +16,15 @@ public class SiteHttpApiClientModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.AddHttpClientProxies(
+        // SiteApplicationContractsModule's assembly has no app service interfaces today (only
+        // SitePermissions / SiteRemoteServiceConsts), so this currently registers 0 proxies - a
+        // no-op kept here for consistency with the other three *.HttpApi.Client modules. There is
+        // also no ClientProxies/ directory under this project: if an app service interface is ever
+        // added to Dignite.Site.Application.Contracts, a static client proxy must be generated for it
+        // in the same change, or AddStaticHttpClientProxies will silently skip it - unlike
+        // AddHttpClientProxies (dynamic proxies), which resolves methods at call time and would just
+        // cover it automatically.
+        context.Services.AddStaticHttpClientProxies(
             typeof(SiteApplicationContractsModule).Assembly,
             SiteRemoteServiceConsts.RemoteServiceName
         );
