@@ -19,6 +19,8 @@
 @if (Model.Content != null)
 {
     <h1>@Model.Page.DisplayName</h1>
+    <p>@Model.Content.Content.PublishTime</p>
+    <hr />
     @foreach (var field in Model.Content.Fields)
     {
         <flex-field-view field="@field" />
