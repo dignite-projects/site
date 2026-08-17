@@ -12,7 +12,12 @@ using Volo.Abp.Timing;
 
 namespace Dignite.Site.Public.Contents;
 
-/// <summary>Published content only, enforced on every path - by id, by slug, in lists, and in translations.</summary>
+/// <summary>
+/// Published content only for every list (<see cref="GetListAsync"/>) - but a single content's own detail
+/// path (by id or by slug) and its translation group also answer for an archived one, so a link already
+/// indexed or bookmarked from when it was published does not go dead once it is withdrawn. See
+/// <see cref="Content.IsPubliclyAccessible"/>.
+/// </summary>
 public class ContentPublicAppService : SitePublicAppService, IContentPublicAppService
 {
     protected IContentRepository ContentRepository { get; }
@@ -32,7 +37,7 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
     public virtual async Task<ContentDto> GetAsync(Guid id)
     {
         var content = await ContentRepository.GetAsync(id);
-        EnsurePublished(content);
+        EnsureAccessible(content);
 
         var page = await PageRepository.FindAsync(content.PageId);
         var urlContext = await UrlBuilder.CreateContextAsync();
@@ -43,7 +48,7 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
     {
         var content = await ContentRepository.FindBySlugAsync(pageId, cultureName, slug);
 
-        if (content == null || !content.IsPublished(Clock.Now))
+        if (content == null || !content.IsPubliclyAccessible(Clock.Now))
         {
             throw new EntityNotFoundException(typeof(Content));
         }
@@ -96,12 +101,12 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
         var urlContext = await UrlBuilder.CreateContextAsync();
 
         return new ListResultDto<ContentDto>(
-            translations.Where(c => c.IsPublished(asOf)).Select(c => MapToDto(c, page, urlContext)).ToList());
+            translations.Where(c => c.IsPubliclyAccessible(asOf)).Select(c => MapToDto(c, page, urlContext)).ToList());
     }
 
-    protected virtual void EnsurePublished(Content content)
+    protected virtual void EnsureAccessible(Content content)
     {
-        if (!content.IsPublished(Clock.Now))
+        if (!content.IsPubliclyAccessible(Clock.Now))
         {
             throw new EntityNotFoundException(typeof(Content), content.Id);
         }

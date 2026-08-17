@@ -6,7 +6,11 @@ using Volo.Abp.Application.Services;
 
 namespace Dignite.Site.Public.Contents;
 
-/// <summary>Published content only - a draft or scheduled content is invisible here regardless of id or slug.</summary>
+/// <summary>
+/// A draft or not-yet-due scheduled content is invisible here regardless of id or slug. An archived one is
+/// the exception: its own detail path and translations still answer, though it never appears in a list
+/// (<see cref="Content.IsPubliclyAccessible"/>).
+/// </summary>
 public interface IContentPublicAppService : IReadOnlyAppService
     <ContentDto, Guid, GetContentListInput>
 {

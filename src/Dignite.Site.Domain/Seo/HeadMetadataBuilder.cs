@@ -217,7 +217,7 @@ public class HeadMetadataBuilder : DomainService
                 page.Id, content.ContentTypeId, content.Slug, cancellationToken);
 
             return translations
-                .Where(c => c.Id == content.Id || includeUnpublished || c.IsPublished(asOf))
+                .Where(c => c.Id == content.Id || includeUnpublished || c.IsPubliclyAccessible(asOf))
                 .Where(c => c.Id == content.Id || includeUnpublished || !NoIndexRecognizer.IsNoIndex(c, seoField))
                 .Where(c => context.IsServed(c.CultureName))
                 .Select(c => new HreflangAlternate(c.CultureName, UrlBuilder.BuildContentUrl(context, page, c)))

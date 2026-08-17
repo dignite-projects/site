@@ -157,12 +157,27 @@ public class Content : FullAuditedAggregateRoot<Guid>, IHasFlexFields, IMultiTen
     }
 
     /// <summary>
-    /// Whether this content is publicly readable at <paramref name="asOf"/>: published, and its publish
-    /// time has arrived. The single definition of "live", shared by route resolution, list queries and
-    /// the sitemap so they cannot disagree about what the public can see.
+    /// Whether this content counts as currently live at <paramref name="asOf"/>: published, and its
+    /// publish time has arrived. The single definition every list query, the sitemap and the feed use for
+    /// what the public sees promoted - an archived content is never live by this definition, even though
+    /// its own detail page can still answer; see <see cref="IsPubliclyAccessible"/> for that question.
     /// </summary>
     public virtual bool IsPublished(DateTime asOf)
     {
         return Status == ContentStatus.Published && PublishTime <= asOf;
+    }
+
+    /// <summary>
+    /// Whether this content's own detail URL can still be opened by the public at <paramref name="asOf"/>:
+    /// live (<see cref="IsPublished"/>), or withdrawn to <see cref="ContentStatus.Archived"/>. Deliberately
+    /// broader than <see cref="IsPublished"/> - an archived content keeps answering at its own address, and
+    /// is indexable exactly like any other content unless its SEO field says otherwise, so a link already
+    /// indexed or bookmarked from when it was published does not go dead. <see cref="IsPublished"/> alone
+    /// still governs every list, the sitemap and the feed, which is what actually stops an archived content
+    /// from being surfaced anywhere new.
+    /// </summary>
+    public virtual bool IsPubliclyAccessible(DateTime asOf)
+    {
+        return IsPublished(asOf) || Status == ContentStatus.Archived;
     }
 }

@@ -98,7 +98,9 @@ public class SiteRouteResolver : DomainService
     /// <param name="includeUnpublished">
     /// Whether drafts and scheduled contents can match. False for public traffic; true is what a preview
     /// URL passes - and a caller that does so has to force <c>noindex</c> on the response, since an
-    /// indexable preview is duplicate content against the real URL (总体设计 §5.3).
+    /// indexable preview is duplicate content against the real URL (总体设计 §5.3). Does not gate an
+    /// archived content either way - see <see cref="Content.IsPubliclyAccessible"/> - since its own detail
+    /// URL matches for ordinary public traffic already, with no preview override needed.
     /// </param>
     public virtual async Task<RouteMatch> ResolveAsync(
         string path,
@@ -334,6 +336,6 @@ public class SiteRouteResolver : DomainService
 
     protected virtual bool IsVisible(Content content, bool includeUnpublished)
     {
-        return includeUnpublished || content.IsPublished(Clock.Now);
+        return includeUnpublished || content.IsPubliclyAccessible(Clock.Now);
     }
 }

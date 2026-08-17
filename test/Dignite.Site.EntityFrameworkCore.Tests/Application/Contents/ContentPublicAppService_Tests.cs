@@ -54,6 +54,51 @@ public class ContentPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
             SiteTestData.BlogPageId, SiteTestData.EnglishCulture, SiteTestData.DraftSlug));
     }
 
+    /// <summary>
+    /// Unlike a draft, an archived content was already public once - its detail path keeps answering by id
+    /// and by slug so a link already indexed or bookmarked from before it was archived does not go dead
+    /// (<see cref="Content.IsPubliclyAccessible"/>).
+    /// </summary>
+    [Fact]
+    public async Task Should_Expose_An_Archived_Content_By_Id_Or_Slug()
+    {
+        var archived = await _contentAdminAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.PostArticleTypeId,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = "archived-detail-test",
+            PublishTime = SiteTestData.PublishTime,
+            Status = ContentStatus.Archived,
+            FieldValues = new Dictionary<string, object?> { ["title"] = "Archived detail test" }
+        });
+
+        (await _contentPublicAppService.GetAsync(archived.Id)).Slug.ShouldBe("archived-detail-test");
+
+        (await _contentPublicAppService.GetBySlugAsync(
+            SiteTestData.BlogPageId, SiteTestData.EnglishCulture, "archived-detail-test"))
+            .Slug.ShouldBe("archived-detail-test");
+    }
+
+    [Fact]
+    public async Task Should_Never_List_Archived_Content_Even_Without_Asking_For_A_Status_Filter()
+    {
+        await _contentAdminAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.PostArticleTypeId,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = "archived-list-test",
+            PublishTime = SiteTestData.PublishTime,
+            Status = ContentStatus.Archived,
+            FieldValues = new Dictionary<string, object?> { ["title"] = "Archived list test" }
+        });
+
+        var result = await _contentPublicAppService.GetListAsync(
+            new GetContentListInput { PageId = SiteTestData.BlogPageId, MaxResultCount = 1000 });
+
+        result.Items.ShouldNotContain(c => c.Slug == "archived-list-test");
+        result.Items.ShouldContain(c => c.Slug == SiteTestData.TripSlug);
+    }
+
     [Fact]
     public async Task Should_Resolve_A_Published_Content_By_Id()
     {
@@ -156,5 +201,41 @@ public class ContentPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         translations.Items.Single(c => c.CultureName == SiteTestData.EnglishCulture).Url.ShouldBe("/about");
         translations.Items.Single(c => c.CultureName == SiteTestData.ChineseCulture).Url.ShouldBe("/zh-Hans/about");
+    }
+
+    /// <summary>
+    /// The language switcher must not go blind on an archived page: a sibling translation that is also
+    /// archived is exactly as reachable as the one being viewed, so it belongs in the switcher too.
+    /// </summary>
+    [Fact]
+    public async Task Should_Include_An_Archived_Translation()
+    {
+        const string slug = "archived-translation-test";
+
+        await _contentAdminAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.PostArticleTypeId,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = slug,
+            PublishTime = SiteTestData.PublishTime,
+            Status = ContentStatus.Published,
+            FieldValues = new Dictionary<string, object?> { ["title"] = "English" }
+        });
+
+        await _contentAdminAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.PostArticleTypeId,
+            CultureName = SiteTestData.ChineseCulture,
+            Slug = slug,
+            PublishTime = SiteTestData.PublishTime,
+            Status = ContentStatus.Archived,
+            FieldValues = new Dictionary<string, object?> { ["title"] = "中文" }
+        });
+
+        var translations = await _contentPublicAppService.GetTranslationsAsync(
+            SiteTestData.BlogPageId, SiteTestData.PostArticleTypeId, slug);
+
+        translations.Items.Select(c => c.CultureName).OrderBy(c => c)
+            .ShouldBe(new[] { SiteTestData.EnglishCulture, SiteTestData.ChineseCulture }.OrderBy(c => c));
     }
 }

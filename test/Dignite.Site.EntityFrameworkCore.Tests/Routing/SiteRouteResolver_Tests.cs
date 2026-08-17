@@ -170,6 +170,26 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// Unlike a draft, an archived content was already public once - its own detail URL keeps answering for
+    /// ordinary public traffic, no preview override needed, so a link already indexed or bookmarked from
+    /// before it was archived does not go dead (<see cref="Content.IsPubliclyAccessible"/>).
+    /// </summary>
+    [Fact]
+    public async Task Should_Resolve_Archived_Content_Publicly()
+    {
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, SiteTestData.EnglishCulture, "archived-post",
+            SiteTestData.PublishTime, ContentStatus.Archived,
+            new Dictionary<string, object?> { ["title"] = "Archived post" }));
+
+        var match = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/blog/archived-post", SiteTestData.EnglishCulture));
+
+        match.Kind.ShouldBe(RouteMatchKind.Content);
+        match.Content!.Slug.ShouldBe("archived-post");
+    }
+
+    /// <summary>
     /// One row is one language, so a content that exists only in English must not answer a Chinese
     /// request by falling back.
     /// </summary>

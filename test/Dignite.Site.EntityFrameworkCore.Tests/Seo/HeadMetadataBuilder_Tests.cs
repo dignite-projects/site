@@ -132,6 +132,24 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// The whole point of keeping an archived content routable: unlike a preview, this is ordinary public
+    /// traffic, so it must not be force-noindexed the way the preview above is - an already-indexed URL
+    /// stays indexed once archived, rather than being yanked out from under it.
+    /// </summary>
+    [Fact]
+    public async Task NoIndex_Should_Not_Be_Forced_True_For_An_Archived_Content()
+    {
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, SiteTestData.EnglishCulture, "archived-noindex-test",
+            SiteTestData.PublishTime, ContentStatus.Archived,
+            new Dictionary<string, object?> { ["title"] = "Archived noindex test" }));
+
+        var metadata = await BuildAsync("/blog/archived-noindex-test", SiteTestData.EnglishCulture);
+
+        metadata.NoIndex.ShouldBeFalse();
+    }
+
+    /// <summary>
     /// A partial match (Kind is Page, FilterValues non-empty - e.g. "/news/2026-07" against
     /// "/news/{publishTime:yyyy-MM}/{slug}") has no URL of its own: PageRoute can only render the page's
     /// bare address, which is a different resource than what was actually requested. Reusing that bare
@@ -345,6 +363,22 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// The same broadening as the detail route itself: a sibling translation that is archived rather than
+    /// noindexed is still reachable, so hreflang must keep pointing at it - the opposite expectation from
+    /// <see cref="Hreflang_Should_Exclude_A_Noindexed_Translation"/>.
+    /// </summary>
+    [Fact]
+    public async Task Hreflang_Should_Include_An_Archived_Translation()
+    {
+        var slug = await CreateBilingualContentWithArchivedChineseAsync();
+
+        var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
+
+        metadata.HreflangAlternates.Select(a => a.CultureName).OrderBy(c => c)
+            .ShouldBe(new[] { "en", "zh-Hans" });
+    }
+
+    /// <summary>
     /// A language the tenant does not serve must never reach an alternate. <c>SiteUrlContext</c> refuses to
     /// strip a non-enabled culture prefix on the way back in, so advertising one means publishing a URL the
     /// site then 404s on - the exact drift its two-direction design exists to prevent.
@@ -449,6 +483,22 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
             }));
 
         return (slug, contentTypeId);
+    }
+
+    /// <summary>One content in two languages sharing a slug, where the zh-Hans row is archived rather than published.</summary>
+    private async Task<string> CreateBilingualContentWithArchivedChineseAsync()
+    {
+        var slug = $"bilingual-archived-{Guid.NewGuid():N}";
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, SiteTestData.EnglishCulture, slug, SiteTestData.PublishTime,
+            ContentStatus.Published, new Dictionary<string, object?> { ["title"] = "English" }));
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, SiteTestData.ChineseCulture, slug, SiteTestData.PublishTime,
+            ContentStatus.Archived, new Dictionary<string, object?> { ["title"] = "中文" }));
+
+        return slug;
     }
 
     /// <summary>Returns the new content type's id, already committed in its own unit of work.</summary>
