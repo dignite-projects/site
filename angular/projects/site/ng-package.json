@@ -14,6 +14,7 @@
     "@dignite/ng.flex-fields-ckeditor",
     "@dignite/ng.flex-fields-file-explorer",
     "@swimlane/ngx-datatable",
+    "ng-zorro-antd",
     "@angular/cdk"
   ]
 }

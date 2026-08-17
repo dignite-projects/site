@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-preview.6] - 2026-08-17
+
+### Fixed
+
+- `@dignite/site`'s own components (`pages`, `fields`, `content-types/field-arrangement`) import
+  `ng-zorro-antd/tree`, `ng-zorro-antd/tree-select`, `ng-zorro-antd/select`, and
+  `ng-zorro-antd/auto-complete` directly, and `@dignite/ng.flex-fields` imports `ng-zorro-antd/tree`
+  and `ng-zorro-antd/select` too - but `ng-zorro-antd` itself was never declared anywhere in
+  `angular/projects/site/package.json`. It happened to resolve anyway because `@abp/ng.components`
+  and `@dignite/ng.flex-fields` both depend on it directly, so it was always present transitively;
+  the moment either of those stopped declaring it, consumers would get a bare module-not-found
+  error with no obvious link back to this package. Now declared as a direct `dependency`, at the
+  same `~21.0.2` floor as the workspace's own `angular/package.json`.
+
+### Added
+
+- `angular/projects/site/README.md` now documents the four `ng-zorro-antd` component stylesheets
+  (`tree`, `tree-select`, `select`, `auto-complete`) every host must register as global styles -
+  `nz-tree`/`nz-tree-select`/`nz-select`/`nz-autocomplete` render their dropdown/panel content
+  through Angular CDK's overlay, outside this library's view tree, so they can only be styled
+  globally, and no Angular library can wire that into a consuming app's `angular.json` on its
+  behalf. `Dignite.Site.Host` and Dignite.Cloud had each independently rediscovered and hand-added
+  the same four entries; the README now spells out the exact `angular.json` snippet, plus a command
+  to re-derive the list if either package's `ng-zorro-antd` usage changes.
+
 ## [0.1.0-preview.5] - 2026-08-17
 
 ### Fixed
