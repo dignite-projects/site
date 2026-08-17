@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Cors;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -374,6 +375,19 @@ public class SiteHostModule : AbpModule
                     ScopesSupported = { SiteHostConsts.ApiScopeName }
                 };
             });
+
+        // AddMcp() gives the scheme a DisplayName, which the ABP Account module reads as reason
+        // enough to render it as an external-login button on /Account/Login. The MCP scheme isn't a
+        // user-interactive login provider - it exists only for the discovery self-service above and
+        // the /mcp endpoint's 401 challenge - so clear the DisplayName to remove the button (GitHub
+        // issue #47; same fix as dignite-projects/vault-extract). Discovery and challenge behaviour
+        // are untouched: both key off the scheme name, not its DisplayName.
+        context.Services.Configure<AuthenticationOptions>(options =>
+        {
+            var mcpScheme = options.Schemes.FirstOrDefault(s => s.Name == McpAuthenticationDefaults.AuthenticationScheme);
+            if (mcpScheme != null)
+                mcpScheme.DisplayName = null;
+        });
     }
 
     private void ConfigureMultiTenancy()
