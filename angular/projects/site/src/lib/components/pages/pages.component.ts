@@ -104,7 +104,16 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
     ::ng-deep .parent-picker-select.form-select {
       padding: 0 !important;
     }
-    ::ng-deep .parent-picker-dropdown .ant-select-dropdown {
+    /* Compound, not descendant - nz-tree-select builds one class STRING ("ant-select-dropdown
+       ant-select-tree-dropdown parent-picker-dropdown") and binds it with [class] on a single <div>
+       (see NzTreeSelectComponent's dropdownClassName/ngOnChanges in ng-zorro-antd-tree-select.mjs),
+       unlike nz-select, which puts nzDropdownClassName on the ancestor .cdk-overlay-pane via
+       [cdkConnectedOverlayPanelClass] (see field-arrangement.component.ts's identically-shaped rule,
+       which is a real ancestor-descendant match). ".parent-picker-dropdown .ant-select-dropdown"
+       (with a space) asks for .ant-select-dropdown *inside* .parent-picker-dropdown, but they're the
+       same element here, so that never matched anything and this panel stayed on ant-design's own
+       white default no matter what the nested rules below did. */
+    ::ng-deep .parent-picker-dropdown.ant-select-dropdown {
       background: var(--lpx-content-bg, #fff) !important;
     }
     /* nz-tree's per-node classes drop the "select-" infix outside of a select's dropdown
