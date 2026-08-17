@@ -156,19 +156,15 @@ jobs:
       # consumer's restore. Runs for both channels: a broken transitive dependency breaks a stable
       # release exactly the same way it breaks a preview one.
       #
-      # continue-on-error: TEMPORARY, remove once fixed. secrets.GITHUB_TOKEN can restore this
-      # repo's own packages but 403s reading GitHub Packages NuGet feeds published by a *different*
-      # repository (abp-modules) - confirmed against the actual endpoint: a repo-scope-only token
-      # gets 403, a read:packages-scope token gets 200. GITHUB_TOKEN's package access is documented
-      # as scoped to "the workflow repository" only; it doesn't extend cross-repo the way it
-      # happens to for this workflow's npm/GitHub-Packages install step. Needs either a PAT with
-      # read:packages stored as a secret, or per-package "Manage Actions access" grants to
-      # dignite-projects/site on each abp-modules package on GitHub Packages - both require action
-      # in GitHub's UI, tracked out-of-band. Until then this step runs and reports but can't block.
+      # Uses PACKAGES_READ_TOKEN (a PAT scoped to read:packages only), not secrets.GITHUB_TOKEN:
+      # GITHUB_TOKEN can restore this repo's own packages but 403s reading GitHub Packages NuGet
+      # feeds published by a *different* repository (abp-modules) - confirmed against the actual
+      # endpoint, a repo-scope-only token gets 403, a read:packages-scope token gets 200.
+      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only; it
+      # doesn't extend cross-repo the way it happens to for this workflow's npm install step.
       - name: Verify packed NuGet packages restore cleanly
-        continue-on-error: true
         run: |
-          bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}' '${{ github.actor }}' '${{ secrets.GITHUB_TOKEN }}'
+          bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}' '${{ github.actor }}' '${{ secrets.PACKAGES_READ_TOKEN }}'
 
       # Pre-release builds go to GitHub Packages only (private to the org, authenticated with the
       # workflow's built-in GITHUB_TOKEN). The package's <RepositoryUrl> in common.props links it
