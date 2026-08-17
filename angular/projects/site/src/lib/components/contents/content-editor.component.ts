@@ -314,7 +314,7 @@ export class ContentEditorComponent {
       usePageOwnAddress: [!!content && !content.slug],
       slug: [content?.slug ?? '', [Validators.maxLength(MAX_SLUG_LENGTH), Validators.pattern(SLUG_PATTERN)]],
       publishTime: [this.toLocalDateTime(content?.publishTime), Validators.required],
-      status: [content?.status ?? ContentStatus.Draft],
+      status: [content?.status ?? ContentStatus.Published],
       flexFields: this.fb.group({}),
     });
 

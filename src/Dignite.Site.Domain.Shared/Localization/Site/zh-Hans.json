@@ -17,7 +17,7 @@
 
     "Site:040001": "该页面下已存在 slug 为 '{Slug}' 的 '{CultureName}' 内容。",
     "Site:040002": "内容类型 '{ContentTypeId}' 不隶属于所指定的页面。",
-    "Site:040003": "草稿不能设置未来的发布时间（'{PublishTime}'）。要定时发布，请把状态改为「已发布」。",
+    "Site:040003": "草稿不能设置未来的发布时间（'{PublishTime}'）。要定时发布，请把状态改为「发布」。",
     "Site:040004": "该页面的路由（'{Route}'）没有别名占位符，其下内容不能带别名（传入的是 '{Slug}'）。",
     "Site:040005": "该页面的路由（'{Route}'）要求每条内容都必须有别名，此处不允许别名为空。",
 
@@ -114,12 +114,12 @@
     "SlugIsPageOwnAddress": "页面自身地址",
     "SlugPreview": "预览地址：{0}",
     "SlugSlotTaken": "页面自身地址已被另一条内容占用。",
-    "DraftPublishTimeDisabledHint": "草稿永远不对外可见，设置发布时间不会起任何作用。要定时发布请把状态改为「已发布」。",
+    "DraftPublishTimeDisabledHint": "草稿永远不对外可见，设置发布时间不会起任何作用。要定时发布请把状态改为「发布」。",
     "FilterByFieldValue": "按字段值筛选",
     "PageFilterRequiredForFieldColumns": "选择一个页面，才能把它的内容类型字段显示为列。",
 
     "Enum:ContentStatus:Draft": "草稿",
-    "Enum:ContentStatus:Published": "已发布",
+    "Enum:ContentStatus:Published": "发布",
     "Enum:ContentStatus:Archived": "已归档",
 
     "FieldType:Seo": "SEO",
