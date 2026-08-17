@@ -4,14 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Dignite.Site.Localization;
 using Microsoft.AspNetCore.Routing;
-using Dignite.Site.Public.Menus;
 using Dignite.Site.Public.Seo;
 using Volo.Abp.AspNetCore.Mvc.Localization;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.MultiTenancy;
-using Volo.Abp.UI.Navigation;
 using Volo.Abp.VirtualFileSystem;
 using Dignite.Abp.FlexFields.Web;
 using Dignite.Abp.FlexFields.CKEditor.Web;
@@ -52,11 +50,6 @@ public class SitePublicWebModule : AbpModule
         // relying on it being present transitively, since AddControllersWithViews()/AddMvc()/AddRazorPages()
         // are additive/idempotent no matter how many modules across the graph call them.
         context.Services.AddControllersWithViews();
-
-        Configure<AbpNavigationOptions>(options =>
-        {
-            options.MenuContributors.Add(new SitePublicMenuContributor());
-        });
 
         Configure<AbpVirtualFileSystemOptions>(options =>
         {

@@ -2,7 +2,6 @@
   "culture": "en",
   "texts": {
     "MyAccount": "My account",
-    "SamplePageMessage": "A sample page for the Site module",
 
     "Site:010001": "The route '{Route}' is already used by another page.",
     "Site:010002": "A page named '{Name}' already exists.",

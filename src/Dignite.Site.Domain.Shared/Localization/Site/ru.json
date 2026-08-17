@@ -1,7 +1,6 @@
 {
   "culture": "ru",
   "texts": {
-    "MyAccount": "Мой аккаунт",
-    "SamplePageMessage": "Пример страницы для модуля Site"
+    "MyAccount": "Мой аккаунт"
   }
 }

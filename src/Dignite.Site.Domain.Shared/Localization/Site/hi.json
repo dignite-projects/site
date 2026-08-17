@@ -1,7 +1,6 @@
 {
   "culture": "hi",
   "texts": {
-    "MyAccount": "मेरा खाता",
-    "SamplePageMessage": "Site मॉड्यूल के लिए एक नमूना पृष्ठ"
+    "MyAccount": "मेरा खाता"
   }
 }

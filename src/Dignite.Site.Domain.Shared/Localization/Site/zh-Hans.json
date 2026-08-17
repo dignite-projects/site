@@ -2,7 +2,6 @@
   "culture": "zh-Hans",
   "texts": {
     "MyAccount": "我的账户",
-    "SamplePageMessage": "Site 模块的示例页面",
 
     "Site:010001": "路由 '{Route}' 已被其它页面占用。",
     "Site:010002": "已存在名为 '{Name}' 的页面。",
@@ -24,7 +23,7 @@
     "Site:060001": "'{PropertyName}' 的值 '{Value}' 格式不合法。",
 
     "Permission:Site": "Site",
-    "Permission:SiteAdmin": "管理端",
+    "Permission:SiteAdmin": "网站管理",
     "Permission:SitePublic": "公开端",
     "Permission:SiteCommon": "公共",
 

@@ -1,7 +1,6 @@
 {
   "culture": "de",
   "texts": {
-    "MyAccount": "Mein Konto",
-    "SamplePageMessage": "Eine Beispielseite für das Modul SiteModul"
+    "MyAccount": "Mein Konto"
   }
 }

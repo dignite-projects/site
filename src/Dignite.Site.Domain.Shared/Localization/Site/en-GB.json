@@ -1,7 +1,6 @@
 {
   "culture": "en-GB",
   "texts": {
-    "MyAccount": "My account",
-    "SamplePageMessage": "A sample page for the Site module"
+    "MyAccount": "My account"
   }
 }

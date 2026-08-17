@@ -1,7 +1,6 @@
 {
   "culture": "pl-PL",
   "texts": {
-    "MyAccount": "Moje konto",
-    "SamplePageMessage": "Przykładowa strona modułu Site"
+    "MyAccount": "Moje konto"
   }
 }

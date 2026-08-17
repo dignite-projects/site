@@ -23,7 +23,7 @@ export function configureRoutes() {
     {
       path: '/site',
       name: eSiteRouteNames.Site,
-      iconClass: 'fas fa-sitemap',
+      iconClass: 'fas fa-globe',
       layout: eLayoutType.application,
       order: 3,
       requiredPolicy:
