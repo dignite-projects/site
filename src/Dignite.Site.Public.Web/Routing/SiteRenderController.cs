@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Volo.Abp.AspNetCore.Mvc;
@@ -96,7 +97,47 @@ public class SiteRenderController : AbpController
         // rather than inside a shared view keeps each view free of "which case am I in" checks.
         var templateName = ResolveTemplateName(
             match.Kind == RouteMatchKindDto.Page ? match.Page.Template : match.Page.ContentTemplate);
-        return View(templateName, viewModel);
+        return new CultureScopedViewResult(View(templateName, viewModel), match.CultureName);
+    }
+
+    /// <summary>
+    /// Renders the wrapped <see cref="ViewResult"/> with <see cref="CultureInfo.CurrentCulture"/>/
+    /// <see cref="CultureInfo.CurrentUICulture"/> set to the resolved content culture, so the view's own
+    /// culture-sensitive formatting (<c>ToString("d")</c> in a field template, <c>IStringLocalizer</c>)
+    /// follows the URL's language rather than whatever <c>UseAbpRequestLocalization()</c> picked from the
+    /// admin cookie / Accept-Language header.
+    /// <para>
+    /// A result wrapper, not an assignment inside <c>RenderAsync</c>, because the latter provably does not
+    /// work: <c>CurrentCulture</c> is AsyncLocal-backed, and an async method restores its caller's
+    /// ExecutionContext when it completes - an assignment made in the action method is gone by the time
+    /// MVC's invoker executes the returned result. Setting it here, inside <see cref="ExecuteResultAsync"/>
+    /// immediately before awaiting the inner result, keeps the assignment in the same async flow that
+    /// renders the view, which is the direction ExecutionContext changes do propagate. Scoped to this one
+    /// result on purpose - the shared host's own localization pipeline (admin UI, Swagger, Account) stays
+    /// untouched, and nothing is written back to the <c>.AspNetCore.Culture</c> cookie, which the admin
+    /// side owns.
+    /// </para>
+    /// </summary>
+    protected class CultureScopedViewResult : IActionResult
+    {
+        private readonly ViewResult _inner;
+        private readonly string _cultureName;
+
+        public CultureScopedViewResult(ViewResult inner, string cultureName)
+        {
+            _inner = inner;
+            _cultureName = cultureName;
+        }
+
+        public async Task ExecuteResultAsync(ActionContext context)
+        {
+            var culture = CultureInfo.GetCultureInfo(_cultureName);
+
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+
+            await _inner.ExecuteResultAsync(context);
+        }
     }
 
     /// <summary>
