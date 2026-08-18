@@ -61,10 +61,20 @@ type SlugState = 'forbidden' | 'required' | 'optional';
        part of the published @dignite/site package) and is always on screen before any CKEditor field
        inside it can be, so its styles are guaranteed to be injected first.
 
-       Deliberately leaves the --ck-content-* tokens (ckeditor5-content.css) alone - those style the
-       editable canvas itself, i.e. what the saved HTML looks like, which is typically published on a
-       light-background front-end page regardless of this admin UI's theme. Re-theming the chrome only
-       keeps the editing canvas an accurate light-background preview of that real output.
+       (The editable canvas text color - --ck-content-font-color - turned out not to belong here: it
+       used to be remapped in this same block, but that coupled a downstream host's own theme
+       variables to a gap that has nothing to do with any particular host - .ck-content has no
+       background of its own, so once --ck-color-base-background above went dark the canvas
+       background followed regardless, leaving the un-remapped, hard-coded-black content text
+       unreadable on it. Fixed generically instead, in flex-fields-ckeditor's own
+       ckeditor-control.component.css, by repointing --ck-content-font-color at --ck-color-base-text -
+       a token this file already sets - so every host gets readable content text for free, without
+       flex-fields-ckeditor needing to know any host's variable names.)
+
+       --ck-color-button-default-hover-background/-active-background (default #f0f0f0, ckeditor5.css)
+       are plain hardcoded literals, not var()-derived from any of the four base tokens above - nothing
+       here was overriding them, so toolbar buttons kept CKEditor's own stock light hover fill
+       regardless of theme.
 
        !important on every property: ckeditor5.css is only injected once a CKEditor field is first
        opened (its multi-megabyte payload is dynamic-imported, see CKEditorControlComponent's own doc
@@ -76,6 +86,8 @@ type SlugState = 'forbidden' | 'required' | 'optional';
       --ck-color-base-foreground: var(--lpx-content-bg, #fafafa) !important;
       --ck-color-base-border: var(--bs-border-color, #ccced1) !important;
       --ck-color-base-text: var(--bs-body-color, #333) !important;
+      --ck-color-button-default-hover-background: color-mix(in srgb, var(--bs-body-color, #333) 12%, transparent) !important;
+      --ck-color-button-default-active-background: color-mix(in srgb, var(--bs-body-color, #333) 20%, transparent) !important;
     }
   `,
 })
