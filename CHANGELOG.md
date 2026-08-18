@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-preview.7] - 2026-08-18
+
+### Fixed
+
+- `SiteRenderController` set the resolved content culture on `CultureInfo.CurrentCulture` inside the
+  async action method, but `CurrentCulture` is `AsyncLocal`-backed and an async method restores its
+  caller's `ExecutionContext` on completion - the assignment never reached the view. Pages rendered
+  with whatever culture `UseAbpRequestLocalization()` picked from the admin cookie / Accept-Language
+  header instead of the culture in the URL. Now applied by a `CultureScopedViewResult` wrapper that
+  sets the culture inside `ExecuteResultAsync`, the same async flow that actually renders the view,
+  layout, partials, and tag helpers.
+
+- `pages.component.ts`'s parent-page tree picker dropdown was still unthemed after `0.1.0-preview.6`:
+  `nz-tree-select` concatenates its dropdown class into the same class string as `ant-select-dropdown`
+  on one `<div>`, unlike `nz-select`, which puts it on the ancestor `.cdk-overlay-pane`. The existing
+  rule, `.parent-picker-dropdown .ant-select-dropdown`, was a descendant selector asking for two
+  classes that are actually on the same element, so it never matched. Corrected to the compound
+  selector `.parent-picker-dropdown.ant-select-dropdown`.
+
+- The CKEditor chrome dark-mode remap lived in `angular/src/styles.scss`, this repo's own local
+  dev/test shell, which is never part of the published `@dignite/site` package and so had no effect
+  on a real consuming host. Moved into `content-editor.component.ts` (which does ship with the
+  library) as a global `::ng-deep :root` rule.
+
+### Added
+
+- The default content template (`Default.cshtml`) now shows the content's publish time below the
+  page title.
+
 ## [0.1.0-preview.6] - 2026-08-17
 
 ### Fixed
