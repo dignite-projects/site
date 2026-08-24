@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Dignite.Abp.FlexFields;
-using Dignite.Site.Localization;
+using Dignite.FlexFields.Site.Localization;
 
-namespace Dignite.Site.Seo;
+namespace Dignite.FlexFields.Site.Seo;
 
 /// <summary>
 /// The platform's SEO field type: one field whose value bundles meta title, meta description, a social
@@ -13,6 +13,17 @@ namespace Dignite.Site.Seo;
 /// alongside the six FlexFields built-ins, self-registered through DI exactly as §2.3 describes for
 /// extension types (<c>ITransientDependency</c> via <see cref="FieldTypeBase"/>; <c>FieldTypeResolver</c>
 /// collects every registered <see cref="IFieldType"/> automatically, no explicit wiring needed).
+///
+/// <para>
+/// <b>Relocated from <c>Dignite.Site.Domain</c> to this project (GitHub issue #49)</b> - alongside
+/// Content/Matrix/Table, rather than left as the one Site field type still living inline in Domain and
+/// reusing the main <c>SiteResource</c>. Registration key (<c>"Seo"</c>) and storage key
+/// (<see cref="SeoFieldNames.FieldName"/>, <c>"seo"</c>) are unchanged, so this is a pure code move - no
+/// already-stored field data is affected. <c>LocalizationResource</c> switched to this project's own
+/// <see cref="FlexFieldsSiteResource"/> since, unlike when this type lived in Domain, it can no longer
+/// reach <c>SiteResource</c> directly (only <c>Dignite.Abp.FlexFields.Abstractions</c> is referenced
+/// here) - the "FieldType:Seo"/"Validate:InvalidSeoValue"/"Seo:*" keys moved with it.
+/// </para>
 /// <para>
 /// <b>Not indexable, deliberately</b> - same shape and same reasoning as FlexFields' own
 /// <c>FileExplorerFieldType</c>, whose value is likewise a composite object rather than a bare scalar or
@@ -30,10 +41,10 @@ public class SeoFieldType : FieldTypeBase
 {
     public SeoFieldType()
     {
-        LocalizationResource = typeof(SiteResource);
+        LocalizationResource = typeof(FlexFieldsSiteResource);
     }
 
-    public override string Name => SeoFieldNames.FieldTypeName;
+    public override string Name => SeoFieldNames.ControlName;
 
     public override string DisplayName => L["FieldType:Seo"];
 

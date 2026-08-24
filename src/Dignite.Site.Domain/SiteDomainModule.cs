@@ -1,6 +1,7 @@
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.CKEditor;
 using Dignite.Abp.FlexFields.FileExplorer;
+using Dignite.FlexFields.Site;
 using Volo.Abp.Domain;
 using Volo.Abp.Modularity;
 using Volo.Abp.UI;
@@ -22,6 +23,9 @@ namespace Dignite.Site;
     // stood up SiteFileContainerNames.Default); unlike CKEditor this field type is unusable until that
     // exists, which is why #41 had to land first (GitHub issue #42).
     typeof(FlexFieldsFileExplorerModule),
+    // The Content, Matrix and Table field types (registration names "Content"/"Matrix"/"Table") - same
+    // self-registering mechanism, but living in this repo rather than abp-modules (GitHub issue #49).
+    typeof(FlexFieldsSiteModule),
     // IBrandingProvider, for JSON-LD's Organization/WebSite name and logo (GitHub issue #20).
     typeof(AbpUiModule)
 )]

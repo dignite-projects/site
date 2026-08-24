@@ -71,10 +71,6 @@
 
     "ContentTypeStillHasContents": "This content type still has contents; delete or move them first.",
 
-    "FieldType:Seo": "SEO",
-    "Validate:InvalidSeoValue": "The value of '{0}' is not a valid SEO field value.",
-    "Validate:Required": "{0} Field Required!",
-
     "Menu:Site": "Site",
     "Menu:Contents": "Contents",
     "Menu:Pages": "Pages",
@@ -156,17 +152,6 @@
 
     "Enum:ContentStatus:Draft": "Draft",
     "Enum:ContentStatus:Published": "Published",
-    "Enum:ContentStatus:Archived": "Archived",
-
-    "Seo:MetaTitle": "Meta title",
-    "Seo:MetaDescription": "Meta description",
-    "Seo:OgImage": "Share image URL",
-    "Seo:NoIndex": "No index",
-    "Seo:NoIndexHint": "Exclude this content from the sitemap and emit a noindex robots tag.",
-    "Seo:NoMetaTitle": "(no meta title)",
-    "Seo:MetaTitleCharLimit": "Meta title character limit",
-    "Seo:MetaDescriptionCharLimit": "Meta description character limit",
-    "Seo:OverCharLimitHint": "over the suggested length",
-    "Seo:CharLimitAdvisoryHint": "These limits are guidance, not validation. A search engine truncates an over-long title or description rather than rejecting it, so a longer value still saves."
+    "Enum:ContentStatus:Archived": "Archived"
   }
 }

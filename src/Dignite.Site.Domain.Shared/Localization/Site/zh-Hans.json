@@ -119,21 +119,6 @@
 
     "Enum:ContentStatus:Draft": "草稿",
     "Enum:ContentStatus:Published": "发布",
-    "Enum:ContentStatus:Archived": "已归档",
-
-    "FieldType:Seo": "SEO",
-    "Validate:InvalidSeoValue": "'{0}' 的值不是有效的 SEO 字段值。",
-    "Validate:Required": "{0} 为必填项！",
-
-    "Seo:MetaTitle": "Meta 标题",
-    "Seo:MetaDescription": "Meta 描述",
-    "Seo:OgImage": "分享图片 URL",
-    "Seo:NoIndex": "不索引",
-    "Seo:NoIndexHint": "把该内容排除出站点地图，并输出 noindex robots 标签。",
-    "Seo:NoMetaTitle": "（无 Meta 标题）",
-    "Seo:MetaTitleCharLimit": "Meta 标题字数上限",
-    "Seo:MetaDescriptionCharLimit": "Meta 描述字数上限",
-    "Seo:OverCharLimitHint": "已超出建议长度",
-    "Seo:CharLimitAdvisoryHint": "这两个上限只是参考，不是校验。搜索引擎对过长的标题或描述是截断而非拒绝，所以超出后仍可正常保存。"
+    "Enum:ContentStatus:Archived": "已归档"
   }
 }

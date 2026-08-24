@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Fields;

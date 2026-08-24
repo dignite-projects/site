@@ -46,6 +46,8 @@
         <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.Web/Dignite.Abp.FlexFields.Web.csproj" />
         <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.CKEditor.Web/Dignite.Abp.FlexFields.CKEditor.Web.csproj" />
         <Project Path="../abp-modules/flex-fields/src/Dignite.Abp.FlexFields.FileExplorer.Web/Dignite.Abp.FlexFields.FileExplorer.Web.csproj" />
+        <!-- Entry/Matrix field types (GitHub issue #49) - Site's own bolt-on, not part of abp-modules. -->
+        <Project Path="src/Dignite.FlexFields.Site/Dignite.FlexFields.Site.csproj" />
     </Folder>
 
     <Folder Name="/test/">

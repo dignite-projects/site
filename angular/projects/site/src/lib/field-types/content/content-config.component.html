@@ -1,0 +1,26 @@
+<form [formGroup]="formEntity">
+  <div formGroupName="configuration">
+    <div class="mb-3">
+      <label class="form-label">{{ 'FlexFieldsSite::Content:ContentTypeId' | abpLocalization }}</label>
+      <select class="form-select" formControlName="Content.ContentTypeId">
+        <option [ngValue]="null">{{ 'FlexFieldsSite::Content:AnyContentType' | abpLocalization }}</option>
+        <option *ngFor="let item of contentTypes" [ngValue]="item.id">{{ item.displayName }}</option>
+      </select>
+    </div>
+    <div class="form-check mb-3">
+      <input
+        type="checkbox"
+        class="form-check-input"
+        id="content-config-multiple"
+        formControlName="Content.Multiple"
+      />
+      <label class="form-check-label" for="content-config-multiple">
+        {{ 'FlexFieldsSite::Content:Multiple' | abpLocalization }}
+      </label>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">{{ 'FlexFieldsSite::Content:Placeholder' | abpLocalization }}</label>
+      <input type="text" class="form-control" formControlName="Content.Placeholder" />
+    </div>
+  </div>
+</form>

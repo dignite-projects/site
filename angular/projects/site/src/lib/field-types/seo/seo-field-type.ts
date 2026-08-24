@@ -18,10 +18,14 @@ export const SEO_FIELD_TYPE_NAME = 'Seo';
  * **No search component.** `SeoFieldType.IndexValueType` is null - the value is a composite object with
  * no typed index column to project into - so a `Seo` field can never be searched and must not offer a
  * filter control.
+ *
+ * `displayNameKey` reads `FlexFieldsSite::...`, not `Site::...`: `SeoFieldType` moved from
+ * `Dignite.Site.Domain` into `Dignite.FlexFields.Site` alongside Content/Matrix/Table (GitHub issue
+ * #49), and its `LocalizationResource` moved with it.
  */
 export const SEO_FIELD_TYPE: FieldTypeDefinition = {
   name: SEO_FIELD_TYPE_NAME,
-  displayNameKey: 'Site::FieldType:Seo',
+  displayNameKey: 'FlexFieldsSite::FieldType:Seo',
   configComponent: SeoConfigComponent,
   controlComponent: SeoControlComponent,
   viewComponent: SeoViewComponent,

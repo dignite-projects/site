@@ -10,7 +10,7 @@
 
       <div class="mb-3">
         <label class="form-label" [for]="fieldValue.field.name + '-meta-title'">
-          {{ 'Site::Seo:MetaTitle' | abpLocalization }}
+          {{ 'FlexFieldsSite::Seo:MetaTitle' | abpLocalization }}
         </label>
         <input
           type="text"
@@ -25,14 +25,14 @@
         >
           {{ metaTitleLength }} / {{ metaTitleCharLimit }}
           <ng-container *ngIf="metaTitleLength > metaTitleCharLimit">
-            — {{ 'Site::Seo:OverCharLimitHint' | abpLocalization }}
+            — {{ 'FlexFieldsSite::Seo:OverCharLimitHint' | abpLocalization }}
           </ng-container>
         </small>
       </div>
 
       <div class="mb-3">
         <label class="form-label" [for]="fieldValue.field.name + '-meta-description'">
-          {{ 'Site::Seo:MetaDescription' | abpLocalization }}
+          {{ 'FlexFieldsSite::Seo:MetaDescription' | abpLocalization }}
         </label>
         <textarea
           class="form-control"
@@ -47,14 +47,14 @@
         >
           {{ metaDescriptionLength }} / {{ metaDescriptionCharLimit }}
           <ng-container *ngIf="metaDescriptionLength > metaDescriptionCharLimit">
-            — {{ 'Site::Seo:OverCharLimitHint' | abpLocalization }}
+            — {{ 'FlexFieldsSite::Seo:OverCharLimitHint' | abpLocalization }}
           </ng-container>
         </small>
       </div>
 
       <div class="mb-3">
         <label class="form-label" [for]="fieldValue.field.name + '-og-image'">
-          {{ 'Site::Seo:OgImage' | abpLocalization }}
+          {{ 'FlexFieldsSite::Seo:OgImage' | abpLocalization }}
         </label>
         <input
           type="url"
@@ -72,10 +72,10 @@
           [id]="fieldValue.field.name + '-no-index'"
         />
         <label class="form-check-label" [for]="fieldValue.field.name + '-no-index'">
-          {{ 'Site::Seo:NoIndex' | abpLocalization }}
+          {{ 'FlexFieldsSite::Seo:NoIndex' | abpLocalization }}
         </label>
         <small class="form-text text-muted d-block">
-          {{ 'Site::Seo:NoIndexHint' | abpLocalization }}
+          {{ 'FlexFieldsSite::Seo:NoIndexHint' | abpLocalization }}
         </small>
       </div>
     </fieldset>

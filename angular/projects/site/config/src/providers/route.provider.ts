@@ -2,7 +2,7 @@ import { eLayoutType, RoutesService } from '@abp/ng.core';
 import { provideFlexFields } from '@dignite/ng.flex-fields';
 import { provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor';
 import { provideFileExplorerFieldType } from '@dignite/ng.flex-fields-file-explorer';
-import { SEO_FIELD_TYPE } from '@dignite/site';
+import { CONTENT_FIELD_TYPE, MATRIX_FIELD_TYPE, SEO_FIELD_TYPE, TABLE_FIELD_TYPE } from '@dignite/site';
 import {
   EnvironmentProviders,
   inject,
@@ -63,10 +63,11 @@ export function configureRoutes() {
 
 const SITE_PROVIDERS: EnvironmentProviders[] = [
   ...SITE_ROUTE_PROVIDERS,
-  // The six built-ins plus Site's own `Seo` type. `FieldTypeResolver` is root-provided and reads the
-  // registry once when first injected, so this has to happen at application-config level - registering
-  // from inside the lazy-loaded Site routes would come too late for a resolver already constructed.
-  provideFlexFields(SEO_FIELD_TYPE),
+  // The six built-ins plus Site's own `Seo`, `Content`, `Matrix` and `Table` types (GitHub issue #49).
+  // `FieldTypeResolver` is root-provided and reads the registry once when first injected, so this has
+  // to happen at application-config level - registering from inside the lazy-loaded Site routes would
+  // come too late for a resolver already constructed.
+  provideFlexFields(SEO_FIELD_TYPE, CONTENT_FIELD_TYPE, MATRIX_FIELD_TYPE, TABLE_FIELD_TYPE),
   // CKEditor (GitHub issue #43) and FileExplorer (#42) field types. Unlike the server, where DependsOn
   // plus DI discovery is enough (总体设计 §8.2), the client has no equivalent - each field type's
   // control/config/view trio has to be registered explicitly or FieldTypeResolver.get(...) throws and

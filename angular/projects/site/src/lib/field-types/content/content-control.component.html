@@ -1,0 +1,31 @@
+<div [formGroup]="entityForm">
+  <div [formGroupName]="parentField">
+    <div class="mb-3">
+      <label class="form-label" *ngIf="fieldValue.field.displayName">
+        {{ fieldValue.field.displayName }}
+      </label>
+      @if (multiple) {
+        <select
+          class="form-select"
+          multiple
+          [attr.data-flex-field-name]="fieldValue.field.name"
+          [formControlName]="fieldValue.field.name"
+        >
+          <option *ngFor="let item of options" [value]="item.id">{{ item.slug }}</option>
+        </select>
+      } @else {
+        <select
+          class="form-select"
+          [attr.data-flex-field-name]="fieldValue.field.name"
+          [formControlName]="fieldValue.field.name"
+        >
+          <option value="">{{ placeholder }}</option>
+          <option *ngFor="let item of options" [value]="item.id">{{ item.slug }}</option>
+        </select>
+      }
+      <small class="form-text text-muted d-block" *ngIf="fieldValue.field.description">
+        {{ fieldValue.field.description }}
+      </small>
+    </div>
+  </div>
+</div>

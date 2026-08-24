@@ -1,4 +1,4 @@
-namespace Dignite.Site.Seo;
+namespace Dignite.FlexFields.Site.Seo;
 
 /// <summary>
 /// The value shape stored under the <see cref="SeoFieldNames.FieldName"/> field: everything a

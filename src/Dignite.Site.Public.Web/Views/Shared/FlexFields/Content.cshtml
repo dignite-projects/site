@@ -1,0 +1,58 @@
+@using System.Linq
+@using Dignite.Site.Contents
+@using Dignite.Site.Public.Contents
+@using Dignite.Site.Public.FlexFields
+@using Volo.Abp.Domain.Entities
+@model Dignite.Abp.FlexFields.Web.FlexFieldViewModel
+@inject IContentPublicAppService ContentPublicAppService
+@{
+    // The one <flex-field-view> partial that isn't a zero-IO leaf renderer: Content only stores bare
+    // ids, so there is nothing meaningful to show without resolving them. Resolved through the *Public*
+    // content app service on purpose - it silently excludes anything not publicly visible right now
+    // (draft, not-yet-due, or since deleted), which is exactly the right behavior for a public-facing
+    // reference display, not just a side effect of which service happened to be reachable from here.
+    var ids = ContentValueReader.ReadIds(Model.Field.Value);
+    var referenced = new List<ContentDto>(ids.Count);
+    foreach (var id in ids)
+    {
+        try
+        {
+            referenced.Add(await ContentPublicAppService.GetAsync(id));
+        }
+        catch (EntityNotFoundException)
+        {
+        }
+    }
+}
+@if (Model.ShowInList)
+{
+    @(referenced.Count == 0 ? "-" : string.Join(", ", referenced.Select(c => c.Slug)))
+}
+else
+{
+    <div class="flex-field flex-field-view flex-field-view-content" data-field-type="@Model.Field.FieldTypeName" data-field-name="@Model.Field.Name">
+        <span class="flex-field-label">@Model.Field.DisplayName</span>
+        @if (referenced.Count == 0)
+        {
+            <span class="flex-field-value">-</span>
+        }
+        else
+        {
+            <ul class="flex-field-value flex-field-value-content">
+                @foreach (var content in referenced)
+                {
+                    <li>
+                        @if (!string.IsNullOrEmpty(content.Url))
+                        {
+                            <a href="@content.Url">@content.Slug</a>
+                        }
+                        else
+                        {
+                            @content.Slug
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+}

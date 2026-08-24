@@ -1,0 +1,119 @@
+<form [formGroup]="formEntity">
+  <div formGroupName="configuration">
+    <div formArrayName="Matrix.BlockTypes">
+      <div
+        *ngFor="let blockType of blockTypes.controls; let blockIndex = index"
+        [formGroupName]="blockIndex"
+        class="card mb-3"
+      >
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div class="d-flex gap-2 flex-grow-1">
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              formControlName="displayName"
+              [placeholder]="'FlexFieldsSite::Matrix:BlockTypeDisplayName' | abpLocalization"
+            />
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              formControlName="name"
+              [placeholder]="'FlexFieldsSite::Matrix:BlockTypeName' | abpLocalization"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn btn-light btn-sm ms-2"
+            (click)="removeBlockType(blockIndex)"
+          >
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+        <div class="card-body">
+          <div formArrayName="fields">
+            <div
+              *ngFor="let subField of fieldsOf(blockType).controls; let fieldIndex = index"
+              [formGroupName]="fieldIndex"
+              class="border rounded p-2 mb-2"
+            >
+              <div class="row g-2 align-items-start">
+                <div class="col">
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    formControlName="displayName"
+                    [placeholder]="'FlexFieldsSite::Matrix:FieldDisplayName' | abpLocalization"
+                  />
+                </div>
+                <div class="col">
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    formControlName="name"
+                    [placeholder]="'FlexFieldsSite::Matrix:FieldName' | abpLocalization"
+                  />
+                </div>
+                <div class="col">
+                  <select class="form-select form-select-sm" formControlName="fieldTypeName">
+                    <option value="" disabled>
+                      {{ 'FlexFieldsSite::Matrix:SelectFieldType' | abpLocalization }}
+                    </option>
+                    <option *ngFor="let fieldType of fieldTypeOptions" [value]="fieldType.name">
+                      {{ fieldType.displayNameKey | abpLocalization }}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-auto">
+                  <div class="form-check form-check-inline mt-1">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      formControlName="required"
+                      [id]="instanceId + '-required-' + blockIndex + '-' + fieldIndex"
+                    />
+                    <label
+                      class="form-check-label"
+                      [for]="instanceId + '-required-' + blockIndex + '-' + fieldIndex"
+                    >
+                      {{ 'FlexFieldsSite::Matrix:FieldRequired' | abpLocalization }}
+                    </label>
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <button
+                    type="button"
+                    class="btn btn-light btn-sm"
+                    (click)="removeSubField(blockType, fieldIndex)"
+                  >
+                    <i class="fas fa-minus"></i>
+                  </button>
+                </div>
+              </div>
+              <input
+                type="text"
+                class="form-control form-control-sm mt-2"
+                formControlName="description"
+                [placeholder]="'FlexFieldsSite::Matrix:FieldDescription' | abpLocalization"
+              />
+              @if (fieldTypeNameOf(subField)) {
+                <div class="mt-2 ps-2 border-start">
+                  <ff-flex-field-config
+                    [type]="fieldTypeNameOf(subField)"
+                    [selected]="subFieldSeedOf(subField)"
+                    [form]="subField"
+                  ></ff-flex-field-config>
+                </div>
+              }
+            </div>
+          </div>
+          <button type="button" class="btn btn-light btn-sm" (click)="addSubField(blockType)">
+            <i class="fas fa-plus-circle me-1"></i>{{ 'FlexFieldsSite::Matrix:AddField' | abpLocalization }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn btn-dark soft btn-sm" (click)="addBlockType()">
+      <i class="fas fa-plus me-1"></i>{{ 'FlexFieldsSite::Matrix:AddBlockType' | abpLocalization }}
+    </button>
+  </div>
+</form>

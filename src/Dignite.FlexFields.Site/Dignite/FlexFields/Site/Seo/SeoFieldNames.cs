@@ -1,4 +1,4 @@
-namespace Dignite.Site.Seo;
+namespace Dignite.FlexFields.Site.Seo;
 
 /// <summary>
 /// The one platform-recognized SEO field, seeded into every tenant's field library
@@ -18,6 +18,10 @@ public static class SeoFieldNames
     /// <summary>The seeded field's technical name - the key its value is stored under in a content's bag.</summary>
     public const string FieldName = "seo";
 
-    /// <summary>Registration name of <c>SeoFieldType</c>, the field type this field is bound to.</summary>
-    public const string FieldTypeName = "Seo";
+    /// <summary>Registration name of <c>SeoFieldType</c>, the field type this field is bound to. Named
+    /// <c>ControlName</c>, not <c>FieldTypeName</c>, to match every other field type's own
+    /// <c>public const string ControlName</c> - grepping for that name should find Seo too, even though
+    /// (unlike its siblings) the constant has to live here rather than directly on <c>SeoFieldType</c>,
+    /// since seeding code needs it without instantiating the type.</summary>
+    public const string ControlName = "Seo";
 }

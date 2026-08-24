@@ -1,6 +1,6 @@
 using Dignite.Abp.FlexFields;
 
-namespace Dignite.Site.Seo;
+namespace Dignite.FlexFields.Site.Seo;
 
 public static class SeoConfigurationNames
 {

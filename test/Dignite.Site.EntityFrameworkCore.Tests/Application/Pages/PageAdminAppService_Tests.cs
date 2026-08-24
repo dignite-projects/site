@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Contents;
+using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Fields;
 using Dignite.Site.Seo;

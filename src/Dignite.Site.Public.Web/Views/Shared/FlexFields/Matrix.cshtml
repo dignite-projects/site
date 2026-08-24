@@ -1,0 +1,59 @@
+@using System
+@using System.Linq
+@using Dignite.Abp.FlexFields
+@using Dignite.FlexFields.Site.Matrix
+@using Dignite.Site.Public.FlexFields
+@model Dignite.Abp.FlexFields.Web.FlexFieldViewModel
+@{
+    // Recurses through the existing <flex-field-view> dispatch one level deeper for each sub-field,
+    // rather than hand-writing rendering for every field type that might show up inside a block - the
+    // same "reuse the top-level dispatcher, don't build a parallel rendering path" choice the Angular
+    // DynamicForms library makes for its own Matrix/Table.
+    var blocks = MatrixValueReader.ReadBlocks(Model.Field.Value);
+    var configuration = new MatrixConfiguration(Model.Field.Configuration);
+}
+@if (Model.ShowInList)
+{
+    @(blocks.Count == 0 ? "-" : $"{blocks.Count} block(s)")
+}
+else
+{
+    <div class="flex-field flex-field-view flex-field-view-matrix" data-field-type="@Model.Field.FieldTypeName" data-field-name="@Model.Field.Name">
+        <span class="flex-field-label">@Model.Field.DisplayName</span>
+        @if (blocks.Count == 0)
+        {
+            <span class="flex-field-value">-</span>
+        }
+        else
+        {
+            <div class="flex-field-value flex-field-value-matrix">
+                @foreach (var block in blocks)
+                {
+                    var blockType = configuration.BlockTypes.FirstOrDefault(bt => bt.Name == block.BlockTypeName);
+                    <div class="flex-field-matrix-block" data-block-type="@block.BlockTypeName">
+                        <span class="flex-field-matrix-block-type">@(blockType?.DisplayName ?? block.BlockTypeName)</span>
+                        @if (blockType != null)
+                        {
+                            foreach (var subField in blockType.Fields)
+                            {
+                                block.Values.TryGetValue(subField.Name, out var subValue);
+
+                                var subFieldData = new FlexFieldData(
+                                    Guid.Empty,
+                                    subField.Name,
+                                    subField.DisplayName,
+                                    subField.FieldTypeName,
+                                    subField.Description,
+                                    subField.Configuration);
+
+                                var subFieldValue = new FlexFieldValue(subFieldData, subField.Required, searchable: false, subValue);
+
+                                <flex-field-view field="subFieldValue"></flex-field-view>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}

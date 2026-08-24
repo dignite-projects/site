@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Public.Application.Contracts.Routing;
-using Dignite.Site.Seo;
 
 namespace Dignite.Site.Public.Routing;
 

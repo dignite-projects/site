@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.Fields;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
@@ -62,7 +63,7 @@ public class SeoFieldPresetSeedContributor : IDataSeedContributor, ITransientDep
         await FieldManager.CreateAsync(
             SeoFieldNames.FieldName,
             "SEO",
-            SeoFieldNames.FieldTypeName,
+            SeoFieldNames.ControlName,
             description:
             "Platform-recognized SEO metadata: meta title/description (aim for this field's char " +
             "limits - engines truncate, don't reject), a social share image, and noindex (excludes " +

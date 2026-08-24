@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.Contents;
-using Dignite.Site.Seo;
 using Volo.Abp.Domain.Services;
 
 namespace Dignite.Site.Fields;

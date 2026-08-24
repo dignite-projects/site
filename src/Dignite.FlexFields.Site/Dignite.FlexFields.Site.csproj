@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <!-- Empty, not "Dignite.FlexFields.Site": the physical folder layout already mirrors the namespace
+         exactly (Dignite\FlexFields\Site\...), matching flex-fields' own convention
+         (Dignite.Abp.FlexFields.Abstractions.csproj etc. all use <RootNamespace /> too). A non-empty
+         RootNamespace here doubles that prefix in the generated embedded-resource manifest names, which
+         breaks AddVirtualJson's virtual-path matching for Localization/Resources/*.json - the bug this
+         comment is here to prevent reintroducing. -->
+    <RootNamespace></RootNamespace>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Dignite\FlexFields\Site\Localization\Resources\*.json" />
+    <Content Remove="Dignite\FlexFields\Site\Localization\Resources\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The one reference this project is allowed: Content/Matrix/Table/Seo are all bolt-on field types
+         (same role as Dignite.Abp.FlexFields.FileExplorer), never referencing the kernel's
+         Domain/EntityFrameworkCore layers, let alone anything in Dignite.Site itself. -->
+    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Abstractions\Dignite.Abp.FlexFields.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

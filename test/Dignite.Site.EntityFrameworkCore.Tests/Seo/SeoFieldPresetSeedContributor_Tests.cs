@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Fields;
 using Shouldly;
@@ -32,7 +33,7 @@ public class SeoFieldPresetSeedContributor_Tests : SiteEntityFrameworkCoreTestBa
         var field = await WithUnitOfWorkAsync(() => _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName));
 
         field.ShouldNotBeNull();
-        field!.FieldTypeName.ShouldBe(SeoFieldNames.FieldTypeName);
+        field!.FieldTypeName.ShouldBe(SeoFieldNames.ControlName);
         field.DisplayName.ShouldBe("SEO");
     }
 

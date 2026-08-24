@@ -1,0 +1,76 @@
+<form [formGroup]="formEntity">
+  <div formGroupName="configuration">
+    <div formArrayName="Table.Columns">
+      <div
+        *ngFor="let column of columns.controls; let columnIndex = index"
+        [formGroupName]="columnIndex"
+        class="border rounded p-2 mb-2"
+      >
+        <div class="row g-2 align-items-start">
+          <div class="col">
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              formControlName="displayName"
+              [placeholder]="'FlexFieldsSite::Table:ColumnDisplayName' | abpLocalization"
+            />
+          </div>
+          <div class="col">
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              formControlName="name"
+              [placeholder]="'FlexFieldsSite::Table:ColumnName' | abpLocalization"
+            />
+          </div>
+          <div class="col">
+            <select class="form-select form-select-sm" formControlName="fieldTypeName">
+              <option value="" disabled>
+                {{ 'FlexFieldsSite::Table:SelectFieldType' | abpLocalization }}
+              </option>
+              <option *ngFor="let fieldType of fieldTypeOptions" [value]="fieldType.name">
+                {{ fieldType.displayNameKey | abpLocalization }}
+              </option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <div class="form-check form-check-inline mt-1">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                formControlName="required"
+                [id]="'table-config-required-' + columnIndex"
+              />
+              <label class="form-check-label" [for]="'table-config-required-' + columnIndex">
+                {{ 'FlexFieldsSite::Table:ColumnRequired' | abpLocalization }}
+              </label>
+            </div>
+          </div>
+          <div class="col-auto">
+            <button type="button" class="btn btn-light btn-sm" (click)="removeColumn(columnIndex)">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+        <input
+          type="text"
+          class="form-control form-control-sm mt-2"
+          formControlName="description"
+          [placeholder]="'FlexFieldsSite::Table:ColumnDescription' | abpLocalization"
+        />
+        @if (fieldTypeNameOf(column)) {
+          <div class="mt-2 ps-2 border-start">
+            <ff-flex-field-config
+              [type]="fieldTypeNameOf(column)"
+              [selected]="columnSeedOf(column)"
+              [form]="column"
+            ></ff-flex-field-config>
+          </div>
+        }
+      </div>
+    </div>
+    <button type="button" class="btn btn-dark soft btn-sm" (click)="addColumn()">
+      <i class="fas fa-plus me-1"></i>{{ 'FlexFieldsSite::Table:AddColumn' | abpLocalization }}
+    </button>
+  </div>
+</form>

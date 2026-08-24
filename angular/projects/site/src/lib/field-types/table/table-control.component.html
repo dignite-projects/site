@@ -1,0 +1,48 @@
+<div [formGroup]="entityForm">
+  <div [formGroupName]="parentField">
+    <div class="mb-3">
+      <label class="form-label" *ngIf="fieldValue.field.displayName">
+        {{ fieldValue.field.displayName }}
+      </label>
+      <div class="table-responsive" [formArrayName]="fieldValue.field.name">
+        <table class="table">
+          <thead>
+            <tr>
+              <th *ngFor="let column of columns">{{ column.displayName }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows.controls; let rowIndex = index" [formGroupName]="rowIndex">
+              <td *ngFor="let column of columns">
+                <ff-flex-field-control
+                  [fields]="columnValueOf(column)"
+                  [selected]="selectedValueOf(row, column)"
+                  parentFieldName="values"
+                  [entity]="row"
+                ></ff-flex-field-control>
+              </td>
+              <td>
+                <button type="button" class="btn btn-light btn-sm" (click)="removeRow(rowIndex)">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="btn btn-dark soft btn-sm" (click)="addRow()">
+        <i class="fas fa-plus me-1"></i>{{ 'FlexFieldsSite::Table:AddRow' | abpLocalization }}
+      </button>
+      <span
+        class="form-text invalid-feedback d-block"
+        *ngIf="rows.errors?.['required'] && rows.touched"
+      >
+        {{ 'AbpValidation::ThisFieldIsRequired' | abpLocalization }}
+      </span>
+      <small class="form-text text-muted d-block" *ngIf="fieldValue.field.description">
+        {{ fieldValue.field.description }}
+      </small>
+    </div>
+  </div>
+</div>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site.Seo;
 using Shouldly;
 using Xunit;
 
@@ -27,7 +28,7 @@ public class SeoFieldType_Tests : SiteDomainTestBase<SiteDomainTestModule>
     [Fact]
     public void Should_Register_Under_Its_Well_Known_Name()
     {
-        _resolver.Get(SeoFieldNames.FieldTypeName).ShouldBeOfType<SeoFieldType>();
+        _resolver.Get(SeoFieldNames.ControlName).ShouldBeOfType<SeoFieldType>();
     }
 
     /// <summary>
@@ -147,7 +148,7 @@ public class SeoFieldType_Tests : SiteDomainTestBase<SiteDomainTestModule>
     private static FlexFieldValue ToValue(object? value, bool required = false)
     {
         var data = new FlexFieldData(
-            Guid.NewGuid(), SeoFieldNames.FieldName, "SEO", SeoFieldNames.FieldTypeName);
+            Guid.NewGuid(), SeoFieldNames.FieldName, "SEO", SeoFieldNames.ControlName);
 
         return new FlexFieldValue(data, required: required, searchable: true, value: value);
     }

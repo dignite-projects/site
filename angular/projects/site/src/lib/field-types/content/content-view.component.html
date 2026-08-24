@@ -1,0 +1,14 @@
+@if (showInList) {
+  {{ summaryText }}
+} @else {
+  <div class="flex-field flex-field-view flex-field-view-content">
+    <span class="flex-field-label" *ngIf="fields?.field?.displayName">{{ fields.field.displayName }}</span>
+    @if (resolved.length === 0) {
+      <span class="flex-field-value">-</span>
+    } @else {
+      <ul class="flex-field-value flex-field-value-content">
+        <li *ngFor="let item of resolved">{{ item.slug }}</li>
+      </ul>
+    }
+  </div>
+}
