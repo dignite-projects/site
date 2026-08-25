@@ -28,6 +28,7 @@ export class SiteReferenceDataService {
   private schemaCache?: Observable<SiteSchemaDto>;
   private fieldsCache?: Observable<Map<string, FieldDto>>;
   private indexableCache?: Observable<Map<string, boolean>>;
+  private compositeCache?: Observable<ReadonlySet<string>>;
   private contentTypesCache?: Observable<Map<string, ContentTypeDto>>;
 
   /** Site-level settings. `enabledLanguages[0]` is the default language. */
@@ -63,6 +64,28 @@ export class SiteReferenceDataService {
         shareReplay({ bufferSize: 1, refCount: false }),
       );
     return this.indexableCache;
+  }
+
+  /**
+   * Which field types declare further fields inside their own configuration - `Matrix` and `Table`.
+   * Straight from the server for the same reason {@link getIndexableByFieldType} is: the answer is
+   * `ICompositeFieldType`, and a list restated here would be one more thing to remember when a third
+   * composite type is added.
+   *
+   * Used by the composite config editors to stop offering composite types once
+   * `MAX_COMPOSITE_NESTING_DEPTH` is reached - see `composite-nesting.ts`.
+   */
+  getCompositeFieldTypeNames(): Observable<ReadonlySet<string>> {
+    this.compositeCache ??= this.fieldService
+      .getFieldTypes()
+      .pipe(
+        map(
+          result =>
+            new Set((result.items ?? []).filter(type => type.composite).map(type => type.name ?? '')),
+        ),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    return this.compositeCache;
   }
 
   /**

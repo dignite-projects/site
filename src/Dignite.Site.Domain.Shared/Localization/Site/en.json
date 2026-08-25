@@ -15,6 +15,7 @@
     "Site:030001": "A field named '{Name}' already exists.",
     "Site:030002": "The field '{Name}' is a platform preset and cannot be deleted. Remove it from a content type's arrangement instead of deleting the definition.",
     "Site:030003": "The field '{Name}' is a platform preset and cannot be renamed. Its display name can still be changed.",
+    "Site:030004": "The field '{Name}' nests composite field types (Matrix, Table) more than {MaxDepth} levels deep. A composite field's columns or sub-fields cannot themselves be composite.",
 
     "Site:040001": "The slug '{Slug}' is already used by another '{CultureName}' content on this page.",
     "Site:040002": "The content type '{ContentTypeId}' belongs to a different page than the one given.",

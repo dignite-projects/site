@@ -1,3 +1,4 @@
+export * from './composite-nesting';
 export * from './content';
 export * from './inline-field-definition';
 export * from './matrix';

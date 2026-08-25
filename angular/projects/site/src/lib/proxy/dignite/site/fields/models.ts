@@ -12,4 +12,5 @@ export interface FieldDto extends FullAuditedEntityDto<string> {
 export interface FieldTypeDto {
   name?: string;
   indexable?: boolean;
+  composite?: boolean;
 }

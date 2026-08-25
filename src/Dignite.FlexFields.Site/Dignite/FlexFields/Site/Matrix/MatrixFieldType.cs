@@ -31,7 +31,7 @@ namespace Dignite.FlexFields.Site.Matrix;
 /// other fields.
 /// </para>
 /// </summary>
-public class MatrixFieldType : FieldTypeBase
+public class MatrixFieldType : FieldTypeBase, ICompositeFieldType
 {
     public const string ControlName = "Matrix";
 
@@ -40,6 +40,11 @@ public class MatrixFieldType : FieldTypeBase
     public override string DisplayName => L["FieldType:Matrix"];
 
     public override FlexFieldValueType? IndexValueType => null;
+
+    public IEnumerable<InlineFieldDefinition> GetInlineFields(FieldConfigurationDictionary configuration)
+    {
+        return new MatrixConfiguration(configuration).BlockTypes.SelectMany(blockType => blockType.Fields);
+    }
 
     public override IReadOnlyList<ValidationResult> Validate(FieldValidationArgs args)
     {

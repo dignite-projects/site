@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site;
 using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.Contents;
 using Volo.Abp.Domain.Services;
@@ -27,14 +28,18 @@ public class FieldManager : DomainService
 
     protected IFlexFieldIndexManager<Content> IndexManager { get; }
 
+    protected IFieldTypeResolver FieldTypeResolver { get; }
+
     public FieldManager(
         IFieldRepository fieldRepository,
         IFlexFieldValueMigrator<Content> valueMigrator,
-        IFlexFieldIndexManager<Content> indexManager)
+        IFlexFieldIndexManager<Content> indexManager,
+        IFieldTypeResolver fieldTypeResolver)
     {
         FieldRepository = fieldRepository;
         ValueMigrator = valueMigrator;
         IndexManager = indexManager;
+        FieldTypeResolver = fieldTypeResolver;
     }
 
     public virtual async Task<Field> CreateAsync(
@@ -47,6 +52,7 @@ public class FieldManager : DomainService
         CancellationToken cancellationToken = default)
     {
         await CheckNameAsync(name, null, cancellationToken);
+        CheckNestingDepth(name, fieldTypeName, configuration);
 
         var field = new Field(
             GuidGenerator.Create(),
@@ -79,6 +85,8 @@ public class FieldManager : DomainService
         string? groupName = null,
         CancellationToken cancellationToken = default)
     {
+        CheckNestingDepth(field.Name, fieldTypeName, configuration);
+
         var fieldTypeChanged = !string.Equals(field.FieldTypeName, fieldTypeName, StringComparison.Ordinal);
 
         field.SetDisplayName(displayName);
@@ -166,6 +174,23 @@ public class FieldManager : DomainService
         if (await FieldRepository.NameExistsAsync(name, excludedId, cancellationToken))
         {
             throw new FieldNameAlreadyExistException(name);
+        }
+    }
+
+    /// <summary>
+    /// Refuses a configuration that nests composite field types deeper than
+    /// <see cref="CompositeFieldNesting.MaxDepth"/> - see
+    /// <see cref="CompositeFieldNesting"/> for why the tree has to be capped somewhere, and
+    /// <see cref="FieldNestingTooDeepException"/> for why it is capped here rather than in the designer.
+    /// </summary>
+    protected virtual void CheckNestingDepth(
+        string name,
+        string fieldTypeName,
+        FieldConfigurationDictionary? configuration)
+    {
+        if (CompositeFieldNesting.ExceedsMaxDepth(fieldTypeName, configuration, FieldTypeResolver.GetAll()))
+        {
+            throw new FieldNestingTooDeepException(name, CompositeFieldNesting.MaxDepth);
         }
     }
 

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Common;
 using Dignite.Site.Fields;
@@ -91,7 +92,12 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
     public virtual Task<ListResultDto<FieldTypeDto>> GetFieldTypesAsync()
     {
         var fieldTypes = FieldTypeResolver.GetAll()
-            .Select(fieldType => new FieldTypeDto { Name = fieldType.Name, Indexable = fieldType.IsIndexable() })
+            .Select(fieldType => new FieldTypeDto
+            {
+                Name = fieldType.Name,
+                Indexable = fieldType.IsIndexable(),
+                Composite = fieldType is ICompositeFieldType,
+            })
             .ToList();
 
         return Task.FromResult(new ListResultDto<FieldTypeDto>(fieldTypes));

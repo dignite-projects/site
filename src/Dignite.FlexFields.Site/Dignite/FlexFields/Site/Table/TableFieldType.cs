@@ -18,7 +18,7 @@ namespace Dignite.FlexFields.Site.Table;
 /// objects, not a scalar or list of scalars.
 /// </para>
 /// </summary>
-public class TableFieldType : FieldTypeBase
+public class TableFieldType : FieldTypeBase, ICompositeFieldType
 {
     public const string ControlName = "Table";
 
@@ -27,6 +27,11 @@ public class TableFieldType : FieldTypeBase
     public override string DisplayName => L["FieldType:Table"];
 
     public override FlexFieldValueType? IndexValueType => null;
+
+    public IEnumerable<InlineFieldDefinition> GetInlineFields(FieldConfigurationDictionary configuration)
+    {
+        return new TableConfiguration(configuration).Columns;
+    }
 
     public override IReadOnlyList<ValidationResult> Validate(FieldValidationArgs args)
     {

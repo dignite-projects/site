@@ -129,6 +129,13 @@ export class FieldsComponent {
   constructor() {
     this.search();
     this.loadKnownGroupNames();
+
+    // Warms the composite-field-type cache before any config editor can need it. `Matrix`/`Table`'s
+    // editors decide which types to offer a column or sub-field from it, and they are built the instant
+    // the modal opens - unwarmed, their first render offers composite types past
+    // `MAX_COMPOSITE_NESTING_DEPTH` for the one round trip it takes to arrive. This screen is the only
+    // place a field config editor is ever mounted, so warming it here covers all of them.
+    this.referenceData.getCompositeFieldTypeNames().subscribe();
   }
 
   /** Reloads the whole (unpaged) field library and re-buckets it by group. */
