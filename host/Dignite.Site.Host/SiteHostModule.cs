@@ -193,6 +193,26 @@ public class SiteHostModule : AbpModule
             });
         });
 
+        // An MCP client authenticates by discovering this host's RFC 9728 metadata and echoing the resource
+        // identifier it found there back as the RFC 8707 `resource` parameter (see ConfigureMcpResourceMetadata).
+        // OpenIddict's ValidateResources handler checks that parameter against OpenIddictServerOptions.Resources
+        // - a server-level allow-list, unrelated to the scope's Resources or the client's permissions - and that
+        // list is empty unless something registers it, so *every* resource indicator is rejected with
+        // invalid_target/ID2190. Registering App:SelfUrl is what makes the MCP authorization flow reachable.
+        //
+        // The value is registered as a Uri because that is how OpenIddict compares it: ValidateResources matches
+        // against Uri.AbsoluteUri, which always carries a path, so "https://host:port" is normalised to
+        // "https://host:port/" - the same form a client that round-trips the discovered value through a URL
+        // parser (MCP Inspector does) sends back.
+        var mcpResource = configuration["App:SelfUrl"]?.TrimEnd('/');
+        if (!mcpResource.IsNullOrWhiteSpace())
+        {
+            PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
+            {
+                serverBuilder.RegisterResources(new Uri(mcpResource!, UriKind.Absolute));
+            });
+        }
+
         if (!hostingEnvironment.IsDevelopment())
         {
             PreConfigure<AbpOpenIddictAspNetCoreOptions>(options =>

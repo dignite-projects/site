@@ -49,14 +49,33 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
 
     private async Task CreateApiScopeAsync()
     {
-        if (await _scopeManager.FindByNameAsync(SiteHostConsts.ApiScopeName) == null)
+        var scopeDescriptor = new OpenIddictScopeDescriptor
         {
-            await _scopeManager.CreateAsync(new OpenIddictScopeDescriptor
-            {
-                Name = SiteHostConsts.ApiScopeName,
-                DisplayName = "Host API",
-                Resources = { SiteHostConsts.ApiScopeName }
-            });
+            Name = SiteHostConsts.ApiScopeName,
+            DisplayName = "Host API",
+            Resources = { SiteHostConsts.ApiScopeName }
+        };
+
+        // A token's audience is drawn from the resources of the scopes it was granted, so listing the MCP
+        // resource indicators here is what lets a token requested with one keep it in `aud` instead of
+        // losing it. `Host` stays in the list: it is what AddAudiences("Host") on the validation side
+        // (SiteHostModule) matches, and dropping it would make every token this host issues unusable.
+        foreach (var resource in GetMcpResourceIndicators())
+        {
+            scopeDescriptor.Resources.Add(resource);
+        }
+
+        // Update, not skip, when the scope already exists - same reasoning as CreateApplicationAsync
+        // below: a scope seeded before SelfUrl was added to Resources would otherwise keep the narrower
+        // resource list forever.
+        var existingScope = await _scopeManager.FindByNameAsync(SiteHostConsts.ApiScopeName);
+        if (existingScope != null)
+        {
+            await _scopeManager.UpdateAsync(existingScope, scopeDescriptor);
+        }
+        else
+        {
+            await _scopeManager.CreateAsync(scopeDescriptor);
         }
     }
 
@@ -102,8 +121,29 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
     /// <c>tenantid</c> claim are read exactly as they are for an HTTP request.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// The RFC 8707 <c>resource</c> values an MCP client is expected to send: this host's own origin, which
+    /// <c>ConfigureMcpResourceMetadata</c> (SiteHostModule) publishes as the RFC 9728 resource identifier at
+    /// <c>/.well-known/oauth-protected-resource</c>.
+    /// <para>
+    /// Both slash forms are registered because a client that round-trips the discovered value through a URL
+    /// parser (MCP Inspector does) sends it back with a trailing slash, while <c>App:SelfUrl</c> is published
+    /// without one - and OpenIddict compares resources by exact string equality.
+    /// </para>
+    /// </summary>
+    private List<string> GetMcpResourceIndicators()
+    {
+        var selfUrl = _configuration["App:SelfUrl"]?.TrimEnd('/');
+
+        return selfUrl.IsNullOrWhiteSpace()
+            ? new List<string>()
+            : new List<string> { selfUrl!, selfUrl + "/" };
+    }
+
     private async Task CreateMcpApplicationsAsync()
     {
+        var resourceIndicators = GetMcpResourceIndicators();
+
         var scopes = new List<string>
         {
             OpenIddictConstants.Permissions.Scopes.Email,
@@ -141,8 +181,14 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
             {
                 "http://localhost/callback",
                 "http://127.0.0.1/callback",
-                "http://[::1]/callback"
+                "http://[::1]/callback",
+                // MCP Inspector (@modelcontextprotocol/inspector), the reference client used to test this
+                // endpoint, hardcodes its loopback callback path to /oauth/callback rather than /callback.
+                "http://localhost/oauth/callback",
+                "http://127.0.0.1/oauth/callback",
+                "http://[::1]/oauth/callback"
             },
+            resourceIndicators: resourceIndicators,
             // PKCE is *required*, not merely supported. Without this the authorization server happily
             // issues and redeems a code for a secretless client on a loopback redirect with no
             // code_challenge at all - and a loopback redirect is precisely the case another local process
@@ -168,7 +214,8 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
             displayName: "Site MCP Service Client",
             secret: _configuration["OpenIddict:Applications:Site_Mcp_Service:Secret"] ?? "1q2w3e*",
             grantTypes: new List<string> { OpenIddictConstants.GrantTypes.ClientCredentials },
-            scopes: new List<string> { SiteHostConsts.ApiScopeName }
+            scopes: new List<string> { SiteHostConsts.ApiScopeName },
+            resourceIndicators: resourceIndicators
         );
     }
 
@@ -185,7 +232,8 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
         string? postLogoutRedirectUri = null,
         List<string>? redirectUris = null,
         string? applicationType = null,
-        bool requirePkce = false)
+        bool requirePkce = false,
+        List<string>? resourceIndicators = null)
     {
         if (!string.IsNullOrEmpty(secret) &&
             string.Equals(type, OpenIddictConstants.ClientTypes.Public, StringComparison.OrdinalIgnoreCase))
@@ -282,6 +330,14 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
                 builtInScopes.Contains(scope)
                     ? scope
                     : OpenIddictConstants.Permissions.Prefixes.Scope + scope);
+        }
+
+        // Registering a resource server-side (SiteHostModule's RegisterResources) only makes OpenIddict
+        // recognise it. ValidateResourcePermissions separately requires the *client* to hold an `rsrc:`
+        // permission for each resource it names, and rejects it with invalid_request/ID2192 otherwise.
+        foreach (var resource in resourceIndicators ?? new List<string>())
+        {
+            application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Resource + resource);
         }
 
         foreach (var candidate in allRedirectUris)
