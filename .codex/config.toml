@@ -1,6 +1,3 @@
-[mcp_servers.microsoft-learn]
-url = "https://learn.microsoft.com/api/mcp"
-
 [mcp_servers.abp-studio]
 command = "abp"
 args = ["mcp-studio"]
