@@ -1,7 +1,9 @@
 import { InjectionToken, inject } from '@angular/core';
 
 /**
- * How many levels of field definition a field may span, counting the field itself as 1.
+ * How many levels of field definition a field may span, counting the field itself as 1. At the current
+ * value of `3`: a top-level field may be composite, and so may its columns/sub-fields (one layer of
+ * nesting) - but what *that* nested composite declares must be scalar.
  *
  * Mirrors `CompositeFieldNesting.MaxDepth`
  * (`src/Dignite.FlexFields.Site/Dignite/FlexFields/Site/CompositeFieldNesting.cs`), which is the
@@ -9,7 +11,7 @@ import { InjectionToken, inject } from '@angular/core';
  * exists so the designer can stop *offering* the choice instead of letting the admin build something the
  * save will reject, the same arrangement as `NAME_PATTERN` in `fields.component.ts`.
  */
-export const MAX_COMPOSITE_NESTING_DEPTH = 2;
+export const MAX_COMPOSITE_NESTING_DEPTH = 3;
 
 /**
  * The depth at which the *sub-fields* of the config editor currently being rendered live. Absent at the

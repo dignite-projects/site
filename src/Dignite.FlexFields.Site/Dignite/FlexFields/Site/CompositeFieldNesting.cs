@@ -28,8 +28,10 @@ public static class CompositeFieldNesting
     /// How many levels of field definition a stored field may span, counting the field itself as 1.
     ///
     /// <para>
-    /// At the current value of <c>2</c>: a top-level field may be composite, and its columns/sub-fields
-    /// may be any <i>non-composite</i> type. A composite inside a composite is level 3 and is refused.
+    /// At the current value of <c>3</c>: a top-level field may be composite, and so may its
+    /// columns/sub-fields - one layer of nesting, e.g. a Table column that is itself a Matrix. What
+    /// that nested composite in turn declares (level 3) must be <i>non-composite</i>: <c>Table > Matrix >
+    /// Table</c> is level 4 and is refused.
     /// </para>
     ///
     /// <para>
@@ -40,7 +42,7 @@ public static class CompositeFieldNesting
     /// that one is a courtesy.
     /// </para>
     /// </summary>
-    public const int MaxDepth = 2;
+    public const int MaxDepth = 3;
 
     /// <summary>
     /// Whether a field definition nests composite types deeper than <see cref="MaxDepth"/> allows.
