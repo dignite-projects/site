@@ -18,8 +18,10 @@ namespace Dignite.FlexFields.Site.Table;
 /// objects, not a scalar or list of scalars.
 /// </para>
 /// </summary>
-public class TableFieldType : FieldTypeBase, ICompositeFieldType
+public class TableFieldType : FieldTypeBase, ICompositeFieldType, INormalizesValue
 {
+    private static readonly JsonSerializerOptions WebOptions = new(JsonSerializerDefaults.Web);
+
     public const string ControlName = "Table";
 
     public override string Name => ControlName;
@@ -81,6 +83,28 @@ public class TableFieldType : FieldTypeBase, ICompositeFieldType
     }
 
     /// <summary>
+    /// Re-cases a structurally valid value to the canonical camelCase shape - see
+    /// <c>MatrixFieldType.Normalize</c> for why an unparseable value is returned unchanged rather than
+    /// coerced to <c>[]</c>.
+    /// </summary>
+    public object? Normalize(object? value)
+    {
+        if (value == null || value is JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined })
+        {
+            return value;
+        }
+
+        try
+        {
+            return JsonSerializer.SerializeToElement(ReadRows(value), WebOptions);
+        }
+        catch (JsonException)
+        {
+            return value;
+        }
+    }
+
+    /// <summary>
     /// Storage-shape-agnostic read - the same duality every other field type's lenient reader handles,
     /// see <c>MatrixFieldType.ReadBlocks</c>.
     /// </summary>
@@ -95,7 +119,7 @@ public class TableFieldType : FieldTypeBase, ICompositeFieldType
             case JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined }:
                 return new List<TableRow>();
             case JsonElement { ValueKind: JsonValueKind.Array } element:
-                return element.Deserialize<List<TableRow>>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+                return element.Deserialize<List<TableRow>>(WebOptions)
                        ?? new List<TableRow>();
             default:
                 return new List<TableRow>();

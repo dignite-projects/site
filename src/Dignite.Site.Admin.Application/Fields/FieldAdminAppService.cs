@@ -97,6 +97,14 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
                 Name = fieldType.Name,
                 Indexable = fieldType.IsIndexable(),
                 Composite = fieldType is ICompositeFieldType,
+                ValueShape = (fieldType as IHasValueShape)?.ValueShape
+                    .Select(property => new FieldValuePropertyDto
+                    {
+                        Name = property.Name,
+                        Type = property.Type,
+                        Description = property.Description,
+                    })
+                    .ToList(),
             })
             .ToList();
 

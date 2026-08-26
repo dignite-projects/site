@@ -37,8 +37,10 @@ namespace Dignite.FlexFields.Site.Seo;
 /// exists in this solution yet; adopting one is a separate change, not something to fold in here.
 /// </para>
 /// </summary>
-public class SeoFieldType : FieldTypeBase
+public class SeoFieldType : FieldTypeBase, INormalizesValue, IHasValueShape
 {
+    private static readonly JsonSerializerOptions WebOptions = new(JsonSerializerDefaults.Web);
+
     public SeoFieldType()
     {
         LocalizationResource = typeof(FlexFieldsSiteResource);
@@ -95,6 +97,32 @@ public class SeoFieldType : FieldTypeBase
     }
 
     /// <summary>
+    /// Re-cases a structurally valid value to the canonical camelCase shape <see cref="SeoFieldValue"/>
+    /// serializes as (see <see cref="INormalizesValue"/> for why this cannot simply be folded into
+    /// <see cref="Validate"/>). A value <see cref="TryRead"/> cannot parse is returned unchanged - that is
+    /// <see cref="Validate"/>'s failure to report, not this method's to hide.
+    /// </summary>
+    public object? Normalize(object? value)
+    {
+        return TryRead(value, out var seoValue) && seoValue != null
+            ? JsonSerializer.SerializeToElement(seoValue, WebOptions)
+            : value;
+    }
+
+    /// <summary>
+    /// The four keys of <see cref="SeoFieldValue"/>, camelCased - reuses the exact label/hint strings the
+    /// Angular config UI already shows for the same properties (<c>Seo:MetaTitle</c> etc.), rather than
+    /// hand-maintaining a second copy of what each one means.
+    /// </summary>
+    public IReadOnlyList<FieldValueShapeProperty> ValueShape => new[]
+    {
+        new FieldValueShapeProperty { Name = "metaTitle", Type = "string", Description = L["Seo:MetaTitle"] },
+        new FieldValueShapeProperty { Name = "metaDescription", Type = "string", Description = L["Seo:MetaDescription"] },
+        new FieldValueShapeProperty { Name = "ogImage", Type = "string", Description = L["Seo:OgImage"] },
+        new FieldValueShapeProperty { Name = "noIndex", Type = "boolean", Description = L["Seo:NoIndexHint"] },
+    };
+
+    /// <summary>
     /// Storage-shape-agnostic read, in the spirit of <c>FieldTypeBase.ReadStringList</c> and
     /// <c>FileExplorerFieldType.HasAnyValue</c>: a fresh in-memory value is a live <see cref="SeoFieldValue"/>,
     /// one that has round-tripped through JSON storage is a <see cref="JsonElement"/>. Anything else -
@@ -115,7 +143,7 @@ public class SeoFieldType : FieldTypeBase
                 seoValue = null;
                 return true;
             case JsonElement { ValueKind: JsonValueKind.Object } element:
-                seoValue = element.Deserialize<SeoFieldValue>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                seoValue = element.Deserialize<SeoFieldValue>(WebOptions);
                 return true;
             default:
                 seoValue = null;

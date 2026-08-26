@@ -49,7 +49,10 @@ public class FieldTools : ITransientDependency
     [McpServerTool(Name = "list_field_types", Title = "List available field types", ReadOnly = true)]
     [Description(
         "The field types a definition can be bound to, e.g. Text or Select. Call this before " +
-        "create_field if you are unsure what fieldTypeName to use.")]
+        "create_field if you are unsure what fieldTypeName to use. Also call this before writing a value " +
+        "for a field whose type carries a non-null valueShape (e.g. Seo): that field's value is a JSON " +
+        "object, and valueShape lists the exact keys to use - do not guess casing from any server-side " +
+        "source code.")]
     [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual Task<ListResultDto<FieldTypeDto>> ListFieldTypesAsync()
     {

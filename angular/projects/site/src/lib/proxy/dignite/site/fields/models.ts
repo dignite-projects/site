@@ -13,4 +13,11 @@ export interface FieldTypeDto {
   name?: string;
   indexable?: boolean;
   composite?: boolean;
+  valueShape?: FieldValuePropertyDto[] | null;
+}
+
+export interface FieldValuePropertyDto {
+  name?: string;
+  type?: string;
+  description?: string | null;
 }

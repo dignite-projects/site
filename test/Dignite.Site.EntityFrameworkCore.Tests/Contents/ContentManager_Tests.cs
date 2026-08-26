@@ -1,9 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site.Seo;
+using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Fields;
 using Shouldly;
 using Volo.Abp.MultiTenancy;
 using Volo.Abp.Validation;
@@ -19,12 +23,16 @@ public class ContentManager_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly ContentManager _contentManager;
     private readonly IContentRepository _contentRepository;
+    private readonly IFieldRepository _fieldRepository;
+    private readonly ContentTypeManager _contentTypeManager;
     private readonly ICurrentTenant _currentTenant;
 
     public ContentManager_Tests()
     {
         _contentManager = GetRequiredService<ContentManager>();
         _contentRepository = GetRequiredService<IContentRepository>();
+        _fieldRepository = GetRequiredService<IFieldRepository>();
+        _contentTypeManager = GetRequiredService<ContentTypeManager>();
         _currentTenant = GetRequiredService<ICurrentTenant>();
     }
 
@@ -286,5 +294,66 @@ public class ContentManager_Tests : SiteEntityFrameworkCoreTestBase
             _contentRepository.GetListAsync(pageId: SiteTestData.BlogPageId));
 
         hostContents.ShouldNotBeEmpty();
+    }
+
+    /// <summary>
+    /// The regression this fix exists for: a caller (an MCP/AI client in practice, simulated here as a
+    /// hand-built <see cref="JsonElement"/> the same way it would arrive over JSON-RPC) sends a
+    /// structurally valid Seo value keyed in PascalCase - matching <c>SeoFieldValue</c>'s own C# property
+    /// names rather than the camelCase wire convention. <see cref="SeoFieldType.Validate"/> accepts it
+    /// (case-insensitively), so before this fix it was persisted byte-for-byte as sent - readable by
+    /// nothing that expects camelCase, like the Angular <c>SeoFieldValue</c> control. This asserts the
+    /// persisted row - re-read from a fresh unit of work, not just the in-memory instance - carries the
+    /// canonical camelCase keys regardless of how the caller cased them.
+    /// </summary>
+    [Fact]
+    public async Task Should_Normalize_A_Seo_Values_Key_Casing_To_CamelCase_On_Write()
+    {
+        var contentTypeId = await CreateSeoEnabledContentTypeAsync();
+
+        var pascalCaseSeoValue = JsonDocument.Parse(
+            """{"MetaTitle":"Cased like the C# properties","NoIndex":true}""").RootElement.Clone();
+
+        var content = await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, "seo-casing-normalization",
+            SiteTestData.PublishTime, ContentStatus.Draft,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "Casing normalization",
+                [SeoFieldNames.FieldName] = pascalCaseSeoValue
+            }));
+
+        var reloaded = await WithUnitOfWorkAsync(() => _contentRepository.GetAsync(content.Id));
+        var storedJson = JsonSerializer.Serialize(reloaded.FlexFields[SeoFieldNames.FieldName]);
+
+        // Case.Sensitive is required here - ShouldContain/ShouldNotContain default to case-insensitive,
+        // which would make "MetaTitle" a "match" against the correctly-cased "metaTitle" and silently
+        // defeat the entire point of this assertion.
+        storedJson.ShouldContain("\"metaTitle\"", Case.Sensitive);
+        storedJson.ShouldContain("\"noIndex\"", Case.Sensitive);
+        storedJson.ShouldNotContain("\"MetaTitle\"", Case.Sensitive);
+        storedJson.ShouldNotContain("\"NoIndex\"", Case.Sensitive);
+    }
+
+    /// <summary>Returns a fresh content type under "blog" that pulls in title (required) and seo.</summary>
+    private async Task<System.Guid> CreateSeoEnabledContentTypeAsync()
+    {
+        return await WithUnitOfWorkAsync(async () =>
+        {
+            var seoField = await _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName);
+            seoField.ShouldNotBeNull();
+
+            var titleField = await _fieldRepository.GetAsync(SiteTestData.TitleFieldId);
+
+            var contentType = await _contentTypeManager.CreateAsync(
+                SiteTestData.BlogPageId, $"seo-normalization-test-{System.Guid.NewGuid():N}", "SEO normalization test type",
+                fields: new[]
+                {
+                    new ContentTypeField(titleField.Id, required: true, order: 0),
+                    new ContentTypeField(seoField!.Id, order: 1)
+                });
+
+            return contentType.Id;
+        });
     }
 }

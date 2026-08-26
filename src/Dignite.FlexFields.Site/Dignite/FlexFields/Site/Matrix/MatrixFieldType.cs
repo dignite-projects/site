@@ -31,8 +31,10 @@ namespace Dignite.FlexFields.Site.Matrix;
 /// other fields.
 /// </para>
 /// </summary>
-public class MatrixFieldType : FieldTypeBase, ICompositeFieldType
+public class MatrixFieldType : FieldTypeBase, ICompositeFieldType, INormalizesValue
 {
+    private static readonly JsonSerializerOptions WebOptions = new(JsonSerializerDefaults.Web);
+
     public const string ControlName = "Matrix";
 
     public override string Name => ControlName;
@@ -111,6 +113,31 @@ public class MatrixFieldType : FieldTypeBase, ICompositeFieldType
     }
 
     /// <summary>
+    /// Re-cases a structurally valid value to the canonical camelCase shape (see
+    /// <see cref="INormalizesValue"/>). Falls back to returning <paramref name="value"/> unchanged - rather
+    /// than an empty list - if it does not even parse as JSON shaped like a block array, so a malformed
+    /// value is left for <see cref="Validate"/> to report exactly as it does today; a value that parses but
+    /// is semantically empty already normalizes to <c>[]</c> via <see cref="ReadBlocks"/> either way, which
+    /// matches <see cref="Validate"/>'s own existing treatment of "empty" and "unparseable" as one case.
+    /// </summary>
+    public object? Normalize(object? value)
+    {
+        if (value == null || value is JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined })
+        {
+            return value;
+        }
+
+        try
+        {
+            return JsonSerializer.SerializeToElement(ReadBlocks(value), WebOptions);
+        }
+        catch (JsonException)
+        {
+            return value;
+        }
+    }
+
+    /// <summary>
     /// Storage-shape-agnostic read: a fresh in-memory value is a live <see cref="List{MatrixBlockValue}"/>,
     /// one that has round-tripped through JSON storage is a <see cref="JsonElement"/> array - the same
     /// duality every other field type's lenient reader handles, just deserializing a composite element
@@ -127,7 +154,7 @@ public class MatrixFieldType : FieldTypeBase, ICompositeFieldType
             case JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined }:
                 return new List<MatrixBlockValue>();
             case JsonElement { ValueKind: JsonValueKind.Array } element:
-                return element.Deserialize<List<MatrixBlockValue>>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+                return element.Deserialize<List<MatrixBlockValue>>(WebOptions)
                        ?? new List<MatrixBlockValue>();
             default:
                 return new List<MatrixBlockValue>();

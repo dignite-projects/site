@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
@@ -38,6 +39,8 @@ public class ContentManager : DomainService
 
     protected IFlexFieldIndexManager<Content> IndexManager { get; }
 
+    protected IFieldTypeResolver FieldTypeResolver { get; }
+
     protected IClock Clock { get; }
 
     public ContentManager(
@@ -47,6 +50,7 @@ public class ContentManager : DomainService
         IPageRepository pageRepository,
         IFlexFieldValidator<Content> flexFieldValidator,
         IFlexFieldIndexManager<Content> indexManager,
+        IFieldTypeResolver fieldTypeResolver,
         IClock clock)
     {
         ContentRepository = contentRepository;
@@ -55,6 +59,7 @@ public class ContentManager : DomainService
         PageRepository = pageRepository;
         FlexFieldValidator = flexFieldValidator;
         IndexManager = indexManager;
+        FieldTypeResolver = fieldTypeResolver;
         Clock = clock;
     }
 
@@ -177,19 +182,37 @@ public class ContentManager : DomainService
             return;
         }
 
-        var declaredNames = (await FieldRepository.GetListAsync(contentType.GetFieldIds(), cancellationToken))
-            .Select(f => f.Name)
-            .ToHashSet(StringComparer.Ordinal);
+        var declaredFields = (await FieldRepository.GetListAsync(contentType.GetFieldIds(), cancellationToken))
+            .ToDictionary(f => f.Name, f => f, StringComparer.Ordinal);
 
         content.FlexFields.Clear();
 
         foreach (var (name, value) in fieldValues)
         {
-            if (value != null && declaredNames.Contains(name))
+            if (value != null && declaredFields.TryGetValue(name, out var field))
             {
-                content.SetField(name, value);
+                content.SetField(name, NormalizeFieldValue(field.FieldTypeName, value));
             }
         }
+    }
+
+    /// <summary>
+    /// Canonicalizes a composite field type's value before it lands in the bag, so what gets persisted
+    /// never depends on which casing a particular caller happened to send (see
+    /// <see cref="INormalizesValue"/>). A no-op for every field type that has not opted in - which today
+    /// is every FlexFields-native scalar type, unchanged from before this existed.
+    /// <para>
+    /// <c>FieldTypeResolver.Get</c> can throw for a <c>FieldTypeName</c> no longer registered, but that is
+    /// not a new failure mode: <see cref="ValidateFlexFieldsAsync"/>, called right after this method
+    /// returns, resolves the exact same name through <c>FlexFieldValidator</c> unconditionally already -
+    /// this only reaches the same failure one step sooner in the same call.
+    /// </para>
+    /// </summary>
+    protected virtual object? NormalizeFieldValue(string fieldTypeName, object? value)
+    {
+        return FieldTypeResolver.Get(fieldTypeName) is INormalizesValue normalizer
+            ? normalizer.Normalize(value)
+            : value;
     }
 
     /// <summary>

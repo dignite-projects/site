@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Text.Json;
 using Dignite.Abp.FlexFields;
+using Dignite.FlexFields.Site;
 using Dignite.FlexFields.Site.Seo;
 using Shouldly;
 using Xunit;
@@ -117,6 +119,77 @@ public class SeoFieldType_Tests : SiteDomainTestBase<SiteDomainTestModule>
     public void Should_Reject_A_Value_Of_An_Unrelated_Type()
     {
         Validate(42).ShouldNotBeEmpty();
+    }
+
+    /// <summary>
+    /// The regression this method exists to close: a value keyed like <c>SeoFieldValue</c>'s own C#
+    /// properties (PascalCase) - what a client reading the server's source rather than the wire convention
+    /// would produce - is structurally valid (case-insensitive match) but must not be persisted as-is,
+    /// or nothing that expects camelCase (the Angular control included) can read it back.
+    /// </summary>
+    [Fact]
+    public void Should_Normalize_A_PascalCase_Json_Object_To_CamelCase()
+    {
+        var element = JsonDocument.Parse("""{"MetaTitle":"Title","NoIndex":true}""").RootElement.Clone();
+
+        var normalized = (JsonElement)_fieldType.Normalize(element)!;
+
+        normalized.GetProperty("metaTitle").GetString().ShouldBe("Title");
+        normalized.GetProperty("noIndex").GetBoolean().ShouldBeTrue();
+    }
+
+    /// <summary>A value already in the canonical shape round-trips unchanged in content, if not in reference.</summary>
+    [Fact]
+    public void Should_Normalize_An_Already_CamelCase_Value_To_The_Same_Content()
+    {
+        var element = JsonDocument.Parse("""{"metaTitle":"Title","ogImage":"https://example.com/a.png"}""").RootElement.Clone();
+
+        var normalized = (JsonElement)_fieldType.Normalize(element)!;
+
+        normalized.GetProperty("metaTitle").GetString().ShouldBe("Title");
+        normalized.GetProperty("ogImage").GetString().ShouldBe("https://example.com/a.png");
+    }
+
+    /// <summary>A fresh in-memory value (never round-tripped through JSON) normalizes the same way.</summary>
+    [Fact]
+    public void Should_Normalize_A_Live_SeoFieldValue_To_A_CamelCase_JsonElement()
+    {
+        var normalized = (JsonElement)_fieldType.Normalize(new SeoFieldValue { MetaTitle = "Title" })!;
+
+        normalized.GetProperty("metaTitle").GetString().ShouldBe("Title");
+    }
+
+    [Fact]
+    public void Should_Leave_Null_Unchanged_When_Normalizing()
+    {
+        _fieldType.Normalize(null).ShouldBeNull();
+    }
+
+    /// <summary>
+    /// Normalization must never mask a shape <see cref="Validate"/> would otherwise reject - an
+    /// unparseable value is returned as-is, so <c>Validate</c> still sees (and reports) the original
+    /// problem rather than a silently-substituted empty value.
+    /// </summary>
+    [Fact]
+    public void Should_Leave_An_Unparseable_Value_Unchanged_When_Normalizing()
+    {
+        var element = JsonDocument.Parse("\"not-an-object\"").RootElement.Clone();
+
+        var normalized = _fieldType.Normalize(element);
+
+        ((JsonElement)normalized!).GetString().ShouldBe("not-an-object");
+    }
+
+    /// <summary>
+    /// The four keys an AI client needs in order to write a Seo value without guessing casing from the
+    /// server's own C# source - see <see cref="IHasValueShape"/> for why this lives on the type rather
+    /// than in this field's <c>Configuration</c>.
+    /// </summary>
+    [Fact]
+    public void ValueShape_Should_List_The_Four_Camel_Cased_Keys()
+    {
+        _fieldType.ValueShape.Select(p => p.Name).ShouldBe(
+            new[] { "metaTitle", "metaDescription", "ogImage", "noIndex" });
     }
 
     [Fact]

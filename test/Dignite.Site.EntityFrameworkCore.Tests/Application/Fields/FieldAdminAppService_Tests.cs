@@ -49,6 +49,27 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         names.ShouldContain("FileExplorer");
     }
 
+    /// <summary>
+    /// Seo's value is a fixed composite object, not admin-configured like Matrix's block types, so its
+    /// keys cannot come from <c>Configuration</c> - they come from <c>IHasValueShape</c> via this catalog
+    /// instead. A scalar field type (Text) and a composite-but-dynamically-shaped one (Matrix, whose own
+    /// sub-fields already live in its <c>Configuration</c>) both report no value shape at all.
+    /// </summary>
+    [Fact]
+    public async Task Should_Report_Value_Shape_Only_For_Field_Types_With_A_Fixed_Composite_Value()
+    {
+        var fieldTypes = await _fieldAppService.GetFieldTypesAsync();
+        var byName = fieldTypes.Items.ToDictionary(ft => ft.Name);
+
+        var seoShape = byName["Seo"].ValueShape;
+        seoShape.ShouldNotBeNull();
+        seoShape!.Select(p => p.Name).ShouldBe(new[] { "metaTitle", "metaDescription", "ogImage", "noIndex" });
+        seoShape.ShouldAllBe(p => !string.IsNullOrWhiteSpace(p.Description));
+
+        byName["Text"].ValueShape.ShouldBeNull();
+        byName["Matrix"].ValueShape.ShouldBeNull();
+    }
+
     [Fact]
     public async Task Should_Round_Trip_Create_With_Configuration()
     {
