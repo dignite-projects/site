@@ -15,7 +15,7 @@
               <i class="bi ms-2" [class.bi-chevron-up]="isExpanded(block)" [class.bi-chevron-down]="!isExpanded(block)"></i>
             </div>
           </div>
-          <div class="card-body" *ngIf="isExpanded(block)">
+          <div class="card-body" [class.d-none]="!isExpanded(block)">
             <ng-container *ngFor="let subField of fieldsOf(block)">
               <ff-flex-field-control
                 [fields]="subFieldValueOf(subField)"
