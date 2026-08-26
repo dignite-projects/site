@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-preview.8] - 2026-08-26
+
+### Fixed
+
+- Collapsing a Matrix block used `*ngIf` to hide its sub-field controls, which destroys them - and
+  the shared `FieldTypeControlBase.ngOnDestroy()` removes a destroyed control from its parent
+  `FormGroup`, wiping whatever was typed before Save ever ran. Table has no collapse feature and was
+  unaffected. Switched to a CSS-based hide so the controls stay mounted (and registered) regardless
+  of expand state.
+
+- Save correctly disabled when a field's value violated its own required/min/max/maxlength rules,
+  but nothing near the field said why - true for every flex field control, not just Table's numeric
+  columns, since none of them render error text regardless of nesting depth. Each field now reads
+  its own `FormControl` errors directly instead of depending on `ff-flex-field-control`'s mounted
+  component to render them, since those leaf components live in the separately-published
+  `@dignite/ng.flex-fields` package.
+
+- `Seo`/`Matrix`/`Table` validate a value case-insensitively, so a client that writes a key in the
+  wrong casing (e.g. an AI/MCP caller inferring `MetaTitle` from the C# source instead of the
+  `metaTitle` wire convention) passed validation, but `ContentManager.SetFieldValuesAsync` then
+  persisted whatever casing arrived byte-for-byte - silently unreadable to every downstream reader
+  that expects camelCase, despite having saved without error. A new `INormalizesValue` re-derives
+  the canonical camelCase shape before the value reaches the bag; an unparseable value is left
+  untouched so `Validate`'s own error path is unaffected. Companion fix: Seo's four value keys are
+  fixed by the C# type rather than admin-configured like Matrix's block types or Table's columns, so
+  they had no way to appear in a field's own Configuration for an AI client to read -
+  `IHasValueShape` now exposes them as a type-level fact through `list_field_types`/`FieldTypeDto`.
+
+### Changed
+
+- Matrix blocks now show a visible border; Table's "add row" control moved into the header, next to
+  the per-row remove buttons.
+
 ## [0.1.0-preview.7] - 2026-08-18
 
 ### Fixed
