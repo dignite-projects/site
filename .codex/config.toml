@@ -1,0 +1,16 @@
+[mcp_servers.microsoft-learn]
+url = "https://learn.microsoft.com/api/mcp"
+
+[mcp_servers.abp-studio]
+command = "abp"
+args = ["mcp-studio"]
+
+[mcp_servers.site]
+enabled = true
+startup_timeout_sec = 360
+command = "npx"
+args = ["-y", "mcp-remote@0.1.38", "https://localhost:44315/mcp", "--transport", "http-only", "--static-oauth-client-info", '{"client_id":"Site_Mcp"}', "--static-oauth-client-metadata", '{"scope":"Host offline_access"}', "--auth-timeout", "300"]
+
+[mcp_servers.site.env]
+NODE_OPTIONS = "--use-system-ca"
+NODE_TLS_REJECT_UNAUTHORIZED = "0"
