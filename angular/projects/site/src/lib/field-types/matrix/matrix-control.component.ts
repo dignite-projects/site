@@ -1,4 +1,4 @@
-import { CoreModule } from '@abp/ng.core';
+import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { CommonModule } from '@angular/common';
 import {
   AbstractControl,
@@ -8,11 +8,12 @@ import {
   ReactiveFormsModule,
   ValidatorFn,
 } from '@angular/forms';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { FieldTypeControlBase, FlexFieldControlComponent } from '@dignite/ng.flex-fields';
 import { MatrixConfiguration } from './matrix-configuration';
 import type { InlineFieldDefinition } from '../inline-field-definition';
+import { flexFieldErrorMessage } from '../flex-field-error-message';
 import type { MatrixBlockType } from './matrix-block-type';
 import { normalizeMatrixBlockTypes, normalizeMatrixBlockValues } from './matrix-block-type';
 
@@ -31,6 +32,8 @@ import { normalizeMatrixBlockTypes, normalizeMatrixBlockValues } from './matrix-
   imports: [CoreModule, CommonModule, ReactiveFormsModule, FlexFieldControlComponent],
 })
 export class MatrixControlComponent extends FieldTypeControlBase {
+  private readonly localization = inject(LocalizationService);
+
   /** Which block instances currently show their fields. UI state only - never written into the value,
    * unlike the reference implementation this was modeled on, which persisted it as data. */
   private readonly expandedBlocks = new Set<AbstractControl>();
@@ -107,6 +110,10 @@ export class MatrixControlComponent extends FieldTypeControlBase {
 
   selectedValueOf(block: AbstractControl, subField: InlineFieldDefinition): unknown {
     return this.blockValueSeeds.get(block as FormGroup)?.[subField.name];
+  }
+
+  subFieldErrorMessage(block: AbstractControl, subField: InlineFieldDefinition): string | null {
+    return flexFieldErrorMessage(this.valuesGroupOf(block).get(subField.name), this.localization);
   }
 
   addBlock(blockType: MatrixBlockType): void {

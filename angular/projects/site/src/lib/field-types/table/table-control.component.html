@@ -21,6 +21,9 @@
                   parentFieldName="values"
                   [entity]="row"
                 ></ff-flex-field-control>
+                <div class="invalid-feedback d-block" *ngIf="columnErrorMessage(row, column) as message">
+                  {{ message }}
+                </div>
               </td>
               <td>
                 <button type="button" class="btn btn-light btn-sm" (click)="removeRow(rowIndex)">

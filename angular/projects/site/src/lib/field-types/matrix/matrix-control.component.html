@@ -23,6 +23,9 @@
                 parentFieldName="values"
                 [entity]="block"
               ></ff-flex-field-control>
+              <div class="invalid-feedback d-block" *ngIf="subFieldErrorMessage(block, subField) as message">
+                {{ message }}
+              </div>
             </ng-container>
           </div>
         </div>

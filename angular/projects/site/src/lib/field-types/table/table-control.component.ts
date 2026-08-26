@@ -1,4 +1,4 @@
-import { CoreModule } from '@abp/ng.core';
+import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { CommonModule } from '@angular/common';
 import {
   AbstractControl,
@@ -7,11 +7,12 @@ import {
   ReactiveFormsModule,
   ValidatorFn,
 } from '@angular/forms';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { FieldTypeControlBase, FlexFieldControlComponent } from '@dignite/ng.flex-fields';
 import type { InlineFieldDefinition } from '../inline-field-definition';
 import { normalizeInlineFieldDefinitions } from '../inline-field-definition';
+import { flexFieldErrorMessage } from '../flex-field-error-message';
 import { normalizeTableRows } from './table-row';
 import { TableConfiguration } from './table-configuration';
 
@@ -27,6 +28,8 @@ import { TableConfiguration } from './table-configuration';
   imports: [CoreModule, CommonModule, ReactiveFormsModule, FlexFieldControlComponent],
 })
 export class TableControlComponent extends FieldTypeControlBase {
+  private readonly localization = inject(LocalizationService);
+
   private readonly rowValueSeeds = new WeakMap<FormGroup, Record<string, unknown>>();
 
   /** `columnValueOf` is called from the template on every change-detection cycle, and
@@ -87,6 +90,10 @@ export class TableControlComponent extends FieldTypeControlBase {
 
   selectedValueOf(row: AbstractControl, column: InlineFieldDefinition): unknown {
     return this.rowValueSeeds.get(row as FormGroup)?.[column.name];
+  }
+
+  columnErrorMessage(row: AbstractControl, column: InlineFieldDefinition): string | null {
+    return flexFieldErrorMessage(this.valuesGroupOf(row).get(column.name), this.localization);
   }
 
   addRow(): void {

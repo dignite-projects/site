@@ -1,4 +1,4 @@
-import { CoreModule } from '@abp/ng.core';
+import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
 import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -15,6 +15,7 @@ import { ContentStatus } from '../../proxy/dignite/site/contents/content-status.
 import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteReferenceDataService } from '../../services/site-reference-data.service';
+import { flexFieldErrorMessage } from '../../field-types/flex-field-error-message';
 import type { ArrangedField } from './arranged-field';
 
 const MAX_SLUG_LENGTH = 256;
@@ -100,6 +101,7 @@ export class ContentEditorComponent {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toaster = inject(ToasterService);
+  private readonly localization = inject(LocalizationService);
 
   readonly ContentStatus = ContentStatus;
   readonly statuses = [ContentStatus.Draft, ContentStatus.Published, ContentStatus.Archived];
@@ -221,6 +223,10 @@ export class ContentEditorComponent {
 
   statusKeyOf(status: ContentStatus): string {
     return `Site::Enum:ContentStatus:${ContentStatus[status]}`;
+  }
+
+  fieldErrorMessage(fieldValue: FlexFieldValue): string | null {
+    return flexFieldErrorMessage(this.form?.get('flexFields')?.get(fieldValue.field.name), this.localization);
   }
 
   private rebuildArrangements(): void {

@@ -61,6 +61,9 @@
                   parentFieldName="flexFields"
                   [selected]="fieldValue.value"
                 ></ff-flex-field-control>
+                @if (fieldErrorMessage(fieldValue); as message) {
+                  <div class="invalid-feedback d-block mb-3">{{ message }}</div>
+                }
               }
             } @else {
               <p class="text-muted mb-0">{{ 'Site::NoFieldsArranged' | abpLocalization }}</p>
