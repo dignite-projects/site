@@ -5,8 +5,8 @@
         {{ fieldValue.field.displayName }}
       </label>
       <div [formArrayName]="fieldValue.field.name">
-        <div *ngFor="let block of blocks.controls; let blockIndex = index" [formGroupName]="blockIndex" class="card mb-2">
-          <div class="card-header d-flex align-items-center justify-content-between" (click)="toggleExpanded(block)" style="cursor: pointer">
+        <div *ngFor="let block of blocks.controls; let blockIndex = index" [formGroupName]="blockIndex" class="card border">
+          <div class="card-header d-flex align-items-center justify-content-between" (click)="toggleExpanded(block)" style="cursor: pointer; padding: 0.75rem">
             <span>{{ blockTypeOf(block)?.displayName ?? blockTypeOf(block)?.name }}</span>
             <div class="d-flex align-items-center">
               <button type="button" class="btn btn-light btn-sm p-0 px-2" (click)="$event.stopPropagation(); removeBlock(blockIndex)">
@@ -15,7 +15,7 @@
               <i class="bi ms-2" [class.bi-chevron-up]="isExpanded(block)" [class.bi-chevron-down]="!isExpanded(block)"></i>
             </div>
           </div>
-          <div class="card-body" [class.d-none]="!isExpanded(block)">
+          <div class="card-body" [class.d-none]="!isExpanded(block)" style="padding: 0.75rem">
             <ng-container *ngFor="let subField of fieldsOf(block)">
               <ff-flex-field-control
                 [fields]="subFieldValueOf(subField)"
