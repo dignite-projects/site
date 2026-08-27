@@ -60,6 +60,17 @@ public class PageTools : ITransientDependency
             "slash between path segments.")]
         string route,
         [Description(
+            "Optional rendering hint for the page itself - a list/index, with no specific content. Only " +
+            "meaningful for a front end that lets the back end name the view to render (总体设计 §7.3 " +
+            "Tier 0); a Razor Pages or external front end resolves its own templates and never reads " +
+            "this - omit unless you know this site uses that tier. See 'contentTemplate' for the sibling " +
+            "used once a request resolves to specific content.")]
+        string? template = null,
+        [Description(
+            "Optional rendering hint used once a request resolves to one piece of content beneath this " +
+            "page. Same Tier-0-only caveat as 'template' - see there.")]
+        string? contentTemplate = null,
+        [Description(
             "The parent page's machine name, for organizing this page under it in the Admin UI's tree. " +
             "Purely organizational - it has no effect on 'route' or on how requests are resolved against " +
             "it. Omit for a top-level page. Ignored when 'route' makes this the home page: the home page " +
@@ -75,6 +86,8 @@ public class PageTools : ITransientDependency
             Name = name,
             DisplayName = displayName,
             Route = route,
+            Template = template,
+            ContentTemplate = contentTemplate,
             ParentId = parentId,
             IsActive = isActive
         });
@@ -102,6 +115,16 @@ public class PageTools : ITransientDependency
             "exist - only the next write to one of them sees the new rule.")]
         string? route = null,
         [Description(
+            "New rendering hint for the page itself - see create_page's 'template' for what it's for and " +
+            "when it's relevant. Omit to keep the current one; pass an empty string to clear it back to " +
+            "none.")]
+        string? template = null,
+        [Description(
+            "New rendering hint used once a request resolves to specific content beneath this page - see " +
+            "create_page's 'contentTemplate'. Omit to keep the current one; pass an empty string to clear " +
+            "it back to none.")]
+        string? contentTemplate = null,
+        [Description(
             "New parent page's machine name, for reorganizing this page in the Admin UI's tree. Purely " +
             "organizational - has no effect on 'route'. Omit to keep the current parent; pass an empty " +
             "string to make this a top-level page. Ignored if this page's route is, or is becoming, the " +
@@ -127,8 +150,8 @@ public class PageTools : ITransientDependency
             Name = name ?? current.Name,
             DisplayName = displayName ?? current.DisplayName,
             Route = route ?? current.Route,
-            Template = current.Template,
-            ContentTemplate = current.ContentTemplate,
+            Template = template ?? current.Template,
+            ContentTemplate = contentTemplate ?? current.ContentTemplate,
             ParentId = parentId,
             IsActive = isActive ?? current.IsActive
         });

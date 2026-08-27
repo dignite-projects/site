@@ -176,6 +176,60 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// create_page went without a 'template'/'contentTemplate' parameter entirely until this test was
+    /// written - CreatePageDto carried both fields from the start, but nothing on the MCP surface could
+    /// reach them. See Dignite.Site.Mcp.McpToolDtoContract_Tests for the structural check that now catches
+    /// a gap like that without needing a behavioral test like this one for every field.
+    /// </summary>
+    [Fact]
+    public async Task Should_Create_A_Page_With_Rendering_Templates()
+    {
+        var created = await _pageTools.CreatePageAsync(
+            name: "mcp-template-create", displayName: "Template Create", route: "/mcp-template-create",
+            template: "pages/list", contentTemplate: "pages/detail");
+
+        created.Template.ShouldBe("pages/list");
+        created.ContentTemplate.ShouldBe("pages/detail");
+    }
+
+    [Fact]
+    public async Task Should_Update_The_Rendering_Templates()
+    {
+        var updated = await _pageTools.UpdatePageAsync(
+            page: "blog", template: "pages/list", contentTemplate: "pages/detail");
+
+        updated.Template.ShouldBe("pages/list");
+        updated.ContentTemplate.ShouldBe("pages/detail");
+    }
+
+    /// <summary>Mirrors Should_Keep_The_Parent_When_Omitted: the same null-keeps convention applies here.</summary>
+    [Fact]
+    public async Task Should_Keep_The_Rendering_Templates_When_Omitted()
+    {
+        await _pageTools.UpdatePageAsync(page: "blog", template: "pages/list", contentTemplate: "pages/detail");
+
+        var updated = await _pageTools.UpdatePageAsync(page: "blog", displayName: "Blog (updated)");
+
+        updated.Template.ShouldBe("pages/list");
+        updated.ContentTemplate.ShouldBe("pages/detail");
+    }
+
+    /// <summary>
+    /// Mirrors Should_Clear_The_Parent_With_An_Explicit_Empty_String, for the same reason: null already
+    /// means "leave it alone", so clearing a value that was actually set needs an explicit empty string.
+    /// </summary>
+    [Fact]
+    public async Task Should_Clear_The_Rendering_Templates_With_An_Explicit_Empty_String()
+    {
+        await _pageTools.UpdatePageAsync(page: "blog", template: "pages/list", contentTemplate: "pages/detail");
+
+        var updated = await _pageTools.UpdatePageAsync(page: "blog", template: "", contentTemplate: "");
+
+        updated.Template.ShouldBeNull();
+        updated.ContentTemplate.ShouldBeNull();
+    }
+
+    /// <summary>
     /// The same PageHasChildrenException PageManager_Tests pins at the domain layer has to actually reach
     /// an MCP caller, not get swallowed or rewrapped on the way through PageAdminAppService.
     /// </summary>
