@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-preview.9] - 2026-08-30
+
+### Added
+
+- `Dignite.Site.Host` seeds a small demo site on first run (`SiteContentDataSeedContributor`):
+  Home, About, an Events page demonstrating an optional `{slug?}` route placeholder, a
+  parent/child News section demonstrating a regex-constrained route placeholder, and a bilingual
+  Contact page exercising the Seo preset field - idempotent by name/slug lookup, so it never
+  touches an already-populated database.
+- A standing MCP-tool/DTO contract test (`Dignite.Site.Mcp.Tests`) fails, with a specific
+  message, whenever an MCP tool's parameters drift from the `Create`/`Update`/`List` DTO it
+  builds - found by this exact class of drift letting `create_page`/`update_page` silently drop
+  `template`/`contentTemplate` since those parameters were added.
+
+### Changed
+
+- `Page.Template` and `Page.ContentTemplate` are collapsed into one required `Template` field,
+  used for both the page-list and content-detail render paths (the view itself already branched
+  on `Model.Content`). A blank or misconfigured `Template` now throws the standard view-not-found
+  error instead of silently falling back to `Default`. A migration backfills existing rows from
+  whichever of the two columns was set before dropping `ContentTemplate` and tightening `Template`
+  to `NOT NULL`.
+- Tenant-scoped views now resolve from `/Tenants/{id}/...` instead of `/Site/{id}/...`
+  (`TenantViewLocationExpander`), and a `Template` value may include a trailing `.cshtml` without
+  breaking view resolution.
+
+### Fixed
+
+- The slug preview's placeholder scanner used a regex that could not tell a `{name:FORMAT}`
+  token's own closing brace apart from a balanced one inside its `:REGEX` segment (e.g. `\d{4}`),
+  truncating the preview mid-regex and leaking the remainder as literal text. Ported the server's
+  brace-depth-aware scan.
+- Two page routes that reduce to the same bare address (e.g. a non-slug month-index page and a
+  regex-constrained, slug-bearing sibling both resolving to `/news`) resolved unpredictably,
+  picking whichever candidate an ordinal text sort happened to try first. A route with no
+  `{slug}` now wins as the more complete address, the same reasoning that already prefers a
+  literal route over a template sharing its address, extended one level.
+
 ## [0.1.0-preview.8] - 2026-08-26
 
 ### Fixed
