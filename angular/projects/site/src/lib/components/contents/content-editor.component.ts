@@ -112,6 +112,7 @@ export class ContentEditorComponent {
   page?: PageDto;
   contentTypes: ContentTypeDto[] = [];
   languages: string[] = [];
+  defaultLanguage = '';
   content?: ContentDto;
 
   /**
@@ -148,6 +149,7 @@ export class ContentEditorComponent {
       .pipe(
         switchMap(loaded => {
           this.languages = loaded.schema.enabledLanguages ?? [];
+          this.defaultLanguage = loaded.schema.defaultLanguage ?? this.languages[0] ?? '';
           this.fieldsById = loaded.fieldsById;
           this.content = loaded.content;
 
@@ -214,7 +216,8 @@ export class ContentEditorComponent {
     }
 
     const slug = (this.form?.get('slug')?.value ?? '').trim();
-    return slug ? this.buildPreviewPath(route) : this.pageOwnPath(route);
+    const path = slug ? this.buildPreviewPath(route) : this.pageOwnPath(route);
+    return this.applyCulturePrefix(path);
   }
 
   get isDraft(): boolean {
@@ -476,6 +479,22 @@ export class ContentEditorComponent {
     const date = value ? new Date(value) : new Date();
     const offset = date.getTimezoneOffset() * 60_000;
     return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  }
+
+  /**
+   * Mirrors `SiteUrlContext.ApplyCulturePrefix` (总体设计 §5.5): every enabled language carries a
+   * `/cultureName` prefix except the default one, which is served unprefixed. `cultureName` here is
+   * already one of `languages` (or the loaded content's own, already-normalized value), so - unlike the
+   * server, which normalizes through `CultureNameNormalizer` first - a plain equality check against
+   * {@link defaultLanguage} is enough to tell the two apart.
+   */
+  private applyCulturePrefix(path: string): string {
+    const cultureName = this.form?.get('cultureName')?.value;
+    if (!cultureName || cultureName === this.defaultLanguage) {
+      return path;
+    }
+
+    return path === '/' ? `/${cultureName}` : `/${cultureName}${path}`;
   }
 
   /** Mirrors `PageRoute.GetPath`: everything up to the segment that first carries a placeholder. */
