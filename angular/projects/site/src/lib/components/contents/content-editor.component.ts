@@ -495,13 +495,136 @@ export class ContentEditorComponent {
    * per-name branch here, deliberately: the server does not have one either, it reflects over `Content`
    * (`Page.ResolveFieldValue`), and a name-by-name `if` ladder here would just be that same mistake
    * moved to TypeScript instead of removed.
+   * <p>
+   * Placeholders are located with {@link readPlaceholder}'s brace-depth-aware scan, not a single regex -
+   * a `/\{...\}/` pattern cannot tell a placeholder's own closing brace apart from a balanced one inside
+   * its `:REGEX` segment (a quantifier like `\d{4}`, e.g. in `{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}`),
+   * the same reason `PageRoute.TryParseTemplate` on the server had to stop using ABP's own tokenizer.
    */
   private buildPreviewPath(route: string): string {
     const canonical = route.replace(OPTIONAL_SLUG_TOKEN, REQUIRED_SLUG_TOKEN);
 
-    return canonical.replace(/\{([a-zA-Z][a-zA-Z0-9]*)(:([^}]+))?\}/g, (token, name, _colonFormat, format) =>
-      this.resolvePlaceholder(name, format ?? null) ?? token,
-    );
+    let result = '';
+    let i = 0;
+
+    while (i < canonical.length) {
+      if (canonical[i] !== '{') {
+        result += canonical[i];
+        i++;
+        continue;
+      }
+
+      const placeholder = this.readPlaceholder(canonical, i);
+      if (!placeholder) {
+        // Not a well-formed placeholder start - a route that reaches this component was already
+        // validated by `PageRoute.IsValid` when it was saved, so this is only ever a defensive fallback:
+        // treat '{' as a literal character rather than throwing out of what is meant to be a best-effort
+        // preview.
+        result += canonical[i];
+        i++;
+        continue;
+      }
+
+      result += this.resolvePlaceholder(placeholder.name, placeholder.format) ?? placeholder.token;
+      i = placeholder.end;
+    }
+
+    return result;
+  }
+
+  /**
+   * Reads one `{name}` / `{name:FORMAT}` / `{name:REGEX}` / `{name:FORMAT:REGEX}` placeholder starting at
+   * `route[start]` (must be `'{'`), mirroring `PageRoute.TryParseTemplate`'s single-placeholder case
+   * (`src/Dignite.Site.Domain.Shared/Pages/PageRoute.cs`): brace depth is tracked once inside the
+   * `:`-segment so an embedded, balanced `{`/`}` does not get mistaken for the placeholder's own closing
+   * brace, and a backslash escapes the next character so an explicitly-escaped `\{`/`\}` never perturbs
+   * the count either. Returns `null` for anything that does not parse as a well-formed placeholder -
+   * {@link buildPreviewPath} treats that as a literal `{` rather than failing the whole preview.
+   * <p>
+   * Only `name` and `format` are extracted, never the regex itself - a placeholder's regex constrains
+   * what may be read back out of a request path, and has nothing to say about a value being written into
+   * one, the same reason `PageRoute.Build` on the server discards it too (see that method's remarks).
+   */
+  private readPlaceholder(
+    route: string,
+    start: number,
+  ): { token: string; end: number; name: string; format: string | null } | null {
+    let i = start + 1; // consume '{'
+    const nameStart = i;
+
+    if (i >= route.length || !/[a-zA-Z]/.test(route[i])) {
+      return null;
+    }
+    i++;
+    while (i < route.length && /[a-zA-Z0-9]/.test(route[i])) {
+      i++;
+    }
+    const name = route.slice(nameStart, i);
+
+    if (i >= route.length) {
+      return null;
+    }
+
+    if (route[i] === '}') {
+      return { token: route.slice(start, i + 1), end: i + 1, name, format: null };
+    }
+
+    if (route[i] !== ':') {
+      return null;
+    }
+
+    i++; // consume ':'
+    const innerStart = i;
+    let depth = 0;
+    let closed = false;
+
+    while (i < route.length) {
+      const c = route[i];
+      if (c === '\\' && i + 1 < route.length) {
+        i += 2;
+        continue;
+      }
+      if (c === '{') {
+        depth++;
+      } else if (c === '}') {
+        if (depth === 0) {
+          closed = true;
+          break;
+        }
+        depth--;
+      }
+      i++;
+    }
+
+    if (!closed) {
+      return null;
+    }
+
+    const inner = route.slice(innerStart, i);
+    const end = i + 1; // consume the closing '}'
+    return { token: route.slice(start, end), end, name, format: this.disambiguateFormat(inner) };
+  }
+
+  /**
+   * Mirrors `PageRoute.TryDisambiguate`, reduced to the half a preview needs: a placeholder's already
+   * brace-depth-isolated inner text (everything after the first `:`) splits into a `:FORMAT` prefix plus a
+   * regex remainder when the prefix is format-shaped (letters/digits/`.`/`_`/`-` only - a real format
+   * string, by construction, can never also look like a regex worth compiling, which is what keeps every
+   * `{name:FORMAT}` route classified exactly as it always was); otherwise the inner text is a bare format
+   * on its own if it matches that shape whole, or else it is a regex with no format at all.
+   */
+  private disambiguateFormat(inner: string): string | null {
+    const formatCharacters = /^[a-zA-Z0-9_.-]+$/;
+    const colon = inner.indexOf(':');
+
+    if (colon >= 0) {
+      const candidate = inner.slice(0, colon);
+      if (candidate && formatCharacters.test(candidate)) {
+        return candidate;
+      }
+    }
+
+    return formatCharacters.test(inner) ? inner : null;
   }
 
   /**
