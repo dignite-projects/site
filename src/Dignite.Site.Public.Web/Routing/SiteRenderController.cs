@@ -3,7 +3,6 @@ using Dignite.Site.Fields;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Seo;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ViewEngines;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -37,23 +36,19 @@ namespace Dignite.Site.Public.Routing;
 public class SiteRenderController : AbpController
 {
     public const string ControllerName = "SiteRender";
-    public const string FallbackTemplateName = "Default";
 
     protected IRoutingPublicAppService RoutingAppService { get; }
     protected IFieldPublicAppService FieldAppService { get; }
     protected IHeadMetadataPublicAppService HeadMetadataAppService { get; }
-    protected ICompositeViewEngine ViewEngine { get; }
 
     public SiteRenderController(
         IRoutingPublicAppService routingAppService,
         IFieldPublicAppService fieldAppService,
-        IHeadMetadataPublicAppService headMetadataAppService,
-        ICompositeViewEngine viewEngine)
+        IHeadMetadataPublicAppService headMetadataAppService)
     {
         RoutingAppService = routingAppService;
         FieldAppService = fieldAppService;
         HeadMetadataAppService = headMetadataAppService;
-        ViewEngine = viewEngine;
     }
 
     [AcceptVerbs("GET", "HEAD", Route = "/{**path}", Order = 1)]
@@ -91,12 +86,11 @@ public class SiteRenderController : AbpController
             return NotFound();
         }
 
-        // Page.Template and Page.ContentTemplate name two independent views, not two ends of one
-        // branching template - RouteMatchKindDto.Page has no content fetched yet (a list/index), while
-        // ContentOfPage/Content already carry one fully hydrated Content, so picking between them here
-        // rather than inside a shared view keeps each view free of "which case am I in" checks.
-        var templateName = ResolveTemplateName(
-            match.Kind == RouteMatchKindDto.Page ? match.Page.Template : match.Page.ContentTemplate);
+        // One required view for every RouteMatchKindDto - the view itself branches on whether
+        // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). A
+        // missing or misconfigured Page.Template throws (standard ASP.NET Core view-not-found) rather than
+        // silently degrading - issue #53.
+        var templateName = ResolveTemplateName(match.Page.Template);
         return new CultureScopedViewResult(View(templateName, viewModel), match.CultureName);
     }
 
@@ -141,27 +135,17 @@ public class SiteRenderController : AbpController
     }
 
     /// <summary>
-    /// Falls back to <see cref="FallbackTemplateName"/> not only when the resolved template name is blank,
-    /// but also when it names a view that does not actually exist - <c>Page.Template</c>/
-    /// <c>Page.ContentTemplate</c> predate this controller (总体设计 §7.3 "a front end that lets the back
-    /// end name a view") and nothing has ever validated either one points at a real MVC view, so a stale,
-    /// misspelled or repurposed value must degrade gracefully rather than 500 every request to the page
-    /// that carries it.
+    /// <c>View()</c> resolves either form, but <c>Page.Template</c> is meant to hold a bare view name -
+    /// stripping a ".cshtml" suffix here keeps that ergonomic without pretending to validate the value.
+    /// Unlike before issue #53, a name that does not resolve to a real view is not this method's problem
+    /// to catch - it throws the standard ASP.NET Core view-not-found error when <c>View()</c> renders it,
+    /// same as a misconfigured Template always should have.
     /// </summary>
-    protected virtual string ResolveTemplateName(string? template)
+    protected virtual string ResolveTemplateName(string template)
     {
-        if (string.IsNullOrWhiteSpace(template))
-        {
-            return FallbackTemplateName;
-        }
-
-        if (template.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase))
-        {
-            template = template[..^".cshtml".Length];
-        }
-
-        var result = ViewEngine.FindView(ControllerContext, template, isMainPage: true);
-        return result.Success ? template : FallbackTemplateName;
+        return template.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase)
+            ? template[..^".cshtml".Length]
+            : template;
     }
 
     protected virtual SiteRenderViewModel BuildPageViewModel(RouteMatchDto match, HeadMetadataDto? headMetadata)

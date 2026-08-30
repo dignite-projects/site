@@ -55,6 +55,7 @@ public class PagePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
             Name = "public-inactive-test",
             DisplayName = "Hidden",
             Route = "/public-inactive-test",
+            Template = "Default",
             IsActive = false
         });
 

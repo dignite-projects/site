@@ -23,18 +23,12 @@ public static class PageConsts
     public static int MaxRouteLength { get; set; } = 512;
 
     /// <summary>
-    /// Default value: 256. Optional template reference, used when a request resolves to the page itself
-    /// (a list/index, no specific content) - only used by back-end-rendered front ends.
+    /// Default value: 256. Required template reference - the MVC view rendered for this page, regardless
+    /// of whether a request resolves to the page itself (a list/index) or to one piece of content beneath
+    /// it; the view is responsible for branching on whether content was resolved (总体设计 §7.3, Tier 0
+    /// only - unused by any front end that resolves its own templates).
     /// </summary>
     public static int MaxTemplateLength { get; set; } = 256;
-
-    /// <summary>
-    /// Default value: 256. Optional template reference, used when a request resolves to one piece of
-    /// content beneath the page - independent of <see cref="MaxTemplateLength"/> because the two are
-    /// rendered by different views with different data shapes (list vs. one hydrated content), not
-    /// variations of the same template. Only used by back-end-rendered front ends.
-    /// </summary>
-    public static int MaxContentTemplateLength { get; set; } = 256;
 
     /// <summary>
     /// No whitespace anywhere in the route - the one rule simple enough to express as a single pattern.
@@ -47,9 +41,9 @@ public static class PageConsts
 
     /// <summary>
     /// An MVC view name: letters, digits, underscore or hyphen, optionally grouped into folders with
-    /// "/", e.g. <c>Default</c> or <c>Blog/Article</c>. Matches empty too - <see cref="Template"/> is
-    /// optional. "." is deliberately not in the allowed set at all, which also means "../" path
-    /// traversal cannot be spelled here, not merely disallowed by a separate check.
+    /// "/", e.g. <c>Default</c> or <c>Blog/Article</c>. Required - at least one character - since
+    /// <see cref="Template"/> is required. "." is deliberately not in the allowed set at all, which also
+    /// means "../" path traversal cannot be spelled here, not merely disallowed by a separate check.
     /// </summary>
-    public const string TemplatePattern = @"^(\/?[A-Za-z0-9_][A-Za-z0-9_\-\/]*)?$";
+    public const string TemplatePattern = @"^\/?[A-Za-z0-9_][A-Za-z0-9_\-\/]*$";
 }

@@ -23,7 +23,6 @@ const PAGE_CONSTS = {
   maxDisplayNameLength: 128,
   maxRouteLength: 512,
   maxTemplateLength: 256,
-  maxContentTemplateLength: 256,
 } as const;
 
 /** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
@@ -32,8 +31,8 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 /** Mirrors `PageConsts.RoutePattern`. */
 const ROUTE_PATTERN = /^\S+$/;
 
-/** Mirrors `PageConsts.TemplatePattern`. Empty matches too - `template` is optional. */
-const TEMPLATE_PATTERN = /^(\/?[A-Za-z0-9_][A-Za-z0-9_/-]*)?$/;
+/** Mirrors `PageConsts.TemplatePattern`. Required - at least one character - since `template` is required. */
+const TEMPLATE_PATTERN = /^\/?[A-Za-z0-9_][A-Za-z0-9_/-]*$/;
 
 /** A page, plus the expand/collapse state `ngx-datatable`'s tree mode keeps on each row. */
 type PageRow = PageDto & { treeStatus?: TreeStatus };
@@ -345,11 +344,7 @@ export class PagesComponent {
       ],
       template: [
         page?.template ?? '',
-        [Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
-      ],
-      contentTemplate: [
-        page?.contentTemplate ?? '',
-        [Validators.maxLength(PAGE_CONSTS.maxContentTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
       ],
       parentId: [page?.parentId ?? null],
       isActive: [page?.isActive ?? true],

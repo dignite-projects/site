@@ -37,8 +37,7 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string name,
         string displayName,
         string route,
-        string? template = null,
-        string? contentTemplate = null,
+        string template = "Default",
         bool isActive = true,
         Guid? tenantId = null,
         Guid? parentId = null)
@@ -47,8 +46,7 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         SetName(name);
         SetDisplayName(displayName);
         SetRoute(route);
-        Template = template;
-        ContentTemplate = contentTemplate;
+        SetTemplate(template);
         IsActive = isActive;
         TenantId = tenantId;
         ParentId = parentId;
@@ -69,23 +67,15 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual string Route { get; protected set; } = default!;
 
     /// <summary>
-    /// Optional rendering hint, used when a request resolves to this page itself - a list/index, with no
-    /// specific content (<c>RouteMatchKind.Page</c>). Only a front end that lets the back end name a view
-    /// uses it (总体设计 §7.3 Tier 0); a Razor Pages or external front end resolves its own templates and
-    /// leaves this null. See <see cref="ContentTemplate"/> for the sibling used once a specific content is
-    /// resolved - deliberately a separate field rather than one branching internally, since the two are
-    /// rendered from different data shapes (no content fetched yet vs. one fully hydrated) and their
-    /// layouts diverge enough that forcing them through one view means every section of it re-deriving
-    /// "which case am I in" rather than each view simply handling its own case.
+    /// Required rendering hint: the MVC view rendered for this page, regardless of whether a request
+    /// resolves to the page itself - a list/index, with no specific content (<c>RouteMatchKind.Page</c>) -
+    /// or to one piece of content beneath it (<c>.ContentOfPage</c> / <c>.Content</c>). Only a front end
+    /// that lets the back end name a view uses it (总体设计 §7.3 Tier 0); a Razor Pages or external front
+    /// end resolves its own templates and never reads this. The view itself branches on whether content
+    /// was resolved (see <c>Default.cshtml</c>) - this is deliberately one field, not one per case, since
+    /// no page has ever needed two different views for the two cases in practice.
     /// </summary>
-    public virtual string? Template { get; protected set; }
-
-    /// <summary>
-    /// Optional rendering hint, used when a request resolves to one piece of content beneath this page
-    /// (<c>RouteMatchKind.ContentOfPage</c> / <c>.Content</c>). See <see cref="Template"/> for why this is
-    /// a second field rather than a shared one.
-    /// </summary>
-    public virtual string? ContentTemplate { get; protected set; }
+    public virtual string Template { get; protected set; } = default!;
 
     /// <summary>
     /// The page this one is organized under in the Admin UI, or null for a top-level page. This is
@@ -148,22 +138,14 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         Route = normalized;
     }
 
-    public virtual void SetTemplate(string? template)
+    public virtual void SetTemplate(string template)
     {
         Template = CheckTemplate(template, nameof(Template));
     }
 
-    public virtual void SetContentTemplate(string? contentTemplate)
+    private static string CheckTemplate(string template, string propertyName)
     {
-        ContentTemplate = CheckTemplate(contentTemplate, nameof(ContentTemplate));
-    }
-
-    private static string? CheckTemplate(string? template, string propertyName)
-    {
-        if (string.IsNullOrWhiteSpace(template))
-        {
-            return null;
-        }
+        Check.NotNullOrWhiteSpace(template, propertyName, PageConsts.MaxTemplateLength);
 
         var trimmed = template.Trim().RemovePreFix("/");
         if (!Regex.IsMatch(trimmed, PageConsts.TemplatePattern))

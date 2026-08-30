@@ -174,7 +174,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Build_A_Section_From_Nothing_Addressing_Everything_By_Name()
     {
         await _pageTools.CreatePageAsync(
-            name: "docs", displayName: "Docs", route: "/docs/{slug}");
+            name: "docs", displayName: "Docs", route: "/docs/{slug}", template: "Default");
 
         await _fieldTools.CreateFieldAsync(
             name: "doc-title", displayName: "Title", fieldTypeName: "Text");
@@ -219,7 +219,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Refuse_A_Content_Type_Referencing_A_Field_That_Does_Not_Exist()
     {
-        await _pageTools.CreatePageAsync(name: "faq", displayName: "FAQ", route: "/faq");
+        await _pageTools.CreatePageAsync(name: "faq", displayName: "FAQ", route: "/faq", template: "Default");
 
         var exception = await Should.ThrowAsync<McpEntityNotFoundException>(async () =>
             await _contentTypeTools.CreateContentTypeAsync(

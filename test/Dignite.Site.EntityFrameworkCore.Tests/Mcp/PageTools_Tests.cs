@@ -5,6 +5,7 @@ using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Pages;
 using Shouldly;
+using Volo.Abp.Validation;
 using Xunit;
 
 namespace Dignite.Site.Mcp;
@@ -46,7 +47,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
         await _pageTools.DeletePageAsync("blog");
 
         var recreated = await _pageTools.CreatePageAsync(
-            name: "blog", displayName: "Blog", route: "/blog/{slug}");
+            name: "blog", displayName: "Blog", route: "/blog/{slug}", template: "Default");
 
         recreated.Name.ShouldBe("blog");
     }
@@ -84,7 +85,8 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Create_A_Page_With_A_Date_Based_Route()
     {
         var created = await _pageTools.CreatePageAsync(
-            name: "events", displayName: "Events", route: "/events/{publishTime:yyyy-MM}/{slug}");
+            name: "events", displayName: "Events", route: "/events/{publishTime:yyyy-MM}/{slug}",
+            template: "Default");
 
         created.Route.ShouldBe("/events/{publishTime:yyyy-MM}/{slug}");
     }
@@ -124,7 +126,8 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Reject_A_Route_That_Collides_After_Normalization()
     {
         await Should.ThrowAsync<PageRouteAlreadyExistException>(async () =>
-            await _pageTools.CreatePageAsync(name: "about-2", displayName: "About Two", route: "about"));
+            await _pageTools.CreatePageAsync(
+                name: "about-2", displayName: "About Two", route: "about", template: "Default"));
     }
 
     /// <summary>create_page's "parent" takes a machine name like every other reference in this surface, not a Guid.</summary>
@@ -132,7 +135,8 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Create_A_Page_Under_A_Parent_By_Name()
     {
         var created = await _pageTools.CreatePageAsync(
-            name: "parent-test-child", displayName: "Child", route: "/parent-test-child", parent: "blog");
+            name: "parent-test-child", displayName: "Child", route: "/parent-test-child",
+            template: "Default", parent: "blog");
 
         created.ParentId.ShouldBe(SiteTestData.BlogPageId);
     }
@@ -176,57 +180,49 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// create_page went without a 'template'/'contentTemplate' parameter entirely until this test was
-    /// written - CreatePageDto carried both fields from the start, but nothing on the MCP surface could
-    /// reach them. See Dignite.Site.Mcp.McpToolDtoContract_Tests for the structural check that now catches
-    /// a gap like that without needing a behavioral test like this one for every field.
+    /// create_page went without a 'template' parameter entirely until this test was written -
+    /// CreatePageDto carried the field from the start, but nothing on the MCP surface could reach it. See
+    /// Dignite.Site.Mcp.McpToolDtoContract_Tests for the structural check that now catches a gap like that
+    /// without needing a behavioral test like this one for every field.
     /// </summary>
     [Fact]
-    public async Task Should_Create_A_Page_With_Rendering_Templates()
+    public async Task Should_Create_A_Page_With_A_Rendering_Template()
     {
         var created = await _pageTools.CreatePageAsync(
             name: "mcp-template-create", displayName: "Template Create", route: "/mcp-template-create",
-            template: "pages/list", contentTemplate: "pages/detail");
+            template: "pages/list");
 
         created.Template.ShouldBe("pages/list");
-        created.ContentTemplate.ShouldBe("pages/detail");
     }
 
     [Fact]
-    public async Task Should_Update_The_Rendering_Templates()
+    public async Task Should_Update_The_Rendering_Template()
     {
-        var updated = await _pageTools.UpdatePageAsync(
-            page: "blog", template: "pages/list", contentTemplate: "pages/detail");
+        var updated = await _pageTools.UpdatePageAsync(page: "blog", template: "pages/list");
 
         updated.Template.ShouldBe("pages/list");
-        updated.ContentTemplate.ShouldBe("pages/detail");
     }
 
     /// <summary>Mirrors Should_Keep_The_Parent_When_Omitted: the same null-keeps convention applies here.</summary>
     [Fact]
-    public async Task Should_Keep_The_Rendering_Templates_When_Omitted()
+    public async Task Should_Keep_The_Rendering_Template_When_Omitted()
     {
-        await _pageTools.UpdatePageAsync(page: "blog", template: "pages/list", contentTemplate: "pages/detail");
+        await _pageTools.UpdatePageAsync(page: "blog", template: "pages/list");
 
         var updated = await _pageTools.UpdatePageAsync(page: "blog", displayName: "Blog (updated)");
 
         updated.Template.ShouldBe("pages/list");
-        updated.ContentTemplate.ShouldBe("pages/detail");
     }
 
     /// <summary>
-    /// Mirrors Should_Clear_The_Parent_With_An_Explicit_Empty_String, for the same reason: null already
-    /// means "leave it alone", so clearing a value that was actually set needs an explicit empty string.
+    /// Template is required (issue #53) - unlike 'parent', an explicit empty string cannot clear it back
+    /// to nothing, it can only ever replace it with a different, still-valid view name.
     /// </summary>
     [Fact]
-    public async Task Should_Clear_The_Rendering_Templates_With_An_Explicit_Empty_String()
+    public async Task Should_Reject_Clearing_The_Rendering_Template_With_An_Explicit_Empty_String()
     {
-        await _pageTools.UpdatePageAsync(page: "blog", template: "pages/list", contentTemplate: "pages/detail");
-
-        var updated = await _pageTools.UpdatePageAsync(page: "blog", template: "", contentTemplate: "");
-
-        updated.Template.ShouldBeNull();
-        updated.ContentTemplate.ShouldBeNull();
+        await Should.ThrowAsync<AbpValidationException>(async () =>
+            await _pageTools.UpdatePageAsync(page: "blog", template: ""));
     }
 
     /// <summary>
@@ -237,10 +233,11 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Fail_To_Delete_A_Page_That_Has_Children()
     {
         await _pageTools.CreatePageAsync(
-            name: "mcp-delete-guard-parent", displayName: "Parent", route: "/mcp-delete-guard-parent");
+            name: "mcp-delete-guard-parent", displayName: "Parent", route: "/mcp-delete-guard-parent",
+            template: "Default");
         await _pageTools.CreatePageAsync(
             name: "mcp-delete-guard-child", displayName: "Child", route: "/mcp-delete-guard-child",
-            parent: "mcp-delete-guard-parent");
+            template: "Default", parent: "mcp-delete-guard-parent");
 
         await Should.ThrowAsync<PageHasChildrenException>(async () =>
             await _pageTools.DeletePageAsync("mcp-delete-guard-parent"));

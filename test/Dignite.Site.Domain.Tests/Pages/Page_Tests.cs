@@ -204,15 +204,20 @@ public class Page_Tests
         Should.Throw<InvalidValueFormatException>(() => NewPage("/blog").SetTemplate("Bad Template!"));
     }
 
+    /// <summary>
+    /// Template is required (issue #53) - unlike before, there is no "leave it unset" state to fall back
+    /// to, so a blank value has to be rejected the same way SetName/SetDisplayName already reject one.
+    /// </summary>
     [Fact]
-    public void Should_Reject_A_Content_Template_With_An_Invalid_Format()
+    public void Should_Reject_A_Blank_Template()
     {
-        Should.Throw<InvalidValueFormatException>(() => NewPage("/blog").SetContentTemplate("Bad Template!"));
+        Should.Throw<ArgumentException>(() => NewPage("/blog").SetTemplate(""));
+        Should.Throw<ArgumentException>(() => new Page(Guid.NewGuid(), "test-page", "Test Page", "/blog", template: ""));
     }
 
     private static Page NewPage(string route)
     {
-        return new Page(Guid.NewGuid(), "test-page", "Test Page", route);
+        return new Page(Guid.NewGuid(), "test-page", "Test Page", route, "Default");
     }
 
     private static Content NewContent(string slug)

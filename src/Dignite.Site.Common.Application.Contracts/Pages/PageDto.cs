@@ -17,9 +17,7 @@ public class PageDto : FullAuditedEntityDto<Guid>
 
     public string Route { get; set; } = default!;
 
-    public string? Template { get; set; }
-
-    public string? ContentTemplate { get; set; }
+    public string Template { get; set; } = default!;
 
     /// <summary>
     /// Whether this is the site's home page - derived from <see cref="Route"/>, not an independently

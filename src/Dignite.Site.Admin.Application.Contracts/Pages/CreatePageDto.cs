@@ -21,13 +21,10 @@ public class CreatePageDto
     [RegularExpression(PageConsts.RoutePattern)]
     public string Route { get; set; } = default!;
 
+    [Required]
     [DynamicStringLength(typeof(PageConsts), nameof(PageConsts.MaxTemplateLength))]
     [RegularExpression(PageConsts.TemplatePattern)]
-    public string? Template { get; set; }
-
-    [DynamicStringLength(typeof(PageConsts), nameof(PageConsts.MaxContentTemplateLength))]
-    [RegularExpression(PageConsts.TemplatePattern)]
-    public string? ContentTemplate { get; set; }
+    public string Template { get; set; } = default!;
 
     /// <summary>Null for a top-level page. Purely organizational - see <see cref="Dignite.Site.Pages.Page.ParentId"/>.</summary>
     public Guid? ParentId { get; set; }

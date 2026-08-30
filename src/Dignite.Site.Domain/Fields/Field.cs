@@ -123,7 +123,6 @@ public class Field : FullAuditedAggregateRoot<Guid>, IFlexField, IMultiTenant
 
     public virtual void SetDescription(string? description)
     {
-        Check.Length(description, nameof(description), FlexFieldConsts.MaxDescriptionLength);
         Description = description;
     }
 

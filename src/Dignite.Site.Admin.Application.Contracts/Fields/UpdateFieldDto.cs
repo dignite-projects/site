@@ -18,7 +18,6 @@ public class UpdateFieldDto
     [DynamicStringLength(typeof(FlexFieldConsts), nameof(FlexFieldConsts.MaxFieldTypeNameLength))]
     public string FieldTypeName { get; set; } = default!;
 
-    [DynamicStringLength(typeof(FlexFieldConsts), nameof(FlexFieldConsts.MaxDescriptionLength))]
     public string? Description { get; set; }
 
     public IDictionary<string, object?>? Configuration { get; set; }

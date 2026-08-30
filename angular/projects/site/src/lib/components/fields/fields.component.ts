@@ -23,7 +23,6 @@ import { SiteReferenceDataService } from '../../services/site-reference-data.ser
 
 const MAX_FIELD_NAME_LENGTH = 64;
 const MAX_FIELD_DISPLAY_NAME_LENGTH = 128;
-const MAX_FIELD_DESCRIPTION_LENGTH = 256;
 const MAX_GROUP_NAME_LENGTH = 64;
 
 /** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
@@ -456,7 +455,7 @@ export class FieldsComponent {
         field?.displayName ?? '',
         [Validators.required, Validators.maxLength(MAX_FIELD_DISPLAY_NAME_LENGTH)],
       ],
-      description: [field?.description ?? '', [Validators.maxLength(MAX_FIELD_DESCRIPTION_LENGTH)]],
+      description: [field?.description ?? ''],
       // Free text with a suggestion list rather than a closed dropdown: filing a field under a new
       // group is just typing its name.
       groupName: [field?.groupName ?? '', [Validators.maxLength(MAX_GROUP_NAME_LENGTH)]],

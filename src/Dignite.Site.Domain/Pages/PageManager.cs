@@ -80,8 +80,7 @@ public class PageManager : DomainService
         string name,
         string displayName,
         string route,
-        string? template = null,
-        string? contentTemplate = null,
+        string template = "Default",
         bool isActive = true,
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
@@ -106,7 +105,6 @@ public class PageManager : DomainService
             displayName: displayName,
             route: normalizedRoute,
             template: template,
-            contentTemplate: contentTemplate,
             isActive: isActive,
             tenantId: CurrentTenant.Id,
             parentId: effectiveParentId);
@@ -119,8 +117,7 @@ public class PageManager : DomainService
         string name,
         string displayName,
         string route,
-        string? template = null,
-        string? contentTemplate = null,
+        string template = "Default",
         bool isActive = true,
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
@@ -156,7 +153,6 @@ public class PageManager : DomainService
 
         page.SetDisplayName(displayName);
         page.SetTemplate(template);
-        page.SetContentTemplate(contentTemplate);
         page.SetIsActive(isActive);
 
         return await PageRepository.UpdateAsync(page, cancellationToken: cancellationToken);

@@ -10,9 +10,9 @@ namespace Dignite.Site.Public.Routing;
 
 /// <summary>
 /// The @model every <c>Views/**/*.cshtml</c> template receives - one shape covering every non-None
-/// <c>RouteMatchKindDto</c> outcome. <c>Page.Template</c> and <c>Page.ContentTemplate</c> resolve to two
-/// independent view files (<see cref="Content"/> null vs. populated) rather than one view branching
-/// internally - see <c>SiteRenderController.RenderAsync</c>.
+/// <c>RouteMatchKindDto</c> outcome, all rendered through the one view <c>Page.Template</c> names. The
+/// view itself branches on whether <see cref="Content"/> is null (a list/index) or populated (one
+/// resolved content) - see <c>SiteRenderController.RenderAsync</c>.
 /// </summary>
 public class SiteRenderViewModel
 {

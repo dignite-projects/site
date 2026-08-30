@@ -44,6 +44,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             Name = "admin-create-test",
             DisplayName = "Contact",
             Route = "/admin-create-test",
+            Template = "Default",
             IsActive = true
         });
 
@@ -55,6 +56,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             Name = "admin-create-test",
             DisplayName = "Contact us",
             Route = "/admin-create-test-renamed",
+            Template = "Default",
             IsActive = true
         });
 
@@ -78,6 +80,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             Name = "Not Valid",
             DisplayName = "Bad name",
             Route = "/admin-bad-name-test",
+            Template = "Default",
             IsActive = true
         }));
     }
@@ -132,6 +135,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             Name = "admin-default-content-type-test",
             DisplayName = "Default Content Type Test",
             Route = "/admin-default-content-type-test",
+            Template = "Default",
             IsActive = true
         });
 
@@ -154,6 +158,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             Name = "admin-inactive-test",
             DisplayName = "Archived",
             Route = "/admin-inactive-test",
+            Template = "Default",
             IsActive = false
         });
 

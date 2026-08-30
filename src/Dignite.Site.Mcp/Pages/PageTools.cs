@@ -60,16 +60,13 @@ public class PageTools : ITransientDependency
             "slash between path segments.")]
         string route,
         [Description(
-            "Optional rendering hint for the page itself - a list/index, with no specific content. Only " +
+            "The MVC view rendered for this page, e.g. 'Default' or 'Blog/Index' - used regardless of " +
+            "whether a request resolves to the page itself (a list/index) or to one piece of content " +
+            "beneath it; the view is responsible for branching on whether content was resolved. Only " +
             "meaningful for a front end that lets the back end name the view to render (总体设计 §7.3 " +
-            "Tier 0); a Razor Pages or external front end resolves its own templates and never reads " +
-            "this - omit unless you know this site uses that tier. See 'contentTemplate' for the sibling " +
-            "used once a request resolves to specific content.")]
-        string? template = null,
-        [Description(
-            "Optional rendering hint used once a request resolves to one piece of content beneath this " +
-            "page. Same Tier-0-only caveat as 'template' - see there.")]
-        string? contentTemplate = null,
+            "Tier 0) - a Razor Pages or external front end resolves its own templates instead, but this " +
+            "is still required either way; pass 'Default' if you don't know this site uses that tier.")]
+        string template,
         [Description(
             "The parent page's machine name, for organizing this page under it in the Admin UI's tree. " +
             "Purely organizational - it has no effect on 'route' or on how requests are resolved against " +
@@ -87,7 +84,6 @@ public class PageTools : ITransientDependency
             DisplayName = displayName,
             Route = route,
             Template = template,
-            ContentTemplate = contentTemplate,
             ParentId = parentId,
             IsActive = isActive
         });
@@ -115,15 +111,9 @@ public class PageTools : ITransientDependency
             "exist - only the next write to one of them sees the new rule.")]
         string? route = null,
         [Description(
-            "New rendering hint for the page itself - see create_page's 'template' for what it's for and " +
-            "when it's relevant. Omit to keep the current one; pass an empty string to clear it back to " +
-            "none.")]
+            "New view for this page - see create_page's 'template' for what it's for. Required, like " +
+            "every other field on a page - omit to keep the current one; it cannot be cleared to empty.")]
         string? template = null,
-        [Description(
-            "New rendering hint used once a request resolves to specific content beneath this page - see " +
-            "create_page's 'contentTemplate'. Omit to keep the current one; pass an empty string to clear " +
-            "it back to none.")]
-        string? contentTemplate = null,
         [Description(
             "New parent page's machine name, for reorganizing this page in the Admin UI's tree. Purely " +
             "organizational - has no effect on 'route'. Omit to keep the current parent; pass an empty " +
@@ -151,7 +141,6 @@ public class PageTools : ITransientDependency
             DisplayName = displayName ?? current.DisplayName,
             Route = route ?? current.Route,
             Template = template ?? current.Template,
-            ContentTemplate = contentTemplate ?? current.ContentTemplate,
             ParentId = parentId,
             IsActive = isActive ?? current.IsActive
         });
