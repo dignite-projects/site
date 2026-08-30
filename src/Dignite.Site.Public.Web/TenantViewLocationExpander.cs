@@ -64,7 +64,7 @@ public class TenantViewLocationExpander : IViewLocationExpander
 
         var expanded = baseLocations
             .Where(location => location.StartsWith("/Views/"))
-            .Select(location => $"/Site{tenantSegment}{location.RemovePreFix("/Views").RemovePreFix("/{1}")}")
+            .Select(location => $"/Tenants{tenantSegment}{location.RemovePreFix("/Views").RemovePreFix("/{1}")}")
             .ToList();
         expanded.AddRange(baseLocations);
         return expanded;

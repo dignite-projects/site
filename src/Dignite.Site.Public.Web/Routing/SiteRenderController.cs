@@ -155,6 +155,11 @@ public class SiteRenderController : AbpController
             return FallbackTemplateName;
         }
 
+        if (template.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase))
+        {
+            template = template[..^".cshtml".Length];
+        }
+
         var result = ViewEngine.FindView(ControllerContext, template, isMainPage: true);
         return result.Success ? template : FallbackTemplateName;
     }
