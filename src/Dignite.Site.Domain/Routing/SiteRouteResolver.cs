@@ -55,11 +55,11 @@ public class SiteRouteResolver : DomainService
     /// each length runs up to three tiers rather than picking one candidate by a fixed priority up front.
     /// </para>
     /// <para>
-    /// Tier 1 offers every candidate at this length, in a stable literal-before-template order, to
-    /// <see cref="ResolveAgainstPageAsync"/>'s structural attempt - a full slug
-    /// (<see cref="PageRoute.TryMatchSlug"/>) or every one of a non-slug route's own placeholders filled
-    /// with none dropped (<see cref="PageRoute.TryMatchExact"/>): whichever candidate structurally fits
-    /// first wins outright, deepest information taking priority over tie-break order.
+    /// Tier 1 offers every candidate at this length, in a stable literal-before-template,
+    /// no-slug-before-slug order, to <see cref="ResolveAgainstPageAsync"/>'s structural attempt - a full
+    /// slug (<see cref="PageRoute.TryMatchSlug"/>) or every one of a non-slug route's own placeholders
+    /// filled with none dropped (<see cref="PageRoute.TryMatchExact"/>): whichever candidate structurally
+    /// fits first wins outright, deepest information taking priority over tie-break order.
     /// </para>
     /// <para>
     /// Tier 3 - every placeholder but one dropped from the end, e.g. every one before <c>{slug}</c> but
@@ -89,6 +89,17 @@ public class SiteRouteResolver : DomainService
     /// confusion this whole design exists to prevent. A literal route with no placeholder at all is the
     /// only kind that keeps the unconditional eligibility this fallback has always had, because it never
     /// had any other mechanism to explain extra segments with in the first place.
+    /// <para>
+    /// Two templates can both reach here with nothing unaccounted for at all - a bare request against an
+    /// address they both derive, e.g. <c>/news/{publishTime:yyyy-MM}</c> and
+    /// <c>/news/{publishTime:yyyy-MM}/{slug}</c> both answering plain <c>/news</c> - and unlike the cases
+    /// above, no structural attempt at any tier settles which one is meant: <see cref="ResolvePageItselfAsync"/>
+    /// itself never reports a miss, so whichever candidate is tried first always "wins". This is what the
+    /// no-slug-before-slug ordering exists to answer, not the arbitrary one an ordinal sort of the two
+    /// routes' own text would otherwise produce: a route with no <c>{slug}</c> has nothing deeper to go to,
+    /// so it is already a complete address the same way a literal route is - the deeper, slug-bearing
+    /// sibling's real content was never going to be reachable at this bare prefix regardless of which one
+    /// this fallback happened to pick.
     /// </para>
     /// <para>
     /// Whichever length this settles on, once any candidate there has matched (in any tier), there is no
@@ -158,6 +169,7 @@ public class SiteRouteResolver : DomainService
             var candidates = routablePages
                 .Where(p => PageRoute.GetPath(p.Route) == prefix)
                 .OrderBy(p => PageRoute.IsTemplate(p.Route) ? 1 : 0)
+                .ThenBy(p => PageRoute.HasSlug(p.Route) ? 1 : 0)
                 .ThenBy(p => p.Route, StringComparer.Ordinal)
                 .ToList();
 
@@ -191,8 +203,8 @@ public class SiteRouteResolver : DomainService
             }
 
             // Nothing at this length produced a visible structural answer - only now does the tie-break's
-            // loser get a claim, in the same literal-before-template order as above, and only among
-            // candidates that never had a structural opinion to begin with.
+            // loser get a claim, in the same literal-before-template, no-slug-before-slug order as above,
+            // and only among candidates that never had a structural opinion to begin with.
             foreach (var page in eligibleForFallback)
             {
                 var match = await ResolvePageItselfAsync(page, normalizedCulture, includeUnpublished, cancellationToken);

@@ -349,6 +349,34 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// The sibling gap the test above does not cover: no month segment at all, just the bare shared
+    /// address. Neither candidate's structural attempt (TryMatchExact/TryMatchSlug) can fill a placeholder
+    /// from nothing, so both fall through to tier 2 with nothing left to distinguish them structurally -
+    /// unlike Should_Prefer_A_Dedicated_Non_Slug_Template_Over_The_Deeper_Templates_Truncated_Match, tier 1
+    /// never settles this one. The dedicated non-slug page - which has nothing deeper to go to - should
+    /// still win its own bare address over a sibling whose real content lives further down, the same
+    /// "already a complete address beats a derived one" reasoning that already prefers a literal route over
+    /// a template sharing its address; without it, the choice falls to an incidental ordinal sort of the
+    /// two routes' full text, which a sibling's own regex constraint can silently flip.
+    /// </summary>
+    [Fact]
+    public async Task Should_Prefer_A_Dedicated_Non_Slug_Template_Over_A_Deeper_Templates_Bare_Address_Fallback()
+    {
+        var deep = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "digests-deep", "Digests deep",
+            @"/digests/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}"));
+        var dedicated = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "digests-month-index", "Digests month index", "/digests/{publishTime:yyyy-MM}"));
+
+        var match = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/digests", SiteTestData.EnglishCulture));
+
+        match.Kind.ShouldBe(RouteMatchKind.Page);
+        match.Page!.Id.ShouldBe(dedicated.Id);
+        match.Page.Id.ShouldNotBe(deep.Id);
+    }
+
+    /// <summary>
     /// The precise shape of the motivating example: a page that declares slug support (so it is not merely
     /// a bare, mechanism-less literal - see the test above for that case) shares an address with a deeper
     /// template, but no content exists at either candidate's reading of "2026-07" - not as this page's own
