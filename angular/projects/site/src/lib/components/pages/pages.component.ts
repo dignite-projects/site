@@ -112,8 +112,16 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
        (with a space) asks for .ant-select-dropdown *inside* .parent-picker-dropdown, but they're the
        same element here, so that never matched anything and this panel stayed on ant-design's own
        white default no matter what the nested rules below did. */
+    /* --lpx-content-bg is a FULL LeptonX token (@volosoft/ngx-lepton-x: #f0f4f7 light, #121212 dark).
+       LeptonX *Lite* - @volo/ngx-lepton-x.lite, what @abp/ng.theme.lepton-x wraps, and what this app
+       actually runs - never defines it: it ships 11 --lpx-* tokens and this is not one of them. The
+       chain therefore fell straight through to the literal #fff and this panel stayed white in every
+       theme, while .ant-select-item/-tree below kept following --bs-body-color into light-grey-on-
+       white. --bs-secondary-bg is the Bootstrap 5.3 "one step off the body surface" token, defined at
+       :root by every Bootstrap-based theme and redefined under [data-bs-theme=dark] (#e9ecef ->
+       #343a40 in Lite), so it flips with the host. Light mode moves from pure white to #e9ecef. */
     ::ng-deep .parent-picker-dropdown.ant-select-dropdown {
-      background: var(--lpx-content-bg, #fff) !important;
+      background: var(--lpx-content-bg, var(--bs-secondary-bg, #fff)) !important;
     }
     /* nz-tree's per-node classes drop the "select-" infix outside of a select's dropdown
        (NzTreeNodeComponent's host bindings key every tree class off selectMode - see
