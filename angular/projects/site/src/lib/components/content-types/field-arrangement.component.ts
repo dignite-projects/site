@@ -77,10 +77,19 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
       background-color: var(--bs-primary) !important;
       color: var(--bs-white) !important;
     }
-    ::ng-deep .field-picker-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
-      background-color: var(--lpx-brand);
-      color: var(--bs-white) !important;
-    }
+    /* A selected option is deliberately given no colour of its own: it reads exactly like an
+       unselected one, and ant-design own checkmark (.ant-select-item-option-state) is the indicator.
+       This picker is nzMode="multiple", so several options are selected at once and filling each of
+       their rows competes with the hover state for attention rather than adding information.
+
+       There used to be a rule here setting --lpx-brand with white text, and it was broken in a way
+       worth recording. Only its colour half carried !important; the .ant-select-item rule below
+       zeroes every option background with !important, and !important beats specificity, so the
+       background never applied while the white text always did. A selected option rendered
+       white-on-panel: invisible while the panel was still #fff, and merely illegible once it became
+       --bs-secondary-bg. The hover rule above has !important on both halves, which is why hovering a
+       selected option looked right and moving off it did not. Same fix in @dignite/ng.flex-fields
+       Select control, which carried an identical copy. */
     /* !important, matching every other rule in this block - ant-design's own .ant-select-item rule
        (color: rgba(0,0,0,.85)) carries the same one-class specificity as this override, and its
        stylesheet is injected lazily when nz-select first opens, i.e. after this component's styles -
