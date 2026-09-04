@@ -49,8 +49,29 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
     :host ::ng-deep .field-picker-select.form-select {
       padding: 0 !important;
     }
+    /* This picker runs nzMode="multiple", so every chosen field renders as a tag - and ng-zorro
+       hardcodes that tag's whole chrome: background #f5f5f5, border #f0f0f0, and rgba(0, 0, 0, 0.45)
+       on the remove icon, none of it theme-aware. The tag's label, by contrast, does follow the
+       host, since .field-picker-select.ant-select above sets color:inherit - so in a dark host
+       the label went light while the chip stayed near-white and the x disappeared, leaving the
+       selected fields barely legible. Mapped onto the same --bs-* tokens as the rest of this block. */
+    :host ::ng-deep .field-picker-select .ant-select-selection-item {
+      background: var(--bs-secondary-bg, #f5f5f5) !important;
+      border-color: var(--bs-border-color, #f0f0f0) !important;
+    }
+    :host ::ng-deep .field-picker-select .ant-select-selection-item-remove {
+      color: var(--bs-secondary-color, rgba(0, 0, 0, 0.45)) !important;
+    }
+    /* --lpx-content-bg is a FULL LeptonX token (@volosoft/ngx-lepton-x: #f0f4f7 light, #121212 dark).
+       LeptonX *Lite* - @volo/ngx-lepton-x.lite, what @abp/ng.theme.lepton-x wraps, and what this app
+       actually runs - never defines it: it ships 11 --lpx-* tokens and this is not one of them. The
+       chain therefore fell straight through to the literal #fff and this panel stayed white in every
+       theme, while .ant-select-item/-tree below kept following --bs-body-color into light-grey-on-
+       white. --bs-secondary-bg is the Bootstrap 5.3 "one step off the body surface" token, defined at
+       :root by every Bootstrap-based theme and redefined under [data-bs-theme=dark] (#e9ecef ->
+       #343a40 in Lite), so it flips with the host. Light mode moves from pure white to #e9ecef. */
     ::ng-deep .field-picker-dropdown .ant-select-dropdown {
-      background: var(--lpx-content-bg, #fff) !important;
+      background: var(--lpx-content-bg, var(--bs-secondary-bg, #fff)) !important;
     }
     ::ng-deep .field-picker-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
       background-color: var(--bs-primary) !important;

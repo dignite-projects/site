@@ -144,6 +144,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`check-angular-package-deps.mjs`, ported from `abp-modules`) now fails the build if a future
   emitted import and `package.json` drift apart again, rather than waiting for a consumer to hit
   it first.
+- **The field-picker and page-parent-picker dropdown panels stayed white in a dark host.** Both
+  painted their panel with `var(--lpx-content-bg, #fff)`, but `--lpx-content-bg` is a **full**
+  LeptonX token (`@volosoft/ngx-lepton-x`: `#f0f4f7` light, `#121212` dark). LeptonX **Lite** —
+  `@volo/ngx-lepton-x.lite`, which `@abp/ng.theme.lepton-x` wraps and which this app actually runs —
+  never defines it: it ships 11 `--lpx-*` tokens and this is not one of them. The chain fell straight
+  through to the literal `#fff`, so the panels stayed white in every theme while their own items kept
+  following `--bs-body-color` into light-grey-on-white. Both now fall back to `--bs-secondary-bg`
+  first (`#e9ecef` light, `#343a40` dark in Lite), the Bootstrap 5.3 “one step off the body surface”
+  token that every Bootstrap-based theme defines at `:root` and redefines under `[data-bs-theme=dark]`.
+  Light mode moves from pure white to `#e9ecef`. The same fix landed in `@dignite/ng.flex-fields`’
+  `Select` and `Tree` controls, which carried an identical chain.
+- **The field picker's multi-select tags were near-illegible in a dark host.** The picker runs
+  `nzMode="multiple"`, and ng-zorro hardcodes the tag's entire chrome — `background: #f5f5f5`,
+  `border: 1px solid #f0f0f0`, `rgba(0, 0, 0, 0.45)` on the remove icon — while the label does follow
+  the host, because the block already sets `color: inherit`. Dark mode therefore showed a light label
+  on a near-white chip with an invisible “×”. Mapped onto `--bs-secondary-bg`, `--bs-border-color` and
+  `--bs-secondary-color`. The same fix landed in `@dignite/ng.flex-fields`’ `Select` control.
 
 ## [0.1.0-preview.9] - 2026-08-30
 
