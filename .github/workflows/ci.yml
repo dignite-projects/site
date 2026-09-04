@@ -39,6 +39,16 @@ jobs:
     permissions:
       contents: read
 
+    # angular/.npmrc still maps the @dignite-projects scope to GitHub Packages and references
+    # ${GITHUB_TOKEN} for it. Yarn Classic substitutes every env-var placeholder in its resolved
+    # config on every invocation and throws when one is unset - including the `yarn cache dir`
+    # probe setup-node runs for `cache: yarn`, which happens before any run: step of this job. So
+    # it has to be job-level, not set on the install step - exactly as release.yml already does.
+    # Nothing here installs from that scope any more (every @dignite/* package resolves from public
+    # npmjs), so the token is never actually used; the variable just has to exist.
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - name: Checkout site
         uses: actions/checkout@v5
