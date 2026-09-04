@@ -97,6 +97,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dotnet restore Dignite.Site.slnx` failed with `NU1605`**, so the new CI workflow and the next
+  tagged release alike would have stopped at their first .NET step.
+  `Microsoft.Extensions.FileProviders.Embedded` was pinned at `10.0.9` by `Dignite.Site.Host`,
+  `Dignite.Site.Domain.Shared` and `Dignite.Site.Public.Web`, while abp-modules raised its own
+  centrally-managed version to `10.0.11`. Two projects here reach that package through a relative
+  `ProjectReference` into abp-modules - Host via `Dignite.Abp.FlexFields.CKEditor`, Public.Web via
+  `Dignite.Abp.FlexFields.Abstractions` - so the resolved graph became a downgrade, which
+  `NU1605`-as-error rejects. All three pins move to `10.0.11`.
+
+  Nothing noticed sooner because there was no CI and `release.yml` has not run since abp-modules
+  made that change. Both workflows check out abp-modules' *default branch*, so this class of drift
+  arrives with no commit on this side at all - the first CI run on a pull request that changed
+  nothing in `src/` found it.
 - The library declared `@abp/ng.oauth`, `@abp/ng.components`, and `@volo/abp.commercial.ng.ui` as
   `dependencies` without importing any of them anywhere in the source or the built bundle -
   `@volo/abp.commercial.ng.ui` in particular was forcing a commercial package onto every consumer
