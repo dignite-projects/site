@@ -80,6 +80,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   provided. npm dedupes the same graph to a single copy and is unaffected, which is also why the
   release workflow's npm-based `verify-packed-npm-install.sh` cannot catch it. Drop this block once
   the adapters declare their siblings at a matching version.
+- **`release.yml` installs the Angular workspace with `yarn install --frozen-lockfile`** instead of
+  `npm install --no-package-lock`, so the released artifact is built from the tree the committed
+  lockfile describes - the same one `ci.yml` verifies and every developer installs. npm also does
+  not honour Yarn's `resolutions`, so under npm the release resolved the duplicate-copy question
+  independently of the pin meant to settle it. The duplicate-package check now runs on the release
+  path too, which it could not usefully do under npm (npm dedupes what Yarn Classic splits).
+  `--legacy-peer-deps` goes away with npm: Yarn Classic does not enforce peer ranges, which is all
+  that flag was working around.
+- **`registry-url` moves off the job's first `actions/setup-node` onto a second call placed after
+  the last yarn command**, which is what makes the switch above safe. setup-node writes an
+  `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` placeholder into a generated `.npmrc` that
+  stays active for every later step in the job; Yarn Classic eagerly substitutes every env-var
+  placeholder in its resolved config on every invocation, not just registry-touching ones, and
+  throws when one is unset - and nothing sets `NODE_AUTH_TOKEN` until the npmjs publish step at the
+  very end. The second call still runs before both publish steps, because it is what writes the
+  `$NPM_CONFIG_USERCONFIG` they depend on, and deliberately omits `cache: yarn` (that input makes
+  setup-node probe `yarn cache dir`, itself a yarn invocation). abp-modules hit the identical
+  failure and fixed it the same way.
+- **`yarn test` runs `ng test site` instead of `ng test Host`.** The Host app has no spec files at
+  all, so the script failed outright with "No tests found matching the following patterns"; the
+  library's 29 tests were only reachable by typing `ng test site`, which `release.yml` already ran
+  but no documented local command did.
 
 ### Removed
 
