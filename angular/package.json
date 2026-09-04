@@ -9,7 +9,7 @@
     "build:site": "ng build site --configuration production",
     "generate-proxy": "abp generate-proxy -t ng -m site-admin --source Host --target site",
     "watch": "ng build Host --watch --configuration development",
-    "test": "ng test Host",
+    "test": "ng test site",
     "lint": "ng lint Host",
     "e2e": "ng e2e",
     "symlinks:setup": "cd scripts && pwsh ./setup-symlinks.ps1",

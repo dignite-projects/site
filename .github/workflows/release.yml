@@ -199,30 +199,47 @@ jobs:
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
+      # registry-url is deliberately NOT set here, and moved onto a second setup-node call further
+      # down (see "Configure npm registry for publishing"). actions/setup-node writes an
+      # //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN} placeholder into a generated .npmrc
+      # whenever registry-url is given, and that file stays active for every later step in the job.
+      # Yarn Classic eagerly substitutes every env-var placeholder in its resolved config on every
+      # invocation - not just registry-touching ones - and throws when one is unset. Nothing sets
+      # NODE_AUTH_TOKEN until the npmjs publish step at the very end. abp-modules hit exactly this
+      # and fixed it the same way; see its CHANGELOG entry for the two false starts before that.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.14.0'
           cache: yarn
           cache-dependency-path: site/angular/yarn.lock
-          registry-url: 'https://registry.npmjs.org'
 
-      # angular/.npmrc maps the @dignite-projects scope to GitHub Packages (where FlexFields /
-      # FileExplorer live pre-release - see the Checkout abp-modules comment above); ${GITHUB_TOKEN}
-      # in that file is a literal env-var placeholder npm/yarn substitute at read time, so it has
-      # to actually be present in the environment here.
-      # Yarn Classic, not npm: once yarn.lock has a real "resolved" GitHub Packages URL for a
-      # dependency (as it now does), Yarn fetches straight from that URL through a code path that
-      # never attaches registry auth - happens with or without --frozen-lockfile, and
-      # always-auth=true in .npmrc doesn't change it. npm's installer authenticates that fetch
-      # correctly, so it's used here instead, even though the rest of this workspace is yarn-based.
+      # angular/.npmrc maps the @dignite-projects scope to GitHub Packages; ${GITHUB_TOKEN} in that
+      # file is a literal env-var placeholder npm/yarn substitute at read time, so it has to be
+      # present in the environment here (it is, job-level - see the env: block above).
+      #
+      # Yarn with the committed lockfile, matching ci.yml and every developer machine. This step
+      # used to be `npm install --no-package-lock` because Yarn Classic fetches a dependency whose
+      # lockfile entry carries a GitHub Packages "resolved" URL through a code path that never
+      # attaches registry auth. No such entry remains - every @dignite/* package now resolves from
+      # public npmjs - so the release can be built from the tree the lockfile actually describes
+      # rather than from a fresh resolution that ignores it. --legacy-peer-deps is gone with npm:
+      # Yarn Classic does not enforce peer ranges, which is what that flag was working around
+      # (@swimlane/ngx-datatable@22 wants @angular/common 18-20.x, workspace is on 21.2.x).
+      #
+      # It also matters for the duplicate check below: npm dedupes graphs that Yarn Classic splits
+      # into nested copies, so that check after an npm install would pass vacuously.
       - name: Install Angular dependencies
         working-directory: site/angular
-        # --legacy-peer-deps: npm enforces peer dependency ranges strictly by default; Yarn
-        # Classic (what this workspace otherwise uses) doesn't, and at least one existing
-        # dependency (@swimlane/ngx-datatable@22 wants @angular/common 18-20.x, workspace is on
-        # 21.2.x) already relies on that leniency. Not this task's problem to resolve.
-        run: npm install --no-package-lock --legacy-peer-deps
+        run: yarn install --frozen-lockfile --non-interactive
+
+      # Two copies of one @dignite/* package are two sets of module-scoped InjectionToken values, so
+      # a provider registered against one is invisible to a consumer of the other - the field type
+      # is absent at runtime, with nothing failing at install or build time. See the script header
+      # and dignite-projects/abp-modules#211.
+      - name: Check for duplicate @dignite packages
+        working-directory: site/angular
+        run: node ../.github/scripts/check-angular-package-duplicates.mjs node_modules @dignite
 
       # No lint step here: `ng lint site` currently fails on ~14 pre-existing violations (component
       # selector prefixes, ngIf vs. control-flow syntax) - a real fix, not release-infra, and left
@@ -255,6 +272,19 @@ jobs:
           name: npm-package
           path: site/artifacts/npm/site/*.tgz
           if-no-files-found: error
+
+      # registry-url lives here rather than on the earlier Setup Node.js step - see that step's
+      # comment for why no yarn command may run after it. It still has to run *before* the two
+      # publish steps below: it is what writes $NPM_CONFIG_USERCONFIG, the file the GitHub Packages
+      # step appends its own auth to and the npmjs step reads. Deliberately no `cache: yarn` here -
+      # that input makes setup-node probe `yarn cache dir`, which is itself a yarn invocation and
+      # would hit the very placeholder this placement exists to avoid. The earlier step already
+      # primed the cache.
+      - name: Configure npm registry for publishing
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          registry-url: 'https://registry.npmjs.org'
 
       # npm equivalent of the GH Packages NuGet mirror above, and the same rename-in-a-scratch-copy
       # trick abp-modules' release.yml uses: GitHub Packages' npm registry rejects any scope that
