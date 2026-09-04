@@ -326,11 +326,31 @@ jobs:
           # npm publish has no --skip-duplicate equivalent (unlike the dotnet nuget push calls
           # above); re-dispatching at an unchanged pre-release version is expected and shouldn't
           # fail the run, so treat "already published" as a soft skip and let anything else fail.
-          if ! npm publish "$workdir/package" --registry https://npm.pkg.github.com 2>&1 | tee /tmp/npm-publish.log; then
+          #
+          # Redirect rather than `| tee`: the step shell is `bash -e` with no pipefail, so a
+          # pipeline's status is tee's (always 0). `if ! npm publish ... | tee` therefore never
+          # sees a failure, and this step reported success over an E401. The same bug
+          # dignite-projects/vault-extract's release workflow shipped before it fixed this.
+          #
+          # --tag is not optional: npm errors out on a prerelease version whose dist-tag is left
+          # at its default ("You must specify a tag using --tag when publishing a prerelease
+          # version" - npm/cli checks whether the tag was set at all, not what it was set to).
+          # "latest" is the right value here even though the version is a prerelease, and is why
+          # this does not reuse steps.channel.outputs.npm-tag ("next" on this branch): GitHub
+          # Packages only ever receives pre-releases - stable goes to npmjs under the public
+          # @dignite/* name - so latest tracking the newest preview is what a consumer of this
+          # channel wants, it keeps an unpinned install resolving, and it stops the latest tag
+          # earlier untagged publishes already set from freezing on a stale preview.
+          set +e
+          npm publish "$workdir/package" --registry https://npm.pkg.github.com --tag latest > /tmp/npm-publish.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/npm-publish.log
+          if [ $status -ne 0 ]; then
             if grep -q 'Cannot publish over existing version' /tmp/npm-publish.log; then
               echo "::notice::@dignite-projects/ng.site@${{ steps.channel.outputs.version }} is already published; skipping."
             else
-              exit 1
+              exit $status
             fi
           fi
 
