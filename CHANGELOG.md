@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`.github/workflows/ci.yml` - pull-request and main-branch verification.** Until now
+  `release.yml` was the repository's only CI: nothing was built, tested or checked until someone
+  pushed a version tag, so a failure was discovered on the release path with the tag already cut.
+  The new workflow mirrors release.yml's verification steps and stops there - no packing, no
+  publishing, no credentials. Two deliberate differences from release.yml: it also runs
+  `Dignite.Site.Mcp.Tests` (the standing MCP-tool/DTO contract test, which release.yml never ran,
+  and which is what catches an MCP tool's parameters drifting from the DTO it builds), and it
+  installs the Angular workspace with `yarn install --frozen-lockfile` rather than
+  `npm install --no-package-lock`. release.yml uses npm because Yarn Classic fetches a dependency
+  whose lockfile entry carries a GitHub Packages `resolved` URL without attaching registry auth;
+  no such entry remains now that every `@dignite/*` package resolves from public npmjs, so CI can
+  verify the tree the committed lockfile actually describes - the one every developer installs.
+  There is still no lint step, for the reason release.yml already documents (~14 pre-existing
+  `ng lint site` violations).
+- **`.github/scripts/check-angular-package-duplicates.mjs`, run by `ci.yml`**: fails when one
+  `@dignite/*` package is installed more than once in the tree. Angular libraries register through
+  module-scoped `new InjectionToken(...)` values, so two copies are two distinct DI keys and a
+  provider registered against one is invisible to a consumer of the other - the field type is
+  simply absent at runtime, with nothing failing at install or build time. This is the check that
+  would have caught the `@dignite/ng.flex-fields` split described under Changed above, and it is
+  why `ci.yml` installs with Yarn rather than npm: npm dedupes the exact graph Yarn Classic splits,
+  so the same check after `npm install` would pass vacuously.
+
 ### Changed
 
 - **BREAKING**: the Angular library is renamed `@dignite/site` -> `@dignite/ng.site` (the

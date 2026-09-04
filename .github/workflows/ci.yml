@@ -1,0 +1,147 @@
+# Pull-request and main-branch verification.
+#
+# Until this workflow existed, release.yml was the repository's only CI: nothing was built, tested
+# or checked until someone pushed a version tag, at which point a failure is discovered on the
+# release path with a tag already cut. abp-modules hit the same shape of problem from the other
+# direction - `flex-fields-ckeditor` was built by its release workflow but not its CI, so a pull
+# request that broke the CKEditor adapter stayed green until tag time (fixed in that repository's
+# 10.0.0-rc.13).
+#
+# This file deliberately mirrors release.yml's verification steps and stops there: no packing, no
+# publishing, no NuGet/npm credentials. When a step here and its counterpart there drift apart, the
+# one there is the one that gates a release and wins.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A second push to the same pull request makes the first run's answer irrelevant, and these jobs are
+# long enough (full .NET build plus two Angular builds) to be worth reclaiming a runner for.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    # Both checkouts land as siblings under $GITHUB_WORKSPACE (site/, abp-modules/) rather than a
+    # bare checkout at the workspace root, so every `run:` below reads as if it starts from the
+    # repository root - same arrangement as release.yml.
+    defaults:
+      run:
+        working-directory: site
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout site
+        uses: actions/checkout@v5
+        with:
+          path: site
+
+      # Several Dignite.Site .NET projects carry relative ProjectReferences into the sibling
+      # abp-modules repository for FlexFields / FileExplorer (see Dignite.Site.slnx's
+      # "/flex-fields/" folder). A single-repo checkout has no such directory, so restore and build
+      # would fail without this. Both repositories are public, so the default token suffices.
+      #
+      # The Angular side does NOT need it: angular/package.json resolves the @dignite/* packages
+      # from public npmjs, not from local file: paths into this sibling.
+      - name: Checkout abp-modules (sibling dependency for FlexFields / FileExplorer)
+        uses: actions/checkout@v5
+        with:
+          repository: dignite-projects/abp-modules
+          path: abp-modules
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Dignite.Site.slnx
+
+      - name: Build
+        run: dotnet build Dignite.Site.slnx --no-restore --configuration Release
+
+      # Enumerated rather than `dotnet test Dignite.Site.slnx`: the solution also carries
+      # abp-modules' own projects (checked out above only so they can be referenced), and running
+      # their tests here would report another repository's failures as this one's.
+      - name: Run domain tests
+        run: dotnet test test/Dignite.Site.Domain.Tests/Dignite.Site.Domain.Tests.csproj --no-build --configuration Release --verbosity normal
+
+      - name: Run application tests
+        run: dotnet test test/Dignite.Site.Application.Tests/Dignite.Site.Application.Tests.csproj --no-build --configuration Release --verbosity normal
+
+      - name: Run EF Core tests
+        run: dotnet test test/Dignite.Site.EntityFrameworkCore.Tests/Dignite.Site.EntityFrameworkCore.Tests.csproj --no-build --configuration Release --verbosity normal
+
+      - name: Run MongoDB tests
+        run: dotnet test test/Dignite.Site.MongoDB.Tests/Dignite.Site.MongoDB.Tests.csproj --no-build --configuration Release --verbosity normal
+
+      - name: Run HttpApi.Client tests
+        run: dotnet test test/Dignite.Site.Public.HttpApi.Client.Tests/Dignite.Site.Public.HttpApi.Client.Tests.csproj --no-build --configuration Release --verbosity normal
+
+      # Not currently run by release.yml either - the standing MCP-tool/DTO contract test that
+      # fails when an MCP tool's parameters drift from the Create/Update/List DTO it builds. It is
+      # the check that would have caught create_page/update_page silently dropping `template`.
+      - name: Run MCP tests
+        run: dotnet test test/Dignite.Site.Mcp.Tests/Dignite.Site.Mcp.Tests.csproj --no-build --configuration Release --verbosity normal
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: yarn
+          cache-dependency-path: site/angular/yarn.lock
+
+      # Yarn with the committed lockfile, unlike release.yml's `npm install --no-package-lock`.
+      # That npm call exists because Yarn Classic fetches a dependency whose lockfile entry has a
+      # GitHub Packages "resolved" URL through a code path that never attaches registry auth. No
+      # such entry remains - every @dignite/* package now resolves from public npmjs - so the tree
+      # verified here can be the one the lockfile actually describes, which is also the one every
+      # developer installs. --frozen-lockfile additionally fails if a package.json change was
+      # committed without its lockfile update.
+      #
+      # It matters for the duplicate check below specifically: npm dedupes graphs that Yarn Classic
+      # splits into nested copies, so running that check after an npm install would pass vacuously.
+      - name: Install Angular dependencies
+        working-directory: site/angular
+        run: yarn install --frozen-lockfile --non-interactive
+
+      # Two copies of one @dignite/* package are two sets of module-scoped InjectionToken values, so
+      # providers registered against one are invisible to consumers of the other - the field type
+      # simply is not there at runtime, with nothing failing at install or build time. See the
+      # script's own header and dignite-projects/abp-modules#211.
+      - name: Check for duplicate @dignite packages
+        working-directory: site/angular
+        run: node ../.github/scripts/check-angular-package-duplicates.mjs node_modules @dignite
+
+      # No lint step, matching release.yml: `ng lint site` currently fails on ~14 pre-existing
+      # violations (component selector prefixes, ngIf vs. control-flow syntax). Fixing those is real
+      # work, not CI plumbing; adding the step before that happens would only make every pull
+      # request red.
+      - name: Run site Angular library unit tests
+        working-directory: site/angular
+        run: yarn ng test site --watch=false
+
+      - name: Build site Angular library
+        working-directory: site/angular
+        run: yarn build:site
+
+      # ng-packagr emits an external for every bare specifier it does not bundle, but never checks
+      # that the external is declared. Fails on any emitted import package.json does not name.
+      - name: Check site Angular package dependencies
+        working-directory: site/angular
+        run: node ../.github/scripts/check-angular-package-deps.mjs dist/site
+
+      # The Host app is what actually exercises provideSite() end to end - the library build above
+      # compiles the sources but never resolves the field-type registrations through DI.
+      - name: Build Host application
+        working-directory: site/angular
+        run: yarn build
