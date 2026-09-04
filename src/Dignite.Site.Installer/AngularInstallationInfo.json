@@ -30,7 +30,7 @@
       "npmPackages":[
         {
           "name": "@dignite/ng.flex-fields",
-          "note": "Not published to npm. Consumed as a file: dependency pointing at the sibling repo's built output; requires preserveSymlinks in tsconfig and angular.json so its @angular/* resolve to the host's copies."
+          "note": "Direct dependency of @dignite/ng.site (installed with it) from public npmjs. Must resolve to exactly one copy in the host's tree: FLEX_FIELD_TYPES is a module-scoped InjectionToken, so a second copy is a second DI key and the field types registered against one are invisible to the resolver reading the other - absent at runtime, with nothing failing at install or build time."
         },
         {
           "name": "ng-zorro-antd",
