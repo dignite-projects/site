@@ -203,6 +203,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   indicator; the picker is `nzMode="multiple"`, so several rows are selected at once and filling each
   of them competes with the hover state rather than adding information. The same fix landed in
   `@dignite/ng.flex-fields`' `Select` control, which carried an identical copy.
+- **`AngularInstallationInfo.json` told consumers to install `@dignite/ng.flex-fields` in a way that
+  no longer exists.** Its note read "Not published to npm. Consumed as a `file:` dependency pointing
+  at the sibling repo's built output; requires `preserveSymlinks`..." - written before the package
+  reached public npmjs at `rc.11`/`rc.13`, since when it has been an ordinary registry dependency
+  that arrives transitively with `@dignite/ng.site`. The `preserveSymlinks` half was never true of
+  this package either: `angular/scripts/symlink-config.ps1` lists no `@dignite` scope at all and its
+  `$PackageDirectories` is empty, so the setting in `angular.json` and `tsconfig.prod.json` is
+  inherited ABP-template configuration serving a different workflow. Replaced with what a consumer
+  actually needs to know - that it arrives with the library, and that it has to resolve to exactly
+  one copy, for the `FLEX_FIELD_TYPES` reason documented under Changed above.
 
 ## [0.1.0-preview.9] - 2026-08-30
 
