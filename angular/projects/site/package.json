@@ -3,9 +3,9 @@
   "version": "0.1.0-preview.9",
   "dependencies": {
     "@angular/cdk": "^21.2.0",
-    "@dignite/ng.flex-fields": "^10.0.0-rc.13",
-    "@dignite/ng.flex-fields-ckeditor": "^10.0.0-rc.13",
-    "@dignite/ng.flex-fields-file-explorer": "^10.0.0-rc.13",
+    "@dignite/ng.flex-fields": "^10.0.0-rc.14",
+    "@dignite/ng.flex-fields-ckeditor": "^10.0.0-rc.14",
+    "@dignite/ng.flex-fields-file-explorer": "^10.0.0-rc.14",
     "ng-zorro-antd": "^21.0.2",
     "tslib": "^2.1.0"
   },

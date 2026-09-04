@@ -2277,38 +2277,38 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-4.2.0.tgz#ba5d0b917303c0b3d3c14c4865cdc6ded25ac05f"
   integrity sha512-kzyuwOAQnXJNLS9PSyrk0CWk35nWJW/zl/6KvnTBMFK65gm7U1/Z5BqjxeapjZCIhQcM/DsrEmcbRwDyXyXK4A==
 
-"@dignite/ng.file-explorer@10.0.0-rc.13", "@dignite/ng.file-explorer@^10.0.0-rc.13", "@dignite/ng.file-explorer@^10.0.0-rc.4":
-  version "10.0.0-rc.13"
-  resolved "https://registry.yarnpkg.com/@dignite/ng.file-explorer/-/ng.file-explorer-10.0.0-rc.13.tgz#8a4e3f7777169d9717107a01c81188e2aaaee311"
-  integrity sha512-UDxnHVaqpTBrJxzEWdpJE3OtcqrIu+SRAs1ThCyRiFKxqvDtUXxQ3yfeRSjOf9iUXFWcuJ2jwHEx8OqvCTcU1w==
+"@dignite/ng.file-explorer@10.0.0-rc.14", "@dignite/ng.file-explorer@^10.0.0-rc.14":
+  version "10.0.0-rc.14"
+  resolved "https://registry.yarnpkg.com/@dignite/ng.file-explorer/-/ng.file-explorer-10.0.0-rc.14.tgz#91f8ff73d83f70f7dd5e7418b6b277b1da132c95"
+  integrity sha512-Vuwnay0kORrii1PGf3DmRYkAIi3E/heKarXkWWYjiTUMgxth2ccELXWSYoZjWKpcXjZEXZPNkxwnT/tLEQ+GvA==
   dependencies:
     tslib "^2.0.0"
 
-"@dignite/ng.flex-fields-ckeditor@^10.0.0-rc.13":
-  version "10.0.0-rc.13"
-  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields-ckeditor/-/ng.flex-fields-ckeditor-10.0.0-rc.13.tgz#219cbce23fa9d61a52a8bef53a49bc5c10bc14fe"
-  integrity sha512-T4yQ84xN72cw8mPMInriQF31fq1PTRnFuy4LsqTKSzgb82erXN9M5rzEQ8F/ZUwnfNfoAgpdaqbG4Y9K1p7w0w==
+"@dignite/ng.flex-fields-ckeditor@^10.0.0-rc.14":
+  version "10.0.0-rc.14"
+  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields-ckeditor/-/ng.flex-fields-ckeditor-10.0.0-rc.14.tgz#2a1417661b07a29a65b99d38bf76b23caa4f919a"
+  integrity sha512-2Y82y3RJJFRaYUqTPOy9TBrokQKRbfmxL/kPYOAiUNvf0Aw+Hy58GUbB3MyNrCnzSw7CXf4kHZdaT/v3hFkVjg==
   dependencies:
     "@ckeditor/ckeditor5-angular" "^11.2.0"
     "@ckeditor/ckeditor5-integrations-common" "^2.4.0"
-    "@dignite/ng.flex-fields" "^10.0.0-rc.4"
+    "@dignite/ng.flex-fields" "^10.0.0-rc.14"
     ckeditor5 "^48.0.0"
     marked "^18.0.0"
     tslib "^2.0.0"
 
-"@dignite/ng.flex-fields-file-explorer@^10.0.0-rc.13":
-  version "10.0.0-rc.13"
-  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields-file-explorer/-/ng.flex-fields-file-explorer-10.0.0-rc.13.tgz#ba161d4497510dea904d58cf76fe6bf921ef0d00"
-  integrity sha512-LzYcNTi1cgEDjltjLRVeIjN2FNvac/4jnusJBtLnK7CztIzRbj+9Kq8sm/jEkQfw7eqUy9hqn39Ykan0IWn0Yg==
+"@dignite/ng.flex-fields-file-explorer@^10.0.0-rc.14":
+  version "10.0.0-rc.14"
+  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields-file-explorer/-/ng.flex-fields-file-explorer-10.0.0-rc.14.tgz#0b622d474247cc29d3d022e0179e8267e7d2f078"
+  integrity sha512-TPb5Dm+qGCyVDF8PUG9mc16eeeC67t0StHAA135MFqRvGqAaL2w9QesHLlr1Sn588v1nvuh9h8eu3x23QL294Q==
   dependencies:
-    "@dignite/ng.file-explorer" "^10.0.0-rc.4"
-    "@dignite/ng.flex-fields" "^10.0.0-rc.4"
+    "@dignite/ng.file-explorer" "^10.0.0-rc.14"
+    "@dignite/ng.flex-fields" "^10.0.0-rc.14"
     tslib "^2.0.0"
 
-"@dignite/ng.flex-fields@10.0.0-rc.13", "@dignite/ng.flex-fields@^10.0.0-rc.13", "@dignite/ng.flex-fields@^10.0.0-rc.4":
-  version "10.0.0-rc.13"
-  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields/-/ng.flex-fields-10.0.0-rc.13.tgz#bc69cd484c648babe0be24d1cd8b8cab299d0ad2"
-  integrity sha512-VJMiVEFQJU9W9C51Xm6FRXcmBp0rCXKtVy9FJymxLDXepoCH7pOoREqpcRyosnMRsh17wzZ0TDw2ZdWTUCc+BA==
+"@dignite/ng.flex-fields@10.0.0-rc.14", "@dignite/ng.flex-fields@^10.0.0-rc.14":
+  version "10.0.0-rc.14"
+  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields/-/ng.flex-fields-10.0.0-rc.14.tgz#5fc334e1310cd2dd1f590eb6c5d74f5497beaa63"
+  integrity sha512-SevBXuqNqmi1WONaA9axwi6X3PGszcMKoiMfNZLjOajs6YRIeiGM1cZG8ffMDaR8TpdIEyGs8ae2vl5eSSudFg==
   dependencies:
     tslib "^2.0.0"
 

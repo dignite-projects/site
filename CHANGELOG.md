@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ABP host has, so a consumer needs this package to bring its own copy); `@swimlane/ngx-datatable`
   moves dependency -> peer (guaranteed by `@abp/ng.theme.shared`).
 - Bumped `@dignite/ng.flex-fields`, `-ckeditor` and `-file-explorer` from `^10.0.0-rc.5` to
-  `^10.0.0-rc.13`, and dropped `@ckeditor/ckeditor5-angular`, `ckeditor5`, `marked` and
+  `^10.0.0-rc.14`, and dropped `@ckeditor/ckeditor5-angular`, `ckeditor5`, `marked` and
   `@dignite/ng.file-explorer` from this package entirely. Those four were only ever here to work
   around the adapters declaring them as `peerDependencies`, which `--legacy-peer-deps` never
   installs; flex-fields `10.0.0-rc.13` declares them as its own adapters' `dependencies`, so they
@@ -63,14 +63,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reclassification exists to prevent.
 - The four `@dignite/*` packages the Host dev app pulled through the GitHub Packages alias
   (`npm:@dignite-projects/...@10.0.0-rc.5`) are now plain public npmjs dependencies at
-  `^10.0.0-rc.13`; all four reached npmjs for the first time at `rc.11`/`rc.13`.
+  `^10.0.0-rc.14`; all four reached npmjs for the first time at `rc.11`/`rc.13`.
   `angular/.npmrc`'s GitHub Packages auth is now only needed to *publish* this repo's own
   pre-release package, not to install anything. The release workflow's scope-swap step is
   unaffected - `@dignite-projects/*` still mirrors every version on GitHub Packages.
-- Pinned `@dignite/ng.flex-fields` and `@dignite/ng.file-explorer` to `10.0.0-rc.13` through a
-  `resolutions` block in `angular/package.json`. flex-fields `10.0.0-rc.13`'s adapter packages
-  still declare their siblings at `^10.0.0-rc.4`, while npmjs' `latest` dist-tag for those siblings
-  points at `10.0.0-rc.11` (`rc.13` shipped under `next`). Yarn Classic - which this workspace uses -
+- Pinned `@dignite/ng.flex-fields` and `@dignite/ng.file-explorer` to `10.0.0-rc.14` through a
+  `resolutions` block in `angular/package.json`. Through `10.0.0-rc.13` the adapter packages
+  declared their siblings at `^10.0.0-rc.4`, while npmjs' `latest` dist-tag for those siblings
+  pointed at `10.0.0-rc.11` (`rc.13` shipped under `next`). Yarn Classic - which this workspace uses -
   prefers the `latest`-tagged version for any range that admits it, so a plain install produced two
   copies: `rc.13` at the root for this library, `rc.11` nested under `@dignite/ng.flex-fields-ckeditor`
   and `-file-explorer` for the field types they register. That is not a wasted-bytes problem:
@@ -78,8 +78,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keys - `provideCKEditorFieldType()` would register into a token `FieldTypeResolver` never reads,
   and the content editor would throw at runtime exactly as if the field type had never been
   provided. npm dedupes the same graph to a single copy and is unaffected, which is also why the
-  release workflow's npm-based `verify-packed-npm-install.sh` cannot catch it. Drop this block once
-  the adapters declare their siblings at a matching version.
+  release workflow's npm-based `verify-packed-npm-install.sh` cannot catch it.
+  `10.0.0-rc.14` fixes the upstream half: the adapters now declare their siblings at the version
+  being released, and a Yarn Classic install of `rc.14` here resolves to exactly one copy of each
+  package with the block removed. It is kept anyway because only one of the two halves is gone -
+  abp-modules still publishes pre-releases under `next` alone, so `latest` keeps lagging and any
+  future range wide enough to admit an older sibling resolves backwards again. The block costs a
+  version bump per upgrade and makes the single-copy guarantee independent of a dist-tag this
+  repository does not control; `check-angular-package-duplicates.mjs` is what says when it has
+  become redundant rather than load-bearing.
 - **`release.yml` installs the Angular workspace with `yarn install --frozen-lockfile`** instead of
   `npm install --no-package-lock`, so the released artifact is built from the tree the committed
   lockfile describes - the same one `ci.yml` verifies and every developer installs. npm also does
