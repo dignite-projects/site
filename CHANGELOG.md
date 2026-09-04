@@ -126,6 +126,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The pre-release npm publish would have failed on its dist-tag, and a failure would have been
+  reported as success either way.** Two defects in the same step, neither of which any run has
+  surfaced yet because `release.yml` has not been tagged since.
+
+  npm/cli now refuses to publish a version carrying a SemVer pre-release suffix when its dist-tag
+  is left at the default — *"You must specify a tag using --tag when publishing a prerelease
+  version"* — and the check is on whether `--tag` was passed at all, not on what it was set to.
+  Every version this step publishes is a pre-release, so the next tagged run would have stopped
+  here, after the NuGet packages had already been pushed. That is not hypothetical: it is exactly
+  how `v0.5.0-preview.3` failed in dignite-projects/vault-extract, leaving that version published
+  on one channel only. `--tag latest` is now passed explicitly, rather than reusing
+  `steps.channel.outputs.npm-tag` (`next` on this branch): GitHub Packages only ever receives
+  pre-releases here — stable goes to npmjs under the public `@dignite/*` name — so `latest`
+  tracking the newest preview is what a consumer of this channel wants, it keeps an unpinned
+  install resolving, and it stops the `latest` tag earlier untagged publishes already set from
+  freezing on a stale preview.
+
+  The second defect is why the first would have been confusing to diagnose: the publish ran as
+  `if ! npm publish … | tee /tmp/npm-publish.log`, and the step shell is `bash -e` with no
+  `pipefail`, so the pipeline's status was always `tee`'s — zero. The `if !` branch could never
+  fire, the "already published" soft-skip was unreachable, and a real failure (an `E401`, or this
+  `--tag` error) would have been reported as a green step. The publish now redirects to the log
+  and tests `npm`'s own exit status, which is also what makes `exit 1` an `exit $status`. The same
+  bug, and the same fix, as dignite-projects/vault-extract's release workflow.
+
 - **`dotnet restore Dignite.Site.slnx` failed with `NU1605`**, so the new CI workflow and the next
   tagged release alike would have stopped at their first .NET step.
   `Microsoft.Extensions.FileProviders.Embedded` was pinned at `10.0.9` by `Dignite.Site.Host`,
