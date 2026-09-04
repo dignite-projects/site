@@ -4,10 +4,10 @@
 #
 # Routing by channel, derived from the SemVer pre-release suffix in <Version>:
 #   - Pre-release (e.g. 0.1.0-preview.1) -> NuGet + npm packages pushed to GitHub Packages only.
-#   - Stable      (e.g. 0.1.0)           -> NuGet to NuGet.org, npm to npmjs (@dignite/site).
+#   - Stable      (e.g. 0.1.0)           -> NuGet to NuGet.org, npm to npmjs (@dignite/ng.site).
 #
 # GitHub Packages' npm registry requires the package scope to equal the owning org login, so the
-# npm package publishes under @dignite-projects/site there - not the public @dignite/site name,
+# npm package publishes under @dignite-projects/ng.site there - not the public @dignite/ng.site name,
 # which is reserved for the real npmjs release. This mirrors abp-modules' own release workflow,
 # which is also where @dignite/ng.flex-fields (etc.) now come from for the same reason - see that
 # repo's .github/workflows/release.yml.
@@ -236,6 +236,13 @@ jobs:
         working-directory: site/angular
         run: yarn build:site
 
+      # ng-packagr emits an external for every bare specifier it does not bundle but never checks the
+      # external is declared; the verify script below cannot see it either once the package brings
+      # its own dependencies. Fails on any emitted import that package.json does not name.
+      - name: Check site Angular package dependencies
+        working-directory: site/angular
+        run: node ../.github/scripts/check-angular-package-deps.mjs dist/site
+
       - name: Pack site Angular library
         working-directory: site/angular
         run: |
@@ -251,7 +258,7 @@ jobs:
 
       # npm equivalent of the GH Packages NuGet mirror above, and the same rename-in-a-scratch-copy
       # trick abp-modules' release.yml uses: GitHub Packages' npm registry rejects any scope that
-      # doesn't match the owning org login, so @dignite/site can't be pushed there under its real
+      # doesn't match the owning org login, so @dignite/ng.site can't be pushed there under its real
       # name - only npmjs (tagged releases, below) can carry the public @dignite/* scope. The
       # auth token has to be appended to $NPM_CONFIG_USERCONFIG specifically - that's the file
       # setup-node's registry-url input points npm at for the rest of the job; a plain ~/.npmrc is
@@ -273,7 +280,7 @@ jobs:
           tarball=$(ls artifacts/npm/site/*.tgz)
           workdir=$(mktemp -d)
           tar -xzf "$tarball" -C "$workdir"
-          npm pkg set name="@dignite-projects/site" --prefix "$workdir/package"
+          npm pkg set name="@dignite-projects/ng.site" --prefix "$workdir/package"
           PKG_DIR="$workdir/package" node -e '
             const fs = require("fs");
             const path = require("path");
@@ -291,7 +298,7 @@ jobs:
           # fail the run, so treat "already published" as a soft skip and let anything else fail.
           if ! npm publish "$workdir/package" --registry https://npm.pkg.github.com 2>&1 | tee /tmp/npm-publish.log; then
             if grep -q 'Cannot publish over existing version' /tmp/npm-publish.log; then
-              echo "::notice::@dignite-projects/site@${{ steps.channel.outputs.version }} is already published; skipping."
+              echo "::notice::@dignite-projects/ng.site@${{ steps.channel.outputs.version }} is already published; skipping."
             else
               exit 1
             fi
@@ -308,7 +315,7 @@ jobs:
         if: steps.channel.outputs.channel == 'preview'
         run: bash .github/scripts/verify-packed-npm-install.sh '${{ steps.channel.outputs.version }}' '${{ secrets.GITHUB_TOKEN }}'
 
-      # Stable builds go to the public npmjs, under the real @dignite/site name. Same
+      # Stable builds go to the public npmjs, under the real @dignite/ng.site name. Same
       # skip-when-not-configured pattern as the NuGet.org push above.
       - name: Publish to npm (stable)
         if: steps.channel.outputs.channel == 'stable'

@@ -7,11 +7,11 @@
             "names":[
               "SITE_ROUTES"
             ],
-            "namespace": "@dignite/site"
-          } 
+            "namespace": "@dignite/ng.site"
+          }
         ],
         "routes":[
-          "{ path: 'site', loadChildren: () => import('@dignite/site').then(c => c.SITE_ROUTES) }"
+          "{ path: 'site', loadChildren: () => import('@dignite/ng.site').then(c => c.SITE_ROUTES) }"
         ]
       },
       "appModuleConfiguration":{
@@ -20,7 +20,7 @@
             "names":[
               "provideSite"
             ],
-            "namespace": "@dignite/site/config"
+            "namespace": "@dignite/ng.site/config"
           }
         ],
         "providerNames":[
@@ -34,22 +34,22 @@
         },
         {
           "name": "ng-zorro-antd",
-          "note": "Peer dependency of @dignite/ng.flex-fields (its TreeView control uses nz-tree-select)."
+          "note": "Direct dependency of @dignite/ng.site (installed with it); its TreeView control uses nz-tree-select."
         },
         {
           "name": "@angular/cdk",
-          "note": "Peer dependency of @dignite/ng.flex-fields; also used by the content type field arrangement's drag and drop."
+          "note": "Direct dependency of @dignite/ng.site (installed with it); also used by the content type field arrangement's drag and drop."
         }
       ],
       "tsJsonPathRecordConfigurations":[
         {
-          "name": "@dignite/site",
+          "name": "@dignite/ng.site",
           "paths": [
             "angular/projects/site/src/public-api.ts"
           ]
         },
         {
-          "name": "@dignite/site/config",
+          "name": "@dignite/ng.site/config",
           "paths": [
             "angular/projects/site/config/src/public-api.ts"
           ]

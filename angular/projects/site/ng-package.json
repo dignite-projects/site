@@ -5,16 +5,10 @@
     "entryFile": "src/public-api.ts"
   },
   "allowedNonPeerDependencies": [
-    "@abp/ng.core",
-    "@abp/ng.oauth",
-    "@abp/ng.theme.shared",
-    "@abp/ng.components",
-    "@volo/abp.commercial.ng.ui",
+    "@angular/cdk",
     "@dignite/ng.flex-fields",
     "@dignite/ng.flex-fields-ckeditor",
     "@dignite/ng.flex-fields-file-explorer",
-    "@swimlane/ngx-datatable",
-    "ng-zorro-antd",
-    "@angular/cdk"
+    "ng-zorro-antd"
   ]
 }

@@ -2,7 +2,7 @@ import { eLayoutType, RoutesService } from '@abp/ng.core';
 import { provideFlexFields } from '@dignite/ng.flex-fields';
 import { provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor';
 import { provideFileExplorerFieldType } from '@dignite/ng.flex-fields-file-explorer';
-import { CONTENT_FIELD_TYPE, MATRIX_FIELD_TYPE, SEO_FIELD_TYPE, TABLE_FIELD_TYPE } from '@dignite/site';
+import { CONTENT_FIELD_TYPE, MATRIX_FIELD_TYPE, SEO_FIELD_TYPE, TABLE_FIELD_TYPE } from '@dignite/ng.site';
 import {
   EnvironmentProviders,
   inject,

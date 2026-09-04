@@ -1,5 +1,5 @@
 /*
- * Public API Surface of @dignite/site
+ * Public API Surface of @dignite/ng.site
  *
  * Screen components are intentionally absent: every one of them is reached through `SITE_ROUTES`'
  * `loadComponent`, and exporting them here would pull all of them into whatever chunk imports this

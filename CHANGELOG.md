@@ -5,6 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING**: the Angular library is renamed `@dignite/site` -> `@dignite/ng.site` (the
+  pre-release GitHub Packages mirror follows: `@dignite-projects/site` -> `@dignite-projects/ng.site`),
+  matching the `@dignite/ng.*` convention every other Dignite Angular package already uses.
+  Consumers update the dependency name and every import path (`@dignite/site` and
+  `@dignite/site/config` both move to their `ng.site` equivalents). Neither name has ever been
+  published to npmjs - only pre-release builds went out under the old name to GitHub Packages - so
+  no stable version is orphaned by the rename.
+- Reclassified `angular/projects/site/package.json`'s dependencies against a single rule: a
+  package only belongs in `peerDependencies` if a consumer is guaranteed to already have it -
+  everything else is a `dependency`. The reason this matters in practice: every ABP 10.5 +
+  Angular 21 host installs with `--legacy-peer-deps` (`@abp/ng.theme.shared` pins
+  `@swimlane/ngx-datatable@~22`, whose own Angular peer range stops at 20), and npm does not
+  install peers at all under that flag - Yarn Classic never installed them either. A peer the
+  host doesn't already carry is therefore not a documented extra install step, it's an
+  unresolvable import the consumer only discovers at their own build. Concretely: `@angular/cdk`
+  and `ng-zorro-antd` stay `dependencies` (they arrive via `@abp/ng.components`, which not every
+  ABP host has, so a consumer needs this package to bring its own copy); `@swimlane/ngx-datatable`
+  moves dependency -> peer (guaranteed by `@abp/ng.theme.shared`).
+- Bumped `@dignite/ng.flex-fields`, `-ckeditor` and `-file-explorer` from `^10.0.0-rc.5` to
+  `^10.0.0-rc.13`, and dropped `@ckeditor/ckeditor5-angular`, `ckeditor5`, `marked` and
+  `@dignite/ng.file-explorer` from this package entirely. Those four were only ever here to work
+  around the adapters declaring them as `peerDependencies`, which `--legacy-peer-deps` never
+  installs; flex-fields `10.0.0-rc.13` declares them as its own adapters' `dependencies`, so they
+  now arrive transitively. Raising the floor is part of the fix, not housekeeping - a consumer
+  resolving to `rc.5` under the old `^10.0.0-rc.5` range would get neither the adapters'
+  declarations nor this package's, i.e. exactly the four unresolvable imports this whole
+  reclassification exists to prevent.
+- The four `@dignite/*` packages the Host dev app pulled through the GitHub Packages alias
+  (`npm:@dignite-projects/...@10.0.0-rc.5`) are now plain public npmjs dependencies at
+  `^10.0.0-rc.13`; all four reached npmjs for the first time at `rc.11`/`rc.13`.
+  `angular/.npmrc`'s GitHub Packages auth is now only needed to *publish* this repo's own
+  pre-release package, not to install anything. The release workflow's scope-swap step is
+  unaffected - `@dignite-projects/*` still mirrors every version on GitHub Packages.
+- Pinned `@dignite/ng.flex-fields` and `@dignite/ng.file-explorer` to `10.0.0-rc.13` through a
+  `resolutions` block in `angular/package.json`. flex-fields `10.0.0-rc.13`'s adapter packages
+  still declare their siblings at `^10.0.0-rc.4`, while npmjs' `latest` dist-tag for those siblings
+  points at `10.0.0-rc.11` (`rc.13` shipped under `next`). Yarn Classic - which this workspace uses -
+  prefers the `latest`-tagged version for any range that admits it, so a plain install produced two
+  copies: `rc.13` at the root for this library, `rc.11` nested under `@dignite/ng.flex-fields-ckeditor`
+  and `-file-explorer` for the field types they register. That is not a wasted-bytes problem:
+  `FLEX_FIELD_TYPES` is a module-scoped `new InjectionToken(...)`, so two copies are two distinct DI
+  keys - `provideCKEditorFieldType()` would register into a token `FieldTypeResolver` never reads,
+  and the content editor would throw at runtime exactly as if the field type had never been
+  provided. npm dedupes the same graph to a single copy and is unaffected, which is also why the
+  release workflow's npm-based `verify-packed-npm-install.sh` cannot catch it. Drop this block once
+  the adapters declare their siblings at a matching version.
+
+### Removed
+
+- `ContentEditorComponent`'s global `::ng-deep :root` block remapping CKEditor 5's
+  `--ck-color-base-*` tokens onto the host theme. `@dignite/ng.flex-fields-ckeditor`
+  `10.0.0-rc.13` ships that bridge itself, with a longer fallback chain than this copy had (a
+  LeptonX token -> the Bootstrap 5.3 token every ABP Angular theme defines -> CKEditor's own stock
+  literal, so a non-ABP host sees no change at all) and two fixes this copy never had:
+  `.ck-editor__editable_inline`'s fully transparent border/background, which left an empty
+  Basic-mode field indistinguishable from blank space, and `--ck-content-font-color`. Upstream also
+  maps the editor surface to `--lpx-card-bg` where this copy used `--lpx-content-bg` for both
+  background *and* foreground, flattening the toolbar/canvas distinction CKEditor's own stock
+  palette makes. Keeping a copy here would not have added anything and would have fought the
+  upstream rule at equal `:root` specificity, decided by style injection order alone.
+
+### Fixed
+
+- The library declared `@abp/ng.oauth`, `@abp/ng.components`, and `@volo/abp.commercial.ng.ui` as
+  `dependencies` without importing any of them anywhere in the source or the built bundle -
+  `@volo/abp.commercial.ng.ui` in particular was forcing a commercial package onto every consumer
+  for no reason. Conversely, the built bundle imports `@angular/common`, `@angular/core`,
+  `@angular/forms`, `@angular/router`, `rxjs`, and `@ngx-validate/core` (the last one only shows up
+  in the compiled output, not the TS source - Angular's partial compilation flattens
+  `ThemeSharedModule`'s re-export straight to the directive's home package) without declaring any
+  of them. All are now declared - the Angular/rxjs set and `@ngx-validate/core` as
+  `peerDependencies`, matching the reclassification above. A new release-workflow step
+  (`check-angular-package-deps.mjs`, ported from `abp-modules`) now fails the build if a future
+  emitted import and `package.json` drift apart again, rather than waiting for a consumer to hit
+  it first.
+
 ## [0.1.0-preview.9] - 2026-08-30
 
 ### Added
@@ -247,4 +327,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.5...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.9...HEAD

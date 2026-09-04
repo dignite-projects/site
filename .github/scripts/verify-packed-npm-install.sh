@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Installs the npm package this workflow just published, in an isolated scratch project pointed at
 # the same source a real consumer would use (GitHub Packages, pre-release), then bundles a minimal
-# file that imports `provideSite` from `@dignite/site/config`. Catches the class of bug that
+# file that imports `provideSite` from `@dignite/ng.site/config`. Catches the class of bug that
 # `npm install` alone cannot: a real ES import inside the published bundle (e.g.
 # `import { provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor'` in
-# fesm2022/dignite-site-config.mjs) pointing at a package that isn't declared as a dependency
+# fesm2022/dignite-ng.site-config.mjs) pointing at a package that isn't declared as a dependency
 # anywhere - install succeeds, and only a real bundler resolving that import graph fails. A
 # `tsc --noEmit` type-check does not catch this either: ng-packagr's rolled-up `.d.ts` for
 # `provideSite()` only exposes the opaque `EnvironmentProviders` return type, so TypeScript never
@@ -17,9 +17,12 @@
 # same job (this workspace already relies on that leniency for an existing ABP/@angular version
 # mismatch - see that step's own comment).
 #
-# The Angular/rxjs/tslib baseline below is not something this package declares (a published
-# Angular library assumes its host app supplies these, the same way `@dignite/site` doesn't
-# declare them either) - it stands in for "a real Angular host app", which always has them.
+# The baseline below is this package's own `peerDependencies` - `@abp/ng.core`, `@abp/ng.theme.shared`,
+# and the Angular/rxjs/tslib set - standing in for "a real ABP Angular host app", which always has
+# them. `--legacy-peer-deps` means npm install below would not bring any of them in on its own, so
+# they have to be listed here even though the package itself declares them; `@abp/ng.theme.shared`'s
+# own dependencies transitively supply `@ngx-validate/core` and `@swimlane/ngx-datatable`, the
+# remaining two peers.
 set -euo pipefail
 
 version=${1:?Usage: verify-packed-npm-install.sh <version> <github-token>}
@@ -33,22 +36,21 @@ cat > "$workdir/.npmrc" <<EOF
 //npm.pkg.github.com/:_authToken=${github_token}
 EOF
 
-# @dignite/site itself is aliased from the GitHub Packages name, exactly as a real consumer would
-# declare it (see angular/projects/site/README.md's "Installing" section and
-# apps/angular/package.json in Dignite.Cloud). The four peer packages
-# (@ckeditor/ckeditor5-angular, ckeditor5, marked, @dignite/ng.file-explorer) are the ones that
-# README documents as required but not bundled - @dignite/ng.file-explorer needs the same alias
-# treatment pre-release, for the same reason.
+# @dignite/ng.site itself is aliased from the GitHub Packages name, exactly as a real consumer
+# would declare it (see angular/projects/site/README.md's "Installing" section and
+# apps/angular/package.json in Dignite.Cloud). Nothing else is pre-installed here: the CKEditor and
+# File Explorer packages arrive transitively, as `dependencies` of @dignite/ng.flex-fields-ckeditor
+# and @dignite/ng.flex-fields-file-explorer at >= 10.0.0-rc.13. Pre-supplying them would hide the
+# regression this step exists to catch - a flex-fields floor loosened back below rc.12, where those
+# same packages were peers that `--legacy-peer-deps` never installs.
 cat > "$workdir/package.json" <<EOF
 {
   "name": "verify-npm-install-scratch",
   "private": true,
   "dependencies": {
-    "@dignite/site": "npm:@dignite-projects/site@${version}",
-    "@dignite/ng.file-explorer": "npm:@dignite-projects/ng.file-explorer@10.0.0-rc.5",
-    "@ckeditor/ckeditor5-angular": "^11.2.0",
-    "ckeditor5": "^48.0.0",
-    "marked": "^18.0.0",
+    "@dignite/ng.site": "npm:@dignite-projects/ng.site@${version}",
+    "@abp/ng.core": "~10.5.0",
+    "@abp/ng.theme.shared": "~10.5.0",
     "@angular/core": "~21.2.0",
     "@angular/common": "~21.2.0",
     "@angular/forms": "~21.2.0",
@@ -62,21 +64,21 @@ cat > "$workdir/package.json" <<EOF
 }
 EOF
 
-echo "Installing @dignite-projects/site@${version} (aliased as @dignite/site) from GitHub Packages, plus its documented peer dependencies..."
+echo "Installing @dignite-projects/ng.site@${version} (aliased as @dignite/ng.site) from GitHub Packages, on top of the ABP/Angular host baseline..."
 if ! (cd "$workdir" && npm install --no-audit --no-fund --legacy-peer-deps); then
-  echo "::error::npm install of @dignite-projects/site@${version} failed - a declared dependency doesn't resolve. Do not publish this as the released version."
+  echo "::error::npm install of @dignite-projects/ng.site@${version} failed - a declared dependency doesn't resolve. Do not publish this as the released version."
   exit 1
 fi
 
 cat > "$workdir/smoke.ts" <<'EOF'
-import { provideSite } from '@dignite/site/config';
+import { provideSite } from '@dignite/ng.site/config';
 
 export const providers = provideSite();
 EOF
 
 echo "Type-checking a minimal consumer of provideSite()..."
 if ! (cd "$workdir" && npx --yes -p typescript@~5.9.0 tsc --noEmit --strict --module esnext --moduleResolution bundler --target es2022 --skipLibCheck smoke.ts); then
-  echo "::error::Type-checking 'import { provideSite } from \"@dignite/site/config\"' failed."
+  echo "::error::Type-checking 'import { provideSite } from \"@dignite/ng.site/config\"' failed."
   exit 1
 fi
 
@@ -86,4 +88,4 @@ if ! (cd "$workdir" && npx --yes esbuild smoke.ts --bundle --platform=browser --
   exit 1
 fi
 
-echo "@dignite-projects/site@${version} installs and bundles cleanly for a correctly-configured consumer."
+echo "@dignite-projects/ng.site@${version} installs and bundles cleanly for a correctly-configured consumer."

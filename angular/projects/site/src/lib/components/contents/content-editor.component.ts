@@ -38,59 +38,20 @@ type SlugState = 'forbidden' | 'required' | 'optional';
  * Switching the content type rebuilds the left half, because the fields *are* the content type's
  * definition. Values already typed under fields the new type does not have are dropped, which is the
  * honest outcome: they have nowhere to be stored.
+ *
+ * **Deliberately no CKEditor theme bridge here.** This component used to carry a global
+ * `::ng-deep :root` block remapping CKEditor 5's `--ck-color-base-*` tokens onto the host theme -
+ * CKEditor ships one fixed light palette with no dark-mode switch, so the editor stayed light in a
+ * dark-themed host. `@dignite/ng.flex-fields-ckeditor` >= 10.0.0-rc.13 ships that bridge itself, with
+ * a longer fallback chain than this copy had (LeptonX token -> the Bootstrap 5.3 token every ABP
+ * Angular theme defines -> CKEditor's own stock literal) plus fixes this copy never had. Re-adding a
+ * copy here would not add anything and would fight it at equal `:root` specificity, decided by style
+ * injection order alone.
  */
 @Component({
   selector: 'site-content-editor',
   templateUrl: './content-editor.component.html',
   imports: [CoreModule, ThemeSharedModule, ReactiveFormsModule, RouterLink, FlexFieldControlComponent],
-  styles: `
-    /* CKEditor 5 ships one fixed light palette with no dark-mode switch of its own - its whole UI
-       chrome (toolbar, dropdown panels, inputs, tooltips, the balloon toolbar) is themed through a
-       small set of --ck-color-base-* custom properties that every other --ck-color-* token derives
-       from via var(), so remapping just these four re-themes the chrome without having to chase down
-       every derived token individually.
-
-       Plain ::ng-deep (no :host prefix) compiles to a genuinely global, unscoped rule - same
-       reasoning as pages.component.ts's .parent-picker-dropdown block - which is what a :root
-       override needs, since CKEditor's own editor instance is a dynamically-created child several
-       levels below whatever field-arrangement dispatches it, not a descendant this component could
-       otherwise reach by selector. Lives here rather than in the CKEditor field's own component
-       because that control ships from the separately-published @dignite/ng.flex-fields-ckeditor
-       package, not this repo - and specifically in *this* component, not this app's own
-       angular/src/styles.scss, because that file belongs to the local dev/test shell for this
-       library and never ships to a consuming host at all. ContentEditorComponent does ship (it's
-       part of the published @dignite/site package) and is always on screen before any CKEditor field
-       inside it can be, so its styles are guaranteed to be injected first.
-
-       (The editable canvas text color - --ck-content-font-color - turned out not to belong here: it
-       used to be remapped in this same block, but that coupled a downstream host's own theme
-       variables to a gap that has nothing to do with any particular host - .ck-content has no
-       background of its own, so once --ck-color-base-background above went dark the canvas
-       background followed regardless, leaving the un-remapped, hard-coded-black content text
-       unreadable on it. Fixed generically instead, in flex-fields-ckeditor's own
-       ckeditor-control.component.css, by repointing --ck-content-font-color at --ck-color-base-text -
-       a token this file already sets - so every host gets readable content text for free, without
-       flex-fields-ckeditor needing to know any host's variable names.)
-
-       --ck-color-button-default-hover-background/-active-background (default #f0f0f0, ckeditor5.css)
-       are plain hardcoded literals, not var()-derived from any of the four base tokens above - nothing
-       here was overriding them, so toolbar buttons kept CKEditor's own stock light hover fill
-       regardless of theme.
-
-       !important on every property: ckeditor5.css is only injected once a CKEditor field is first
-       opened (its multi-megabyte payload is dynamic-imported, see CKEditorControlComponent's own doc
-       on why), i.e. after this component's own styles - at the same :root specificity, source order
-       alone would otherwise let ckeditor5's own light-mode :root win. Same class of bug already found
-       and fixed in pages.component.ts/field-arrangement.component.ts's dropdown styling. */
-    ::ng-deep :root {
-      --ck-color-base-background: var(--lpx-content-bg, #fff) !important;
-      --ck-color-base-foreground: var(--lpx-content-bg, #fafafa) !important;
-      --ck-color-base-border: var(--bs-border-color, #ccced1) !important;
-      --ck-color-base-text: var(--bs-body-color, #333) !important;
-      --ck-color-button-default-hover-background: color-mix(in srgb, var(--bs-body-color, #333) 12%, transparent) !important;
-      --ck-color-button-default-active-background: color-mix(in srgb, var(--bs-body-color, #333) 20%, transparent) !important;
-    }
-  `,
 })
 export class ContentEditorComponent {
   private readonly contentService = inject(ContentAdminService);
