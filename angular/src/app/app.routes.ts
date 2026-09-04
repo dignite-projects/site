@@ -24,6 +24,6 @@ export const APP_ROUTES: Routes = [
   },
   {
     path: 'site',
-    loadChildren: () => import('@dignite/site').then(c => c.SITE_ROUTES),
+    loadChildren: () => import('@dignite/ng.site').then(c => c.SITE_ROUTES),
   },
 ];

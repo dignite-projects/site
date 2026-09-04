@@ -5,7 +5,7 @@ This workspace contains the Angular front-end for `Dignite.Site.Host`, built on 
 It has two parts:
 
 * **Host** (`src/`) - the ABP application shell (login, identity, tenant/setting/feature management, and the Site feature) that talks to the `Dignite.Site.Host` backend.
-* **site** (`projects/site/`) - the `@dignite/site` library with the Site feature's components/services. It's consumed by Host through the `@dignite/site` / `@dignite/site/config` path aliases (see `tsconfig.json`), so it doesn't need to be built or published separately for local development.
+* **site** (`projects/site/`) - the `@dignite/ng.site` library with the Site feature's components/services. It's consumed by Host through the `@dignite/ng.site` / `@dignite/ng.site/config` path aliases (see `tsconfig.json`), so it doesn't need to be built or published separately for local development.
 
 ## Pre-requirements
 
