@@ -161,6 +161,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the host, because the block already sets `color: inherit`. Dark mode therefore showed a light label
   on a near-white chip with an invisible “×”. Mapped onto `--bs-secondary-bg`, `--bs-border-color` and
   `--bs-secondary-color`. The same fix landed in `@dignite/ng.flex-fields`’ `Select` control.
+- **A selected option in the field picker's dropdown rendered white text on the panel background once
+  the mouse left it.** The rule meant to give selected options a `--lpx-brand` fill carried
+  `!important` on its colour but not on its background, while the `.ant-select-item` rule below it
+  zeroes every option background with `!important` — and `!important` beats specificity, so the
+  background never applied and the white text always did. Invisible while the panel was `#fff`,
+  merely illegible once it started following `--bs-secondary-bg`. Selected options now take no colour
+  of their own and read exactly like unselected ones, with ant-design's own checkmark as the
+  indicator; the picker is `nzMode="multiple"`, so several rows are selected at once and filling each
+  of them competes with the hover state rather than adding information. The same fix landed in
+  `@dignite/ng.flex-fields`' `Select` control, which carried an identical copy.
 
 ## [0.1.0-preview.9] - 2026-08-30
 
