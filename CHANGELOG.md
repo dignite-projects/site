@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
+  `@dignite/ng.file-explorer` from `^10.0.0-rc.14` to `^10.0.0-rc.15`, in both the Host dev app and
+  the published library, with `angular/package.json`'s `resolutions` block following as usual.
+  This is the fix for the failure that stopped `0.1.0-preview.10`.
+
+  What preview.10 actually did: its published package installed fine and type-checked fine, then
+  failed the release workflow's bundle step with two `Could not resolve "@abp/ng.components/tree"`
+  errors - one reached through `@dignite/ng.flex-fields`, one through `@dignite/ng.file-explorer`.
+  Both packages import `@abp/ng.components/tree` from their emitted bundles while declaring
+  `@abp/ng.components` as a `peerDependency`, and every ABP 10.5 + Angular 21 consumer installs with
+  `--legacy-peer-deps` (`@abp/ng.theme.shared` pins `@swimlane/ngx-datatable@~22`, whose Angular peer
+  range stops at 20), under which npm installs no peers at all. So the package was published with an
+  import that resolves to nothing in a real consumer's tree. Neither `npm install` nor a
+  `tsc --noEmit` over `provideSite()` can see it - ng-packagr's rolled-up `.d.ts` only exposes the
+  opaque `EnvironmentProviders` return type, so TypeScript never loads the field types' declarations;
+  only a bundler walking the real `.mjs` import graph does.
+
+  `10.0.0-rc.15` moves `@abp/ng.components` to `dependencies` in both packages, so
+  `--legacy-peer-deps` installs it. Verified here rather than assumed: `npm pack`ing this build and
+  running `verify-packed-npm-install.sh packed` against the tarball installs and bundles cleanly,
+  where the same command on the rc.14 tree reproduces preview.10's two unresolved specifiers exactly.
+- Narrowed `ng-zorro-antd` in `angular/projects/site/package.json` from `^21.0.2` back to `~21.0.2`.
+  The dependency reclassification in `8913ab1` widened it, and that range is a live hazard for
+  consumers: `@abp/ng.components@10.5.0` depends on `ng-zorro-antd: ~21.0.0-next.1`, i.e. `< 21.1.0`.
+  A consumer whose root resolves `^21.0.2` to 21.1+ gets a second copy nested under
+  `@abp/ng.components` - and two copies are two module-scoped `NZ_CONFIG` tokens and two
+  `NzConfigService` instances, so `provideNzConfig()` / `provideNzI18n()` configure one of them while
+  components from the other side never see it.
+
+  Not hypothetical: abp-modules' own two Angular workspaces currently sit at 21.3.3 at the root with
+  21.0.2 nested underneath. This repository escaped it only because the workspace root
+  (`angular/package.json`) has always pinned `~21.0.2` - which is exactly why the local duplicate
+  check could never have caught this. The check reads *this* workspace's installed tree, and the risk
+  lived entirely in the range the *published* package.json hands to someone else's installer.
+
 ## [0.1.0-preview.10] - 2026-09-05
 
 ### Added
