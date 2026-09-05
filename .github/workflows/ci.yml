@@ -110,13 +110,16 @@ jobs:
           cache: yarn
           cache-dependency-path: site/angular/yarn.lock
 
-      # Yarn with the committed lockfile, unlike release.yml's `npm install --no-package-lock`.
-      # That npm call exists because Yarn Classic fetches a dependency whose lockfile entry has a
-      # GitHub Packages "resolved" URL through a code path that never attaches registry auth. No
-      # such entry remains - every @dignite/* package now resolves from public npmjs - so the tree
-      # verified here can be the one the lockfile actually describes, which is also the one every
-      # developer installs. --frozen-lockfile additionally fails if a package.json change was
-      # committed without its lockfile update.
+      # Yarn with the committed lockfile, matching release.yml and every developer machine, so the
+      # tree verified here is the one the lockfile actually describes rather than a fresh resolution
+      # that ignores it. --frozen-lockfile additionally fails if a package.json change was committed
+      # without its lockfile update.
+      #
+      # release.yml used to install with npm here, because Yarn Classic fetched a dependency whose
+      # lockfile entry carried a GitHub Packages "resolved" URL through a code path that never
+      # attached registry auth. No such entry remains - every @dignite/* package now resolves from
+      # public npmjs - so both workflows run the same yarn command; release.yml's step carries the
+      # longer account of that switch.
       #
       # It matters for the duplicate check below specifically: npm dedupes graphs that Yarn Classic
       # splits into nested copies, so running that check after an npm install would pass vacuously.
