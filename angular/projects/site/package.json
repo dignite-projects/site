@@ -1,6 +1,6 @@
 {
   "name": "@dignite/ng.site",
-  "version": "0.1.0-preview.10",
+  "version": "0.1.0-preview.11",
   "dependencies": {
     "@angular/cdk": "^21.2.0",
     "@dignite/ng.flex-fields": "^10.0.0-rc.15",
