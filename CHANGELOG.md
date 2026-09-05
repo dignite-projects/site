@@ -7,6 +7,138 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
+  `@dignite/ng.file-explorer` from `^10.0.0-rc.15` to `^10.0.0-rc.16`** in `angular/package.json`
+  (Host dev app) and `angular/projects/site/package.json` (published library), picking up
+  flex-fields' new built-in `Matrix`/`Table` field types.
+
+  Unlike every previous bump, rc.16 was published in abp-modules only via `workflow_dispatch` (no
+  tag), so it landed on GitHub Packages under the `@dignite-projects` org scope only - the
+  tag-triggered step that mirrors a release to public npmjs under the real `@dignite/*` scope never
+  ran. GitHub Packages' npm registry requires the scope to equal the owning org login, so
+  `@dignite/ng.flex-fields` has no registry entry there at all; the packages exist only as
+  `@dignite-projects/ng.flex-fields` etc.
+
+  `angular/package.json`'s four entries (both `dependencies` and `resolutions`) now alias to
+  `npm:@dignite-projects/<name>@<range>` - the same rewrite `release.yml`'s "Publish pre-release
+  Angular package to GitHub Packages" step already applies to `@dignite/ng.site`'s own dependencies
+  at publish time - so `angular/.npmrc`'s existing `@dignite-projects:registry=...` mapping resolves
+  it. `angular/projects/site/package.json` keeps the plain, unaliased `@dignite/ng.flex-fields`
+  names: that manifest describes what a real downstream consumer needs, and either the publish-time
+  rewrite or (once flex-fields is public again) nothing at all is what bridges the gap - aliasing it
+  there would be wrong the moment the dependency is public again.
+
+  `check-angular-package-duplicates.mjs`'s target list in both `ci.yml` and `release.yml` changed
+  from `@dignite` to `@dignite-projects`: the script matches each installed package's own manifest
+  `"name"` field, and every alias now on disk carries the real `@dignite-projects/*` identity
+  regardless of which name imported it - `@dignite` currently matches nothing installed, which the
+  script correctly treats as a hard failure rather than a vacuous pass.
+
+  `ci.yml`'s job gained `packages: read` (`release.yml` already had `packages: write`). Reading a
+  private package published from a different repository additionally requires that repository's
+  package settings to grant `dignite-projects/site` "Manage Actions access" to each of the four
+  packages - a one-time, UI-only grant with no REST API equivalent, done outside this change. (This
+  fact used to be spelled out in full separately in `ci.yml`, `release.yml` and here; `release.yml`'s
+  job-level `env:` comment is now the one canonical copy - see it for the full mechanism and for what
+  to revert once flex-fields is public again.)
+
+  **`release.yml`'s "Verify packed npm package installs and bundles cleanly" (`packed` mode) step
+  would otherwise have failed on the next actual release attempt** - a real, verified break, not a
+  hypothetical one: it installs the *raw* packed `dist/site/package.json`, which still names its
+  siblings by their plain `@dignite/*` names and range (the alias rewrite only happens later, at the
+  GitHub Packages publish step), and the release's NuGet packages are already pushed live by the time
+  this step runs (`release.yml`'s "Push to GitHub Packages (pre-release)"/"Push to NuGet.org (stable)"
+  precede it), so the failure would have left a release half-published rather than merely failing
+  cleanly. Fixed by teaching `verify-packed-npm-install.sh`'s `packed` mode an optional third
+  `<github-token>` argument: when given, it reads every `@dignite/*` range the packed tarball itself
+  declares (plus `@dignite/ng.file-explorer`'s, inferred from `@dignite/ng.flex-fields`'s own range,
+  since it never appears as a direct dependency of `@dignite/ng.site`) and points them at their
+  `npm:@dignite-projects/<name>@<range>` aliases via npm's `overrides` field - reading the range fresh
+  from the tarball rather than hardcoding it, so this keeps working across future flex-fields bumps
+  without a matching edit here. `release.yml`'s invocation now passes `secrets.GITHUB_TOKEN`. Verified
+  against a real packed tarball: fails with the original `ETARGET` error without the token, installs
+  and bundles cleanly with it.
+
+### Removed
+
+- **Site's own `Matrix` and `Table` field types, superseded by flex-fields' kernel built-ins of the
+  same name shipped in `10.0.0-rc.16`** (see the version bump above). abp-modules ported both types
+  from `Dignite.FlexFields.Site` verbatim - registration keys, configuration keys
+  (`Matrix.BlockTypes`/`Table.Columns`) and camelCase value shapes unchanged - so this is a pure
+  deletion with no data migration: a content saved against Site's own `MatrixFieldType`/
+  `TableFieldType` reads back identically against the kernel's.
+
+  Deleted outright: the two field-type classes and their configuration/value types
+  (`Dignite.FlexFields.Site.Matrix`/`.Table`), the `Matrix.cshtml`/`Table.cshtml` public-site views
+  and their value readers, the Angular `matrix`/`table` field-type folders (config/control/view
+  component trios, registration objects), and their two `Dignite.Site.Domain.Tests` files.
+
+  **Also deleted, once confirmed dead**: `Dignite.FlexFields.Site`'s own
+  `ICompositeFieldType`/`INormalizesValue`/`InlineFieldDefinition`/`InlineFieldValidator`/
+  `CompositeFieldNesting` - abp-modules ported these four kernel-facing contracts too, byte-for-byte
+  identical in `Dignite.Abp.FlexFields.Abstractions`. Every file that used to reference Site's copies
+  (`FieldManager.CheckNestingDepth`, `FieldAdminAppService.GetFieldTypesAsync`,
+  `ContentManager.NormalizeFieldValue`, `SeoFieldType`) already carried a `using Dignite.Abp.FlexFields;`
+  alongside `using Dignite.FlexFields.Site;`, so deleting Site's copies compiled with no code changes
+  there at all - C#'s enclosing-namespace lookup simply fell through to the kernel's identical types.
+  This was not optional: `dotnet build` against abp-modules' current `main` (which this workspace
+  already path-references) failed with three `CS0104` ambiguous-reference errors the moment both
+  copies existed side by side, independent of anything else in this change.
+
+  Left that implicit fallback alone rather than papering over it, though: `FieldManager.cs` and
+  `ContentManager.cs` still carried a now-dead `using Dignite.FlexFields.Site;` (nothing in either
+  file needs anything else from that namespace any more), and all three files' bare
+  `CompositeFieldNesting`/`INormalizesValue`/`ICompositeFieldType` references depended on which
+  `using` directives happened to still compile, with nothing marking that they now mean the kernel's
+  types specifically. Both fixed: the dead usings are gone, and all three references are now
+  fully-qualified as `Dignite.Abp.FlexFields.*`, so a future Site-local type reusing one of these
+  names fails loudly (`CS0104`) rather than being silently shadowed. Also fixed in passing:
+  `IHasValueShape.cs`'s own `<see cref="ICompositeFieldType"/>` doc reference, left dangling by the
+  deletion since that file has no kernel `using` to fall back on, is now fully-qualified too; and
+  `FieldTypeDto.Composite`'s doc comment, which still explained itself in terms of the now-deleted
+  Angular designer plumbing, now names its real remaining consumer (`FieldTools.ListFieldTypesAsync`,
+  which hands the DTO straight to MCP/AI clients) and the kernel move.
+
+  `IHasValueShape` and `FieldValueShapeProperty` stay - abp-modules has no equivalent, and
+  `SeoFieldType` (which stays) is their only consumer.
+
+  On the Angular side, `composite-nesting.ts` and `inline-field-definition.ts` were consumed only by
+  the now-deleted `matrix-config`/`table-config` components, so they're gone too - along with
+  `SiteReferenceDataService.getCompositeFieldTypeNames()` and `FieldsComponent`'s cache-warming call
+  for it, which had no remaining caller once those two config editors were deleted.
+  `route.provider.ts`'s `provideFlexFields(...)` call dropped its explicit `MATRIX_FIELD_TYPE`/
+  `TABLE_FIELD_TYPE` arguments - the same call already registers flex-fields' `BUILT_IN_FIELD_TYPES`,
+  which now includes both.
+
+  Localization: the `FieldType:Matrix`/`FieldType:Table`, `Matrix:*`, `Table:*` and
+  `Validate:Matrix:*`/`Validate:Table:*` keys were removed from `FlexFieldsSite`'s `en.json`/
+  `zh-Hans.json` - abp-modules' CHANGELOG confirms the same keys now live in flex-fields' own
+  `FlexFields` resource, in all four of its shipped cultures.
+
+  **Test coverage gap left by deleting `MatrixFieldType_Tests.cs`/`TableFieldType_Tests.cs`**: those
+  were the only tests in this repo exercising Matrix/Table behavior, and `ci.yml` deliberately never
+  runs abp-modules' own tests (see its "Run domain tests" step comment) - so without something new
+  here, a regression in the kernel's ported `Normalize`/`Validate` would get no CI signal in this
+  repo at all, surfacing only at runtime for a Site admin. Not re-testing the kernel's own internals
+  (abp-modules' test suite already does, more thoroughly) - two new `FieldAdminAppService_Tests`
+  cases instead prove *Site's own* integration points still reach the kernel's Matrix/Table
+  correctly: `Should_Report_Matrix_And_Table_As_Composite` (the fully-qualified
+  `is Dignite.Abp.FlexFields.ICompositeFieldType` check in `FieldAdminAppService.GetFieldTypesAsync`
+  still finds them) and `Should_Create_A_Matrix_Field_Through_The_Kernels_Composite_Field_Type`
+  (`FieldManager.CheckNestingDepth`'s full chain - resolve, cast, `GetInlineFields`, measure depth -
+  still resolves and succeeds for an empty block-type list).
+
+  Verified rather than assumed: `dotnet build` (0 errors) and every `dotnet test` project that ran
+  before this change still passes after it (252/317/15/12 across Domain/EntityFrameworkCore/
+  HttpApi.Client/Mcp - EntityFrameworkCore's count includes the two new cases above), including
+  `FieldAdminAppService_Tests.Should_Report_Value_Shape_Only_For_Field_Types_With_A_Fixed_Composite_
+  Value`'s `byName["Matrix"].ValueShape.ShouldBeNull()` assertion, unmodified - the kernel's
+  `MatrixFieldType` still doesn't implement `IHasValueShape`, so the assertion holds for the same
+  reason it always did. `yarn build:site`, `yarn build` (Host), `yarn ng test site` (29 tests) and
+  both `check-angular-package-*` scripts pass unchanged.
+
 ## [0.1.0-preview.11] - 2026-09-05
 
 ### Added

@@ -38,14 +38,18 @@ jobs:
 
     permissions:
       contents: read
+      packages: read # @dignite/* aliases to abp-modules' private GitHub Packages as of rc.16 - see below
 
-    # angular/.npmrc still maps the @dignite-projects scope to GitHub Packages and references
+    # angular/.npmrc maps the @dignite-projects scope to GitHub Packages and references
     # ${GITHUB_TOKEN} for it. Yarn Classic substitutes every env-var placeholder in its resolved
     # config on every invocation and throws when one is unset - including the `yarn cache dir`
     # probe setup-node runs for `cache: yarn`, which happens before any run: step of this job. So
     # it has to be job-level, not set on the install step - exactly as release.yml already does.
-    # Nothing here installs from that scope any more (every @dignite/* package resolves from public
-    # npmjs), so the token is never actually used; the variable just has to exist.
+    #
+    # @dignite/ng.flex-fields (and its -ckeditor/-file-explorer adapters, and @dignite/ng.file-
+    # explorer) started resolving through that scope as of 10.0.0-rc.16 - release.yml's copy of this
+    # comment carries the full account (why, the alias mechanism, the one-time "Manage Actions
+    # access" grant this also depends on, and what to revert once it's no longer needed).
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -60,8 +64,9 @@ jobs:
       # "/flex-fields/" folder). A single-repo checkout has no such directory, so restore and build
       # would fail without this. Both repositories are public, so the default token suffices.
       #
-      # The Angular side does NOT need it: angular/package.json resolves the @dignite/* packages
-      # from public npmjs, not from local file: paths into this sibling.
+      # The Angular side does NOT need this checkout: angular/package.json resolves the @dignite/*
+      # packages as installed npm packages (see angular/.npmrc), not from local file: paths into
+      # this sibling.
       - name: Checkout abp-modules (sibling dependency for FlexFields / FileExplorer)
         uses: actions/checkout@v5
         with:
@@ -117,9 +122,11 @@ jobs:
       #
       # release.yml used to install with npm here, because Yarn Classic fetched a dependency whose
       # lockfile entry carried a GitHub Packages "resolved" URL through a code path that never
-      # attached registry auth. No such entry remains - every @dignite/* package now resolves from
-      # public npmjs - so both workflows run the same yarn command; release.yml's step carries the
-      # longer account of that switch.
+      # attached registry auth. That was fixed and both workflows ran the same yarn command against
+      # public-npmjs-only @dignite/* packages for a while - but as of 10.0.0-rc.16, @dignite/*
+      # aliases back onto GitHub Packages (see the job-level env: block's comment above), so this
+      # repeats the original gotcha's shape if that auth ever regresses. release.yml's step carries
+      # the longer account.
       #
       # It matters for the duplicate check below specifically: npm dedupes graphs that Yarn Classic
       # splits into nested copies, so running that check after an npm install would pass vacuously.
@@ -134,7 +141,12 @@ jobs:
       #
       # The targets are the libraries whose duplication would silently break DI at runtime, not
       # "everything installed":
-      #   @dignite      - the original case (FLEX_FIELD_TYPES split across two copies).
+      #   @dignite-projects - the original case (FLEX_FIELD_TYPES split across two copies), targeted
+      #                   under this scope rather than @dignite because angular/package.json aliases
+      #                   ng.flex-fields (etc.) to "npm:@dignite-projects/...@<range>" as of rc.16
+      #                   (see the job-level env: block's comment) - the installed manifests'
+      #                   "name" field is the real @dignite-projects/* identity regardless of which
+      #                   alias imported them, and that identity is what this check matches on.
       #   @abp          - CORE_OPTIONS, ConfigStateService, the environment tokens; every ABP
       #                   package in the tree peers on @abp/ng.core and would split with it.
       #   ng-zorro-antd - unscoped, so the old scope-only invocation could not see it at all, and a
@@ -160,7 +172,7 @@ jobs:
         working-directory: site/angular
         run: |
           node ../.github/scripts/check-angular-package-duplicates.mjs node_modules \
-            @dignite @abp ng-zorro-antd \
+            @dignite-projects @abp ng-zorro-antd \
             @angular/core @angular/common @angular/forms @angular/router @angular/cdk
 
       # No lint step, matching release.yml: `ng lint site` currently fails on ~14 pre-existing
