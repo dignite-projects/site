@@ -36,13 +36,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regardless of which name imported it - `@dignite` currently matches nothing installed, which the
   script correctly treats as a hard failure rather than a vacuous pass.
 
-  `ci.yml`'s job gained `packages: read` (`release.yml` already had `packages: write`). Reading a
-  private package published from a different repository additionally requires that repository's
-  package settings to grant `dignite-projects/site` "Manage Actions access" to each of the four
-  packages - a one-time, UI-only grant with no REST API equivalent, done outside this change. (This
-  fact used to be spelled out in full separately in `ci.yml`, `release.yml` and here; `release.yml`'s
-  job-level `env:` comment is now the one canonical copy - see it for the full mechanism and for what
-  to revert once flex-fields is public again.)
+  **Reading a private package published from a different repository (abp-modules) needs a real
+  personal-access-token, not `secrets.GITHUB_TOKEN` - confirmed against a live CI run, not assumed.**
+  The first attempt at this bump added `packages: read` to `ci.yml`'s permissions and pointed at
+  granting `dignite-projects/site` "Manage Actions access" on the four flex-fields packages, on the
+  theory that this repo's own `GITHUB_TOKEN` would then be able to read them. It doesn't: a real pull
+  request against this branch 401'd on "Install Angular dependencies" regardless of that grant -
+  `GITHUB_TOKEN`'s package access is scoped to the workflow's own repository, full stop, with no
+  cross-repo extension to opt into. `angular/.npmrc` and every consumer now use `PACKAGES_READ_TOKEN`
+  instead - the same PAT-scoped-to-`read:packages` secret `release.yml`'s "Verify packed NuGet
+  packages restore cleanly" step already relied on for the identical reason on the NuGet side (that
+  step's own comment said as much all along: "GITHUB_TOKEN can restore this repo's own packages but
+  403s reading GitHub Packages ... feeds published by a *different* repository"). `ci.yml`'s
+  `packages: read` permission is gone again - nothing here still needs it.
 
   **`release.yml`'s "Verify packed npm package installs and bundles cleanly" (`packed` mode) step
   would otherwise have failed on the next actual release attempt** - a real, verified break, not a
@@ -52,14 +58,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   this step runs (`release.yml`'s "Push to GitHub Packages (pre-release)"/"Push to NuGet.org (stable)"
   precede it), so the failure would have left a release half-published rather than merely failing
   cleanly. Fixed by teaching `verify-packed-npm-install.sh`'s `packed` mode an optional third
-  `<github-token>` argument: when given, it reads every `@dignite/*` range the packed tarball itself
-  declares (plus `@dignite/ng.file-explorer`'s, inferred from `@dignite/ng.flex-fields`'s own range,
-  since it never appears as a direct dependency of `@dignite/ng.site`) and points them at their
+  `<packages-read-token>` argument: when given, it reads every `@dignite/*` range the packed tarball
+  itself declares (plus `@dignite/ng.file-explorer`'s, inferred from `@dignite/ng.flex-fields`'s own
+  range, since it never appears as a direct dependency of `@dignite/ng.site`) and points them at their
   `npm:@dignite-projects/<name>@<range>` aliases via npm's `overrides` field - reading the range fresh
   from the tarball rather than hardcoding it, so this keeps working across future flex-fields bumps
-  without a matching edit here. `release.yml`'s invocation now passes `secrets.GITHUB_TOKEN`. Verified
-  against a real packed tarball: fails with the original `ETARGET` error without the token, installs
-  and bundles cleanly with it.
+  without a matching edit here. Its pre-existing `published` mode needed the identical fix, for the
+  identical reason, and had simply never been exercised against a GitHub-Packages-only flex-fields
+  version before now: `@dignite-projects/ng.site` is this repo's own package, but its rewritten
+  dependencies point at abp-modules'. `release.yml`'s two invocations now both pass
+  `secrets.PACKAGES_READ_TOKEN`. Verified against a real packed tarball with a personal PAT: fails
+  with the original `ETARGET` error without a token, installs and bundles cleanly with one.
 
 ### Removed
 

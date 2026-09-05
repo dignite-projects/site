@@ -40,9 +40,9 @@ jobs:
       contents: write # Required by softprops/action-gh-release to create a draft Release
       packages: write # Required to push pre-release NuGet/npm packages to GitHub Packages
 
-    # angular/.npmrc references ${GITHUB_TOKEN} to authenticate the @dignite-projects scope against
-    # GitHub Packages. As of 10.0.0-rc.16, angular/package.json aliases @dignite/ng.flex-fields (and
-    # its -ckeditor/-file-explorer adapters, and @dignite/ng.file-explorer) to
+    # angular/.npmrc references ${PACKAGES_READ_TOKEN} to authenticate the @dignite-projects scope
+    # against GitHub Packages. As of 10.0.0-rc.16, angular/package.json aliases @dignite/ng.flex-fields
+    # (and its -ckeditor/-file-explorer adapters, and @dignite/ng.file-explorer) to
     # "npm:@dignite-projects/<name>@<range>" (see the "Install Angular dependencies" step below for
     # why), which is what actually routes those four through this scope/token - GitHub Packages'
     # npm registry requires the scope to equal the owning org login, so @dignite itself has no
@@ -51,20 +51,25 @@ jobs:
     # job-level env, not just set on that step. (ci.yml carries the same env: block for the same
     # reason; this comment is the one canonical copy of the reasoning - keep them in sync.)
     #
-    # Reading a private package published from a different repository (abp-modules) additionally
-    # requires that repository's package settings to grant this repository "Manage Actions access"
-    # - a one-time, UI-only grant with no REST API equivalent, done once outside this repo's own
-    # config and not re-verifiable from here. This job's packages: write permission below is
-    # necessary but not sufficient without that grant.
+    # PACKAGES_READ_TOKEN (a PAT scoped to read:packages only), not secrets.GITHUB_TOKEN - the same
+    # choice "Verify packed NuGet packages restore cleanly" below already made, for the same reason:
+    # GITHUB_TOKEN can read/write this repo's own packages but cannot read GitHub Packages published
+    # by a *different* repository (abp-modules) at all, "Manage Actions access" notwithstanding -
+    # confirmed the hard way, not assumed: granting dignite-projects/site "Manage Actions access" on
+    # all four flex-fields packages still 401'd every yarn install in CI, where the exact same
+    # install succeeds locally with a real personal token. GITHUB_TOKEN's package access is
+    # documented as scoped to "the workflow repository" only, full stop - there is no cross-repo
+    # extension for it to opt into, by grant or otherwise.
     #
     # To revert once abp-modules tags a release that mirrors flex-fields (rc.16 or a successor) to
     # public npmjs again: drop the four npm: aliases in angular/package.json's dependencies and
     # resolutions blocks back to plain semver ranges; change check-angular-package-duplicates.mjs's
-    # target list in both this file and ci.yml from @dignite-projects back to @dignite; the
-    # "Manage Actions access" grant and the packages: read/write permissions can stay (harmless once
-    # unused) unless a tighter token scope is wanted later.
+    # target list in both this file and ci.yml from @dignite-projects back to @dignite. Leave
+    # PACKAGES_READ_TOKEN itself and angular/.npmrc's @dignite-projects mapping in place either way -
+    # they're what "Verify packed NuGet packages restore cleanly" already depends on permanently, and
+    # cost nothing unused.
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PACKAGES_READ_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
     steps:
       - name: Checkout site
@@ -186,8 +191,11 @@ jobs:
       # GITHUB_TOKEN can restore this repo's own packages but 403s reading GitHub Packages NuGet
       # feeds published by a *different* repository (abp-modules) - confirmed against the actual
       # endpoint, a repo-scope-only token gets 403, a read:packages-scope token gets 200.
-      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only; it
-      # doesn't extend cross-repo the way it happens to for this workflow's npm install step.
+      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only, full
+      # stop - the npm side turned out to need the identical PACKAGES_READ_TOKEN treatment once
+      # flex-fields itself became a cross-repo GitHub Packages dependency at 10.0.0-rc.16 (see the
+      # job-level env: block's comment); there never was a cross-repo exception for GITHUB_TOKEN to
+      # rely on, on either side.
       - name: Verify packed NuGet packages restore cleanly
         run: |
           bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}' '${{ github.actor }}' '${{ secrets.PACKAGES_READ_TOKEN }}'
@@ -329,12 +337,15 @@ jobs:
       # publishing" as well, so the plain npm install it runs is not subject to the
       # ${NODE_AUTH_TOKEN} placeholder that step writes into $NPM_CONFIG_USERCONFIG.
       #
-      # The trailing GITHUB_TOKEN argument is what lets this resolve @dignite/ng.flex-fields (etc.)
-      # while flex-fields stays GitHub-Packages-only, per the script's own header comment - without
-      # it, this step 404s the moment angular/projects/site/package.json names a flex-fields version
-      # that has no public-npmjs entry, which is exactly the gap 10.0.0-rc.16 exposed.
+      # The trailing token argument is what lets this resolve @dignite/ng.flex-fields (etc.) while
+      # flex-fields stays GitHub-Packages-only, per the script's own header comment - without it,
+      # this step 404s the moment angular/projects/site/package.json names a flex-fields version
+      # that has no public-npmjs entry, which is exactly the gap 10.0.0-rc.16 exposed. It has to be
+      # PACKAGES_READ_TOKEN, not secrets.GITHUB_TOKEN - see the job-level env: block's comment for
+      # why GITHUB_TOKEN cannot read a package published by a different repository (abp-modules) at
+      # all, no matter what "Manage Actions access" says.
       - name: Verify packed npm package installs and bundles cleanly
-        run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site '${{ secrets.GITHUB_TOKEN }}'
+        run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site '${{ secrets.PACKAGES_READ_TOKEN }}'
 
       # registry-url lives here rather than on the earlier Setup Node.js step - see that step's
       # comment for why no yarn command may run after it. It still has to run *before* the two
@@ -425,9 +436,14 @@ jobs:
       # names it actually carries. It can no longer stop a bad package from being published (that is
       # the gate's job now); what it still catches is a broken rename, and a registry that did not
       # end up serving what was pushed to it.
+      #
+      # PACKAGES_READ_TOKEN, not secrets.GITHUB_TOKEN: @dignite-projects/ng.site itself is this
+      # repo's own package (GITHUB_TOKEN could read that much), but its rewritten dependencies now
+      # point at @dignite-projects/ng.flex-fields (etc.) from abp-modules - a different repository,
+      # which GITHUB_TOKEN cannot read regardless. See the job-level env: block's comment.
       - name: Verify published npm package installs and bundles cleanly
         if: steps.channel.outputs.channel == 'preview'
-        run: bash .github/scripts/verify-packed-npm-install.sh published '${{ steps.channel.outputs.version }}' '${{ secrets.GITHUB_TOKEN }}'
+        run: bash .github/scripts/verify-packed-npm-install.sh published '${{ steps.channel.outputs.version }}' '${{ secrets.PACKAGES_READ_TOKEN }}'
 
       # Stable builds go to the public npmjs, under the real @dignite/ng.site name. Same
       # skip-when-not-configured pattern as the NuGet.org push above.

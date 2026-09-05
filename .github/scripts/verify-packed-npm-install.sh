@@ -15,7 +15,7 @@
 #
 # Two modes, because the same check is worth running on two different artifacts:
 #
-#   packed <tarball-or-directory> [<github-token>]
+#   packed <tarball-or-directory> [<packages-read-token>]
 #     Installs the local `npm pack` output, before anything is published. This is the release gate:
 #     release.yml runs it between "Pack site Angular library" and the publish steps, so a package
 #     whose import graph does not resolve never reaches a registry. It exists because it did not:
@@ -26,26 +26,32 @@
 #     even be rolled back to a previous release). The NuGet side has always been ordered this way:
 #     "Verify packed NuGet packages restore cleanly" runs before "Push to GitHub Packages".
 #
-#     <github-token> is optional and, when given, points every `@dignite/*` dependency the packed
-#     package.json declares at its `npm:@dignite-projects/<name>@<same-range>` alias, authenticated
-#     against GitHub Packages - the exact same alias angular/package.json's own `dependencies`/
-#     `resolutions` blocks use, read fresh from the tarball itself rather than hardcoded, so this
-#     keeps working unmodified across every future flex-fields bump. It exists because a plain
-#     `npm install` here otherwise resolves those siblings straight from public npmjs, which 404s
-#     for as long as a given flex-fields version is GitHub-Packages-only (workflow_dispatch-only
-#     releases in abp-modules skip the tag-triggered step that mirrors to public npmjs - see
-#     CHANGELOG.md's 10.0.0-rc.16 entry). Omit the token and this mode reverts to installing every
-#     `@dignite/*` sibling from its plain public-npmjs name, unchanged from before this existed -
-#     the right behavior again once every flex-fields dependency in play is fully public.
+#     <packages-read-token> is optional and, when given, points every `@dignite/*` dependency the
+#     packed package.json declares at its `npm:@dignite-projects/<name>@<same-range>` alias,
+#     authenticated against GitHub Packages - the exact same alias angular/package.json's own
+#     `dependencies`/`resolutions` blocks use, read fresh from the tarball itself rather than
+#     hardcoded, so this keeps working unmodified across every future flex-fields bump. It exists
+#     because a plain `npm install` here otherwise resolves those siblings straight from public
+#     npmjs, which 404s for as long as a given flex-fields version is GitHub-Packages-only
+#     (workflow_dispatch-only releases in abp-modules skip the tag-triggered step that mirrors to
+#     public npmjs - see CHANGELOG.md's 10.0.0-rc.16 entry). Has to be a real PAT (release.yml passes
+#     `secrets.PACKAGES_READ_TOKEN`), not `secrets.GITHUB_TOKEN`: confirmed the hard way, granting
+#     "Manage Actions access" on the four flex-fields packages did not stop GITHUB_TOKEN 401ing here
+#     - it cannot read a package published by a different repository at all, full stop, regardless
+#     of any such grant. Omit the token and this mode reverts to installing every `@dignite/*`
+#     sibling from its plain public-npmjs name, unchanged from before this existed - the right
+#     behavior again once every flex-fields dependency in play is fully public.
 #
-#   published <version> <github-token>
+#   published <version> <packages-read-token>
 #     Installs what was actually published to GitHub Packages, after the publish step. Not
 #     redundant with `packed`: the publish step rewrites the package before pushing it - renaming it
 #     to `@dignite-projects/ng.site` and rewriting every `@dignite/*` dependency into the
 #     `npm:@dignite-projects/...@<range>` alias form (see the long comment on that step in
 #     release.yml for why). That rewrite is itself something that can be wrong, and nothing before
 #     publish can exercise it, so this mode verifies the artifact a real consumer of the pre-release
-#     channel actually installs, under the names it actually carries.
+#     channel actually installs, under the names it actually carries. Also needs a real PAT, not
+#     GITHUB_TOKEN, for the same cross-repo reason as `packed` above - @dignite-projects/ng.site is
+#     this repo's own package, but its rewritten dependencies point at abp-modules' packages.
 #
 # Both modes install `--legacy-peer-deps`, matching the "Install Angular dependencies" step earlier
 # in the same job (this workspace already relies on that leniency for an existing ABP/@angular
@@ -59,8 +65,8 @@
 # remaining two peers.
 set -euo pipefail
 
-usage='Usage: verify-packed-npm-install.sh packed <tarball-or-directory> [<github-token>]
-       verify-packed-npm-install.sh published <version> <github-token>'
+usage='Usage: verify-packed-npm-install.sh packed <tarball-or-directory> [<packages-read-token>]
+       verify-packed-npm-install.sh published <version> <packages-read-token>'
 
 mode=${1:?"$usage"}
 
@@ -105,11 +111,11 @@ case "$mode" in
     subject="the packed tarball $(basename "$tarball")"
     failure_hint='Do not publish this build.'
 
-    github_token=${3:-}
-    if [ -n "$github_token" ]; then
+    packages_read_token=${3:-}
+    if [ -n "$packages_read_token" ]; then
       cat > "$workdir/.npmrc" <<EOF
 @dignite-projects:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${github_token}
+//npm.pkg.github.com/:_authToken=${packages_read_token}
 EOF
 
       # Every @dignite/* dependency the tarball itself declares gets pointed at its
@@ -148,11 +154,11 @@ EOF
 
   published)
     version=${2:?"$usage"}
-    github_token=${3:?"$usage"}
+    packages_read_token=${3:?"$usage"}
 
     cat > "$workdir/.npmrc" <<EOF
 @dignite-projects:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${github_token}
+//npm.pkg.github.com/:_authToken=${packages_read_token}
 EOF
 
     # @dignite/ng.site is aliased from the GitHub Packages name, exactly as a real consumer would
