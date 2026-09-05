@@ -36,10 +36,11 @@
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Web\Dignite.Abp.FlexFields.Web.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.CKEditor.Web\Dignite.Abp.FlexFields.CKEditor.Web.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.FileExplorer.Web\Dignite.Abp.FlexFields.FileExplorer.Web.csproj" />
-    <!-- Content/Matrix/Table (GitHub issue #49) - same "portable field-type library" role as the three
-         above, just living in this repo. References only Dignite.Abp.FlexFields.Abstractions itself, so
-         it carries none of the Site-app-specific coupling the "Contracts-only" rule above exists to keep
-         out. -->
+    <!-- Content/Seo (GitHub issue #49) - same "portable field-type library" role as the three above,
+         just living in this repo. References only Dignite.Abp.FlexFields.Abstractions itself, so it
+         carries none of the Site-app-specific coupling the "Contracts-only" rule above exists to keep
+         out. Matrix/Table used to live here too, until flex-fields shipped them as kernel built-ins at
+         10.0.0-rc.16. -->
     <ProjectReference Include="..\Dignite.FlexFields.Site\Dignite.FlexFields.Site.csproj" />
   </ItemGroup>
 

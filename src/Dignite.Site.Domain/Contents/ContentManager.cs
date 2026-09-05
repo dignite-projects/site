@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
-using Dignite.FlexFields.Site;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
@@ -199,18 +198,25 @@ public class ContentManager : DomainService
     /// <summary>
     /// Canonicalizes a composite field type's value before it lands in the bag, so what gets persisted
     /// never depends on which casing a particular caller happened to send (see
-    /// <see cref="INormalizesValue"/>). A no-op for every field type that has not opted in - which today
-    /// is every FlexFields-native scalar type, unchanged from before this existed.
+    /// <see cref="Dignite.Abp.FlexFields.INormalizesValue"/>). A no-op for every field type that has
+    /// not opted in - which today is every FlexFields-native scalar type, unchanged from before this
+    /// existed.
     /// <para>
     /// <c>FieldTypeResolver.Get</c> can throw for a <c>FieldTypeName</c> no longer registered, but that is
     /// not a new failure mode: <see cref="ValidateFlexFieldsAsync"/>, called right after this method
     /// returns, resolves the exact same name through <c>FlexFieldValidator</c> unconditionally already -
     /// this only reaches the same failure one step sooner in the same call.
     /// </para>
+    /// <para>
+    /// Fully-qualified on purpose: this used to be Site's own <c>INormalizesValue</c>, deleted once
+    /// flex-fields shipped an identical kernel copy at 10.0.0-rc.16 (implemented by both the kernel's
+    /// <c>Matrix</c>/<c>Table</c> and Site's own <c>SeoFieldType</c>) - a future Site-local type reusing
+    /// this name would otherwise be silently shadowed here rather than failing loudly.
+    /// </para>
     /// </summary>
     protected virtual object? NormalizeFieldValue(string fieldTypeName, object? value)
     {
-        return FieldTypeResolver.Get(fieldTypeName) is INormalizesValue normalizer
+        return FieldTypeResolver.Get(fieldTypeName) is Dignite.Abp.FlexFields.INormalizesValue normalizer
             ? normalizer.Normalize(value)
             : value;
     }

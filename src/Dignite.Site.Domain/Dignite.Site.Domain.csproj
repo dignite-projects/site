@@ -19,8 +19,9 @@
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Domain\Dignite.Abp.FlexFields.Domain.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.CKEditor\Dignite.Abp.FlexFields.CKEditor.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.FileExplorer\Dignite.Abp.FlexFields.FileExplorer.csproj" />
-    <!-- Entry/Matrix field types (GitHub issue #49) - same bolt-on role as CKEditor/FileExplorer above,
-         just living in this repo instead of abp-modules. -->
+    <!-- Content/Seo field types (GitHub issue #49) - same bolt-on role as CKEditor/FileExplorer above,
+         just living in this repo instead of abp-modules. Matrix/Table used to live here too, until
+         flex-fields shipped them as kernel built-ins at 10.0.0-rc.16. -->
     <ProjectReference Include="..\Dignite.FlexFields.Site\Dignite.FlexFields.Site.csproj" />
   </ItemGroup>
 

@@ -5,8 +5,9 @@ namespace Dignite.FlexFields.Site;
 /// <summary>
 /// A field type whose value is a fixed composite object - not admin-configured, unlike Matrix's block
 /// types or Table's columns, which already describe their own sub-fields through
-/// <see cref="ICompositeFieldType"/> and are visible in a field's own <c>Configuration</c> because they
-/// genuinely vary per field instance.
+/// <see cref="Dignite.Abp.FlexFields.ICompositeFieldType"/> (a flex-fields kernel built-in as of
+/// 10.0.0-rc.16) and are visible in a field's own <c>Configuration</c> because they genuinely vary per
+/// field instance.
 /// <para>
 /// Seo's value shape does not vary - every Seo field has exactly the same four keys, fixed by
 /// <c>SeoFieldValue</c> - so it does not belong in <c>Configuration</c> (which would mean storing the

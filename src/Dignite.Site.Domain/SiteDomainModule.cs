@@ -23,8 +23,9 @@ namespace Dignite.Site;
     // stood up SiteFileContainerNames.Default); unlike CKEditor this field type is unusable until that
     // exists, which is why #41 had to land first (GitHub issue #42).
     typeof(FlexFieldsFileExplorerModule),
-    // The Content, Matrix and Table field types (registration names "Content"/"Matrix"/"Table") - same
-    // self-registering mechanism, but living in this repo rather than abp-modules (GitHub issue #49).
+    // The Content and Seo field types (registration names "Content"/"Seo") - same self-registering
+    // mechanism, but living in this repo rather than abp-modules (GitHub issue #49). Matrix and Table
+    // used to live here too, until flex-fields shipped them as kernel built-ins at 10.0.0-rc.16.
     typeof(FlexFieldsSiteModule),
     // IBrandingProvider, for JSON-LD's Organization/WebSite name and logo (GitHub issue #20).
     typeof(AbpUiModule)

@@ -4,7 +4,7 @@ namespace Dignite.Site.Fields;
 
 /// <summary>
 /// A field definition nests composite field types (<c>Matrix</c>, <c>Table</c>) deeper than
-/// <see cref="Dignite.FlexFields.Site.CompositeFieldNesting.MaxDepth"/> allows.
+/// <see cref="Dignite.Abp.FlexFields.CompositeFieldNesting.MaxDepth"/> allows.
 ///
 /// <para>
 /// Raised here rather than left to the designer UI on purpose: the UI stops offering composite types

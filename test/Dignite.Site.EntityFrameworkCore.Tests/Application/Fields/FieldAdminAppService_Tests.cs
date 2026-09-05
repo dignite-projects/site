@@ -70,6 +70,53 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         byName["Matrix"].ValueShape.ShouldBeNull();
     }
 
+    /// <summary>
+    /// <c>Matrix</c>/<c>Table</c> moved from Site's own <c>Dignite.FlexFields.Site</c> to the flex-fields
+    /// kernel at 10.0.0-rc.16 (see CHANGELOG.md); this repo's own test suite never runs abp-modules' own
+    /// tests (see ci.yml's "Run domain tests" step comment), so a regression in the kernel's port
+    /// wouldn't otherwise get a CI signal here at all. This doesn't re-test the kernel's own
+    /// Normalize/Validate internals - that's abp-modules' job - it proves Site's own integration point
+    /// still works: <see cref="Dignite.Site.Admin.Fields.FieldAdminAppService.GetFieldTypesAsync"/>'s
+    /// fully-qualified <c>fieldType is Dignite.Abp.FlexFields.ICompositeFieldType</c> check still finds
+    /// the kernel's implementation of that interface for both types.
+    /// </summary>
+    [Fact]
+    public async Task Should_Report_Matrix_And_Table_As_Composite()
+    {
+        var fieldTypes = await _fieldAppService.GetFieldTypesAsync();
+        var byName = fieldTypes.Items.ToDictionary(ft => ft.Name);
+
+        byName["Matrix"].Composite.ShouldBeTrue();
+        byName["Table"].Composite.ShouldBeTrue();
+        byName["Text"].Composite.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// Exercises <see cref="Dignite.Site.Fields.FieldManager.CheckNestingDepth"/>'s full chain end to
+    /// end - resolve "Matrix" through <c>FieldTypeResolver</c>, cast to the kernel's
+    /// <c>Dignite.Abp.FlexFields.ICompositeFieldType</c>, call <c>GetInlineFields</c>, measure depth via
+    /// <c>Dignite.Abp.FlexFields.CompositeFieldNesting</c> - for the same reason as
+    /// <see cref="Should_Report_Matrix_And_Table_As_Composite"/>: this is Site's own integration point
+    /// with the kernel's ported Matrix/Table, not the kernel's own internals. An empty block-type list is
+    /// enough to exercise the real cast and the real (zero-iteration) <c>GetInlineFields</c> call without
+    /// needing to reconstruct the kernel's full nested JSON configuration shape.
+    /// </summary>
+    [Fact]
+    public async Task Should_Create_A_Matrix_Field_Through_The_Kernels_Composite_Field_Type()
+    {
+        var created = await _fieldAppService.CreateAsync(new CreateFieldDto
+        {
+            Name = "matrix-kernel-integration-check",
+            DisplayName = "Matrix kernel integration check",
+            FieldTypeName = "Matrix",
+            Configuration = new Dictionary<string, object?> { ["Matrix.BlockTypes"] = new List<object>() }
+        });
+
+        created.FieldTypeName.ShouldBe("Matrix");
+
+        await _fieldAppService.DeleteAsync(created.Id);
+    }
+
     [Fact]
     public async Task Should_Round_Trip_Create_With_Configuration()
     {

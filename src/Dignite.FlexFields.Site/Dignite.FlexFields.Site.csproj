@@ -22,9 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The one reference this project is allowed: Content/Matrix/Table/Seo are all bolt-on field types
-         (same role as Dignite.Abp.FlexFields.FileExplorer), never referencing the kernel's
-         Domain/EntityFrameworkCore layers, let alone anything in Dignite.Site itself. -->
+    <!-- The one reference this project is allowed: Content/Seo are bolt-on field types (same role as
+         Dignite.Abp.FlexFields.FileExplorer), never referencing the kernel's Domain/EntityFrameworkCore
+         layers, let alone anything in Dignite.Site itself. Matrix/Table used to live here too (GitHub
+         issue #49) until flex-fields shipped them as kernel built-ins at 10.0.0-rc.16. -->
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Abstractions\Dignite.Abp.FlexFields.Abstractions.csproj" />
   </ItemGroup>
 

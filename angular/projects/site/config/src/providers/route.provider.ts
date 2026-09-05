@@ -2,7 +2,7 @@ import { eLayoutType, RoutesService } from '@abp/ng.core';
 import { provideFlexFields } from '@dignite/ng.flex-fields';
 import { provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor';
 import { provideFileExplorerFieldType } from '@dignite/ng.flex-fields-file-explorer';
-import { CONTENT_FIELD_TYPE, MATRIX_FIELD_TYPE, SEO_FIELD_TYPE, TABLE_FIELD_TYPE } from '@dignite/ng.site';
+import { CONTENT_FIELD_TYPE, SEO_FIELD_TYPE } from '@dignite/ng.site';
 import {
   EnvironmentProviders,
   inject,
@@ -63,11 +63,14 @@ export function configureRoutes() {
 
 const SITE_PROVIDERS: EnvironmentProviders[] = [
   ...SITE_ROUTE_PROVIDERS,
-  // The six built-ins plus Site's own `Seo`, `Content`, `Matrix` and `Table` types (GitHub issue #49).
-  // `FieldTypeResolver` is root-provided and reads the registry once when first injected, so this has
-  // to happen at application-config level - registering from inside the lazy-loaded Site routes would
-  // come too late for a resolver already constructed.
-  provideFlexFields(SEO_FIELD_TYPE, CONTENT_FIELD_TYPE, MATRIX_FIELD_TYPE, TABLE_FIELD_TYPE),
+  // The six built-ins (Matrix/Table among them as of flex-fields 10.0.0-rc.16, via
+  // provideFlexFields()'s own BUILT_IN_FIELD_TYPES - they used to be Site's own MATRIX_FIELD_TYPE/
+  // TABLE_FIELD_TYPE, registered explicitly here, until flex-fields shipped them as kernel built-ins)
+  // plus Site's own `Seo` and `Content` types (GitHub issue #49). `FieldTypeResolver` is root-provided
+  // and reads the registry once when first injected, so this has to happen at application-config level
+  // - registering from inside the lazy-loaded Site routes would come too late for a resolver already
+  // constructed.
+  provideFlexFields(SEO_FIELD_TYPE, CONTENT_FIELD_TYPE),
   // CKEditor (GitHub issue #43) and FileExplorer (#42) field types. Unlike the server, where DependsOn
   // plus DI discovery is enough (总体设计 §8.2), the client has no equivalent - each field type's
   // control/config/view trio has to be registered explicitly or FieldTypeResolver.get(...) throws and

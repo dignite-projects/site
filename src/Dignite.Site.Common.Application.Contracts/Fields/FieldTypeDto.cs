@@ -15,10 +15,18 @@ public class FieldTypeDto
     public bool Indexable { get; set; }
 
     /// <summary>
-    /// Whether this type's configuration declares further fields inline - <c>Matrix</c> and <c>Table</c>.
-    /// Served for the same reason <see cref="Indexable"/> is: the designer has to stop offering composite
-    /// types once <c>CompositeFieldNesting.MaxDepth</c> is reached, and which types those are is the
-    /// server's answer (<c>ICompositeFieldType</c>), not a list for the client to hand-maintain.
+    /// Whether this type's configuration declares further fields inline - <c>Matrix</c> and <c>Table</c>,
+    /// both flex-fields kernel built-ins as of 10.0.0-rc.16 (<c>Dignite.Abp.FlexFields.ICompositeFieldType</c>;
+    /// used to be Site's own copy of that interface, before the port). Populated from that same check,
+    /// not restated here, so a third composite type added later needs nothing changed on this side.
+    /// <para>
+    /// Currently consumed by <c>Dignite.Site.Mcp.Fields.FieldTools.ListFieldTypesAsync</c>, which hands
+    /// this whole DTO straight to AI clients so they know which field types need a composite (list of
+    /// sub-objects) value rather than a scalar - not by the Angular admin UI, which used to read this
+    /// to filter its Matrix/Table config editors' type picker but no longer needs to: the kernel's own
+    /// <c>ff-matrix-config</c>/<c>ff-table-config</c> components read <c>composite</c> directly off
+    /// <c>FieldTypeResolver.getAll()</c> synchronously instead of round-tripping through Site's admin API.
+    /// </para>
     /// </summary>
     public bool Composite { get; set; }
 

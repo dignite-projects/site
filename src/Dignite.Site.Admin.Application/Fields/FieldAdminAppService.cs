@@ -89,6 +89,14 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
         await FieldManager.DeleteAsync(field);
     }
 
+    /// <summary>
+    /// <c>Composite</c> is fully-qualified as <see cref="Dignite.Abp.FlexFields.ICompositeFieldType"/>
+    /// on purpose: this used to be Site's own <c>ICompositeFieldType</c>, deleted once flex-fields
+    /// shipped an identical kernel copy at 10.0.0-rc.16 (implemented by the kernel's own <c>Matrix</c>/
+    /// <c>Table</c>) - a future Site-local type reusing this name would otherwise be silently shadowed
+    /// here rather than failing loudly. <c>IHasValueShape</c> stays unqualified: it has no kernel
+    /// equivalent and is still Site's own (<c>SeoFieldType</c> is its only implementer).
+    /// </summary>
     public virtual Task<ListResultDto<FieldTypeDto>> GetFieldTypesAsync()
     {
         var fieldTypes = FieldTypeResolver.GetAll()
@@ -96,7 +104,7 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
             {
                 Name = fieldType.Name,
                 Indexable = fieldType.IsIndexable(),
-                Composite = fieldType is ICompositeFieldType,
+                Composite = fieldType is Dignite.Abp.FlexFields.ICompositeFieldType,
                 ValueShape = (fieldType as IHasValueShape)?.ValueShape
                     .Select(property => new FieldValuePropertyDto
                     {

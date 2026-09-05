@@ -40,12 +40,35 @@ jobs:
       contents: write # Required by softprops/action-gh-release to create a draft Release
       packages: write # Required to push pre-release NuGet/npm packages to GitHub Packages
 
-    # angular/.npmrc references ${GITHUB_TOKEN} to authenticate the @dignite-projects scope
-    # against GitHub Packages. setup-node's `cache: yarn` reads that file (to prime/verify the
-    # cache) before any later step gets a chance to export the token itself, so it has to be a
-    # job-level env, not just set on the "Install Angular dependencies" step.
+    # angular/.npmrc references ${PACKAGES_READ_TOKEN} to authenticate the @dignite-projects scope
+    # against GitHub Packages. As of 10.0.0-rc.16, angular/package.json aliases @dignite/ng.flex-fields
+    # (and its -ckeditor/-file-explorer adapters, and @dignite/ng.file-explorer) to
+    # "npm:@dignite-projects/<name>@<range>" (see the "Install Angular dependencies" step below for
+    # why), which is what actually routes those four through this scope/token - GitHub Packages'
+    # npm registry requires the scope to equal the owning org login, so @dignite itself has no
+    # registry entry there at all. setup-node's `cache: yarn` reads angular/.npmrc (to prime/verify
+    # the cache) before any later step gets a chance to export the token itself, so it has to be a
+    # job-level env, not just set on that step. (ci.yml carries the same env: block for the same
+    # reason; this comment is the one canonical copy of the reasoning - keep them in sync.)
+    #
+    # PACKAGES_READ_TOKEN (a PAT scoped to read:packages only), not secrets.GITHUB_TOKEN - the same
+    # choice "Verify packed NuGet packages restore cleanly" below already made, for the same
+    # documented reason: GITHUB_TOKEN's package access is scoped to the workflow's own repository,
+    # and these packages are published by a different one (abp-modules). Whether GITHUB_TOKEN would
+    # in fact be refused here has never been isolated - the CI 401s that led to this token were a
+    # different bug entirely (yarn was sending no token at all; see angular/.npmrc's own comment) -
+    # so this is the documented-behavior choice plus the NuGet side's precedent, not a measurement.
+    # If someone wants the ephemeral token back, that experiment is one commit and one CI run.
+    #
+    # To revert once abp-modules tags a release that mirrors flex-fields (rc.16 or a successor) to
+    # public npmjs again: drop the four npm: aliases in angular/package.json's dependencies and
+    # resolutions blocks back to plain semver ranges; change check-angular-package-duplicates.mjs's
+    # target list in both this file and ci.yml from @dignite-projects back to @dignite. Leave
+    # PACKAGES_READ_TOKEN itself and angular/.npmrc's @dignite-projects mapping in place either way -
+    # they're what "Verify packed NuGet packages restore cleanly" already depends on permanently, and
+    # cost nothing unused.
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PACKAGES_READ_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
     steps:
       - name: Checkout site
@@ -63,8 +86,9 @@ jobs:
       # already builds against.
       #
       # The Angular side does NOT need this checkout: angular/package.json resolves FlexFields /
-      # FileExplorer as real @dignite-projects/* GitHub Packages dependencies (see angular/.npmrc),
-      # not local file: paths into this sibling.
+      # FileExplorer as real installed @dignite/* npm dependencies - currently aliased through
+      # GitHub Packages, see angular/.npmrc and the "Install Angular dependencies" step below - not
+      # local file: paths into this sibling.
       - name: Checkout abp-modules (sibling dependency for FlexFields / FileExplorer)
         uses: actions/checkout@v5
         with:
@@ -166,8 +190,10 @@ jobs:
       # GITHUB_TOKEN can restore this repo's own packages but 403s reading GitHub Packages NuGet
       # feeds published by a *different* repository (abp-modules) - confirmed against the actual
       # endpoint, a repo-scope-only token gets 403, a read:packages-scope token gets 200.
-      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only; it
-      # doesn't extend cross-repo the way it happens to for this workflow's npm install step.
+      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only; the
+      # npm side now uses this same token for the same documented reason, once flex-fields itself
+      # became a cross-repo GitHub Packages dependency at 10.0.0-rc.16 (see the job-level env:
+      # block's comment).
       - name: Verify packed NuGet packages restore cleanly
         run: |
           bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}' '${{ github.actor }}' '${{ secrets.PACKAGES_READ_TOKEN }}'
@@ -221,11 +247,12 @@ jobs:
       # Yarn with the committed lockfile, matching ci.yml and every developer machine. This step
       # used to be `npm install --no-package-lock` because Yarn Classic fetches a dependency whose
       # lockfile entry carries a GitHub Packages "resolved" URL through a code path that never
-      # attaches registry auth. No such entry remains - every @dignite/* package now resolves from
-      # public npmjs - so the release can be built from the tree the lockfile actually describes
-      # rather than from a fresh resolution that ignores it. --legacy-peer-deps is gone with npm:
-      # Yarn Classic does not enforce peer ranges, which is what that flag was working around
-      # (@swimlane/ngx-datatable@22 wants @angular/common 18-20.x, workspace is on 21.2.x).
+      # attaches registry auth. That was fixed, and for a while every @dignite/* package resolved
+      # from public npmjs instead - but as of 10.0.0-rc.16, @dignite/* aliases back onto GitHub
+      # Packages (see the job-level env: block's comment), so this step is exercising that auth
+      # path again. --legacy-peer-deps is gone with npm: Yarn Classic does not enforce peer ranges,
+      # which is what that flag was working around (@swimlane/ngx-datatable@22 wants
+      # @angular/common 18-20.x, workspace is on 21.2.x).
       #
       # It also matters for the duplicate check below: npm dedupes graphs that Yarn Classic splits
       # into nested copies, so that check after an npm install would pass vacuously.
@@ -244,7 +271,7 @@ jobs:
         working-directory: site/angular
         run: |
           node ../.github/scripts/check-angular-package-duplicates.mjs node_modules \
-            @dignite @abp ng-zorro-antd \
+            @dignite-projects @abp ng-zorro-antd \
             @angular/core @angular/common @angular/forms @angular/router @angular/cdk
 
       # No lint step here: `ng lint site` currently fails on ~14 pre-existing violations (component
@@ -307,8 +334,16 @@ jobs:
       # release exactly the way it breaks a preview one. Placed before "Configure npm registry for
       # publishing" as well, so the plain npm install it runs is not subject to the
       # ${NODE_AUTH_TOKEN} placeholder that step writes into $NPM_CONFIG_USERCONFIG.
+      #
+      # The trailing token argument is what lets this resolve @dignite/ng.flex-fields (etc.) while
+      # flex-fields stays GitHub-Packages-only, per the script's own header comment - without it,
+      # this step 404s the moment angular/projects/site/package.json names a flex-fields version
+      # that has no public-npmjs entry, which is exactly the gap 10.0.0-rc.16 exposed. It uses
+      # PACKAGES_READ_TOKEN rather than secrets.GITHUB_TOKEN for the reason the job-level env:
+      # block's comment gives (this is npm, not yarn, so the .npmrc scope-mapping trap that comment
+      # also mentions does not apply here - npm honors the alias target's own scope).
       - name: Verify packed npm package installs and bundles cleanly
-        run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site
+        run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site '${{ secrets.PACKAGES_READ_TOKEN }}'
 
       # registry-url lives here rather than on the earlier Setup Node.js step - see that step's
       # comment for why no yarn command may run after it. It still has to run *before* the two
@@ -399,9 +434,14 @@ jobs:
       # names it actually carries. It can no longer stop a bad package from being published (that is
       # the gate's job now); what it still catches is a broken rename, and a registry that did not
       # end up serving what was pushed to it.
+      #
+      # PACKAGES_READ_TOKEN, not secrets.GITHUB_TOKEN: @dignite-projects/ng.site itself is this
+      # repo's own package (GITHUB_TOKEN could read that much), but its rewritten dependencies now
+      # point at @dignite-projects/ng.flex-fields (etc.) from abp-modules - a different repository,
+      # which GITHUB_TOKEN cannot read regardless. See the job-level env: block's comment.
       - name: Verify published npm package installs and bundles cleanly
         if: steps.channel.outputs.channel == 'preview'
-        run: bash .github/scripts/verify-packed-npm-install.sh published '${{ steps.channel.outputs.version }}' '${{ secrets.GITHUB_TOKEN }}'
+        run: bash .github/scripts/verify-packed-npm-install.sh published '${{ steps.channel.outputs.version }}' '${{ secrets.PACKAGES_READ_TOKEN }}'
 
       # Stable builds go to the public npmjs, under the real @dignite/ng.site name. Same
       # skip-when-not-configured pattern as the NuGet.org push above.
