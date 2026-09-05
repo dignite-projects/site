@@ -13,24 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `release.yml` was the repository's only CI: nothing was built, tested or checked until someone
   pushed a version tag, so a failure was discovered on the release path with the tag already cut.
   The new workflow mirrors release.yml's verification steps and stops there - no packing, no
-  publishing, no credentials. Two deliberate differences from release.yml: it also runs
+  publishing, no credentials. One deliberate difference from release.yml: it also runs
   `Dignite.Site.Mcp.Tests` (the standing MCP-tool/DTO contract test, which release.yml never ran,
-  and which is what catches an MCP tool's parameters drifting from the DTO it builds), and it
-  installs the Angular workspace with `yarn install --frozen-lockfile` rather than
-  `npm install --no-package-lock`. release.yml uses npm because Yarn Classic fetches a dependency
-  whose lockfile entry carries a GitHub Packages `resolved` URL without attaching registry auth;
-  no such entry remains now that every `@dignite/*` package resolves from public npmjs, so CI can
-  verify the tree the committed lockfile actually describes - the one every developer installs.
+  and which is what catches an MCP tool's parameters drifting from the DTO it builds). Both
+  workflows install the Angular workspace with `yarn install --frozen-lockfile` and run the same
+  duplicate-package and package-dependency checks; the release side's move off
+  `npm install --no-package-lock` is recorded under Changed below.
+
+  Its very first run failed in `Setup Node.js`, before a single `run:` step had executed, with
+  *"Failed to replace env in config: ${GITHUB_TOKEN}"*. `angular/.npmrc` maps the
+  `@dignite-projects` scope to GitHub Packages and names `${GITHUB_TOKEN}` there as a **literal**
+  env-var placeholder; Yarn Classic substitutes every such placeholder in its resolved config on
+  every invocation and throws when one is unset, and `actions/setup-node`'s `cache: yarn` input
+  probes `yarn cache dir` - itself a yarn invocation, reading that file - before the job's own
+  steps begin. Setting the token on the install step is therefore too late: it has to be a
+  job-level `env:`, which release.yml already did for exactly this reason. Nothing in either
+  workflow installs from that scope any more, so the token is never actually used - the variable
+  only has to exist. This is the install-side twin of the `NODE_AUTH_TOKEN` placeholder problem
+  recorded under Fixed below: the same eager substitution, reached through a different file.
+
   There is still no lint step, for the reason release.yml already documents (~14 pre-existing
   `ng lint site` violations).
-- **`.github/scripts/check-angular-package-duplicates.mjs`, run by `ci.yml`**: fails when one
-  `@dignite/*` package is installed more than once in the tree. Angular libraries register through
-  module-scoped `new InjectionToken(...)` values, so two copies are two distinct DI keys and a
-  provider registered against one is invisible to a consumer of the other - the field type is
-  simply absent at runtime, with nothing failing at install or build time. This is the check that
-  would have caught the `@dignite/ng.flex-fields` split described under Changed above, and it is
-  why `ci.yml` installs with Yarn rather than npm: npm dedupes the exact graph Yarn Classic splits,
-  so the same check after `npm install` would pass vacuously.
+- **`.github/scripts/check-angular-package-duplicates.mjs`, run by `ci.yml` and `release.yml`**:
+  fails when one `@dignite/*` package is installed more than once in the tree. Angular libraries
+  register through module-scoped `new InjectionToken(...)` values, so two copies are two distinct
+  DI keys and a provider registered against one is invisible to a consumer of the other - the field
+  type is simply absent at runtime, with nothing failing at install or build time. This is the
+  check that would have caught the `@dignite/ng.flex-fields` split described under Changed below,
+  and it is why both workflows install with Yarn rather than npm: npm dedupes the exact graph Yarn
+  Classic splits, so the same check after `npm install` would pass vacuously.
 
 ### Changed
 
@@ -172,7 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the compiled output, not the TS source - Angular's partial compilation flattens
   `ThemeSharedModule`'s re-export straight to the directive's home package) without declaring any
   of them. All are now declared - the Angular/rxjs set and `@ngx-validate/core` as
-  `peerDependencies`, matching the reclassification above. A new release-workflow step
+  `peerDependencies`, matching the reclassification above. A new step in both workflows
   (`check-angular-package-deps.mjs`, ported from `abp-modules`) now fails the build if a future
   emitted import and `package.json` drift apart again, rather than waiting for a consumer to hit
   it first.
@@ -213,6 +224,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inherited ABP-template configuration serving a different workflow. Replaced with what a consumer
   actually needs to know - that it arrives with the library, and that it has to resolve to exactly
   one copy, for the `FLEX_FIELD_TYPES` reason documented under Changed above.
+- **The content editor's slug preview showed an address the server would not serve.**
+  `ContentEditorComponent`'s `slugPreview` mirrored only the page's route template, so switching a
+  content's language left the previewed address unchanged - while `SiteUrlContext.ApplyCulturePrefix`
+  on the server prefixes every non-default-language content's path with `/cultureName`. Preview and
+  served address therefore disagreed for every content not in the site's default language, and the
+  disagreement was invisible to anyone working only in the default language, where both are
+  unprefixed. The component now carries the schema's `defaultLanguage` (falling back to the first
+  enabled language) and applies the same rule through a private `applyCulturePrefix()` hung off
+  `slugPreview`: nothing for the default language, `/{cultureName}` in front of everything else,
+  with the site root special-cased so `/` becomes `/{cultureName}` and not `//{cultureName}`. A
+  plain equality check against `defaultLanguage` is enough here, where the server normalizes through
+  `CultureNameNormalizer` first, because the value compared is always one of the schema's own
+  enabled languages.
 
 ## [0.1.0-preview.9] - 2026-08-30
 
