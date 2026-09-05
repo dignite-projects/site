@@ -7,8 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`check-angular-package-deps.mjs` gained a second check: the peers of everything the package
+  installs.** The existing check only sees the specifiers `@dignite/ng.site` itself emits, which is
+  why it passed `0.1.0-preview.10` - the dangling `@abp/ng.components/tree` import came from
+  `@dignite/ng.flex-fields`, and flex-fields *did* declare `@abp/ng.components`, just as a
+  `peerDependency`. `--legacy-peer-deps` installs no peers at any depth, so a peer declared by a
+  transitive dependency is absent unless something else pulls it in as a real dependency or the host
+  already has it.
+
+  The new check walks the transitive `dependencies` closure of the built `dist/site` - what
+  `--legacy-peer-deps` will actually install, 195 packages today - and requires every non-optional
+  peer anywhere in it to be either inside that closure or named in `@dignite/ng.site`'s own
+  `peerDependencies` (the host baseline this library declares it needs). Peers marked
+  `"optional": true` are skipped; a package in the closure whose manifest cannot be read fails the
+  run rather than being skipped, because an unread manifest is unchecked peers.
+
+  It runs in `ci.yml` as well as `release.yml`, which is the point: this failure shape was a red
+  pull request all along, and only became a bad release because nothing looked for it before the
+  tag. It is also cheaper and more specific than the packed install/bundle gate - it names the
+  offending package and the peer it wants, where a bundle failure only reports the specifier that
+  could not be resolved. Both are kept.
+
 ### Changed
 
+- **`release.yml` verifies the packed npm package *before* publishing it.** The npm side now
+  mirrors the NuGet side's long-standing ordering ("Verify packed NuGet packages restore cleanly"
+  runs before "Push to GitHub Packages"): `verify-packed-npm-install.sh` grew a `packed` mode that
+  installs the local `npm pack` tarball, and that runs between the pack and the publish steps. The
+  post-publish run is kept as a `published` mode rather than dropped - it is not redundant, because
+  the publish step rewrites the package before pushing it (renamed to `@dignite-projects/ng.site`,
+  every `@dignite/*` dependency turned into an `npm:@dignite-projects/...@<range>` alias), and
+  nothing before the publish can exercise that rewrite.
+
+  This ordering is what `0.1.0-preview.10` was missing. It failed the bundle check and printed *"Do
+  not publish this as the released version"* about a package that was **already** on GitHub
+  Packages - pushed under the `latest` dist-tag, and, being the first version ever published under
+  that package name, `latest` had no earlier release to roll back to. A verification that can only
+  report on an artifact it can no longer stop is not a gate.
+- **The duplicate-package check accepts bare package names, not just scopes**, and both workflows
+  now pass `@dignite @abp ng-zorro-antd @angular/{core,common,forms,router,cdk}`. The failure mode
+  is a property of the library (module-scoped `InjectionToken` identity), not of its name, so a
+  scope-only target list could not express `ng-zorro-antd` - the one unscoped package here whose
+  duplication is a live risk, per the range narrowing below. A target matching nothing installed now
+  fails the run instead of passing vacuously, since a typo'd target is otherwise indistinguishable
+  from a clean tree.
+
+  `@angular/*` is enumerated rather than taken as a whole scope on purpose: those five are what the
+  published package declares and what ships in a consumer's bundle, while the scope also holds build
+  tooling (`@angular/build`, `@angular/cli`, `@angular/compiler-cli`, `@angular/language-service`)
+  where a nested second copy is ordinary and harmless - targeting the scope would only teach people
+  to ignore the check. `tslib` is deliberately out for the same reason: it is stateless inline
+  helpers with no tokens and no identity, and it genuinely is installed twice here (2.8.1 at the
+  root, 1.14.1 nested under `tsyringe`) with no consequence.
 - Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
   `@dignite/ng.file-explorer` from `^10.0.0-rc.14` to `^10.0.0-rc.15`, in both the Host dev app and
   the published library, with `angular/package.json`'s `resolutions` block following as usual.
@@ -43,6 +95,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`angular/package.json`) has always pinned `~21.0.2` - which is exactly why the local duplicate
   check could never have caught this. The check reads *this* workspace's installed tree, and the risk
   lived entirely in the range the *published* package.json hands to someone else's installer.
+
+### Fixed
+
+- **`@angular/platform-browser` is now declared in `peerDependencies`** - the first thing the new
+  peer-closure check found on the tree it was written against. `@angular/cdk`, `ng-zorro-antd` and
+  `@ant-design/icons-angular` all require it as a non-optional peer and all three sit in
+  `@dignite/ng.site`'s installed closure, yet the package named it in neither list. It belongs in
+  `peerDependencies` rather than `dependencies` under this package's standing rule - a package is a
+  peer only if a consumer is guaranteed to already have it, and any Angular application that
+  bootstraps in a browser has `@angular/platform-browser` by construction. That guarantee was
+  already implicit in `verify-packed-npm-install.sh`, whose scratch consumer has listed it as part
+  of the ABP/Angular host baseline from the start; it just was never written down anywhere a
+  consumer's own installer could read it.
 
 ## [0.1.0-preview.10] - 2026-09-05
 

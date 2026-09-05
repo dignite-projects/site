@@ -1,4 +1,4 @@
-// Fails when one scoped package is installed more than once in a dependency tree.
+// Fails when one package is installed more than once in a dependency tree.
 //
 // Angular libraries register through module-scoped `new InjectionToken(...)` values, so two copies
 // of the same package are two distinct DI keys, not a wasted-bytes problem. `@dignite/ng.flex-fields`
@@ -17,27 +17,51 @@
 // angular/package.json is the current workaround; this check is what notices when that block stops
 // being enough, or when a future version fork reintroduces the same split for another reason.
 //
+// The failure mode is a property of the library, not of its name, so the targets are NOT limited to
+// scopes. `ng-zorro-antd` is the unscoped case this repository actually carries: `@abp/ng.components`
+// pins it at `~21.0.0-next.1` (i.e. `< 21.1.0`) while angular/projects/site/package.json asks for
+// `^21.0.2` (any 21.x). The moment the root resolves to 21.1+, the installer nests a second
+// ng-zorro-antd under `@abp/ng.components` - two `NZ_CONFIG` tokens and two `NzConfigService`
+// instances, so a `provideNzConfig()` from one side is invisible to a component from the other.
+// A scope-only check cannot see that at all, which is why targets are now "scope or bare package
+// name" rather than "scope".
+//
 // Deliberately install-manager-sensitive: npm dedupes the exact graph that Yarn Classic splits, so
 // running this after `npm install` proves much less than running it after `yarn install`. Point it
 // at a tree installed the way the workspace's own developers install.
 //
-// Usage: node .github/scripts/check-angular-package-duplicates.mjs <node_modules-dir> [<scope> ...]
-//        e.g. node .github/scripts/check-angular-package-duplicates.mjs angular/node_modules @dignite
+// Usage: node .github/scripts/check-angular-package-duplicates.mjs <node_modules-dir> [<target> ...]
+//
+// A target is either a scope (`@dignite` - every package under it) or an exact package name
+// (`ng-zorro-antd`, or a fully-qualified `@angular/cdk`). Targets default to `@dignite` when none
+// are given, which keeps the original single-scope invocation working. Note the deliberate absence
+// of the "bare word means scope" coercion an earlier revision had: `dignite` used to be read as
+// `@dignite`, and that guess is exactly what makes an unscoped package name unexpressible. Write
+// the `@` when you mean a scope.
+//
+// A target that matches nothing installed fails the run rather than passing vacuously - a typo'd
+// target is otherwise indistinguishable from a clean tree, and this check is only as good as its
+// list.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
-const [nodeModulesArgument, ...scopeArguments] = process.argv.slice(2);
+const [nodeModulesArgument, ...targetArguments] = process.argv.slice(2);
 
 if (!nodeModulesArgument) {
   throw new Error(
-    'Usage: node .github/scripts/check-angular-package-duplicates.mjs <node_modules-dir> [<scope> ...]',
+    'Usage: node .github/scripts/check-angular-package-duplicates.mjs <node_modules-dir> [<target> ...]',
   );
 }
 
-const scopes = (scopeArguments.length > 0 ? scopeArguments : ['@dignite']).map(scope =>
-  scope.startsWith('@') ? scope : `@${scope}`,
-);
+const targets = targetArguments.length > 0 ? targetArguments : ['@dignite'];
+
+// `@dignite` is a scope (matches `@dignite/anything`); `ng-zorro-antd` and `@angular/cdk` are exact
+// package names. The only thing that distinguishes them is the `/`: a leading `@` with no slash is
+// the one shape npm reserves for a scope on its own.
+const isScope = target => target.startsWith('@') && !target.includes('/');
+const matchTarget = (target, packageName) =>
+  isScope(target) ? packageName.startsWith(`${target}/`) : packageName === target;
 
 const nodeModulesRoot = resolve(nodeModulesArgument);
 if (!statSync(nodeModulesRoot, { throwIfNoEntry: false })?.isDirectory()) {
@@ -56,8 +80,8 @@ const readManifest = packageDirectory => {
 
 /**
  * Every package directory reachable from one `node_modules`, including the ones nested under other
- * packages. Only the requested scopes are recorded, but nesting is followed everywhere - a scoped
- * copy can sit under an unscoped package.
+ * packages. Only the requested targets are recorded, but nesting is followed everywhere - a matching
+ * copy can sit under any package, matched or not.
  */
 const collectInstalls = (nodeModulesDirectory, installs) => {
   for (const entry of readDirectory(nodeModulesDirectory)) {
@@ -71,7 +95,7 @@ const collectInstalls = (nodeModulesDirectory, installs) => {
 
     for (const packageDirectory of packageDirectories) {
       const manifest = readManifest(packageDirectory);
-      if (manifest?.name && scopes.some(scope => manifest.name.startsWith(`${scope}/`))) {
+      if (manifest?.name && targets.some(target => matchTarget(target, manifest.name))) {
         if (!installs.has(manifest.name)) installs.set(manifest.name, []);
         installs.get(manifest.name).push({
           version: manifest.version,
@@ -91,10 +115,18 @@ const collectInstalls = (nodeModulesDirectory, installs) => {
 
 const installs = collectInstalls(nodeModulesRoot, new Map());
 
-if (installs.size === 0) {
+// Checked per target, not just "did anything match at all": with several targets on the command
+// line, one broad scope matching would otherwise cover for a mistyped package name next to it and
+// silently drop that package out of the check.
+const unmatchedTargets = targets.filter(
+  target => ![...installs.keys()].some(name => matchTarget(target, name)),
+);
+
+if (unmatchedTargets.length > 0) {
   console.error(
-    `✗ No packages matching ${scopes.join(', ')} found under ${nodeModulesRoot}. ` +
-      'Either the install did not run or the scope argument is wrong - failing rather than ' +
+    `✗ Nothing matching ${unmatchedTargets.join(', ')} is installed under ${nodeModulesRoot}. ` +
+      'Either the install did not run, or the target is wrong (a scope needs its leading "@" and ' +
+      'no slash; anything else is matched as an exact package name) - failing rather than ' +
       'reporting a vacuous pass.',
   );
   process.exitCode = 1;
@@ -103,7 +135,7 @@ if (installs.size === 0) {
 
   if (duplicated.length === 0) {
     console.log(
-      `✓ ${installs.size} package(s) matching ${scopes.join(', ')} are installed exactly once each.`,
+      `✓ ${installs.size} package(s) matching ${targets.join(', ')} are installed exactly once each.`,
     );
   } else {
     console.error('✗ These packages are installed more than once:');

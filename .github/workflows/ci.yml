@@ -127,13 +127,41 @@ jobs:
         working-directory: site/angular
         run: yarn install --frozen-lockfile --non-interactive
 
-      # Two copies of one @dignite/* package are two sets of module-scoped InjectionToken values, so
+      # Two copies of one Angular library are two sets of module-scoped InjectionToken values, so
       # providers registered against one are invisible to consumers of the other - the field type
       # simply is not there at runtime, with nothing failing at install or build time. See the
       # script's own header and dignite-projects/abp-modules#211.
-      - name: Check for duplicate @dignite packages
+      #
+      # The targets are the libraries whose duplication would silently break DI at runtime, not
+      # "everything installed":
+      #   @dignite      - the original case (FLEX_FIELD_TYPES split across two copies).
+      #   @abp          - CORE_OPTIONS, ConfigStateService, the environment tokens; every ABP
+      #                   package in the tree peers on @abp/ng.core and would split with it.
+      #   ng-zorro-antd - unscoped, so the old scope-only invocation could not see it at all, and a
+      #                   live near-miss: @abp/ng.components pins it `~21.0.0-next.1` (< 21.1.0)
+      #                   while angular/projects/site/package.json asks `^21.0.2` (any 21.x). The
+      #                   root currently resolves to 21.0.2 so nothing is nested yet; the first
+      #                   21.1 release would nest a second copy under @abp/ng.components, giving
+      #                   two NZ_CONFIG tokens and two NzConfigService instances.
+      #   @angular/*    - core/common/forms/router/cdk, enumerated rather than taken as the whole
+      #                   @angular scope: those five are what angular/projects/site/package.json
+      #                   declares (cdk as a dependency, the rest as peers) and what ships in a
+      #                   consumer's bundle. The scope also holds build tooling (@angular/build,
+      #                   @angular/cli, @angular/compiler-cli, @angular/language-service) where a
+      #                   nested second copy is ordinary and harmless, and would only teach people
+      #                   to ignore this check.
+      # Deliberately out: tslib, which genuinely IS installed twice here (2.8.1 at the root, 1.14.1
+      # nested under tsyringe) and is fine that way - it is stateless inline helpers, no tokens, no
+      # identity. rxjs is a borderline case (two copies break `instanceof Observable`, not DI) left
+      # out for now because it is universally deduped by every consumer.
+      #
+      # Keep this list and release.yml's identical.
+      - name: Check for duplicate Angular packages
         working-directory: site/angular
-        run: node ../.github/scripts/check-angular-package-duplicates.mjs node_modules @dignite
+        run: |
+          node ../.github/scripts/check-angular-package-duplicates.mjs node_modules \
+            @dignite @abp ng-zorro-antd \
+            @angular/core @angular/common @angular/forms @angular/router @angular/cdk
 
       # No lint step, matching release.yml: `ng lint site` currently fails on ~14 pre-existing
       # violations (component selector prefixes, ngIf vs. control-flow syntax). Fixing those is real
@@ -147,8 +175,28 @@ jobs:
         working-directory: site/angular
         run: yarn build:site
 
-      # ng-packagr emits an external for every bare specifier it does not bundle, but never checks
-      # that the external is declared. Fails on any emitted import package.json does not name.
+      # Two checks over the built dist/site manifest, both answering "can a consumer who installs
+      # this actually build?":
+      #
+      #   1. Every emitted import is declared. ng-packagr emits an external for every bare specifier
+      #      it does not bundle, but never checks that the external is declared.
+      #   2. Every non-optional peer required across dist/site's transitive `dependencies` closure is
+      #      either inside that closure or in dist/site's own `peerDependencies`. Consumers install
+      #      with --legacy-peer-deps (@abp/ng.theme.shared pins @swimlane/ngx-datatable@~22, whose
+      #      Angular peer range stops at 20), and npm installs no peers at all under that flag - at
+      #      any depth. So a peer declared by a transitive dependency is simply absent unless
+      #      something pulls it in as a real dependency or the host already has it.
+      #
+      # Check 2 is the one this repository learned the hard way. 0.1.0-preview.10 shipped with
+      # @dignite/ng.flex-fields emitting `from '@abp/ng.components/tree'` while declaring
+      # @abp/ng.components as a *peer*, and @dignite/ng.site naming it in neither list: the published
+      # package bundled to `Could not resolve "@abp/ng.components/tree"`. Check 1 was blind to it -
+      # the specifier is flex-fields', not this package's, and flex-fields did declare it, just in the
+      # list --legacy-peer-deps ignores. Running here means the next one is a red pull request rather
+      # than a bad release.
+      #
+      # Needs both dist/site (the build step above) and an installed node_modules, which it finds by
+      # walking up from the dist directory - hence no extra argument to keep in sync with release.yml.
       - name: Check site Angular package dependencies
         working-directory: site/angular
         run: node ../.github/scripts/check-angular-package-deps.mjs dist/site

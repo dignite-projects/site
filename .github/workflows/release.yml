@@ -233,13 +233,19 @@ jobs:
         working-directory: site/angular
         run: yarn install --frozen-lockfile --non-interactive
 
-      # Two copies of one @dignite/* package are two sets of module-scoped InjectionToken values, so
-      # a provider registered against one is invisible to a consumer of the other - the field type
-      # is absent at runtime, with nothing failing at install or build time. See the script header
-      # and dignite-projects/abp-modules#211.
-      - name: Check for duplicate @dignite packages
+      # Two copies of one Angular library are two sets of module-scoped InjectionToken values, so a
+      # provider registered against one is invisible to a consumer of the other - the field type is
+      # absent at runtime, with nothing failing at install or build time. See the script header and
+      # dignite-projects/abp-modules#211.
+      #
+      # The target list must stay identical to ci.yml's; that file's copy of this step carries the
+      # reasoning for what is in it and what was deliberately left out.
+      - name: Check for duplicate Angular packages
         working-directory: site/angular
-        run: node ../.github/scripts/check-angular-package-duplicates.mjs node_modules @dignite
+        run: |
+          node ../.github/scripts/check-angular-package-duplicates.mjs node_modules \
+            @dignite @abp ng-zorro-antd \
+            @angular/core @angular/common @angular/forms @angular/router @angular/cdk
 
       # No lint step here: `ng lint site` currently fails on ~14 pre-existing violations (component
       # selector prefixes, ngIf vs. control-flow syntax) - a real fix, not release-infra, and left
@@ -253,9 +259,20 @@ jobs:
         working-directory: site/angular
         run: yarn build:site
 
-      # ng-packagr emits an external for every bare specifier it does not bundle but never checks the
-      # external is declared; the verify script below cannot see it either once the package brings
-      # its own dependencies. Fails on any emitted import that package.json does not name.
+      # Two checks over the built dist/site manifest: (1) every emitted bare specifier is declared -
+      # ng-packagr emits an external for each one it does not bundle but never checks the external is
+      # declared, and the verify script below cannot see it either once the package brings its own
+      # dependencies; (2) every non-optional peer required across dist/site's transitive
+      # `dependencies` closure is either inside that closure or in dist/site's own
+      # `peerDependencies`, because consumers install with --legacy-peer-deps and npm then installs
+      # no peers at any depth. ci.yml's copy of this step carries the longer account, including the
+      # 0.1.0-preview.10 failure check 2 exists for.
+      #
+      # Both are static reads of the manifest and the installed tree, so they run before the pack -
+      # cheaper and more specific than the packed install/bundle gate further down, which is what
+      # actually proves the result resolves end to end. Keeping both matters: this one names the
+      # offending package and the peer it wants, where the bundle failure only says which specifier
+      # could not be resolved.
       - name: Check site Angular package dependencies
         working-directory: site/angular
         run: node ../.github/scripts/check-angular-package-deps.mjs dist/site
@@ -272,6 +289,26 @@ jobs:
           name: npm-package
           path: site/artifacts/npm/site/*.tgz
           if-no-files-found: error
+
+      # The release gate for the npm side, and the npm counterpart of "Verify packed NuGet packages
+      # restore cleanly" above - same position in the pipeline, for the same reason: it runs on the
+      # local tarball, *before* any publish step, so a package whose import graph does not resolve
+      # never reaches a registry.
+      #
+      # It used to run only after the publish (see the `published` step further down, which is now
+      # the second half of this pair). 0.1.0-preview.10 is why that was not good enough: it failed
+      # the bundle check with `Could not resolve "@abp/ng.components/tree"` from
+      # @dignite/ng.flex-fields, and printed "Do not publish this as the released version" about a
+      # package that was already on GitHub Packages under the `latest` dist-tag - and, being the
+      # first version ever published under that package name, `latest` had no earlier release to
+      # fall back to.
+      #
+      # Runs for both channels, like the NuGet gate: a package that does not resolve breaks a stable
+      # release exactly the way it breaks a preview one. Placed before "Configure npm registry for
+      # publishing" as well, so the plain npm install it runs is not subject to the
+      # ${NODE_AUTH_TOKEN} placeholder that step writes into $NPM_CONFIG_USERCONFIG.
+      - name: Verify packed npm package installs and bundles cleanly
+        run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site
 
       # registry-url lives here rather than on the earlier Setup Node.js step - see that step's
       # comment for why no yarn command may run after it. It still has to run *before* the two
@@ -354,16 +391,17 @@ jobs:
             fi
           fi
 
-      # npm equivalent of the NuGet restore verification gate above: install what was just
-      # published, in an isolated scratch project, exactly as a real consumer would, then bundle a
-      # file that imports `provideSite`. `npm install` alone would not have caught 0.1.0-preview.4's
-      # bug (`@dignite/ng.flex-fields-ckeditor` / `@dignite/ng.flex-fields-file-explorer` imported by
-      # the compiled bundle but never declared as a dependency) - see CHANGELOG.md's
-      # 0.1.0-preview.5 entry and the script's own comment for why a bundler step, not just
-      # `tsc --noEmit`, is required to catch it.
+      # Second half of the pair whose first half is the packed gate above. Not redundant with it:
+      # the publish step just rewrote the package - renamed to @dignite-projects/ng.site, every
+      # @dignite/* dependency turned into an `npm:@dignite-projects/...@<range>` alias - and that
+      # rewrite is itself something that can be wrong. Nothing before the publish can exercise it,
+      # so this installs what a real consumer of the pre-release channel actually gets, under the
+      # names it actually carries. It can no longer stop a bad package from being published (that is
+      # the gate's job now); what it still catches is a broken rename, and a registry that did not
+      # end up serving what was pushed to it.
       - name: Verify published npm package installs and bundles cleanly
         if: steps.channel.outputs.channel == 'preview'
-        run: bash .github/scripts/verify-packed-npm-install.sh '${{ steps.channel.outputs.version }}' '${{ secrets.GITHUB_TOKEN }}'
+        run: bash .github/scripts/verify-packed-npm-install.sh published '${{ steps.channel.outputs.version }}' '${{ secrets.GITHUB_TOKEN }}'
 
       # Stable builds go to the public npmjs, under the real @dignite/ng.site name. Same
       # skip-when-not-configured pattern as the NuGet.org push above.
