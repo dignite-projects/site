@@ -40,10 +40,29 @@ jobs:
       contents: write # Required by softprops/action-gh-release to create a draft Release
       packages: write # Required to push pre-release NuGet/npm packages to GitHub Packages
 
-    # angular/.npmrc references ${GITHUB_TOKEN} to authenticate the @dignite-projects scope
-    # against GitHub Packages. setup-node's `cache: yarn` reads that file (to prime/verify the
-    # cache) before any later step gets a chance to export the token itself, so it has to be a
-    # job-level env, not just set on the "Install Angular dependencies" step.
+    # angular/.npmrc references ${GITHUB_TOKEN} to authenticate the @dignite-projects scope against
+    # GitHub Packages. As of 10.0.0-rc.16, angular/package.json aliases @dignite/ng.flex-fields (and
+    # its -ckeditor/-file-explorer adapters, and @dignite/ng.file-explorer) to
+    # "npm:@dignite-projects/<name>@<range>" (see the "Install Angular dependencies" step below for
+    # why), which is what actually routes those four through this scope/token - GitHub Packages'
+    # npm registry requires the scope to equal the owning org login, so @dignite itself has no
+    # registry entry there at all. setup-node's `cache: yarn` reads angular/.npmrc (to prime/verify
+    # the cache) before any later step gets a chance to export the token itself, so it has to be a
+    # job-level env, not just set on that step. (ci.yml carries the same env: block for the same
+    # reason; this comment is the one canonical copy of the reasoning - keep them in sync.)
+    #
+    # Reading a private package published from a different repository (abp-modules) additionally
+    # requires that repository's package settings to grant this repository "Manage Actions access"
+    # - a one-time, UI-only grant with no REST API equivalent, done once outside this repo's own
+    # config and not re-verifiable from here. This job's packages: write permission below is
+    # necessary but not sufficient without that grant.
+    #
+    # To revert once abp-modules tags a release that mirrors flex-fields (rc.16 or a successor) to
+    # public npmjs again: drop the four npm: aliases in angular/package.json's dependencies and
+    # resolutions blocks back to plain semver ranges; change check-angular-package-duplicates.mjs's
+    # target list in both this file and ci.yml from @dignite-projects back to @dignite; the
+    # "Manage Actions access" grant and the packages: read/write permissions can stay (harmless once
+    # unused) unless a tighter token scope is wanted later.
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -63,8 +82,9 @@ jobs:
       # already builds against.
       #
       # The Angular side does NOT need this checkout: angular/package.json resolves FlexFields /
-      # FileExplorer as real @dignite-projects/* GitHub Packages dependencies (see angular/.npmrc),
-      # not local file: paths into this sibling.
+      # FileExplorer as real installed @dignite/* npm dependencies - currently aliased through
+      # GitHub Packages, see angular/.npmrc and the "Install Angular dependencies" step below - not
+      # local file: paths into this sibling.
       - name: Checkout abp-modules (sibling dependency for FlexFields / FileExplorer)
         uses: actions/checkout@v5
         with:
@@ -221,11 +241,12 @@ jobs:
       # Yarn with the committed lockfile, matching ci.yml and every developer machine. This step
       # used to be `npm install --no-package-lock` because Yarn Classic fetches a dependency whose
       # lockfile entry carries a GitHub Packages "resolved" URL through a code path that never
-      # attaches registry auth. No such entry remains - every @dignite/* package now resolves from
-      # public npmjs - so the release can be built from the tree the lockfile actually describes
-      # rather than from a fresh resolution that ignores it. --legacy-peer-deps is gone with npm:
-      # Yarn Classic does not enforce peer ranges, which is what that flag was working around
-      # (@swimlane/ngx-datatable@22 wants @angular/common 18-20.x, workspace is on 21.2.x).
+      # attaches registry auth. That was fixed, and for a while every @dignite/* package resolved
+      # from public npmjs instead - but as of 10.0.0-rc.16, @dignite/* aliases back onto GitHub
+      # Packages (see the job-level env: block's comment), so this step is exercising that auth
+      # path again. --legacy-peer-deps is gone with npm: Yarn Classic does not enforce peer ranges,
+      # which is what that flag was working around (@swimlane/ngx-datatable@22 wants
+      # @angular/common 18-20.x, workspace is on 21.2.x).
       #
       # It also matters for the duplicate check below: npm dedupes graphs that Yarn Classic splits
       # into nested copies, so that check after an npm install would pass vacuously.
@@ -244,7 +265,7 @@ jobs:
         working-directory: site/angular
         run: |
           node ../.github/scripts/check-angular-package-duplicates.mjs node_modules \
-            @dignite @abp ng-zorro-antd \
+            @dignite-projects @abp ng-zorro-antd \
             @angular/core @angular/common @angular/forms @angular/router @angular/cdk
 
       # No lint step here: `ng lint site` currently fails on ~14 pre-existing violations (component
@@ -307,8 +328,13 @@ jobs:
       # release exactly the way it breaks a preview one. Placed before "Configure npm registry for
       # publishing" as well, so the plain npm install it runs is not subject to the
       # ${NODE_AUTH_TOKEN} placeholder that step writes into $NPM_CONFIG_USERCONFIG.
+      #
+      # The trailing GITHUB_TOKEN argument is what lets this resolve @dignite/ng.flex-fields (etc.)
+      # while flex-fields stays GitHub-Packages-only, per the script's own header comment - without
+      # it, this step 404s the moment angular/projects/site/package.json names a flex-fields version
+      # that has no public-npmjs entry, which is exactly the gap 10.0.0-rc.16 exposed.
       - name: Verify packed npm package installs and bundles cleanly
-        run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site
+        run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site '${{ secrets.GITHUB_TOKEN }}'
 
       # registry-url lives here rather than on the earlier Setup Node.js step - see that step's
       # comment for why no yarn command may run after it. It still has to run *before* the two

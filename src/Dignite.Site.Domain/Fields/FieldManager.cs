@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
-using Dignite.FlexFields.Site;
 using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.Contents;
 using Volo.Abp.Domain.Services;
@@ -179,18 +178,26 @@ public class FieldManager : DomainService
 
     /// <summary>
     /// Refuses a configuration that nests composite field types deeper than
-    /// <see cref="CompositeFieldNesting.MaxDepth"/> - see
-    /// <see cref="CompositeFieldNesting"/> for why the tree has to be capped somewhere, and
-    /// <see cref="FieldNestingTooDeepException"/> for why it is capped here rather than in the designer.
+    /// <see cref="Dignite.Abp.FlexFields.CompositeFieldNesting.MaxDepth"/> - see
+    /// <see cref="Dignite.Abp.FlexFields.CompositeFieldNesting"/> for why the tree has to be capped
+    /// somewhere, and <see cref="FieldNestingTooDeepException"/> for why it is capped here rather than
+    /// in the designer.
+    /// <para>
+    /// Fully-qualified on purpose, not left to <c>using Dignite.Abp.FlexFields;</c> alone: this used to
+    /// be Site's own <c>CompositeFieldNesting</c>, deleted once flex-fields shipped an identical kernel
+    /// copy at 10.0.0-rc.16. A future Site-local type reusing this name would otherwise be silently
+    /// shadowed here rather than failing loudly, if the qualification below were dropped.
+    /// </para>
     /// </summary>
     protected virtual void CheckNestingDepth(
         string name,
         string fieldTypeName,
         FieldConfigurationDictionary? configuration)
     {
-        if (CompositeFieldNesting.ExceedsMaxDepth(fieldTypeName, configuration, FieldTypeResolver.GetAll()))
+        if (Dignite.Abp.FlexFields.CompositeFieldNesting.ExceedsMaxDepth(
+                fieldTypeName, configuration, FieldTypeResolver.GetAll()))
         {
-            throw new FieldNestingTooDeepException(name, CompositeFieldNesting.MaxDepth);
+            throw new FieldNestingTooDeepException(name, Dignite.Abp.FlexFields.CompositeFieldNesting.MaxDepth);
         }
     }
 
