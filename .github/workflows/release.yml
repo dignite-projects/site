@@ -52,14 +52,13 @@ jobs:
     # reason; this comment is the one canonical copy of the reasoning - keep them in sync.)
     #
     # PACKAGES_READ_TOKEN (a PAT scoped to read:packages only), not secrets.GITHUB_TOKEN - the same
-    # choice "Verify packed NuGet packages restore cleanly" below already made, for the same reason:
-    # GITHUB_TOKEN can read/write this repo's own packages but cannot read GitHub Packages published
-    # by a *different* repository (abp-modules) at all, "Manage Actions access" notwithstanding -
-    # confirmed the hard way, not assumed: granting dignite-projects/site "Manage Actions access" on
-    # all four flex-fields packages still 401'd every yarn install in CI, where the exact same
-    # install succeeds locally with a real personal token. GITHUB_TOKEN's package access is
-    # documented as scoped to "the workflow repository" only, full stop - there is no cross-repo
-    # extension for it to opt into, by grant or otherwise.
+    # choice "Verify packed NuGet packages restore cleanly" below already made, for the same
+    # documented reason: GITHUB_TOKEN's package access is scoped to the workflow's own repository,
+    # and these packages are published by a different one (abp-modules). Whether GITHUB_TOKEN would
+    # in fact be refused here has never been isolated - the CI 401s that led to this token were a
+    # different bug entirely (yarn was sending no token at all; see angular/.npmrc's own comment) -
+    # so this is the documented-behavior choice plus the NuGet side's precedent, not a measurement.
+    # If someone wants the ephemeral token back, that experiment is one commit and one CI run.
     #
     # To revert once abp-modules tags a release that mirrors flex-fields (rc.16 or a successor) to
     # public npmjs again: drop the four npm: aliases in angular/package.json's dependencies and
@@ -191,11 +190,10 @@ jobs:
       # GITHUB_TOKEN can restore this repo's own packages but 403s reading GitHub Packages NuGet
       # feeds published by a *different* repository (abp-modules) - confirmed against the actual
       # endpoint, a repo-scope-only token gets 403, a read:packages-scope token gets 200.
-      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only, full
-      # stop - the npm side turned out to need the identical PACKAGES_READ_TOKEN treatment once
-      # flex-fields itself became a cross-repo GitHub Packages dependency at 10.0.0-rc.16 (see the
-      # job-level env: block's comment); there never was a cross-repo exception for GITHUB_TOKEN to
-      # rely on, on either side.
+      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only; the
+      # npm side now uses this same token for the same documented reason, once flex-fields itself
+      # became a cross-repo GitHub Packages dependency at 10.0.0-rc.16 (see the job-level env:
+      # block's comment).
       - name: Verify packed NuGet packages restore cleanly
         run: |
           bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}' '${{ github.actor }}' '${{ secrets.PACKAGES_READ_TOKEN }}'
@@ -340,10 +338,10 @@ jobs:
       # The trailing token argument is what lets this resolve @dignite/ng.flex-fields (etc.) while
       # flex-fields stays GitHub-Packages-only, per the script's own header comment - without it,
       # this step 404s the moment angular/projects/site/package.json names a flex-fields version
-      # that has no public-npmjs entry, which is exactly the gap 10.0.0-rc.16 exposed. It has to be
-      # PACKAGES_READ_TOKEN, not secrets.GITHUB_TOKEN - see the job-level env: block's comment for
-      # why GITHUB_TOKEN cannot read a package published by a different repository (abp-modules) at
-      # all, no matter what "Manage Actions access" says.
+      # that has no public-npmjs entry, which is exactly the gap 10.0.0-rc.16 exposed. It uses
+      # PACKAGES_READ_TOKEN rather than secrets.GITHUB_TOKEN for the reason the job-level env:
+      # block's comment gives (this is npm, not yarn, so the .npmrc scope-mapping trap that comment
+      # also mentions does not apply here - npm honors the alias target's own scope).
       - name: Verify packed npm package installs and bundles cleanly
         run: bash .github/scripts/verify-packed-npm-install.sh packed artifacts/npm/site '${{ secrets.PACKAGES_READ_TOKEN }}'
 

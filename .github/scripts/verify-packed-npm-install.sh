@@ -34,13 +34,14 @@
 #     because a plain `npm install` here otherwise resolves those siblings straight from public
 #     npmjs, which 404s for as long as a given flex-fields version is GitHub-Packages-only
 #     (workflow_dispatch-only releases in abp-modules skip the tag-triggered step that mirrors to
-#     public npmjs - see CHANGELOG.md's 10.0.0-rc.16 entry). Has to be a real PAT (release.yml passes
-#     `secrets.PACKAGES_READ_TOKEN`), not `secrets.GITHUB_TOKEN`: confirmed the hard way, granting
-#     "Manage Actions access" on the four flex-fields packages did not stop GITHUB_TOKEN 401ing here
-#     - it cannot read a package published by a different repository at all, full stop, regardless
-#     of any such grant. Omit the token and this mode reverts to installing every `@dignite/*`
-#     sibling from its plain public-npmjs name, unchanged from before this existed - the right
-#     behavior again once every flex-fields dependency in play is fully public.
+#     public npmjs - see CHANGELOG.md's 10.0.0-rc.16 entry). release.yml passes
+#     `secrets.PACKAGES_READ_TOKEN` rather than `secrets.GITHUB_TOKEN`, matching the NuGet side and
+#     GITHUB_TOKEN's documented "own repository only" package scoping; any token that can read
+#     abp-modules' packages works here. Note this mode runs `npm`, not `yarn`, so it is unaffected
+#     by the Yarn-Classic alias/auth trap angular/.npmrc documents - npm resolves the alias target's
+#     own scope. Omit the token and this mode reverts to installing every `@dignite/*` sibling from
+#     its plain public-npmjs name, unchanged from before this existed - the right behavior again
+#     once every flex-fields dependency in play is fully public.
 #
 #   published <version> <packages-read-token>
 #     Installs what was actually published to GitHub Packages, after the publish step. Not
@@ -49,9 +50,9 @@
 #     `npm:@dignite-projects/...@<range>` alias form (see the long comment on that step in
 #     release.yml for why). That rewrite is itself something that can be wrong, and nothing before
 #     publish can exercise it, so this mode verifies the artifact a real consumer of the pre-release
-#     channel actually installs, under the names it actually carries. Also needs a real PAT, not
-#     GITHUB_TOKEN, for the same cross-repo reason as `packed` above - @dignite-projects/ng.site is
-#     this repo's own package, but its rewritten dependencies point at abp-modules' packages.
+#     channel actually installs, under the names it actually carries. Takes the same token as
+#     `packed` above and for the same reason - @dignite-projects/ng.site is this repo's own package,
+#     but its rewritten dependencies point at abp-modules'.
 #
 # Both modes install `--legacy-peer-deps`, matching the "Install Angular dependencies" step earlier
 # in the same job (this workspace already relies on that leniency for an existing ABP/@angular

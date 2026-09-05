@@ -36,19 +36,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regardless of which name imported it - `@dignite` currently matches nothing installed, which the
   script correctly treats as a hard failure rather than a vacuous pass.
 
-  **Reading a private package published from a different repository (abp-modules) needs a real
-  personal-access-token, not `secrets.GITHUB_TOKEN` - confirmed against a live CI run, not assumed.**
-  The first attempt at this bump added `packages: read` to `ci.yml`'s permissions and pointed at
-  granting `dignite-projects/site` "Manage Actions access" on the four flex-fields packages, on the
-  theory that this repo's own `GITHUB_TOKEN` would then be able to read them. It doesn't: a real pull
-  request against this branch 401'd on "Install Angular dependencies" regardless of that grant -
-  `GITHUB_TOKEN`'s package access is scoped to the workflow's own repository, full stop, with no
-  cross-repo extension to opt into. `angular/.npmrc` and every consumer now use `PACKAGES_READ_TOKEN`
-  instead - the same PAT-scoped-to-`read:packages` secret `release.yml`'s "Verify packed NuGet
-  packages restore cleanly" step already relied on for the identical reason on the NuGet side (that
-  step's own comment said as much all along: "GITHUB_TOKEN can restore this repo's own packages but
-  403s reading GitHub Packages ... feeds published by a *different* repository"). `ci.yml`'s
-  `packages: read` permission is gone again - nothing here still needs it.
+  **`angular/.npmrc` maps the `@dignite` scope to GitHub Packages as well as `@dignite-projects`,
+  and that second line is what makes CI work at all.** Yarn Classic decides whether to attach a
+  registry's auth token to a *tarball* download by looking up the registry for the scope of the name
+  it knows the package by - and for an aliased package that is the **alias's** scope (`@dignite`),
+  not the target's (`@dignite-projects`). With only the target scope mapped, yarn fell back to the
+  default registry, saw that the tarball's host didn't match it, sent no credential at all, and
+  GitHub answered `401 Unauthorized`. It reproduces only on a cold yarn cache - a warm cache never
+  downloads the tarball and so never takes that code path - which is exactly why every local
+  `yarn install` passed while two consecutive CI runs failed. This is the same class of Yarn Classic
+  bug `release.yml`'s "Install Angular dependencies" comment has described since the last time a
+  GitHub Packages URL sat in `yarn.lock`; the alias is a new way into it.
+
+  Along the way the same npm auth now uses `PACKAGES_READ_TOKEN` (the PAT-scoped-to-`read:packages`
+  secret `release.yml`'s "Verify packed NuGet packages restore cleanly" already used) instead of
+  `secrets.GITHUB_TOKEN`, matching the NuGet side and `GITHUB_TOKEN`'s documented "the workflow
+  repository only" package scoping. Note this was **not** what the 401s were about, and whether
+  `GITHUB_TOKEN` alone would have sufficed once the scope mapping was fixed was never isolated -
+  the token swap rides on documented behaviour and the NuGet precedent, not on a measurement.
+  `ci.yml`'s briefly-added `packages: read` permission is gone again, and no "Manage Actions access"
+  grant turned out to be required either.
 
   **`release.yml`'s "Verify packed npm package installs and bundles cleanly" (`packed` mode) step
   would otherwise have failed on the next actual release attempt** - a real, verified break, not a

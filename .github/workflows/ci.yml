@@ -39,17 +39,18 @@ jobs:
     permissions:
       contents: read
 
-    # angular/.npmrc maps the @dignite-projects scope to GitHub Packages and references
-    # ${PACKAGES_READ_TOKEN} for it. Yarn Classic substitutes every env-var placeholder in its
-    # resolved config on every invocation and throws when one is unset - including the
+    # angular/.npmrc maps the @dignite and @dignite-projects scopes to GitHub Packages and
+    # references ${PACKAGES_READ_TOKEN} for it. Yarn Classic substitutes every env-var placeholder
+    # in its resolved config on every invocation and throws when one is unset - including the
     # `yarn cache dir` probe setup-node runs for `cache: yarn`, which happens before any run: step
     # of this job. So it has to be job-level, not set on the install step - exactly as release.yml
     # already does.
     #
     # @dignite/ng.flex-fields (and its -ckeditor/-file-explorer adapters, and @dignite/ng.file-
-    # explorer) started resolving through that scope as of 10.0.0-rc.16 - release.yml's copy of this
-    # comment carries the full account (why, the alias mechanism, and what to revert once it's no
-    # longer needed).
+    # explorer) started resolving through those scopes as of 10.0.0-rc.16 - release.yml's copy of
+    # this comment carries the full account (why, the alias mechanism, and what to revert once it's
+    # no longer needed); angular/.npmrc carries the reason BOTH scopes have to be mapped, which is
+    # the non-obvious half and the one this job actually died on twice.
     env:
       PACKAGES_READ_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
