@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.CKEditor;
 using Dignite.Abp.FlexFields.FileExplorer;
+using Dignite.Abp.FlexFields.Matrix;
+using Dignite.Abp.FlexFields.Table;
 using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
@@ -129,15 +131,75 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
             });
     }
 
+    /// <summary>
+    /// Carries the two composite field types as well as the scalar ones, so a fresh database has a
+    /// worked example of each: <c>Matrix</c> (a repeatable list of polymorphic blocks) and <c>Table</c>
+    /// (a homogeneous grid over one column schema). Both are flex-fields kernel built-ins as of
+    /// 10.0.0-rc.16; nothing in Site declares them any more, which is precisely why having them in the
+    /// seed is worth the lines - otherwise the only way to see either type render is to hand-build a
+    /// configuration in the admin UI first.
+    /// <para>
+    /// Their configurations are built from the kernel's own <c>MatrixConfiguration</c>/
+    /// <c>TableConfiguration</c> rather than hand-written dictionaries, so a rename or reshape upstream
+    /// breaks this at compile time instead of producing a seed that silently stores an unreadable
+    /// configuration. Values likewise use <c>MatrixBlockValue</c>/<c>TableRow</c>: <c>ContentManager</c>
+    /// runs them through the field type's own <c>Normalize</c> on the way in, which is what turns them
+    /// into the canonical camelCase wire shape every reader downstream expects.
+    /// </para>
+    /// </summary>
     private async Task SeedAboutAsync(Guid titleFieldId, Guid bodyFieldId)
     {
         var page = await GetOrCreatePageAsync("about", "About", "/about");
+
+        var highlightsFieldId = await GetOrCreateFieldAsync(
+            "about_highlights", "Highlights", MatrixFieldType.ControlName,
+            "Repeatable blocks shown down the About page - either a paragraph or a headline number.",
+            new MatrixConfiguration
+            {
+                BlockTypes = new List<MatrixBlockType>
+                {
+                    new()
+                    {
+                        Name = "paragraph",
+                        DisplayName = "Paragraph",
+                        Fields = new List<InlineFieldDefinition>
+                        {
+                            new() { Name = "text", DisplayName = "Text", FieldTypeName = "Text", Required = true }
+                        }
+                    },
+                    new()
+                    {
+                        Name = "stat",
+                        DisplayName = "Statistic",
+                        Fields = new List<InlineFieldDefinition>
+                        {
+                            new() { Name = "value", DisplayName = "Value", FieldTypeName = "Text", Required = true },
+                            new() { Name = "label", DisplayName = "Label", FieldTypeName = "Text", Required = true }
+                        }
+                    }
+                }
+            }.ConfigurationDictionary);
+
+        var milestonesFieldId = await GetOrCreateFieldAsync(
+            "about_milestones", "Milestones", TableFieldType.ControlName,
+            "One row per milestone, all sharing the same columns.",
+            new TableConfiguration
+            {
+                Columns = new List<InlineFieldDefinition>
+                {
+                    new() { Name = "year", DisplayName = "Year", FieldTypeName = "Text", Required = true },
+                    new() { Name = "event", DisplayName = "Event", FieldTypeName = "Text", Required = true }
+                }
+            }.ConfigurationDictionary);
+
         var contentType = await GetOrCreateContentTypeAsync(
             page.Id, "about", "About",
             new[]
             {
                 Usage(titleFieldId, required: true, showInList: true, order: 0),
-                Usage(bodyFieldId, order: 1)
+                Usage(bodyFieldId, order: 1),
+                Usage(highlightsFieldId, order: 2),
+                Usage(milestonesFieldId, order: 3)
             });
 
         await EnsureContentAsync(
@@ -146,7 +208,35 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
             {
                 ["title"] = "About Us",
                 ["body"] = "<p>Dignite is a small team building tools for editors and developers to manage " +
-                           "content together, without either side having to compromise on how they work.</p>"
+                           "content together, without either side having to compromise on how they work.</p>",
+                ["about_highlights"] = new List<MatrixBlockValue>
+                {
+                    new()
+                    {
+                        BlockTypeName = "paragraph",
+                        Values = new FlexFieldDictionary
+                        {
+                            ["text"] = "We started Dignite after one too many projects where the CMS decided " +
+                                       "what the site could be."
+                        }
+                    },
+                    new()
+                    {
+                        BlockTypeName = "stat",
+                        Values = new FlexFieldDictionary { ["value"] = "7", ["label"] = "Field types out of the box" }
+                    },
+                    new()
+                    {
+                        BlockTypeName = "stat",
+                        Values = new FlexFieldDictionary { ["value"] = "4", ["label"] = "Languages shipped" }
+                    }
+                },
+                ["about_milestones"] = new List<TableRow>
+                {
+                    new() { Values = new FlexFieldDictionary { ["year"] = "2024", ["event"] = "First internal build" } },
+                    new() { Values = new FlexFieldDictionary { ["year"] = "2025", ["event"] = "Flexible fields land" } },
+                    new() { Values = new FlexFieldDictionary { ["year"] = "2026", ["event"] = "Composite field types" } }
+                }
             });
     }
 
