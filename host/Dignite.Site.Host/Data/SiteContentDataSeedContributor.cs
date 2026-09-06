@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.CKEditor;
@@ -57,6 +58,16 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
     private readonly ContentManager _contentManager;
     private readonly IGuidGenerator _guidGenerator;
 
+    /// <summary>
+    /// Every field id already used by some content type, computed once at the start of
+    /// <see cref="SeedAsync"/> and updated as this run attaches more. See
+    /// <see cref="GetOrCreateContentTypeAsync"/> for what it is used for and why "used nowhere yet"
+    /// rather than "created this run" is the right test - a field this exact run just created can
+    /// still be a field an EARLIER, pre-fix run of this same seed already created and left orphaned,
+    /// which is precisely the case this exists to repair.
+    /// </summary>
+    private HashSet<Guid> _fieldIdsInUseAnywhere = new();
+
     public SiteContentDataSeedContributor(
         IFieldRepository fieldRepository,
         IPageRepository pageRepository,
@@ -79,6 +90,9 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
         {
             return;
         }
+
+        var existingContentTypes = await _contentTypeRepository.GetListAsync();
+        _fieldIdsInUseAnywhere = existingContentTypes.SelectMany(ct => ct.GetFieldIds()).ToHashSet();
 
         var titleFieldId = await GetOrCreateFieldAsync("title", "Title", "Text");
         var bodyFieldId = await GetOrCreateFieldAsync("body", "Body", CKEditorFieldType.ControlName);
@@ -444,19 +458,80 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
         return await _pageRepository.InsertAsync(page, autoSave: true);
     }
 
+    /// <summary>
+    /// Creates the content type when missing, and otherwise leaves an existing one almost entirely
+    /// alone - the one exception being requested usages of a field that is not attached to
+    /// <i>any</i> content type anywhere, which get appended.
+    /// <para>
+    /// That exception exists because without it, introducing a new field to this seed half-applies on
+    /// every database that already ran an older version of it: <see cref="GetOrCreateFieldAsync"/>
+    /// finds the field already exists (created by that earlier run), this method finds the content
+    /// type already present and returns it untouched, and the field stays orphaned in the field
+    /// library forever - worse than not seeding it at all, and exactly the state introducing
+    /// <c>about_highlights</c>/<c>about_milestones</c> left this repo's own dev database in.
+    /// </para>
+    /// <para>
+    /// "Attached nowhere" rather than "missing from this content type" is deliberate: the latter would
+    /// silently reattach a field an admin removed from this one content type on purpose, forever. A
+    /// field genuinely in use somewhere - even a different content type than this seed method asks
+    /// for - is never this seed's to move; only a field with no usage anywhere is unambiguous enough
+    /// to touch automatically, and even that only for a <i>local dev convenience</i> seed (see this
+    /// class's own remarks) - not a rule this repository would want in a seed that ran against
+    /// production data. New fields get appended after the current highest <c>Order</c> rather than at
+    /// their declared position, so an existing arrangement someone has deliberately ordered is not
+    /// reshuffled underneath them.
+    /// </para>
+    /// <para>
+    /// Values are still not written for them: <see cref="EnsureContentAsync"/> leaves existing content
+    /// alone, so on an established database these fields appear on the editor form empty, which is the
+    /// right side to err on - the alternative is a seed that overwrites content someone authored.
+    /// </para>
+    /// </summary>
     private async Task<ContentType> GetOrCreateContentTypeAsync(
         Guid pageId,
         string name,
         string displayName,
         IEnumerable<ContentTypeField> fields)
     {
+        var requested = fields.ToList();
         var existing = await _contentTypeRepository.FindByNameAsync(pageId, name);
+
         if (existing != null)
         {
-            return existing;
+            var alreadyAttached = existing.GetFieldIds().ToHashSet();
+            var toAppend = requested
+                .Where(f => !alreadyAttached.Contains(f.FieldId) && !_fieldIdsInUseAnywhere.Contains(f.FieldId))
+                .ToList();
+
+            if (toAppend.Count == 0)
+            {
+                return existing;
+            }
+
+            var nextOrder = existing.Fields.Count == 0 ? 0 : existing.Fields.Max(f => f.Order) + 1;
+            var merged = existing.Fields.ToList();
+            foreach (var usage in toAppend)
+            {
+                merged.Add(new ContentTypeField(
+                    usage.FieldId,
+                    required: usage.Required,
+                    searchable: usage.Searchable,
+                    showInList: usage.ShowInList,
+                    displayName: usage.DisplayName,
+                    order: nextOrder++));
+                _fieldIdsInUseAnywhere.Add(usage.FieldId);
+            }
+
+            existing.SetFields(merged);
+            return await _contentTypeRepository.UpdateAsync(existing, autoSave: true);
         }
 
-        var contentType = new ContentType(_guidGenerator.Create(), pageId, name, displayName, fields: fields, tenantId: null);
+        foreach (var usage in requested)
+        {
+            _fieldIdsInUseAnywhere.Add(usage.FieldId);
+        }
+
+        var contentType = new ContentType(_guidGenerator.Create(), pageId, name, displayName, fields: requested, tenantId: null);
         return await _contentTypeRepository.InsertAsync(contentType, autoSave: true);
     }
 
