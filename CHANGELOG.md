@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.12] - 2026-09-06
+
+### Added
+
+- **Seeded a `Matrix` and a `Table` field on the About page** (`about_highlights`,
+  `about_milestones`). Neither composite field type appeared anywhere in the seed data before this -
+  the only way to see one render was to hand-build a configuration in the admin UI first - which
+  was worth fixing now specifically because Site no longer declares these types at all: they are
+  flex-fields kernel built-ins as of `10.0.0-rc.16` (see below), and a seeded example is the
+  cheapest standing check on that integration. `about_highlights` uses two block types (paragraph
+  and stat) so the polymorphic-repeater shape is actually exercised rather than a single-block
+  degenerate case; `about_milestones` is a year/event table. Both configurations and values are
+  built from the kernel's own `MatrixConfiguration`/`TableConfiguration`/`InlineFieldDefinition`/
+  `MatrixBlockValue`/`TableRow` types rather than hand-written dictionaries, so an upstream rename or
+  reshape fails the build here instead of silently seeding something nothing can read.
+
 ### Changed
 
 - **Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
@@ -135,6 +151,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `MatrixFieldType` still doesn't implement `IHasValueShape`, so the assertion holds for the same
   reason it always did. `yarn build:site`, `yarn build` (Host), `yarn ng test site` (29 tests) and
   both `check-angular-package-*` scripts pass unchanged.
+
+### Fixed
+
+- **The Host dev seed no longer leaves newly-added fields orphaned on an already-seeded database.**
+  Adding `about_highlights`/`about_milestones` above only verified against a throwaway database;
+  against a real, already-migrated one (this repo's own dev `Host.db`), the seed's own idempotency
+  worked against it - `GetOrCreateContentTypeAsync` found the `about` content type already present
+  and returned it untouched, so both fields were created and left attached to nothing. Attaching
+  "fields created this run" doesn't cover this case either, since the fields were created by an
+  earlier run of the *old* code, before this content-type-append logic existed, and so predate the
+  run entirely.
+
+  Replaced that with "attached to no content type anywhere", computed once at the start of
+  `SeedAsync` and kept current as the run attaches more. A field with zero usages anywhere is
+  specific enough to this failure mode to touch automatically for a local dev convenience seed; a
+  field still in use elsewhere is left alone either way, and new usages are appended after the
+  current highest `Order` so a deliberate arrangement isn't reshuffled. Verified against this repo's
+  own dev `Host.db` in the exact broken state reported: the two fields moved from unattached to
+  `Order` 2/3 on About, a second run made no further change, and a from-scratch database still gets
+  all four fields in one pass.
 
 ## [0.1.0-preview.11] - 2026-09-05
 
@@ -715,4 +751,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.11...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.12...HEAD
