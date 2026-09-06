@@ -14,68 +14,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Host dev app) and `angular/projects/site/package.json` (published library), picking up
   flex-fields' new built-in `Matrix`/`Table` field types.
 
-  Unlike every previous bump, rc.16 was published in abp-modules only via `workflow_dispatch` (no
-  tag), so it landed on GitHub Packages under the `@dignite-projects` org scope only - the
-  tag-triggered step that mirrors a release to public npmjs under the real `@dignite/*` scope never
-  ran. GitHub Packages' npm registry requires the scope to equal the owning org login, so
-  `@dignite/ng.flex-fields` has no registry entry there at all; the packages exist only as
-  `@dignite-projects/ng.flex-fields` etc.
+  Nothing else was needed for this: the packages resolve from public npmjs exactly as every prior
+  bump did. Getting there took a detour worth recording, though, because the conclusion was to change
+  the *dependency's* release rather than this repository.
 
-  `angular/package.json`'s four entries (both `dependencies` and `resolutions`) now alias to
-  `npm:@dignite-projects/<name>@<range>` - the same rewrite `release.yml`'s "Publish pre-release
-  Angular package to GitHub Packages" step already applies to `@dignite/ng.site`'s own dependencies
-  at publish time - so `angular/.npmrc`'s existing `@dignite-projects:registry=...` mapping resolves
-  it. `angular/projects/site/package.json` keeps the plain, unaliased `@dignite/ng.flex-fields`
-  names: that manifest describes what a real downstream consumer needs, and either the publish-time
-  rewrite or (once flex-fields is public again) nothing at all is what bridges the gap - aliasing it
-  there would be wrong the moment the dependency is public again.
+  rc.16 was first published in abp-modules via `workflow_dispatch` only. That workflow mirrors a
+  release to public npmjs only on a tag push, so rc.16 existed solely on GitHub Packages - and there
+  under `@dignite-projects/*`, since GitHub Packages' npm registry requires the scope to equal the
+  owning org login. Consuming it from here meant aliasing all four packages to
+  `npm:@dignite-projects/<name>@<range>`, mapping that scope in `angular/.npmrc`, authenticating both
+  workflows against it, and repointing `check-angular-package-duplicates.mjs` at the alias target's
+  scope. All of that landed, and all of it is now reverted: pushing a `v10.0.0-rc.16` tag in
+  abp-modules put the packages on npmjs, which removed the reason for any of it. The deciding
+  argument was not effort but blast radius - a private-only dependency means every contributor needs
+  a `read:packages` credential just to `yarn install`, and CI on a fork PR cannot have one at all,
+  since GitHub does not pass secrets to fork-triggered runs.
 
-  `check-angular-package-duplicates.mjs`'s target list in both `ci.yml` and `release.yml` changed
-  from `@dignite` to `@dignite-projects`: the script matches each installed package's own manifest
-  `"name"` field, and every alias now on disk carries the real `@dignite-projects/*` identity
-  regardless of which name imported it - `@dignite` currently matches nothing installed, which the
-  script correctly treats as a hard failure rather than a vacuous pass.
+  Two findings from the detour are worth keeping.
 
-  **`angular/.npmrc` maps the `@dignite` scope to GitHub Packages as well as `@dignite-projects`,
-  and that second line is what makes CI work at all.** Yarn Classic decides whether to attach a
-  registry's auth token to a *tarball* download by looking up the registry for the scope of the name
-  it knows the package by - and for an aliased package that is the **alias's** scope (`@dignite`),
-  not the target's (`@dignite-projects`). With only the target scope mapped, yarn fell back to the
-  default registry, saw that the tarball's host didn't match it, sent no credential at all, and
-  GitHub answered `401 Unauthorized`. It reproduces only on a cold yarn cache - a warm cache never
-  downloads the tarball and so never takes that code path - which is exactly why every local
-  `yarn install` passed while two consecutive CI runs failed. This is the same class of Yarn Classic
-  bug `release.yml`'s "Install Angular dependencies" comment has described since the last time a
-  GitHub Packages URL sat in `yarn.lock`; the alias is a new way into it.
+  **Yarn Classic will silently send no credential for an aliased package.** It picks the registry -
+  and hence the auth token - for a *tarball* download by the scope of the name it knows the package
+  by, which for an `npm:` alias is the **alias's** scope, not the target's. With only the target
+  scope mapped, yarn fell back to the default registry, found the tarball's host didn't match, sent
+  nothing, and GitHub answered `401 Unauthorized`. It reproduces only on a **cold** yarn cache - a
+  warm one never downloads the tarball and never reaches that code path - so every local
+  `yarn install` passed while two consecutive CI runs failed. The tell is in yarn's own output:
+  `Resolving packages` succeeding and `Fetching packages` 401ing means auth works for metadata and
+  the problem is the tarball path, i.e. not the credential.
 
-  Along the way the same npm auth now uses `PACKAGES_READ_TOKEN` (the PAT-scoped-to-`read:packages`
-  secret `release.yml`'s "Verify packed NuGet packages restore cleanly" already used) instead of
-  `secrets.GITHUB_TOKEN`, matching the NuGet side and `GITHUB_TOKEN`'s documented "the workflow
-  repository only" package scoping. Note this was **not** what the 401s were about, and whether
-  `GITHUB_TOKEN` alone would have sufficed once the scope mapping was fixed was never isolated -
-  the token swap rides on documented behaviour and the NuGet precedent, not on a measurement.
-  `ci.yml`'s briefly-added `packages: read` permission is gone again, and no "Manage Actions access"
-  grant turned out to be required either.
+  **A `${VAR}` placeholder in a committed `.npmrc` is a trap.** While a credential was needed it was
+  briefly written that way, which made *every* yarn invocation in `angular/` fail with
+  `Failed to replace env in config` whenever the variable was unset - including `yarn start`,
+  `yarn build` and `yarn test`, none of which touch a registry. Credentials belong in the user-level
+  `~/.npmrc`; the committed file names none.
 
-  **`release.yml`'s "Verify packed npm package installs and bundles cleanly" (`packed` mode) step
-  would otherwise have failed on the next actual release attempt** - a real, verified break, not a
-  hypothetical one: it installs the *raw* packed `dist/site/package.json`, which still names its
-  siblings by their plain `@dignite/*` names and range (the alias rewrite only happens later, at the
-  GitHub Packages publish step), and the release's NuGet packages are already pushed live by the time
-  this step runs (`release.yml`'s "Push to GitHub Packages (pre-release)"/"Push to NuGet.org (stable)"
-  precede it), so the failure would have left a release half-published rather than merely failing
-  cleanly. Fixed by teaching `verify-packed-npm-install.sh`'s `packed` mode an optional third
-  `<packages-read-token>` argument: when given, it reads every `@dignite/*` range the packed tarball
-  itself declares (plus `@dignite/ng.file-explorer`'s, inferred from `@dignite/ng.flex-fields`'s own
-  range, since it never appears as a direct dependency of `@dignite/ng.site`) and points them at their
-  `npm:@dignite-projects/<name>@<range>` aliases via npm's `overrides` field - reading the range fresh
-  from the tarball rather than hardcoding it, so this keeps working across future flex-fields bumps
-  without a matching edit here. Its pre-existing `published` mode needed the identical fix, for the
-  identical reason, and had simply never been exercised against a GitHub-Packages-only flex-fields
-  version before now: `@dignite-projects/ng.site` is this repo's own package, but its rewritten
-  dependencies point at abp-modules'. `release.yml`'s two invocations now both pass
-  `secrets.PACKAGES_READ_TOKEN`. Verified against a real packed tarball with a personal PAT: fails
-  with the original `ETARGET` error without a token, installs and bundles cleanly with one.
+  Along the way `release.yml`'s "Verify packed npm package installs and bundles cleanly" (`packed`
+  mode) turned out to be genuinely fragile: it installs the *raw* packed `dist/site/package.json`, so
+  it 404s on any flex-fields version not yet on npmjs - and it runs *after* the NuGet packages are
+  pushed live, so that failure would leave a release half-published rather than merely failing.
+  `verify-packed-npm-install.sh`'s `packed` mode now takes an optional token and, given one,
+  redirects every `@dignite/*` dependency the tarball declares through its `@dignite-projects` alias
+  via npm `overrides`, reading each range fresh from the tarball rather than hardcoding it. Nothing
+  passes that token today; it is there for the next time a dependency is consumed before it reaches
+  npmjs. Verified against a real packed tarball, with and without.
 
 ### Removed
 

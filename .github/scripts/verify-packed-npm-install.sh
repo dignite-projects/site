@@ -34,14 +34,12 @@
 #     because a plain `npm install` here otherwise resolves those siblings straight from public
 #     npmjs, which 404s for as long as a given flex-fields version is GitHub-Packages-only
 #     (workflow_dispatch-only releases in abp-modules skip the tag-triggered step that mirrors to
-#     public npmjs - see CHANGELOG.md's 10.0.0-rc.16 entry). release.yml passes
-#     `secrets.PACKAGES_READ_TOKEN` rather than `secrets.GITHUB_TOKEN`, matching the NuGet side and
-#     GITHUB_TOKEN's documented "own repository only" package scoping; any token that can read
-#     abp-modules' packages works here. Note this mode runs `npm`, not `yarn`, so it is unaffected
-#     by the Yarn-Classic alias/auth trap angular/.npmrc documents - npm resolves the alias target's
-#     own scope. Omit the token and this mode reverts to installing every `@dignite/*` sibling from
-#     its plain public-npmjs name, unchanged from before this existed - the right behavior again
-#     once every flex-fields dependency in play is fully public.
+#     public npmjs - see CHANGELOG.md's 10.0.0-rc.16 entry for the one time that happened). It is
+#     dormant today and release.yml passes no token: flex-fields is public again, so the packed
+#     manifest's plain `@dignite/*` names resolve exactly as they say. Reach for it if a flex-fields
+#     release is ever consumed here before it reaches npmjs. Any token that can read abp-modules'
+#     packages works - `secrets.GITHUB_TOKEN` does, given the "Manage Actions access" grant those
+#     packages carry for this repository.
 #
 #   published <version> <packages-read-token>
 #     Installs what was actually published to GitHub Packages, after the publish step. Not
