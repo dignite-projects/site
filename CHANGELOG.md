@@ -57,6 +57,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ci.yml`'s briefly-added `packages: read` permission is gone again, and no "Manage Actions access"
   grant turned out to be required either.
 
+  **The credential itself is no longer named in the committed `angular/.npmrc`.** It briefly was, as
+  `${PACKAGES_READ_TOKEN}`, and that broke local development outright: any `${...}` placeholder in a
+  committed `.npmrc` makes *every* yarn invocation in that directory fail with `Failed to replace env
+  in config` when the variable is unset - including `yarn start`, `yarn build` and `yarn test`, none
+  of which touch this registry. The file now carries only the two scope mappings, and both CI
+  workflows write the token to `~/.npmrc` in an "Authenticate to GitHub Packages" step instead.
+  Developers do the same thing once, by hand - the file documents the command. Note a plain
+  `repo`-scoped token is not sufficient; this needs `read:packages`.
+
+  The `//npm.pkg.github.com/:always-auth=true` line is gone too: with both scopes mapped, yarn
+  already attaches the token to the tarball download without it, and npm 11 warns on every
+  invocation that the per-registry form is unknown config. Verified by cold-cache installs with and
+  without it - the fix was always the `@dignite` scope mapping, never `always-auth`.
+
   **`release.yml`'s "Verify packed npm package installs and bundles cleanly" (`packed` mode) step
   would otherwise have failed on the next actual release attempt** - a real, verified break, not a
   hypothetical one: it installs the *raw* packed `dist/site/package.json`, which still names its

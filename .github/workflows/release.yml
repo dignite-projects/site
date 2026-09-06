@@ -40,35 +40,30 @@ jobs:
       contents: write # Required by softprops/action-gh-release to create a draft Release
       packages: write # Required to push pre-release NuGet/npm packages to GitHub Packages
 
-    # angular/.npmrc references ${PACKAGES_READ_TOKEN} to authenticate the @dignite-projects scope
-    # against GitHub Packages. As of 10.0.0-rc.16, angular/package.json aliases @dignite/ng.flex-fields
-    # (and its -ckeditor/-file-explorer adapters, and @dignite/ng.file-explorer) to
-    # "npm:@dignite-projects/<name>@<range>" (see the "Install Angular dependencies" step below for
-    # why), which is what actually routes those four through this scope/token - GitHub Packages'
-    # npm registry requires the scope to equal the owning org login, so @dignite itself has no
-    # registry entry there at all. setup-node's `cache: yarn` reads angular/.npmrc (to prime/verify
-    # the cache) before any later step gets a chance to export the token itself, so it has to be a
-    # job-level env, not just set on that step. (ci.yml carries the same env: block for the same
-    # reason; this comment is the one canonical copy of the reasoning - keep them in sync.)
+    # As of 10.0.0-rc.16, angular/package.json aliases @dignite/ng.flex-fields (and its
+    # -ckeditor/-file-explorer adapters, and @dignite/ng.file-explorer) to
+    # "npm:@dignite-projects/<name>@<range>" - GitHub Packages' npm registry requires the scope to
+    # equal the owning org login, so @dignite has no registry entry there at all. angular/.npmrc maps
+    # both scopes (the @dignite one is needed because yarn picks a tarball's registry, and hence its
+    # auth token, by the ALIAS's scope) and deliberately holds no token placeholder; the credential
+    # is written to ~/.npmrc by the "Authenticate to GitHub Packages" step below, in this workflow
+    # and in ci.yml alike. angular/.npmrc carries the full account of both decisions.
     #
     # PACKAGES_READ_TOKEN (a PAT scoped to read:packages only), not secrets.GITHUB_TOKEN - the same
     # choice "Verify packed NuGet packages restore cleanly" below already made, for the same
     # documented reason: GITHUB_TOKEN's package access is scoped to the workflow's own repository,
     # and these packages are published by a different one (abp-modules). Whether GITHUB_TOKEN would
-    # in fact be refused here has never been isolated - the CI 401s that led to this token were a
-    # different bug entirely (yarn was sending no token at all; see angular/.npmrc's own comment) -
-    # so this is the documented-behavior choice plus the NuGet side's precedent, not a measurement.
-    # If someone wants the ephemeral token back, that experiment is one commit and one CI run.
+    # in fact be refused has never been isolated - the CI 401s that led here were a different bug
+    # entirely (yarn was sending no token at all) - so this is the documented-behavior choice plus
+    # the NuGet side's precedent, not a measurement.
     #
     # To revert once abp-modules tags a release that mirrors flex-fields (rc.16 or a successor) to
     # public npmjs again: drop the four npm: aliases in angular/package.json's dependencies and
-    # resolutions blocks back to plain semver ranges; change check-angular-package-duplicates.mjs's
-    # target list in both this file and ci.yml from @dignite-projects back to @dignite. Leave
-    # PACKAGES_READ_TOKEN itself and angular/.npmrc's @dignite-projects mapping in place either way -
-    # they're what "Verify packed NuGet packages restore cleanly" already depends on permanently, and
-    # cost nothing unused.
-    env:
-      PACKAGES_READ_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
+    # resolutions blocks back to plain semver ranges; drop the @dignite mapping from angular/.npmrc
+    # (the @dignite-projects one stays - this workflow publishes under it); change
+    # check-angular-package-duplicates.mjs's target list in both this file and ci.yml from
+    # @dignite-projects back to @dignite. That also gives developers their tokenless local
+    # `yarn install` back, which is the part with the ongoing cost.
 
     steps:
       - name: Checkout site
@@ -240,18 +235,24 @@ jobs:
           cache: yarn
           cache-dependency-path: site/angular/yarn.lock
 
-      # angular/.npmrc maps the @dignite-projects scope to GitHub Packages; ${GITHUB_TOKEN} in that
-      # file is a literal env-var placeholder npm/yarn substitute at read time, so it has to be
-      # present in the environment here (it is, job-level - see the env: block above).
-      #
+      # Same credential handling as ci.yml, for the reason angular/.npmrc explains: no token
+      # placeholder in the committed file, so it goes to ~/.npmrc here instead. This has to run
+      # before the install below, and before "Configure npm registry for publishing" further down
+      # redirects npm's user config elsewhere.
+      - name: Authenticate to GitHub Packages
+        env:
+          PACKAGES_READ_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
+        run: printf '//npm.pkg.github.com/:_authToken=%s\n' "$PACKAGES_READ_TOKEN" >> ~/.npmrc
+
       # Yarn with the committed lockfile, matching ci.yml and every developer machine. This step
       # used to be `npm install --no-package-lock` because Yarn Classic fetches a dependency whose
       # lockfile entry carries a GitHub Packages "resolved" URL through a code path that never
       # attaches registry auth. That was fixed, and for a while every @dignite/* package resolved
       # from public npmjs instead - but as of 10.0.0-rc.16, @dignite/* aliases back onto GitHub
-      # Packages (see the job-level env: block's comment), so this step is exercising that auth
-      # path again. --legacy-peer-deps is gone with npm: Yarn Classic does not enforce peer ranges,
-      # which is what that flag was working around (@swimlane/ngx-datatable@22 wants
+      # Packages, and the alias reopened the same wound from a new angle (yarn keys a tarball's
+      # registry, hence its token, off the ALIAS's scope), which is why angular/.npmrc now maps
+      # @dignite too. --legacy-peer-deps is gone with npm: Yarn Classic does not enforce peer
+      # ranges, which is what that flag was working around (@swimlane/ngx-datatable@22 wants
       # @angular/common 18-20.x, workspace is on 21.2.x).
       #
       # It also matters for the duplicate check below: npm dedupes graphs that Yarn Classic splits
