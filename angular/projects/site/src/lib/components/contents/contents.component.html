@@ -3,12 +3,11 @@
     <div class="row align-items-end g-2 mb-3">
       <div class="col-md-3">
         <label class="form-label">{{ 'Site::Menu:Pages' | abpLocalization }}</label>
-        <select class="form-select" [(ngModel)]="filters.pageId" (change)="onPageChange()">
-          <option [ngValue]="null">--</option>
-          @for (page of pages; track page.id) {
-            <option [ngValue]="page.id">{{ page.displayName }}</option>
-          }
-        </select>
+        <site-page-tree-select
+          [pages]="pages"
+          [value]="filters.pageId"
+          (valueChange)="onPageChange($event)"
+        ></site-page-tree-select>
       </div>
       <div class="col-md-2">
         <label class="form-label">{{ 'Site::DisplayName:Content.ContentType' | abpLocalization }}</label>
