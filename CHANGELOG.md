@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
+  `@dignite/ng.file-explorer` from `^10.0.0-rc.16` to `^10.0.0-rc.17`** in `angular/package.json`
+  (Host dev app, including its `resolutions` pins) and `angular/projects/site/package.json`
+  (published library). The library's floor has to move, not just the Host's: the field arrangement
+  picker now imports `FlexFieldsStyleLoader`/`NZ_SELECT_STYLE`, which first ship in rc.17. This also
+  picks up rc.17's `DateTimeViewComponent` fix - `Date`/`Month`-mode fields no longer show a time part
+  in read-only views.
+
+  rc.17 stops compiling third-party CSS into the flex-fields packages and has the host serve it under
+  a fixed bundle name instead, so the Host's `angular.json` changed with it:
+
+  - **`ckeditor5` is new** (`node_modules/ckeditor5/dist/ckeditor5.css`, `inject: false`).
+    `@dignite/ng.flex-fields-ckeditor` used to inline CKEditor's stylesheet; without this entry every
+    CKEditor field renders as blank space.
+  - **`ng-zorro-antd-select` goes from `inject: true` to `inject: false`.** flex-fields' `Select`
+    controls now fetch `ng-zorro-antd-select.css` by that literal name, and under the production
+    `outputHashing: "all"` an injected entry is emitted as `ng-zorro-antd-select-<hash>.css` - the
+    fetch would 404 and log a missing-bundle error on every page with a Select field, even though the
+    rules were on the page anyway. `FieldArrangementComponent` renders an `nz-select` of its own, so
+    it now requests the same bundle through the same `FlexFieldsStyleLoader` in `ngOnInit`, the way
+    `abp-tree` loads `ng-zorro-antd-tree.css`, rather than leaning on the injected `tree-select` and
+    `auto-complete` bundles happening to contain the select rules too.
+
+  **Hosts consuming `@dignite/ng.site` need the same two `angular.json` changes** - the library
+  README's "Required global styles" section now lists them.
+
 ## [0.1.0-preview.12] - 2026-09-06
 
 ### Added

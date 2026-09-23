@@ -49,7 +49,7 @@ never with the scoped component styles an Angular library ships to consumers.
 
 That makes this a hard limitation, not an oversight: ng-packagr has no mechanism to add entries to
 a *consuming application's* `angular.json` (or global style bundle), so every app that installs
-`@dignite/ng.site` has to register these four stylesheets itself. Skipping this doesn't break the
+`@dignite/ng.site` has to register these stylesheets itself. Skipping this doesn't break the
 build - it silently leaves the affected controls unstyled (e.g. a tree-select panel with no
 background or positioning). This has already caught out two separate hosts (this repo's own `Host`
 app and the `cloud` project both needed the identical fix) - budget for it on every new one.
@@ -59,12 +59,22 @@ Add to the host app's `angular.json`, in `projects.<app>.architect.build.options
 ```jsonc
 { "input": "node_modules/ng-zorro-antd/tree/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-tree" },
 { "input": "node_modules/ng-zorro-antd/tree-select/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-tree-select" },
-{ "input": "node_modules/ng-zorro-antd/select/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-select" },
-{ "input": "node_modules/ng-zorro-antd/auto-complete/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-auto-complete" }
+{ "input": "node_modules/ng-zorro-antd/select/style/index.min.css", "inject": false, "bundleName": "ng-zorro-antd-select" },
+{ "input": "node_modules/ng-zorro-antd/auto-complete/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-auto-complete" },
+{ "input": "node_modules/ckeditor5/dist/ckeditor5.css", "inject": false, "bundleName": "ckeditor5" }
 ```
 
-If the host doesn't wire global styles through `angular.json`, `@import` the same four paths from
-its root stylesheet instead.
+The two `inject: false` entries are fetched at runtime by fixed file name - `ng-zorro-antd-select.css`
+by `@dignite/ng.flex-fields`' `Select` controls and by this library's field arrangement picker,
+`ckeditor5.css` by `@dignite/ng.flex-fields-ckeditor`, which `@dignite/ng.site/config` always
+registers. `inject: false` is what keeps that name literal: under the production
+`outputHashing: "all"` an injected entry is emitted under a content hash, so the fetch 404s and the
+console reports the bundle as missing. A missing `ckeditor5` entry is the costly one - the editor
+renders as blank space. See the "Styles" section of the `@dignite/ng.flex-fields` and
+`@dignite/ng.flex-fields-ckeditor` READMEs (>= 10.0.0-rc.17).
+
+If the host doesn't wire global styles through `angular.json`, `@import` the three injected paths
+from its root stylesheet instead; the two fetched by name still need their `angular.json` entries.
 
 `ng-zorro-antd` itself is declared as a direct `dependency` of `@dignite/ng.site` (not a peer), the
 same way `@angular/cdk` is: every consumer needs it unconditionally, there's no opt-out the way

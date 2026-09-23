@@ -1,8 +1,8 @@
 import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FieldTypeResolver } from '@dignite/ng.flex-fields';
+import { FieldTypeResolver, FlexFieldsStyleLoader, NZ_SELECT_STYLE } from '@dignite/ng.flex-fields';
 import type { FieldTypeDefinition } from '@dignite/ng.flex-fields';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import type { NzSelectOptionInterface } from 'ng-zorro-antd/select';
@@ -101,11 +101,21 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
     }
   `,
 })
-export class FieldArrangementComponent {
+export class FieldArrangementComponent implements OnInit {
   private readonly fieldTypeResolver = inject(FieldTypeResolver);
   private readonly localization = inject(LocalizationService);
+  private readonly styleLoader = inject(FlexFieldsStyleLoader);
 
   readonly fieldTypes: readonly FieldTypeDefinition[] = this.fieldTypeResolver.getAll();
+
+  /**
+   * Fetches `ng-zorro-antd-select.css` by bundle name, the way flex-fields' own `Select` controls and
+   * `abp-tree` load theirs: the host declares that bundle with `inject: false`, so nothing else puts it
+   * on the page. Same loader as flex-fields, so it is requested once however many selects render.
+   */
+  ngOnInit(): void {
+    this.styleLoader.load(NZ_SELECT_STYLE);
+  }
 
   /** The live arrangement. Mutated in place - the parent reads it back at save time. */
   @Input() arrangement: ContentTypeFieldDto[] = [];
