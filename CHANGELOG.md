@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.13] - 2026-09-23
+
+**BREAKING for hosts consuming `@dignite/ng.site`:** three entries in the host app's `angular.json`
+`styles` array must change - add `ckeditor5` (`inject: false`), and switch `ng-zorro-antd-select`
+and `ng-zorro-antd-tree` to `inject: false`. The library README's "Required global styles" section
+lists the exact entries; the reasons are under Changed and Fixed below.
+
 ### Changed
 
 - **Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
@@ -796,4 +803,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.12...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.13...HEAD
