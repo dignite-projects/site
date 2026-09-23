@@ -1,6 +1,6 @@
 {
   "name": "@dignite/ng.site",
-  "version": "0.1.0-preview.13",
+  "version": "0.1.0-preview.14",
   "dependencies": {
     "@abp/ng.components": "~10.5.0",
     "@angular/cdk": "^21.2.0",
