@@ -59,7 +59,7 @@
               },
               {
                 "input": "node_modules/ng-zorro-antd/tree/style/index.min.css",
-                "inject": true,
+                "inject": false,
                 "bundleName": "ng-zorro-antd-tree"
               },
               {

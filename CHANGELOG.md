@@ -35,6 +35,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Hosts consuming `@dignite/ng.site` need the same two `angular.json` changes** - the library
   README's "Required global styles" section now lists them.
 
+### Fixed
+
+- **In a production build, any page rendering `<abp-tree>` requested `ng-zorro-antd-tree.css` in an
+  unbroken loop of 404s.** The Host declared that bundle with `inject: true` - and the library README
+  told every consuming host to do the same - so under `outputHashing: "all"` it was emitted as
+  `ng-zorro-antd-tree-<hash>.css`, while `abp-tree` fetches the literal `ng-zorro-antd-tree.css` when
+  it initializes. `abp-tree` passes no retry limit to ABP's `LazyLoadService.load`, whose
+  `retryWhen` therefore never gives up, and ABP's error handler removes the failed `<link>` which the
+  retry immediately re-inserts, so the browser fetches again: a replica of that path made 176
+  requests in three seconds. It stops only when the tree is destroyed. The styles themselves were
+  never missing - the hashed injected copy was on the page - which is why it went unnoticed.
+  `ng-zorro-antd-tree` is now `inject: false`, the entry ABP's 7.0 migration guide prescribes, in the
+  Host's `angular.json` and in the library README. Nothing here renders a bare `<nz-tree>` that
+  needed the injected copy, and `nz-tree-select`'s own bundle carries its tree rules. **Hosts
+  consuming `@dignite/ng.site` that copied the old README entry have the same loop** and need the
+  same one-word change.
+
 ## [0.1.0-preview.12] - 2026-09-06
 
 ### Added

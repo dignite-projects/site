@@ -57,24 +57,28 @@ app and the `cloud` project both needed the identical fix) - budget for it on ev
 Add to the host app's `angular.json`, in `projects.<app>.architect.build.options.styles`:
 
 ```jsonc
-{ "input": "node_modules/ng-zorro-antd/tree/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-tree" },
+{ "input": "node_modules/ng-zorro-antd/tree/style/index.min.css", "inject": false, "bundleName": "ng-zorro-antd-tree" },
 { "input": "node_modules/ng-zorro-antd/tree-select/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-tree-select" },
 { "input": "node_modules/ng-zorro-antd/select/style/index.min.css", "inject": false, "bundleName": "ng-zorro-antd-select" },
 { "input": "node_modules/ng-zorro-antd/auto-complete/style/index.min.css", "inject": true, "bundleName": "ng-zorro-antd-auto-complete" },
 { "input": "node_modules/ckeditor5/dist/ckeditor5.css", "inject": false, "bundleName": "ckeditor5" }
 ```
 
-The two `inject: false` entries are fetched at runtime by fixed file name - `ng-zorro-antd-select.css`
-by `@dignite/ng.flex-fields`' `Select` controls and by this library's field arrangement picker,
-`ckeditor5.css` by `@dignite/ng.flex-fields-ckeditor`, which `@dignite/ng.site/config` always
-registers. `inject: false` is what keeps that name literal: under the production
-`outputHashing: "all"` an injected entry is emitted under a content hash, so the fetch 404s and the
-console reports the bundle as missing. A missing `ckeditor5` entry is the costly one - the editor
-renders as blank space. See the "Styles" section of the `@dignite/ng.flex-fields` and
-`@dignite/ng.flex-fields-ckeditor` READMEs (>= 10.0.0-rc.17).
+The three `inject: false` entries are fetched at runtime by fixed file name - `ng-zorro-antd-tree.css`
+by ABP's `<abp-tree>` (which flex-fields' `Tree` field types render; this is the entry ABP's own
+7.0 migration guide prescribes), `ng-zorro-antd-select.css` by `@dignite/ng.flex-fields`' `Select`
+controls and by this library's field arrangement picker, and `ckeditor5.css` by
+`@dignite/ng.flex-fields-ckeditor`, which `@dignite/ng.site/config` always registers.
+`inject: false` is what keeps those names literal: under the production `outputHashing: "all"` an
+injected entry is emitted under a content hash, so the fetch 404s. For the two flex-fields bundles
+that costs a console error - and for `ckeditor5`, an editor that renders as blank space. For
+`ng-zorro-antd-tree` it is worse: `abp-tree` loads with no retry limit, and ABP's `LazyLoadService`
+removes and re-inserts the failed `<link>` on every attempt, so an injected tree entry turns into an
+unbroken stream of 404 requests for as long as a tree is on screen. See the "Styles" section of the
+`@dignite/ng.flex-fields` and `@dignite/ng.flex-fields-ckeditor` READMEs (>= 10.0.0-rc.17).
 
-If the host doesn't wire global styles through `angular.json`, `@import` the three injected paths
-from its root stylesheet instead; the two fetched by name still need their `angular.json` entries.
+If the host doesn't wire global styles through `angular.json`, `@import` the two injected paths
+from its root stylesheet instead; the three fetched by name still need their `angular.json` entries.
 
 `ng-zorro-antd` itself is declared as a direct `dependency` of `@dignite/ng.site` (not a peer), the
 same way `@angular/cdk` is: every consumer needs it unconditionally, there's no opt-out the way
