@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The content list's page filter is now a tree picker.** It was a flat `<select>`, which listed
+  child pages with nothing to say which section each sat under. The new `site-page-tree-select`
+  renders the page hierarchy in an `abp-tree` dropdown, built like flex-fields' `ff-tree-search` so
+  it matches a `Tree` field's filter in the same bar. `@dignite/ng.site` now imports
+  `@abp/ng.components/tree` itself, so `@abp/ng.components` (`~10.5.0`, the same range
+  `@dignite/ng.flex-fields` declares, so the two dedupe) is added to its `dependencies` - it used to
+  arrive only transitively through flex-fields. No host change: `abp-tree` loads the
+  `ng-zorro-antd-tree` bundle the README already requires.
+
 ## [0.1.0-preview.13] - 2026-09-23
 
 **BREAKING for hosts consuming `@dignite/ng.site`:** three entries in the host app's `angular.json`

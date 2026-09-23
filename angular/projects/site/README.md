@@ -65,8 +65,9 @@ Add to the host app's `angular.json`, in `projects.<app>.architect.build.options
 ```
 
 The three `inject: false` entries are fetched at runtime by fixed file name - `ng-zorro-antd-tree.css`
-by ABP's `<abp-tree>` (which flex-fields' `Tree` field types render; this is the entry ABP's own
-7.0 migration guide prescribes), `ng-zorro-antd-select.css` by `@dignite/ng.flex-fields`' `Select`
+by ABP's `<abp-tree>` (which flex-fields' `Tree` field types and this library's content-list page
+filter render; this is the entry ABP's own 7.0 migration guide prescribes), `ng-zorro-antd-select.css`
+by `@dignite/ng.flex-fields`' `Select`
 controls and by this library's field arrangement picker, and `ckeditor5.css` by
 `@dignite/ng.flex-fields-ckeditor`, which `@dignite/ng.site/config` always registers.
 `inject: false` is what keeps those names literal: under the production `outputHashing: "all"` an

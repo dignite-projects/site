@@ -35,6 +35,7 @@ import { ContentListStateService } from '../../services/content-list-state.servi
 import { ContentQueryService } from '../../services/content-query.service';
 import { SiteReferenceDataService } from '../../services/site-reference-data.service';
 import type { ArrangedField, FieldColumn, RowFieldValues } from './arranged-field';
+import { PageTreeSelectComponent } from './page-tree-select.component';
 
 @Component({
   selector: 'site-contents',
@@ -47,6 +48,7 @@ import type { ArrangedField, FieldColumn, RowFieldValues } from './arranged-fiel
     RouterLink,
     FlexFieldSearchComponent,
     FlexFieldViewComponent,
+    PageTreeSelectComponent,
   ],
   providers: [ListService, { provide: LIST_QUERY_DEBOUNCE_TIME, useValue: 300 }],
 })
@@ -175,7 +177,8 @@ export class ContentsComponent {
 
   // --- filters ------------------------------------------------------------------------------------
 
-  onPageChange(): void {
+  onPageChange(pageId: string | null): void {
+    this.filters.pageId = pageId;
     this.filters.contentTypeId = null;
     this.clearSearch();
     this.loadContentTypes();

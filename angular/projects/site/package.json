@@ -2,6 +2,7 @@
   "name": "@dignite/ng.site",
   "version": "0.1.0-preview.13",
   "dependencies": {
+    "@abp/ng.components": "~10.5.0",
     "@angular/cdk": "^21.2.0",
     "@dignite/ng.flex-fields": "^10.0.0-rc.17",
     "@dignite/ng.flex-fields-ckeditor": "^10.0.0-rc.17",
