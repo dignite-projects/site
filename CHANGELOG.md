@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`ci.yml` now checks that the Host's production build contains the stylesheets that components
+  fetch by a fixed name.** The new `check-host-style-bundles.mjs` runs right after `yarn build` and
+  requires `ng-zorro-antd-tree.css`, `ng-zorro-antd-select.css` and `ckeditor5.css` in
+  `dist/Host/browser` under exactly those names. These are the `inject: false` entries that "Required
+  global styles" in the library README requires. Neither way of getting them wrong fails a build.
+  A missing entry only shows up at runtime, as an unstyled control or a blank CKEditor field. An
+  `inject: true` entry works under `ng serve` and gets a hashed file name only in a production build,
+  which is how preview.13's `ng-zorro-antd-tree.css` 404 loop went unnoticed. The failure message
+  says which of the two happened. The list of names is maintained by hand: when a dependency starts
+  fetching another bundle, the README and this step both need the new name.
+
 ## [0.1.0-preview.14] - 2026-09-23
 
 ### Changed
