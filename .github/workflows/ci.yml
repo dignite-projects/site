@@ -207,3 +207,14 @@ jobs:
       - name: Build Host application
         working-directory: site/angular
         run: yarn build
+
+      # The three `inject: false` entries that "Required global styles" in
+      # angular/projects/site/README.md requires. Components fetch them at runtime by these exact
+      # names, so a missing entry or an `inject: true` one (hashed under the production build above)
+      # passes the build and only breaks in the browser. See the script's header. When the README's
+      # list changes, change this one with it.
+      - name: Check Host style bundles fetched by name
+        working-directory: site/angular
+        run: |
+          node ../.github/scripts/check-host-style-bundles.mjs dist/Host/browser \
+            ng-zorro-antd-tree ng-zorro-antd-select ckeditor5
