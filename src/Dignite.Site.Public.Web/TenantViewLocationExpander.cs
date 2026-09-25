@@ -8,13 +8,13 @@ using Volo.Abp.MultiTenancy;
 namespace Dignite.Site.Public;
 
 /// <summary>
-/// Prefers a view location rooted at <c>/Site/...</c> before falling back to the framework's normal
+/// Prefers a view location rooted at <c>/Sites/...</c> before falling back to the framework's normal
 /// candidate locations, so this app's own views live under one dedicated folder instead of the
 /// conventional <c>/Views</c>/<c>/Pages</c> roots. When a tenant is resolved, that prefix becomes
-/// <c>/Site/{tenantName}/...</c> instead of the plain <c>/Site/...</c> one - so a tenant can override
+/// <c>/Sites/{tenantName}/...</c> instead of the plain <c>/Sites/...</c> one - so a tenant can override
 /// any <c>.cshtml</c> the current lookup would otherwise resolve by placing a file at the same relative
 /// path under its own tenant-named folder. The two prefixed forms are mutually exclusive per request -
-/// a tenant request never also tries the plain <c>/Site/...</c> tier - and both fall through to the
+/// a tenant request never also tries the plain <c>/Sites/...</c> tier - and both fall through to the
 /// unmodified candidate locations when nothing matches, so this is purely additive - safe to have
 /// registered even for a host that never ends up using the override.
 /// <para>
@@ -64,7 +64,7 @@ public class TenantViewLocationExpander : IViewLocationExpander
 
         var expanded = baseLocations
             .Where(location => location.StartsWith("/Views/"))
-            .Select(location => $"/Tenants{tenantSegment}{location.RemovePreFix("/Views").RemovePreFix("/{1}")}")
+            .Select(location => $"/Sites{tenantSegment}{location.RemovePreFix("/Views").RemovePreFix("/{1}")}")
             .ToList();
         expanded.AddRange(baseLocations);
         return expanded;

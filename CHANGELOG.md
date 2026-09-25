@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   says which of the two happened. The list of names is maintained by hand: when a dependency starts
   fetching another bundle, the README and this step both need the new name.
 
+### Changed
+
+- **BREAKING: tenant view overrides now resolve from `/Sites/{tenantName}/...` instead of
+  `/Tenants/{tenantName}/...`** (`TenantViewLocationExpander`), and a host with no resolved tenant
+  reads `/Sites/...` instead of `/Tenants/...`. The folder is the surface template authors work in,
+  and a tenant is a site in this product's terms. Move any overrides under `/Tenants` to `/Sites`.
+  Nothing fails if you don't: the lookup silently falls back to the default views and the overrides
+  are ignored.
+
 ## [0.1.0-preview.14] - 2026-09-23
 
 ### Changed
