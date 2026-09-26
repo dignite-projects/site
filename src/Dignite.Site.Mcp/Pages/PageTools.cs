@@ -49,7 +49,9 @@ public class PageTools : ITransientDependency
         [Description(
             "The page's route template, starting with a slash. No placeholder means no content beneath " +
             "it, e.g. '/about' (use '/' for the home page - more generally, a route with nothing before " +
-            "its first placeholder, e.g. '{slug?}' on its own, is the home page too). Embed '{slug}' " +
+            "its first placeholder, e.g. '{slug?}' on its own, is the home page too, unless it requires " +
+            "a slug: '/{slug}' or '/{slug:REGEX}' puts each content at its own root-level address and is " +
+            "not the home page). Embed '{slug}' " +
             "where the slug goes to have content beneath it and require every content there to have " +
             "one, e.g. '/blog/{slug}'; use '{slug?}' instead to also allow one content with an empty " +
             "slug, served at this page's own address, e.g. '/about/{slug?}'. '{slug:REGEX}' is a " +
@@ -116,8 +118,8 @@ public class PageTools : ITransientDependency
             "one; see the warning above before changing it. Dropping '{slug}'/'{slug?}' turns a page that " +
             "has content beneath it into one that does not, and vice versa; switching between '{slug}' " +
             "and '{slug?}' changes whether an empty slug is allowed there. Changing this to or from a " +
-            "route with nothing before its first placeholder also changes whether this page is the home " +
-            "page - see create_page's note on 'route'. None of this re-validates contents that already " +
+            "home route also changes whether this page is the home page - see create_page's note on " +
+            "'route'. None of this re-validates contents that already " +
             "exist - only the next write to one of them sees the new rule.")]
         string? route = null,
         [Description(

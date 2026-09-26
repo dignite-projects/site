@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A root-level route that requires a slug is no longer a home route.** `PageRoute.IsHomeRoute` now
+  also requires the route not to demand a slug, so `/{slug}` and
+  `/{slug:^(privacy-policy|terms-of-service|legal-disclosure)$}` are not home routes, while `/` and
+  `/{slug?}` still are. Such a page gives each content its own root-level address, and none of them
+  is served at `/`. This reverses the 0.1.0-preview.18 note that made `/{slug:...}` a home route. It
+  follows through everywhere the home route is used: `PageDto.IsHomePage`,
+  `SiteSchemaPageDto.IsHomePage`, `FindHomePageAsync` (hreflang x-default and the Home crumb), the
+  sitemap's home priority, the llms.txt title, and the MCP `delete_page` message. Such a page can also
+  have a parent now, where before `PageManager` silently cleared it.
+- The Angular page list no longer has a Home page column, and the unused
+  `DisplayName:Page.IsHomePage` localization key is gone. `PageDto.IsHomePage` stays.
+
 ## [0.1.0-preview.18] - 2026-09-26
 
 ### Added

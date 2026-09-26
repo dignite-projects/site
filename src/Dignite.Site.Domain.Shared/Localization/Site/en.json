@@ -88,7 +88,6 @@
     "Description:Page.Route": "This page's own address, e.g. \"/about\". Add \"{slug}\" (or \"{slug?}\") to give it content, e.g. \"/blog/{slug}\"; \"{slug:^(privacy|terms)$}\" also limits which slugs are allowed. No spaces. Use \"/\" to make this page the home page.",
     "DisplayName:Page.Template": "Template",
     "Description:Page.Template": "The view rendered for this page, whether a request resolves to the page itself (a list) or to one piece of content beneath it (a detail view) - the view decides which case it's in. E.g. \"Default\". Letters, digits, hyphen, underscore and \"/\" only, required.",
-    "DisplayName:Page.IsHomePage": "Home page",
     "DisplayName:Page.ParentId": "Parent page",
     "Description:Page.ParentId": "The page this one is organized under in the admin UI. Organizational only - it does not affect routing. Leave empty for a top-level page.",
     "DisplayName:Page.IsActive": "Active",

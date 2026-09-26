@@ -124,8 +124,8 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
     /// "/" has no meaningful parent, so a route whose own address is the root silently drops whatever
     /// parent was supplied rather than rejecting the combination - see PageManager.NormalizeParent. Uses
     /// "/{slug?}" rather than the literal "/" itself: the seed data already has a page there, and Route's
-    /// own uniqueness index would reject a second one - any route whose own address is the root works the
-    /// same for NormalizeParent's purposes (PageRoute.IsHomeRoute), not just the literal spelling.
+    /// own uniqueness index would reject a second one - any home route works the same for
+    /// NormalizeParent's purposes (PageRoute.IsHomeRoute), not just the literal spelling.
     /// </summary>
     [Fact]
     public async Task Should_Clear_The_Parent_When_The_Page_Becomes_The_Home_Page()
@@ -137,6 +137,22 @@ public class PageManager_Tests : SiteEntityFrameworkCoreTestBase
             "home-parent-child", "Child", "/{slug?}", parentId: parent.Id));
 
         page.ParentId.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// A root-level route that requires a slug shares the root address but is not the home page
+    /// (PageRoute.IsHomeRoute), so it can be organized under a parent like any other page.
+    /// </summary>
+    [Fact]
+    public async Task Should_Keep_The_Parent_Of_A_Root_Level_Page_That_Requires_A_Slug()
+    {
+        var parent = await WithUnitOfWorkAsync(() =>
+            _pageManager.CreateAsync("legal-parent-test", "Parent", "/legal-parent-test"));
+
+        var page = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "legal-parent-child", "Legal", "/{slug:^(privacy-policy|terms-of-service)$}", parentId: parent.Id));
+
+        page.ParentId.ShouldBe(parent.Id);
     }
 
     /// <summary>

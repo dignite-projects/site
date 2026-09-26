@@ -703,13 +703,21 @@ public static class PageRoute
 
     /// <summary>
     /// Whether <paramref name="route"/> is the site's home route - whether its own address
-    /// (<see cref="GetPath"/>) is exactly <c>/</c>, the site root. Not a literal comparison against
-    /// <c>"/"</c>: a route like <c>/{slug?}</c> or <c>/{category}/{slug?}</c> also has no literal segment
-    /// before its first placeholder, so its own address is the root exactly the same way a bare <c>/</c>
-    /// is. Whether a page is the home page is therefore never a stored flag either, the same reasoning the
-    /// class remarks already give for whether a page has content at all.
+    /// (<see cref="GetPath"/>) is exactly <c>/</c>, the site root, and it does not require a slug. Not a
+    /// literal comparison against <c>"/"</c>: a route like <c>/{slug?}</c> or <c>/{category}/{slug?}</c>
+    /// also has no literal segment before its first placeholder, so its own address is the root exactly
+    /// the same way a bare <c>/</c> is. Whether a page is the home page is therefore never a stored flag
+    /// either, the same reasoning the class remarks already give for whether a page has content at all.
+    /// <para>
+    /// A route that requires a slug - <c>/{slug}</c>, <c>/{slug:^(privacy-policy|terms-of-service)$}</c> -
+    /// shares that root address but is not a home route: every content beneath it has an address of its
+    /// own (<c>/privacy-policy</c>), and none of them is ever served at <c>/</c> itself. Such a page exists
+    /// to give contents root-level addresses, not to be the page a visitor lands on. <c>{slug?}</c> is
+    /// different exactly there - its empty-slug content is served at the page's own address, the root.
+    /// </para>
     /// </summary>
-    public static bool IsHomeRoute(string route) => GetPath(route) == "/";
+    public static bool IsHomeRoute(string route) =>
+        GetPath(route) == "/" && (!HasSlug(route) || IsSlugOptional(route));
 
     /// <summary>
     /// Whether <paramref name="route"/> carries any placeholder at all - a template rather than a plain

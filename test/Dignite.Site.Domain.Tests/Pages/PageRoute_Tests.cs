@@ -272,14 +272,17 @@ public class PageRoute_Tests
     /// to be the site root, not merely that the route starts with "/" (every route does). Not limited to
     /// the literal "/" or "{slug?}": any route with nothing but the leading slash before its first
     /// placeholder - even literal text with no separating "/", like "/ab{cd}" - has that same own
-    /// address, the same way GetPath does not distinguish them either.
+    /// address, the same way GetPath does not distinguish them either. A route that requires a slug
+    /// shares that address but is not the home route - its contents each live at their own root-level
+    /// address, never at "/" itself.
     /// </summary>
     [Theory]
     [InlineData("/", true)]
     [InlineData("/{slug?}", true)]
-    [InlineData("/{slug}", true)]
     [InlineData("/{category}/{slug?}", true)]
     [InlineData("/ab{cd}", true)]
+    [InlineData("/{slug}", false)]
+    [InlineData("/{slug:^(privacy-policy|terms-of-service)$}", false)]
     [InlineData("/about", false)]
     [InlineData("/about/{slug?}", false)]
     [InlineData("/blog/{slug}", false)]
@@ -963,7 +966,8 @@ public class PageRoute_Tests
     public void Should_Derive_The_Pages_Own_Path_Before_An_Optional_Placeholder()
     {
         PageRoute.GetPath(CategoryYearMonthRoute).ShouldBe("/news");
-        PageRoute.IsHomeRoute("/{lang?:^(en|zh)$}/{slug}").ShouldBeTrue();
+        PageRoute.GetPath("/{lang?:^(en|zh)$}/{slug}").ShouldBe("/");
+        PageRoute.IsHomeRoute("/{lang?:^(en|zh)$}/{slug?}").ShouldBeTrue();
     }
 
     private const string LegalRoute = "/{slug:^(privacy-policy|terms-of-service)$}";
