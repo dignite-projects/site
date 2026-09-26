@@ -273,7 +273,8 @@ public class ContentManager : DomainService
     /// Enforces what the owning page's route (总体设计 §3.3) says about slugs, ahead of
     /// <see cref="CheckSlugAsync"/> - a structural rule is cheaper to fail on than a uniqueness query, and
     /// more fundamental. A route with neither <c>{slug}</c> nor <c>{slug?}</c> never allows a non-empty
-    /// slug; a route with a mandatory <c>{slug}</c> never allows an empty one. Whether an <i>allowed</i>
+    /// slug; a route with a mandatory <c>{slug}</c> never allows an empty one; a route with
+    /// <c>{slug:REGEX}</c> never allows one its REGEX turns down. Whether an <i>allowed</i>
     /// empty slug is already taken by another content is a separate question, one <see cref="CheckSlugAsync"/>
     /// answers - this method does not duplicate it.
     /// <para>
@@ -299,6 +300,11 @@ public class ContentManager : DomainService
         if (!PageRoute.IsSlugOptional(page.Route) && slug.Length == 0)
         {
             throw new ContentSlugRequiredException(page.Route);
+        }
+
+        if (!PageRoute.IsSlugAllowed(page.Route, slug))
+        {
+            throw new ContentSlugNotMatchingRouteException(page.Route, slug);
         }
     }
 }

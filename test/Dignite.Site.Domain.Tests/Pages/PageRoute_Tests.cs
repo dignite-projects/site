@@ -965,4 +965,96 @@ public class PageRoute_Tests
         PageRoute.GetPath(CategoryYearMonthRoute).ShouldBe("/news");
         PageRoute.IsHomeRoute("/{lang?:^(en|zh)$}/{slug}").ShouldBeTrue();
     }
+
+    private const string LegalRoute = "/{slug:^(privacy-policy|terms-of-service)$}";
+
+    /// <summary>
+    /// {slug:REGEX} is the page's slug - a mandatory one - not a decorative placeholder that merely happens
+    /// to be named slug: the page has content beneath it, and its slug is read back out of a request only
+    /// when the regex accepts it.
+    /// </summary>
+    [Fact]
+    public void Should_Recognize_A_Slug_With_A_Regex()
+    {
+        PageRoute.IsValid(LegalRoute).ShouldBeTrue();
+        PageRoute.HasSlug(LegalRoute).ShouldBeTrue();
+        PageRoute.IsSlugOptional(LegalRoute).ShouldBeFalse();
+        PageRoute.GetPath(LegalRoute).ShouldBe("/");
+
+        PageRoute.TryMatchSlug(LegalRoute, "/privacy-policy", out var slug).ShouldBeTrue();
+        slug.ShouldBe("privacy-policy");
+
+        PageRoute.TryMatchSlug(LegalRoute, "/about", out _).ShouldBeFalse();
+        PageRoute.TryMatchSlug(LegalRoute, "/privacy-policy/extra", out _).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Should_Round_Trip_A_Slug_With_A_Regex_After_Other_Placeholders()
+    {
+        const string route = "/docs/{publishTime:yyyy}/{slug:^[a-z-]+$}";
+
+        var path = PageRoute.Build(route, (name, format) => ResolveSlugAndPublishTime(name, format, "getting-started"));
+
+        path.ShouldBe("/docs/2026/getting-started");
+        PageRoute.TryMatchSlug(route, path, out var slug).ShouldBeTrue();
+        slug.ShouldBe("getting-started");
+        PageRoute.TryMatchSlug(route, "/docs/2026/Getting-Started", out _).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A truncated reading still stops short of the slug when the slug carries a regex -
+    /// /docs/{publishTime:yyyy}/{slug:...} answers /docs/2026 with the year alone, never with a slug.
+    /// </summary>
+    [Fact]
+    public void Should_Stop_A_Truncated_Match_Before_A_Slug_With_A_Regex()
+    {
+        const string route = "/docs/{publishTime:yyyy}/{slug:^[a-z-]+$}";
+
+        PageRoute.TryMatchPartial(route, "/docs/2026", out var values).ShouldBeTrue();
+        values.ShouldContainKeyAndValue("publishTime:yyyy", "2026");
+        values.ContainsKey("slug").ShouldBeFalse();
+
+        PageRoute.TryMatchExact(route, "/docs/2026/getting-started", out _).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A slug never takes a FORMAT, and a lone ":" segment made only of format characters reads as one -
+    /// so a slug regex has to look like a regex. A slug with a regex is still a slug, so it cannot appear
+    /// next to {slug} or {slug?} either.
+    /// </summary>
+    [Theory]
+    [InlineData("/{slug:about}")]
+    [InlineData("/{slug:yyyy}")]
+    [InlineData("/{slug:yyyy:^\\d{4}$}")]
+    [InlineData("/{Slug:about}")]
+    [InlineData("/a/{slug:^a$}/{slug}")]
+    [InlineData("/a/{slug:^a$}/{slug?}")]
+    public void Should_Reject_A_Slug_With_A_Format_Or_Twice(string route)
+    {
+        PageRoute.IsValid(route).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// What a content's slug must satisfy when it is saved, so that the URL built for it is one the site
+    /// routes back - see IsSlugAllowed's remarks.
+    /// </summary>
+    [Theory]
+    [InlineData(LegalRoute, "privacy-policy", true)]
+    [InlineData(LegalRoute, "terms-of-service", true)]
+    [InlineData(LegalRoute, "cookie-policy", false)]
+    [InlineData(LegalRoute, "Privacy-Policy", false)]
+    [InlineData(LegalRoute, "", true)]
+    [InlineData("/blog/{slug}", "anything", true)]
+    [InlineData("/about/{slug?}", "anything", true)]
+    [InlineData("/about", "anything", true)]
+    public void Should_Check_A_Slug_Against_The_Routes_Slug_Regex(string route, string slug, bool expected)
+    {
+        PageRoute.IsSlugAllowed(route, slug).ShouldBe(expected);
+
+        if (slug.Length > 0 && PageRoute.HasSlug(route))
+        {
+            var path = PageRoute.Build(route, (name, _) => name == "slug" ? slug : "x");
+            PageRoute.TryMatchSlug(route, path, out _).ShouldBe(expected);
+        }
+    }
 }

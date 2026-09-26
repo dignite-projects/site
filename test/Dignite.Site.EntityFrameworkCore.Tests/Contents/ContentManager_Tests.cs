@@ -356,4 +356,57 @@ public class ContentManager_Tests : SiteEntityFrameworkCoreTestBase
             return contentType.Id;
         });
     }
+
+    /// <summary>
+    /// A route with {slug:REGEX} turns down a slug its regex does not match when the content is saved -
+    /// the router would never resolve a request for it, so it would be published at a URL that 404s.
+    /// </summary>
+    [Fact]
+    public async Task Should_Reject_A_Slug_The_Routes_Slug_Regex_Does_Not_Match()
+    {
+        var contentTypeId = await CreateContentTypeUnderNewPageAsync(
+            "slug-regex-legal", "/slug-regex-legal/{slug:^(privacy-policy|terms-of-service)$}");
+
+        var accepted = await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, "privacy-policy",
+            SiteTestData.PublishTime, ContentStatus.Draft,
+            new Dictionary<string, object?> { ["title"] = "Privacy Policy" }));
+
+        accepted.Slug.ShouldBe("privacy-policy");
+
+        await Should.ThrowAsync<ContentSlugNotMatchingRouteException>(() => WithUnitOfWorkAsync(() =>
+            _contentManager.CreateAsync(
+                contentTypeId, SiteTestData.EnglishCulture, "cookie-policy",
+                SiteTestData.PublishTime, ContentStatus.Draft,
+                new Dictionary<string, object?> { ["title"] = "Cookie Policy" })));
+
+        await Should.ThrowAsync<ContentSlugNotMatchingRouteException>(() => WithUnitOfWorkAsync(async () =>
+        {
+            var content = await _contentRepository.GetAsync(accepted.Id);
+            await _contentManager.UpdateAsync(
+                content, "cookie-policy", SiteTestData.PublishTime, ContentStatus.Draft);
+        }));
+
+        // Still mandatory, like a bare {slug}.
+        await Should.ThrowAsync<ContentSlugRequiredException>(() => WithUnitOfWorkAsync(() =>
+            _contentManager.CreateAsync(
+                contentTypeId, SiteTestData.EnglishCulture, "",
+                SiteTestData.PublishTime, ContentStatus.Draft,
+                new Dictionary<string, object?> { ["title"] = "No slug" })));
+    }
+
+    private async Task<System.Guid> CreateContentTypeUnderNewPageAsync(string pageName, string route)
+    {
+        var page = await WithUnitOfWorkAsync(() =>
+            GetRequiredService<Dignite.Site.Pages.PageManager>().CreateAsync(pageName, pageName, route));
+
+        return await WithUnitOfWorkAsync(async () =>
+        {
+            var titleField = await _fieldRepository.GetAsync(SiteTestData.TitleFieldId);
+            var contentType = await _contentTypeManager.CreateAsync(
+                page.Id, $"{pageName}-item", $"{pageName} item",
+                fields: new[] { new ContentTypeField(titleField.Id, order: 0) });
+            return contentType.Id;
+        });
+    }
 }

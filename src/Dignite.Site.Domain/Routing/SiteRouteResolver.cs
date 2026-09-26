@@ -151,11 +151,15 @@ public class SiteRouteResolver : DomainService
             return RouteMatch.None;
         }
 
-        // The root is only ever a candidate when the request itself is "/" - shrinking an unrelated,
-        // deeper path all the way down to nothing must not land on whatever page happens to sit at "/"
-        // (almost always the home page) just because there was nowhere shorter left to try. That would
-        // turn every unmatched path into a home page hit instead of a miss.
-        var shortestLength = segments.Length == 0 ? 0 : 1;
+        // A page whose own address is the root is a candidate for a deeper request too, but only for a
+        // full structural answer (tier 1): a root-level template whose placeholders explain the whole
+        // request - /{slug:^(privacy-policy|terms-of-service)$} answering /privacy-policy, the URL
+        // Page.BuildContentPath emits for its content. It gets neither tier 3's truncated guess nor the
+        // page-itself fallback: shrinking an unrelated, deeper path all the way down to nothing must not
+        // land on whatever page happens to sit at "/" (almost always the home page) just because there was
+        // nowhere shorter left to try. That would turn every unmatched path into a home page hit instead
+        // of a miss.
+        var isDeeperThanRoot = segments.Length > 0;
 
         // Fetched once for the whole walk, not once per length: every candidate at every length is a
         // lookup within this same active-page list, so there is no reason to round-trip the database once
@@ -163,7 +167,7 @@ public class SiteRouteResolver : DomainService
         // already do the same way.
         var routablePages = await PageRepository.GetRoutableListAsync(cancellationToken);
 
-        for (var length = segments.Length; length >= shortestLength; length--)
+        for (var length = segments.Length; length >= 0; length--)
         {
             var prefix = BuildPrefix(segments, length);
 
@@ -176,7 +180,8 @@ public class SiteRouteResolver : DomainService
 
             // Tier 3 (ResolveAgainstPageAsync's own truncated-match attempt) is only ever offered to a
             // candidate that is the only one sharing this address - see ResolveAsync's remarks.
-            var isOnlyCandidateAtThisLength = candidates.Count == 1;
+            var isRootOfDeeperRequest = length == 0 && isDeeperThanRoot;
+            var isOnlyCandidateAtThisLength = candidates.Count == 1 && !isRootOfDeeperRequest;
 
             // A candidate with nothing structural to say about the remainder - neither tier 1 nor tier 3
             // applied at all, signalled by null - is the only kind still eligible for the page-itself
@@ -201,6 +206,11 @@ public class SiteRouteResolver : DomainService
                 {
                     return match;
                 }
+            }
+
+            if (isRootOfDeeperRequest)
+            {
+                break;
             }
 
             // Nothing at this length produced a visible structural answer - only now does the tie-break's

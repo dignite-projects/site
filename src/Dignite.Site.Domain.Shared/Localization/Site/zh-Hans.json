@@ -20,6 +20,7 @@
     "Site:040003": "草稿不能设置未来的发布时间（'{PublishTime}'）。要定时发布，请把状态改为「发布」。",
     "Site:040004": "该页面的路由（'{Route}'）没有别名占位符，其下内容不能带别名（传入的是 '{Slug}'）。",
     "Site:040005": "该页面的路由（'{Route}'）要求每条内容都必须有别名，此处不允许别名为空。",
+    "Site:040006": "别名 '{Slug}' 不符合该页面路由（'{Route}'）中的正则，任何请求都访问不到它。",
 
     "Site:060001": "'{PropertyName}' 的值 '{Value}' 格式不合法。",
 
@@ -51,7 +52,7 @@
     "Description:Page.Name": "页面的标识符，供 MCP 工具和模板使用。仅限小写字母、数字、连字符或下划线，例如 \"blog-posts\"。",
     "DisplayName:Page.DisplayName": "显示名称",
     "DisplayName:Page.Route": "路由",
-    "Description:Page.Route": "该页面自身的地址，例如 \"/about\"。加上 \"{slug}\"（或 \"{slug?}\"）即可挂载内容，例如 \"/blog/{slug}\"。不能包含空格。使用 \"/\" 可将该页面设为首页。",
+    "Description:Page.Route": "该页面自身的地址，例如 \"/about\"。加上 \"{slug}\"（或 \"{slug?}\"）即可挂载内容，例如 \"/blog/{slug}\"；写成 \"{slug:^(privacy|terms)$}\" 还可以限定允许哪些别名。不能包含空格。使用 \"/\" 可将该页面设为首页。",
     "DisplayName:Page.Template": "模板",
     "Description:Page.Template": "该页面使用的视图名，无论请求落在页面本身（列表）还是其下某条内容（详情）——由视图自己判断当前是哪种情况。例如 \"Default\"。仅限字母、数字、连字符、下划线和 \"/\"，必填。",
     "DisplayName:Page.IsHomePage": "首页",

@@ -27,6 +27,7 @@ public static class SiteErrorCodes
     public const string ContentDraftCannotHaveFuturePublishTime = "Site:040003";
     public const string ContentSlugNotAllowed = "Site:040004";
     public const string ContentSlugRequired = "Site:040005";
+    public const string ContentSlugNotMatchingRoute = "Site:040006";
 
     public const string PrimaryDomainNotConfigured = "Site:050001";
 

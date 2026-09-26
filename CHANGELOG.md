@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A page's slug can carry a regex: `{slug:REGEX}`.** Every other route placeholder already took one;
+  the slug did not, because `PageRoute.HasSlug` only recognized the literal `{slug}`/`{slug?}` tokens,
+  so `{slug:...}` was treated as a decorative placeholder and the page had no content beneath it. It is
+  now a mandatory slug that a request's slug segment must also match. The case it is for: a few
+  contents that share one template, each at its own root-level address, e.g.
+  `/{slug:^(privacy-policy|terms-of-service|legal-disclosure)$}`. A bare `/{slug}` would do the same,
+  except that the page would then answer for every other root-level path as well.
+  - `ContentManager` rejects a slug the regex does not match, on create and update, with the new
+    `Site:040006` (`ContentSlugNotMatchingRouteException`). Without this check, such a content would get
+    a sitemap, canonical and hreflang URL that the site answers with 404. `PageRoute.IsSlugAllowed` is
+    the check, and it matches exactly the way the router does.
+  - Changing a page's route to one whose regex excludes existing contents is not re-validated. This is
+    the same rule as every other slug requirement: it applies to the next write of each content.
+  - A slug takes no FORMAT: `IsValid` now rejects `{slug:FORMAT}` and `{slug:FORMAT:REGEX}`. A single
+    `:` segment is still classified by its characters, so `{slug:about}` reads as a FORMAT and is
+    rejected. Write the regex as `{slug:^about$}`. `{slug?:REGEX}` stays invalid.
+  - The Admin content editor treats `{slug:REGEX}` as a required slug. Whether the slug matches is
+    decided by the server, since a .NET pattern does not always mean the same thing in JavaScript.
+  - A route whose own address is `/`, such as `/{slug:...}`, is a home route
+    (`PageRoute.IsHomeRoute`), the same as `/{slug?}` has always been. The literal `/` page still wins
+    `FindHomePageAsync` and the request for `/`.
+
+### Fixed
+
+- **A root-level template now resolves the URLs it builds.** `SiteRouteResolver` only considered pages
+  at `/` when the request itself was `/`. So a content under `/{slug}` or `/{slug?}` got `/welcome`
+  from `Page.BuildContentPath` in the sitemap, canonical and hreflang, and that URL answered 404. A page
+  at `/` is now a candidate for a deeper request when its placeholders explain the whole path (tier 1).
+  The truncated reading (tier 3) and the page-itself fallback are still withheld at `/`, so an unmatched
+  path still misses instead of landing on the home page.
+
 ## [0.1.0-preview.17] - 2026-09-26
 
 ### Added

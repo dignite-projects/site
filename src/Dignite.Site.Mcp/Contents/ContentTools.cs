@@ -137,7 +137,8 @@ public class ContentTools : ITransientDependency
             "requires a real slug from every content there; '{slug?}' also allows ONE content with an " +
             "empty slug, served at the page's own address - if that slot is already taken, an empty slug " +
             "fails with Site:040001, and if the route allows no slug at all, a non-empty one fails with " +
-            "Site:040004. A title is acceptable here and will be turned into a slug.")]
+            "Site:040004. A route with '{slug:REGEX}' only accepts a slug that REGEX matches - any other " +
+            "fails with Site:040006. A title is acceptable here and will be turned into a slug.")]
         string slug,
         [Description("Field values keyed by the field 'name' from get_site_schema. Not the display name.")]
         Dictionary<string, object?>? fieldValues = null,

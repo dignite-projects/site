@@ -52,7 +52,11 @@ public class PageTools : ITransientDependency
             "its first placeholder, e.g. '{slug?}' on its own, is the home page too). Embed '{slug}' " +
             "where the slug goes to have content beneath it and require every content there to have " +
             "one, e.g. '/blog/{slug}'; use '{slug?}' instead to also allow one content with an empty " +
-            "slug, served at this page's own address, e.g. '/about/{slug?}'. Any other field the " +
+            "slug, served at this page's own address, e.g. '/about/{slug?}'. '{slug:REGEX}' is a " +
+            "required slug that must also match REGEX, e.g. '/{slug:^(privacy-policy|terms-of-service)$}' " +
+            "for a few root-level pages that share one template - the REGEX must contain a character " +
+            "other than letters, digits, '.', '_', '-' (anchor it with ^...$), or it reads as a FORMAT, " +
+            "which a slug never takes. Any other field the " +
             "content has can appear too - a system field or a custom one, it makes no difference - " +
             "optionally with a ':FORMAT' suffix, e.g. '{publishTime:yyyy-MM}' for '2026-07', e.g. " +
             "'/news/{publishTime:yyyy-MM}/{slug}' for '/news/2026-07/<slug>'. A FORMAT may only contain " +

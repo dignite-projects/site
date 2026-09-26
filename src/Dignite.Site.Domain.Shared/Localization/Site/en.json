@@ -22,6 +22,7 @@
     "Site:040003": "A draft cannot have a publish time in the future ('{PublishTime}'). Set status to Published to schedule it for then.",
     "Site:040004": "This page's route ('{Route}') has no slug placeholder, so its content cannot have a slug ('{Slug}' given).",
     "Site:040005": "This page's route ('{Route}') requires a slug for every content beneath it; an empty slug is not allowed here.",
+    "Site:040006": "The slug '{Slug}' does not match the pattern in this page's route ('{Route}'), so no request could reach it.",
 
     "Site:050001": "This site has no primary domain configured, so absolute URLs cannot be generated. Set the 'Primary domain' setting.",
 
@@ -84,7 +85,7 @@
     "Description:Page.Name": "The page's identifier, used by MCP tools and templates. Lowercase letters, digits, hyphen or underscore only, e.g. \"blog-posts\".",
     "DisplayName:Page.DisplayName": "Display name",
     "DisplayName:Page.Route": "Route",
-    "Description:Page.Route": "This page's own address, e.g. \"/about\". Add \"{slug}\" (or \"{slug?}\") to give it content, e.g. \"/blog/{slug}\". No spaces. Use \"/\" to make this page the home page.",
+    "Description:Page.Route": "This page's own address, e.g. \"/about\". Add \"{slug}\" (or \"{slug?}\") to give it content, e.g. \"/blog/{slug}\"; \"{slug:^(privacy|terms)$}\" also limits which slugs are allowed. No spaces. Use \"/\" to make this page the home page.",
     "DisplayName:Page.Template": "Template",
     "Description:Page.Template": "The view rendered for this page, whether a request resolves to the page itself (a list) or to one piece of content beneath it (a detail view) - the view decides which case it's in. E.g. \"Default\". Letters, digits, hyphen, underscore and \"/\" only, required.",
     "DisplayName:Page.IsHomePage": "Home page",

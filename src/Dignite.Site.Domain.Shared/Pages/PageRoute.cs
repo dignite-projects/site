@@ -27,6 +27,15 @@ namespace Dignite.Site.Pages;
 /// <c>Slug</c> is the only piece of a route that identifies a content (总体设计 §2.4's natural key).
 /// </para>
 /// <para>
+/// The slug itself takes a REGEX too - <c>{slug:REGEX}</c>, a mandatory slug a request's slug segment
+/// must also match: <c>/{slug:^(privacy-policy|terms-of-service)$}</c> gives a few contents their own
+/// root-level addresses without the page answering for every other root-level path the way a bare
+/// <c>/{slug}</c> would. The REGEX is also what a content's own slug must match when it is saved
+/// (<see cref="IsSlugAllowed"/>) - otherwise the site would emit a URL for it that it then refuses to
+/// route. A slug takes no FORMAT (it is text, and a format only ever formats an <c>IFormattable</c>), and
+/// no optional marker next to a REGEX - see <see cref="AreOptionalPlaceholdersWellFormed"/>.
+/// </para>
+/// <para>
 /// A single <c>:</c> after a name is ambiguous on its own - <c>{publishTime:yyyy-MM}</c> and
 /// <c>{time:^\d{2}:\d{2}$}</c> are both exactly one segment. It is resolved by content, not position: a
 /// segment made up only of <see cref="FormatCharacters"/> is a format (this is what keeps every existing
@@ -171,6 +180,15 @@ public static class PageRoute
         public static RouteToken ForPlaceholder(string name, string? format, string? regexPattern, bool isOptional) =>
             new(RouteTokenKind.Placeholder, null, name, format, regexPattern, isOptional);
     }
+
+    /// <summary>
+    /// Whether <paramref name="token"/> is the route's slug - <c>{slug}</c> or <c>{slug:REGEX}</c> once
+    /// <see cref="Canonicalize"/> has run, never one carrying a FORMAT (<see cref="IsValid"/> rejects that
+    /// shape outright, see the class remarks).
+    /// </summary>
+    private static bool IsSlugPlaceholder(RouteToken token) =>
+        token is { Kind: RouteTokenKind.Placeholder, Format: null } &&
+        string.Equals(token.Name, "slug", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// A placeholder name starts with a letter or digit and continues with letters, digits, <c>_</c> or
@@ -602,6 +620,11 @@ public static class PageRoute
     /// rules.
     /// </para>
     /// <para>
+    /// A placeholder named <c>slug</c> never carries a FORMAT. Note that the lone-<c>:</c> disambiguation
+    /// applies to it like to any other name: <c>{slug:about}</c> reads as a FORMAT and is rejected here, so
+    /// a slug REGEX has to look like one - <c>{slug:^about$}</c>, which also anchors it.
+    /// </para>
+    /// <para>
     /// A placeholder's dedup key is its name alone, or <c>name:FORMAT</c> when a format is present - never
     /// its regex, even for a 3-segment placeholder - because two placeholders sharing that key would also
     /// collide at match time, in the single capture dictionary <see cref="TryMatchPartial"/>/
@@ -635,6 +658,13 @@ public static class PageRoute
         }
 
         var placeholders = tokens.Where(t => t.Kind == RouteTokenKind.Placeholder).ToList();
+
+        // {slug:FORMAT} would be a placeholder named slug that is not the slug - one the content editor,
+        // the router and the save-time check would each have to decide about separately.
+        if (placeholders.Any(t => string.Equals(t.Name, "slug", StringComparison.OrdinalIgnoreCase) && t.Format != null))
+        {
+            return false;
+        }
 
         var seenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var placeholder in placeholders)
@@ -689,11 +719,38 @@ public static class PageRoute
     /// </summary>
     public static bool IsTemplate(string route) => route.IndexOf('{') >= 0;
 
-    /// <summary>Whether <paramref name="route"/> carries a <c>{slug}</c> or <c>{slug?}</c> - whether the page has content beneath it.</summary>
+    /// <summary>
+    /// Whether <paramref name="route"/> carries a <c>{slug}</c>, <c>{slug?}</c> or <c>{slug:REGEX}</c> -
+    /// whether the page has content beneath it.
+    /// </summary>
     public static bool HasSlug(string route)
     {
-        return route.Contains(SlugToken, StringComparison.OrdinalIgnoreCase) ||
-               route.Contains(OptionalSlugToken, StringComparison.OrdinalIgnoreCase);
+        if (route.Contains(SlugToken, StringComparison.OrdinalIgnoreCase) ||
+            route.Contains(OptionalSlugToken, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return TryParseRoute(route, out var tokens) && tokens.Any(IsSlugPlaceholder);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="slug"/> may be stored beneath <paramref name="route"/> as far as the slug's
+    /// own REGEX is concerned - true when the route's slug has none, and for an empty slug, whose rules are
+    /// <see cref="HasSlug"/>'s and <see cref="IsSlugOptional"/>'s. Matched exactly as a request's slug
+    /// segment is (<see cref="Accept"/>), so what this lets through is what <see cref="TryMatchSlug"/> will
+    /// route back: a content saved with a slug its route's REGEX turns down would get a URL in the sitemap,
+    /// canonical and hreflang that the site itself answers with 404.
+    /// </summary>
+    public static bool IsSlugAllowed(string route, string slug)
+    {
+        if (slug.Length == 0 || !TryParseRoute(route, out var tokens))
+        {
+            return true;
+        }
+
+        var slugToken = tokens.FirstOrDefault(IsSlugPlaceholder);
+        return slugToken?.RegexPattern == null || GetCompiledRegex(slugToken.RegexPattern).IsMatch(slug);
     }
 
     /// <summary>
@@ -848,11 +905,9 @@ public static class PageRoute
             return false;
         }
 
-        // Keyed by "slug" alone (bare, no format/regex) - a placeholder that merely happens to be *named*
-        // slug but carries its own :FORMAT or :REGEX, e.g. {slug:someRegex}, keys as "slug:someRegex" and
-        // is deliberately not recognized here either, a pre-existing quirk this only extends to the regex
-        // case: HasSlug/IsSlugOptional already only ever recognize the bare {slug}/{slug?} tokens, so a
-        // route carrying only the decorated form would never even reach this method with HasSlug true.
+        // Keyed by "slug" alone - a capture key never includes a regex (GetCaptureKey), so {slug:REGEX}
+        // lands here the same as {slug}, its regex already applied by Accept. {slug:FORMAT} would key as
+        // "slug:FORMAT", but IsValid never lets that shape be stored.
         if (captures.TryGetValue("slug", out var value))
         {
             slug = value;
@@ -931,12 +986,7 @@ public static class PageRoute
         var upperCut = placeholderTokenIndexes.Count - 1;
         if (HasSlug(route))
         {
-            upperCut = placeholderTokenIndexes.FindIndex(tokenIndex =>
-            {
-                var token = tokens[tokenIndex];
-                return string.Equals(token.Name, "slug", StringComparison.OrdinalIgnoreCase) &&
-                       token.Format == null && token.RegexPattern == null;
-            });
+            upperCut = placeholderTokenIndexes.FindIndex(tokenIndex => IsSlugPlaceholder(tokens[tokenIndex]));
         }
 
         // cut counts how many placeholders before slug are filled - from all but the last down to just the
@@ -1153,6 +1203,7 @@ public static class PageRoute
     {
         SlugToken,
         OptionalSlugToken,
+        "{slug:^(privacy-policy|terms-of-service)$}",
         "{publishTime:yyyy-MM}",
         "{publishTime:yyyy-MM:^\\d{4}-(0[1-9]|1[0-2])$}",
         "{publishTime?:MM:^(0[1-9]|1[0-2])$}"

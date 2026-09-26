@@ -573,4 +573,52 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
 
         match.IsMatch.ShouldBeFalse();
     }
+
+    /// <summary>
+    /// A root-level {slug:REGEX} page gives a few contents their own root addresses next to the literal
+    /// home page and every other root-level page, and answers for nothing else: a slug its regex turns
+    /// down is not looked up at all, and "/" stays the home page's.
+    /// </summary>
+    [Fact]
+    public async Task Should_Resolve_A_Root_Level_Slug_With_A_Regex_Beside_The_Home_Page()
+    {
+        var legal = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "legal", "Legal", "/{slug:^(privacy-policy|terms-of-service)$}"));
+
+        var titleField = await WithUnitOfWorkAsync(() => _fieldRepository.GetAsync(SiteTestData.TitleFieldId));
+
+        var contentTypeId = await WithUnitOfWorkAsync(async () =>
+        {
+            var contentType = await _contentTypeManager.CreateAsync(
+                legal.Id, "legal-document", "Legal document",
+                fields: new[] { new ContentTypeField(titleField.Id, order: 0) });
+            return contentType.Id;
+        });
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, "privacy-policy", SiteTestData.PublishTime,
+            ContentStatus.Published, new Dictionary<string, object?> { ["title"] = "Privacy Policy" }));
+
+        var legalMatch = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/privacy-policy", SiteTestData.EnglishCulture));
+
+        legalMatch.Kind.ShouldBe(RouteMatchKind.Content);
+        legalMatch.Page!.Id.ShouldBe(legal.Id);
+        legalMatch.Content!.Slug.ShouldBe("privacy-policy");
+
+        var homeMatch = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/", SiteTestData.EnglishCulture));
+
+        homeMatch.Page!.Id.ShouldBe(SiteTestData.HomePageId);
+
+        var aboutMatch = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/about", SiteTestData.EnglishCulture));
+
+        aboutMatch.Page!.Id.ShouldBe(SiteTestData.AboutPageId);
+
+        var unlistedMatch = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/cookie-policy", SiteTestData.EnglishCulture));
+
+        unlistedMatch.IsMatch.ShouldBeFalse();
+    }
 }

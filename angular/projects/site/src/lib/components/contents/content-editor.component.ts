@@ -142,8 +142,8 @@ export class ContentEditorComponent {
   /**
    * What this page's route (总体设计 §3.3) says about the slug beneath it - the front-end mirror of
    * `PageRoute.HasSlug`/`PageRoute.IsSlugOptional`. `'forbidden'`: no `{slug}`/`{slug?}` at all, so this
-   * page has nothing beneath it but its own address. `'required'`: a bare `{slug}`, so every content
-   * needs one. `'optional'`: `{slug?}`, so an empty slug is also allowed, subject to
+   * page has nothing beneath it but its own address. `'required'`: `{slug}` or `{slug:REGEX}`, so every
+   * content needs one. `'optional'`: `{slug?}`, so an empty slug is also allowed, subject to
    * {@link emptySlotTaken}.
    */
   get slugState(): SlugState {
@@ -151,7 +151,25 @@ export class ContentEditorComponent {
     if (route.includes(OPTIONAL_SLUG_TOKEN)) {
       return 'optional';
     }
-    return route.includes(REQUIRED_SLUG_TOKEN) ? 'required' : 'forbidden';
+    return route.includes(REQUIRED_SLUG_TOKEN) || this.hasSlugWithRegex(route) ? 'required' : 'forbidden';
+  }
+
+  /**
+   * Whether `route` carries `{slug:REGEX}` - a slug placeholder with a regex and no format, the one
+   * decorated form `PageRoute.HasSlug` recognizes. Whether a given slug matches that regex is left to the
+   * server (`PageRoute.IsSlugAllowed`): a .NET pattern does not always mean the same thing in JavaScript.
+   */
+  private hasSlugWithRegex(route: string): boolean {
+    for (let i = route.indexOf('{'); i >= 0; i = route.indexOf('{', i + 1)) {
+      const placeholder = this.readPlaceholder(route, i);
+      if (placeholder && placeholder.name.toLowerCase() === 'slug' && placeholder.format === null) {
+        return true;
+      }
+      if (placeholder) {
+        i = placeholder.end - 1;
+      }
+    }
+    return false;
   }
 
   get usePageOwnAddress(): boolean {
