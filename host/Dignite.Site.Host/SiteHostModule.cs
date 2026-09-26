@@ -67,8 +67,6 @@ using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Studio.Client.AspNetCore;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.BlobStoring.FileSystem;
-using Dignite.Abp.FileStoring;
-using Dignite.Site.Admin.Permissions;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Files;
 using Dignite.Site.Mcp;
@@ -276,8 +274,9 @@ public class SiteHostModule : AbpModule
     }
 
     /// <summary>
-    /// The backend GitHub issue #41 stood up for Dignite.FileExplorer: filesystem provider for dev, under
-    /// the container name #42's FileExplorer field type points its FileContainerName at. Production
+    /// The storage provider for each <see cref="SiteFileContainerNames"/> container (GitHub issue #41):
+    /// filesystem for dev. Only the provider - each container's policy (types, size, permissions) comes
+    /// from SiteAdminApplicationModule, and <c>Containers.Configure</c> merges this onto it. Production
     /// provider (Azure/S3/other) is still an open decision (#41) - swapping it later only touches this
     /// method, since FileDescriptorManager/DirectoryManager address blobs by container name, never by
     /// provider.
@@ -286,25 +285,17 @@ public class SiteHostModule : AbpModule
     {
         Configure<AbpBlobStoringOptions>(options =>
         {
-            options.Containers.Configure(SiteFileContainerNames.Default, container =>
-            {
-                container.UseFileSystem(fileSystem =>
-                {
-                    fileSystem.BasePath = Path.Combine(hostingEnvironment.ContentRootPath, "App_Data", "files");
-                });
+            // One base path for all containers: the filesystem provider already nests each container
+            // under its own name-derived subdirectory.
+            var basePath = Path.Combine(hostingEnvironment.ContentRootPath, "App_Data", "files");
 
-                // CreateFilePermissionName only, reusing SiteAdminPermissions.Contents.Create rather than
-                // FileExplorerPermissions.Files.Management - an upload is how a content's images get here,
-                // so whoever may create content may upload, with no MCP-specific permission invented
-                // (总体设计 §6.2.5). GetFilePermissionName is deliberately left unset: unset means
-                // unauthenticated reads (FileDescriptorAuthorizationHandler's own default), which is correct
-                // for this container - a published content's images must load for anonymous site visitors,
-                // not just authenticated editors.
-                container.SetAuthorizationConfiguration(config =>
+            foreach (var containerName in new[] { SiteFileContainerNames.Default, SiteFileContainerNames.Images })
+            {
+                options.Containers.Configure(containerName, container =>
                 {
-                    config.CreateFilePermissionName = SiteAdminPermissions.Contents.Create;
+                    container.UseFileSystem(fileSystem => fileSystem.BasePath = basePath);
                 });
-            });
+            }
         });
     }
 

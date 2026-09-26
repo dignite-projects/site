@@ -1,6 +1,4 @@
-﻿using Dignite.Abp.FileStoring;
-using Dignite.Site.Admin.Permissions;
-using Dignite.Site.Files;
+﻿using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -58,10 +56,10 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
     }
 
     /// <summary>
-    /// The same container name, provider kind and authorization configuration (GitHub issue #41; the
-    /// upload-permission wiring) as the dev Host, pointed at a temp directory instead of App_Data so tests
-    /// never touch a real deployment's files. Kept in sync with SiteHostModule.ConfigureBlobStoring by hand -
-    /// there is no shared source between the two, so a change to one needs the same change here.
+    /// The same provider kind as the dev Host (GitHub issue #41), pointed at a temp directory instead of
+    /// App_Data so tests never touch a real deployment's files. Provider only, like the Host - each
+    /// container's policy comes from SiteAdminApplicationModule, so what the tests see is the module's real
+    /// policy rather than a hand-synced copy.
     /// </summary>
     private void ConfigureBlobStoring()
     {
@@ -69,18 +67,13 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
 
         Configure<AbpBlobStoringOptions>(options =>
         {
-            options.Containers.Configure(SiteFileContainerNames.Default, container =>
+            foreach (var containerName in new[] { SiteFileContainerNames.Default, SiteFileContainerNames.Images })
             {
-                container.UseFileSystem(fileSystem =>
+                options.Containers.Configure(containerName, container =>
                 {
-                    fileSystem.BasePath = basePath;
+                    container.UseFileSystem(fileSystem => fileSystem.BasePath = basePath);
                 });
-
-                container.SetAuthorizationConfiguration(config =>
-                {
-                    config.CreateFilePermissionName = SiteAdminPermissions.Contents.Create;
-                });
-            });
+            }
         });
     }
 

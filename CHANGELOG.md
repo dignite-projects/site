@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A second file container, `site-images` (`SiteFileContainerNames.Images`), for image fields.** It takes
+  jpg/jpeg/png/gif/webp only, at most 10 MB, and scales an upload down to fit 1920×1920 (aspect ratio
+  kept). An image-holding FileExplorer field should point its `FileContainerName` here. The Host's seeded
+  WeChat QR field now does; fields that already exist keep pointing where they did.
+
+### Changed
+
+- **Each container's policy now lives in Site, not in the host.** `SiteAdminApplicationModule` sets the
+  allowed types, size limit, image resizing and permissions of `site-files` and `site-images`; a host
+  configures only the storage provider under the same name (`UseFileSystem`, `UseDatabase`, ...), which
+  ABP merges onto that policy. A host that copied the old `SetAuthorizationConfiguration` block can drop
+  it. `AddFileTypeCheckHandler`, `AddFileSizeLimitHandler` and `AddImageResizeHandler` only take effect
+  the first time for a container, so a host calling them again is silently ignored; to override a value,
+  set it through `GetFileTypeCheckConfiguration()` and its siblings instead.
+- **BREAKING: `site-files` no longer accepts any file.** It takes the image types above plus pdf,
+  doc(x), xls(x), ppt(x), txt, csv and zip, at most 20 MB; images are re-compressed, and scaled down if
+  larger than 4096×4096. SVG, HTML and script files are rejected by both containers: files are publicly
+  readable, so one that a browser renders and runs would be stored XSS on the site's own origin.
+- An image wider or taller than 4096 px, or over 16 million pixels, is rejected rather than scaled down
+  (`Dignite.Abp.FileStoring.Imaging:0003`) - that is `ImageResizeHandler`'s decode guard, which runs
+  before any resizing. The same code comes back for an image that compresses unusually well (more than
+  100 pixels per byte), although its message names only the dimension limits.
+
+### Fixed
+
+- **Editors can replace, delete and organize each other's files.** Update and delete used to be unset,
+  which FileExplorer treats as "the uploader only", and directory creation was unset, which it treats as
+  "nobody". They now follow `SiteAdmin.Contents.Update`, `.Delete` and `.Create`. Directories themselves
+  are still private to whoever created them: FileExplorer lists and authorizes them by creator.
+
 ## [0.1.0-preview.16] - 2026-09-26
 
 ### Fixed

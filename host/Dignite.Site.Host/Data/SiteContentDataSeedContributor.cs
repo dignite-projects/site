@@ -11,6 +11,7 @@ using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
+using Dignite.Site.Files;
 using Dignite.Site.Pages;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
@@ -108,7 +109,7 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
         var companyWechatQrFieldId = await GetOrCreateFieldAsync(
             "company_wechat_qr", "公司微信二维码", FileExplorerFieldType.ControlName,
             "公司官方微信或客服微信的二维码图片。",
-            new FileExplorerConfiguration { FileContainerName = "site-files", UploadFileMultiple = false }
+            new FileExplorerConfiguration { FileContainerName = SiteFileContainerNames.Images, UploadFileMultiple = false }
                 .ConfigurationDictionary);
 
         // The platform's SEO field is seeded separately (SeoFieldPresetSeedContributor, host-side, ahead
