@@ -58,7 +58,8 @@ public class SiteRouteResolver : DomainService
     /// Tier 1 offers every candidate at this length, in a stable literal-before-template,
     /// no-slug-before-slug order, to <see cref="ResolveAgainstPageAsync"/>'s structural attempt - a full
     /// slug (<see cref="PageRoute.TryMatchSlug"/>) or every one of a non-slug route's own placeholders
-    /// filled with none dropped (<see cref="PageRoute.TryMatchExact"/>): whichever candidate structurally
+    /// filled with none dropped, bar any the route itself declares optional
+    /// (<see cref="PageRoute.TryMatchExact"/>): whichever candidate structurally
     /// fits first wins outright, deepest information taking priority over tie-break order.
     /// </para>
     /// <para>
@@ -229,7 +230,9 @@ public class SiteRouteResolver : DomainService
     /// <para>
     /// Tier 1: a full slug when <paramref name="page"/>'s route ends in <c>{slug}</c>/<c>{slug?}</c>
     /// (<see cref="PageRoute.TryMatchSlug"/>), or every one of its placeholders filled with none dropped
-    /// when it does not (<see cref="PageRoute.TryMatchExact"/>). A slug that structurally fit but named no
+    /// (bar any it declares optional) when it does not (<see cref="PageRoute.TryMatchExact"/>). Unlike
+    /// tier 3, this is never withheld when another candidate shares the address - an optional placeholder
+    /// is the route's own declaration, not a guess at a truncated reading. A slug that structurally fit but named no
     /// visible content is this candidate's final, definitive answer for this request - a different request
     /// might still legitimately land on this same page's own address, but not this one - so it comes back
     /// as non-null <see cref="RouteMatch.None"/>, not <see langword="null"/>, and must not fall through to
@@ -290,7 +293,7 @@ public class SiteRouteResolver : DomainService
 
         if (isOnlyCandidateAtThisLength && PageRoute.TryMatchPartial(page.Route, normalizedPath, out var filterValues))
         {
-            return RouteMatch.ForPage(page, filterValues);
+            return RouteMatch.ForPage(page, filterValues, isTruncated: true);
         }
 
         return PageRoute.IsTemplate(page.Route) && normalizedPath != page.GetPath()

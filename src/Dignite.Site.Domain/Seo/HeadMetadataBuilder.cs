@@ -84,24 +84,37 @@ public class HeadMetadataBuilder : DomainService
         // the hreflang alternates' noindex filtering (for a content match) need it.
         var seoField = await NoIndexRecognizer.FindFieldAsync(cancellationToken);
 
+        // A filtered view - Kind is Page, FilterValues non-empty - comes in two kinds, told apart by
+        // RouteMatch.IsTruncated.
+        //
+        // A truncated one (PageRoute.TryMatchPartial - /news/2026-07 read off
+        // /news/{publishTime:yyyy-MM}/{slug}) is the platform guessing at an address no route declares, so
+        // it has no URL of its own to build a canonicalUrl from. Reusing the bare-address canonical and
+        // hreflang set without also forcing noindex would tell search engines that the filtered view IS the
+        // canonical page - the standard faceted-navigation fix is exactly what a bare match already gets for
+        // free (canonical -> the unfiltered page) plus noindex, so the filtered variant never competes with
+        // it in results while still being crawlable for its links.
+        //
+        // A declared one (PageRoute.TryMatchExact - /news/tutorials against
+        // /news/{category?:...}/{publishTime?:yyyy:...}) is an address the page's own route spells out, as
+        // real as any other: it is canonical at itself (总体设计 §5.3 - canonical is self-referencing, derived
+        // from the route's structure) and indexable, a category or archive landing page in its own right.
+        // Except when one of its date filters cannot actually filter anything (see HasUnusableDateFilter):
+        // the list it renders is then the unfiltered one, a duplicate of the bare address, and it falls back
+        // to the truncated treatment.
+        var isFilteredView = content == null && match.FilterValues.Count > 0;
+        var isDeclaredFilteredView = isFilteredView && !match.IsTruncated && !HasUnusableDateFilter(match.FilterValues);
+
         var canonicalUrl = content != null
             ? UrlBuilder.BuildContentUrl(context, page, content)
-            : UrlBuilder.BuildPageUrl(context, page, cultureName);
+            : isDeclaredFilteredView
+                ? UrlBuilder.BuildFilteredPageUrl(context, page, match.FilterValues, cultureName)
+                : UrlBuilder.BuildPageUrl(context, page, cultureName);
 
         string title;
         string? description = null;
         string? ogImageUrl = null;
         var contentNoIndex = false;
-
-        // A partial match (SiteRouteResolver.TryMatchPartial - Kind is Page, FilterValues non-empty) has no
-        // URL of its own to build a canonicalUrl from: the page's own bare address is the only address
-        // PageRoute can render, yet the request actually named some of the page's placeholders, e.g.
-        // /news/2026-07 against /news/{publishTime:yyyy-MM}/{slug}. Reusing the bare-address canonical and
-        // hreflang set here without also forcing noindex would tell search engines that the filtered view
-        // IS the canonical page - the standard faceted-navigation fix is exactly what a bare match already
-        // gets for free (canonical -> the unfiltered page) plus noindex, so the filtered variant itself
-        // never competes with it in results while still being crawlable for its links.
-        var isPartialMatch = content == null && match.FilterValues.Count > 0;
 
         if (content != null)
         {
@@ -113,6 +126,13 @@ public class HeadMetadataBuilder : DomainService
 
             contentNoIndex = NoIndexRecognizer.IsNoIndex(content, seoField);
             ogImageUrl = ReadOgImage(content, seoField);
+        }
+        else if (isDeclaredFilteredView)
+        {
+            // Indexable, so it needs a title of its own - every category and archive of one page would
+            // otherwise share the page's, one duplicate title per filtered view. The captured values, in the
+            // order the route names them, are the only per-view text there is to add.
+            title = $"{page.DisplayName} - {string.Join(" / ", match.FilterValues.Values)}";
         }
         else
         {
@@ -132,7 +152,8 @@ public class HeadMetadataBuilder : DomainService
         var xDefaultUrl = homePage == null ? null : UrlBuilder.BuildPageUrl(context, homePage, context.DefaultCultureName);
 
         var hreflangAlternates = await BuildHreflangAlternatesAsync(
-            page, content, cultureName, seoField, context, includeUnpublished, asOf, cancellationToken);
+            page, content, cultureName, seoField, context, includeUnpublished, asOf,
+            isDeclaredFilteredView ? match.FilterValues : null, cancellationToken);
 
         // The content's own CultureName is authoritative when there is one; the requested language is only
         // a fallback for a bare page match, which carries no language of its own.
@@ -147,9 +168,31 @@ public class HeadMetadataBuilder : DomainService
             ogImageUrl,
             canonicalUrl,
             effectiveCultureName,
-            includeUnpublished || contentNoIndex || isPartialMatch,
+            includeUnpublished || contentNoIndex || (isFilteredView && !isDeclaredFilteredView),
             hreflangAlternates,
             xDefaultUrl);
+    }
+
+    /// <summary>
+    /// Whether any date-shaped group of <paramref name="filterValues"/> - every FORMAT-bearing entry
+    /// sharing one name, read together the way <c>SiteRenderFilterValueMapper</c> and
+    /// <c>ContentListTagHelper</c> read them - fails to form a complete period (a month with no year,
+    /// <c>/news/08</c>), which those two then drop instead of filtering on. A group whose formats name no
+    /// date unit at all is some other kind of format, and none of this class's business. Only the platform's
+    /// own date handling is second-guessed here; whether a template actually lists anything filtered by a
+    /// business field is the template's own affair, the same as it always was.
+    /// </summary>
+    protected virtual bool HasUnusableDateFilter(IReadOnlyDictionary<string, string> filterValues)
+    {
+        var dateGroups = filterValues
+            .Select(entry => (Key: entry.Key, Value: entry.Value, Colon: entry.Key.IndexOf(':')))
+            .Where(entry => entry.Colon > 0)
+            .Select(entry => (Name: entry.Key[..entry.Colon], Format: entry.Key[(entry.Colon + 1)..], entry.Value))
+            .GroupBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Any(entry => RoutePlaceholderDateFormat.IsDateFormat(entry.Format)));
+
+        return dateGroups.Any(group =>
+            !RoutePlaceholderDateFormat.TryGetRange(group.Select(entry => (entry.Format, entry.Value)), out _, out _));
     }
 
     /// <summary>
@@ -196,6 +239,12 @@ public class HeadMetadataBuilder : DomainService
     /// even when nothing has been published in it yet.
     /// </para>
     /// <para>
+    /// A declared filtered view (<paramref name="declaredFilterValues"/> non-null) uses that same language
+    /// footprint, each alternate pointing at the same filtered path in its own language rather than at the
+    /// bare page - the set has to reference the page actually being rendered, or it is not
+    /// self-referencing at all.
+    /// </para>
+    /// <para>
     /// Every candidate is filtered against <see cref="SiteUrlContext.EnabledCultureNames"/> last.
     /// <c>TryStripCulturePrefix</c> refuses to strip a prefix for a language the tenant does not serve, so
     /// advertising one would publish a URL this same site then 404s on - the drift
@@ -210,6 +259,7 @@ public class HeadMetadataBuilder : DomainService
         SiteUrlContext context,
         bool includeUnpublished,
         DateTime asOf,
+        IReadOnlyDictionary<string, string>? declaredFilterValues,
         CancellationToken cancellationToken)
     {
         if (content != null)
@@ -247,7 +297,11 @@ public class HeadMetadataBuilder : DomainService
                 .OrderBy(c => c, StringComparer.Ordinal));
 
         return cultures
-            .Select(culture => new HreflangAlternate(culture, UrlBuilder.BuildPageUrl(context, page, culture)))
+            .Select(culture => new HreflangAlternate(
+                culture,
+                declaredFilterValues != null
+                    ? UrlBuilder.BuildFilteredPageUrl(context, page, declaredFilterValues, culture)
+                    : UrlBuilder.BuildPageUrl(context, page, culture)))
             .ToList();
     }
 }

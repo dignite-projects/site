@@ -173,6 +173,69 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
 
         metadata.NoIndex.ShouldBeTrue();
         metadata.CanonicalUrl.ShouldBe($"{BaseUrl}/news");
+        metadata.Title.ShouldBe(match.Page!.DisplayName);
+    }
+
+    private const string CategoryYearMonthRoute =
+        @"/journal/{journal-category?:^(news|tutorials)$}/{publishTime?:yyyy:^\d{4}$}/{publishTime?:MM:^(0[1-9]|1[0-2])$}";
+
+    private Task CreateCategoryYearMonthPageAsync() => WithUnitOfWorkAsync(() =>
+        _pageManager.CreateAsync("journal-home", "Journal", CategoryYearMonthRoute));
+
+    /// <summary>
+    /// Unlike the truncated reading above, an address the route itself declares - a category or archive
+    /// landing page - is a real address: canonical at itself (总体设计 §5.3), indexable, and titled apart
+    /// from its siblings so they do not all share the page's own title.
+    /// </summary>
+    [Theory]
+    [InlineData("/journal/tutorials", "Journal - tutorials")]
+    [InlineData("/journal/2026", "Journal - 2026")]
+    [InlineData("/journal/2026/08", "Journal - 2026 / 08")]
+    [InlineData("/journal/tutorials/2026/08", "Journal - tutorials / 2026 / 08")]
+    public async Task A_Declared_Filtered_View_Should_Be_Indexable_And_Canonical_At_Itself(string path, string title)
+    {
+        await CreateCategoryYearMonthPageAsync();
+
+        var metadata = await BuildAsync(path, SiteTestData.EnglishCulture);
+
+        metadata.NoIndex.ShouldBeFalse();
+        metadata.CanonicalUrl.ShouldBe($"{BaseUrl}{path}");
+        metadata.Title.ShouldBe(title);
+    }
+
+    /// <summary>
+    /// "/journal/08" matches the month on its own, but a month with no year is no period at all - the list
+    /// drops that filter and renders unfiltered, a duplicate of "/journal" itself. So it gets the same
+    /// treatment a truncated reading does, not the declared one.
+    /// </summary>
+    [Fact]
+    public async Task A_Declared_Filtered_View_Whose_Date_Filter_Is_Incomplete_Should_Fall_Back_To_The_Bare_Page()
+    {
+        await CreateCategoryYearMonthPageAsync();
+
+        var metadata = await BuildAsync("/journal/08", SiteTestData.EnglishCulture);
+
+        metadata.NoIndex.ShouldBeTrue();
+        metadata.CanonicalUrl.ShouldBe($"{BaseUrl}/journal");
+        metadata.Title.ShouldBe("Journal");
+    }
+
+    /// <summary>
+    /// The alternate set has to reference the page actually being rendered - the filtered one, in every
+    /// language - or it is not self-referencing and search engines discard it (总体设计 §5.5).
+    /// </summary>
+    [Fact]
+    public async Task Hreflang_For_A_Declared_Filtered_View_Should_Point_At_The_Same_Filtered_Path()
+    {
+        await CreateCategoryYearMonthPageAsync();
+
+        var metadata = await BuildAsync("/journal/tutorials", SiteTestData.ChineseCulture);
+
+        metadata.CanonicalUrl.ShouldBe($"{BaseUrl}/zh-Hans/journal/tutorials");
+        metadata.HreflangAlternates.Single(a => a.CultureName == "en").Url
+            .ShouldBe($"{BaseUrl}/journal/tutorials");
+        metadata.HreflangAlternates.Single(a => a.CultureName == "zh-Hans").Url
+            .ShouldBe($"{BaseUrl}/zh-Hans/journal/tutorials");
     }
 
     [Fact]

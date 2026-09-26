@@ -209,17 +209,29 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     }
 
     /// <summary>
+    /// The path of one filtered view of this page - the address a request named when it filled this
+    /// page's own placeholders, e.g. <c>/news/2026/08</c> - rebuilt from the values it captured
+    /// (<see cref="PageRoute.BuildFromCapturedValues"/>). Only meaningful for values a declared, not a
+    /// truncated, match captured: a truncated reading fills only part of a deeper route, so it has no
+    /// address of its own to rebuild.
+    /// </summary>
+    public virtual string BuildFilteredPath(IReadOnlyDictionary<string, string> filterValues)
+    {
+        return PageRoute.BuildFromCapturedValues(Route, filterValues);
+    }
+
+    /// <summary>
     /// The full path of <paramref name="content"/> beneath this page. A content with an empty slug - the
     /// single content of a home or "about" page - is this page's own address; otherwise every placeholder
     /// in <see cref="Route"/> is filled in from <paramref name="content"/> - <c>{slug}</c> from
     /// <see cref="Contents.Content.Slug"/> itself, and any other placeholder from whatever field of that
-    /// name the content has.
+    /// name the content has - an optional one the content has no value for leaves its segment out.
     /// </summary>
     public virtual string BuildContentPath(Content content)
     {
         return string.IsNullOrEmpty(content.Slug)
             ? GetPath()
-            : PageRoute.Build(Route, (name, format) => ResolveFieldValue(content, name, format));
+            : PageRoute.Build(Route, (name, format, isOptional) => ResolveFieldValue(content, name, format, isOptional));
     }
 
     /// <summary>
@@ -230,9 +242,11 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// its four system fields lives there (总体设计 §2.4). A name that resolves to neither is a
     /// configuration mistake in this page's route, not something to render around - it fails loudly, the
     /// same way Dignite.Cms's own version does, rather than emitting a URL with the placeholder text still
-    /// in it.
+    /// in it. Unless the placeholder is optional: a content with no value for a field a route only
+    /// optionally names is ordinary, and resolves to null, which <see cref="PageRoute.Build(string, Func{string, string, bool, string})"/>
+    /// leaves out of the URL.
     /// </summary>
-    private static string ResolveFieldValue(Content content, string name, string? format)
+    private static string? ResolveFieldValue(Content content, string name, string? format, bool isOptional)
     {
         var property = typeof(Content).GetProperty(
             name, BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance);
@@ -245,6 +259,11 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         if (content.FlexFields.TryGetValue(name, out var value))
         {
             return FormatFieldValue(value, format);
+        }
+
+        if (isOptional)
+        {
+            return null;
         }
 
         throw new AbpException(

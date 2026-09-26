@@ -57,7 +57,13 @@ public class PageTools : ITransientDependency
             "optionally with a ':FORMAT' suffix, e.g. '{publishTime:yyyy-MM}' for '2026-07', e.g. " +
             "'/news/{publishTime:yyyy-MM}/{slug}' for '/news/2026-07/<slug>'. A FORMAT may only contain " +
             "letters, digits, '.', '_', '-' - never '/', which would be indistinguishable from the " +
-            "slash between path segments.")]
+            "slash between path segments. Put '?' right after a placeholder's name to make it optional - " +
+            "'{name?}', '{name?:FORMAT}', '{name?:REGEX}', '{name?:FORMAT:REGEX}' - and a request may " +
+            "leave out its whole path segment, e.g. '/news/{category?:^(news|tutorials)$}/" +
+            "{publishTime?:yyyy:^\\d{4}$}/{publishTime?:MM:^(0[1-9]|1[0-2])$}' answers '/news/tutorials', " +
+            "'/news/2026' and '/news/2026/08'. An optional placeholder must fill a whole segment on its " +
+            "own, every one but the last needs a ':REGEX' (that is what decides which segment belongs to " +
+            "which placeholder), and a route may have at most 4.")]
         string route,
         [Description(
             "The MVC view rendered for this page, e.g. 'Default' or 'Blog/Index' - used regardless of " +

@@ -19,13 +19,15 @@ public class RouteMatch
         Page? page = null,
         Content? content = null,
         ContentType? contentType = null,
-        IReadOnlyDictionary<string, string>? filterValues = null)
+        IReadOnlyDictionary<string, string>? filterValues = null,
+        bool isTruncated = false)
     {
         Kind = kind;
         Page = page;
         Content = content;
         ContentType = contentType;
         FilterValues = filterValues ?? NoFilterValues;
+        IsTruncated = isTruncated;
     }
 
     public RouteMatchKind Kind { get; }
@@ -42,12 +44,26 @@ public class RouteMatch
     /// <summary>
     /// The values a request path named for <see cref="Page"/>'s placeholders short of a slug - e.g.
     /// <c>{"publishTime:yyyy-MM": "2026-08"}</c> for <c>/blog/2026-08</c> against
-    /// <c>/blog/{publishTime:yyyy-MM}/{slug}</c> (总体设计 §3.4, <see cref="PageRoute.TryMatchPartial"/>).
-    /// Empty - never null - whenever <see cref="Kind"/> is <see cref="RouteMatchKind.Page"/> from a bare
-    /// address instead: a front end that only ever checks <see cref="Kind"/> and reads this when convenient
-    /// does not have to special-case which.
+    /// <c>/blog/{publishTime:yyyy-MM}/{slug}</c> (总体设计 §3.4, <see cref="PageRoute.TryMatchPartial"/>), or
+    /// for every placeholder of a route with no slug at all (<see cref="PageRoute.TryMatchExact"/>) - see
+    /// <see cref="IsTruncated"/> for telling the two apart. Empty - never null - whenever
+    /// <see cref="Kind"/> is <see cref="RouteMatchKind.Page"/> from a bare address instead: a front end
+    /// that only ever checks <see cref="Kind"/> and reads this when convenient does not have to
+    /// special-case which.
     /// </summary>
     public IReadOnlyDictionary<string, string> FilterValues { get; }
+
+    /// <summary>
+    /// Whether <see cref="FilterValues"/> came from cutting a deeper route short
+    /// (<see cref="PageRoute.TryMatchPartial"/> - <c>/blog/2026-08</c> read off
+    /// <c>/blog/{publishTime:yyyy-MM}/{slug}</c>), rather than from an address the route itself declares
+    /// (<see cref="PageRoute.TryMatchExact"/> - <c>/news/2026</c> against
+    /// <c>/news/{publishTime?:yyyy}</c>). The two are the same shape to a renderer, but not to a search
+    /// engine: a truncated reading is the platform guessing at an address no route ever declared, so it
+    /// has no URL of its own to be canonical at, whereas a declared one is a real address like any other
+    /// (see <c>HeadMetadataBuilder</c>). Always false when <see cref="FilterValues"/> is empty.
+    /// </summary>
+    public bool IsTruncated { get; }
 
     public bool IsMatch => Kind != RouteMatchKind.None;
 
@@ -58,12 +74,16 @@ public class RouteMatch
     /// <see cref="ContentOfPage"/>.
     /// </summary>
     /// <param name="filterValues">
-    /// The values a partial match extracted, when this is one (总体设计 §3.4) - omit for a bare address,
-    /// where there is nothing to report.
+    /// The values a partial or exact match extracted, when this is one (总体设计 §3.4) - omit for a bare
+    /// address, where there is nothing to report.
     /// </param>
-    public static RouteMatch ForPage(Page page, IReadOnlyDictionary<string, string>? filterValues = null)
+    /// <param name="isTruncated">Whether <paramref name="filterValues"/> came from a truncated reading - see <see cref="IsTruncated"/>.</param>
+    public static RouteMatch ForPage(
+        Page page,
+        IReadOnlyDictionary<string, string>? filterValues = null,
+        bool isTruncated = false)
     {
-        return new RouteMatch(RouteMatchKind.Page, page, filterValues: filterValues);
+        return new RouteMatch(RouteMatchKind.Page, page, filterValues: filterValues, isTruncated: isTruncated);
     }
 
     /// <summary>

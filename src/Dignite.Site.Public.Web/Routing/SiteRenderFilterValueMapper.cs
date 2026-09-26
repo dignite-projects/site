@@ -21,8 +21,8 @@ public static class SiteRenderFilterValueMapper
         Build(IDictionary<string, string> rawFilterValues)
     {
         var fieldFilters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        DateTime? publishedAfter = null;
-        DateTime? publishedBefore = null;
+        var publishTimeParts = new List<(string Format, string CapturedValue)>();
+        string? barePublishTime = null;
 
         foreach (var (key, capturedValue) in rawFilterValues)
         {
@@ -39,27 +39,37 @@ public static class SiteRenderFilterValueMapper
                 continue;
             }
 
-            // A date-shaped FORMAT denotes a whole period (e.g. yyyy-MM = one month), not one instant - see
-            // RoutePlaceholderDateFormat. Falls back to an exact-instant match when there is no FORMAT at
-            // all (a bare {publishTime} placeholder - legal, if unusual) by pinning both bounds to the same
-            // parsed value. A capture that parses as neither is silently dropped, never an error - a route
-            // filter value is untrusted input and must never fail the whole render.
-            if (format != null &&
-                RoutePlaceholderDateFormat.TryGetRange(format, capturedValue, out var start, out var endExclusive))
+            if (format != null)
             {
-                publishedAfter = start;
-                // PublishedBefore is a closed interval (PublishTime <= value); endExclusive is this
-                // period's open end, so the latest instant still inside it is one tick earlier.
-                publishedBefore = endExclusive.AddTicks(-1);
+                publishTimeParts.Add((format, capturedValue));
             }
-            else if (format == null && DateTime.TryParse(
-                         capturedValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var exact))
+            else
             {
-                publishedAfter = exact;
-                publishedBefore = exact;
+                barePublishTime = capturedValue;
             }
         }
 
-        return (fieldFilters, publishedAfter, publishedBefore);
+        // Every formatted part together denotes one period - {publishTime:yyyy}/{publishTime:MM} captured as
+        // 2026/08 is August 2026, not a year and then a month, each overwriting the other (see
+        // RoutePlaceholderDateFormat). Falls back to an exact-instant match when there is no usable FORMAT
+        // at all (a bare {publishTime} placeholder - legal, if unusual) by pinning both bounds to the same
+        // parsed value. A capture that parses as neither - or an incomplete date, like a month with no year -
+        // is silently dropped, never an error: a route filter value is untrusted input and must never fail
+        // the whole render.
+        if (publishTimeParts.Count > 0 &&
+            RoutePlaceholderDateFormat.TryGetRange(publishTimeParts, out var start, out var endExclusive))
+        {
+            // PublishedBefore is a closed interval (PublishTime <= value); endExclusive is this period's
+            // open end, so the latest instant still inside it is one tick earlier.
+            return (fieldFilters, start, endExclusive.AddTicks(-1));
+        }
+
+        if (barePublishTime != null &&
+            DateTime.TryParse(barePublishTime, CultureInfo.InvariantCulture, DateTimeStyles.None, out var exact))
+        {
+            return (fieldFilters, exact, exact);
+        }
+
+        return (fieldFilters, null, null);
     }
 }

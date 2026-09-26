@@ -703,4 +703,266 @@ public class PageRoute_Tests
 
         PageRoute.TryMatchExact(route, "/updates/2026-07-archive-extra", out _).ShouldBeFalse();
     }
+
+    /// <summary>
+    /// The motivating example for optional placeholders: one list page answering a category, a year and a
+    /// year/month archive alike, each placeholder's REGEX deciding which segment belongs to which.
+    /// </summary>
+    private const string CategoryYearMonthRoute =
+        @"/news/{news-category?:^(news|tutorials)$}/{publishTime?:yyyy:^\d{4}$}/{publishTime?:MM:^(0[1-9]|1[0-2])$}";
+
+    [Fact]
+    public void Should_Accept_Optional_Placeholders_In_Every_Shape()
+    {
+        PageRoute.IsValid(CategoryYearMonthRoute).ShouldBeTrue();
+
+        PageRoute.IsValid("/blog/{category?}").ShouldBeTrue();
+        PageRoute.IsValid("/blog/{publishTime?:yyyy-MM}").ShouldBeTrue();
+        PageRoute.IsValid("/blog/{code?:^[A-Z]{3}$}").ShouldBeTrue();
+        PageRoute.IsValid(@"/blog/{publishTime?:yyyy:^\d{4}$}").ShouldBeTrue();
+        PageRoute.IsValid("/blog/{category?}/{slug}").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// '?' belongs right after the name and nowhere else inside the braces - the name scan is the only
+    /// place it is recognized.
+    /// </summary>
+    [Theory]
+    [InlineData("/blog/{category??}")]
+    [InlineData("/blog/{category?x}")]
+    [InlineData("/blog/{?category}")]
+    public void Should_Reject_A_Misplaced_Optional_Marker(string route)
+    {
+        PageRoute.IsValid(route).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// Leaving an optional placeholder out removes its whole segment, '/' included - so it has to be a
+    /// whole segment, with nothing else sharing it.
+    /// </summary>
+    [Theory]
+    [InlineData("/blog/post-{category?}/{slug}")]
+    [InlineData("/blog/{category?}-archive/{slug}")]
+    [InlineData("/blog/{category?}{slug}")]
+    [InlineData("/blog{category?}")]
+    public void Should_Reject_An_Optional_Placeholder_That_Does_Not_Fill_A_Whole_Segment(string route)
+    {
+        PageRoute.IsValid(route).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// Without a REGEX, an optional placeholder claims any segment it is offered, so a later optional one
+    /// could never be reached in its place - "/news/x" would always mean "a". The last one has nothing
+    /// after it to shadow, so it alone may go without.
+    /// </summary>
+    [Fact]
+    public void Should_Require_A_Regex_On_Every_Optional_Placeholder_But_The_Last()
+    {
+        PageRoute.IsValid("/news/{a?}/{b?}").ShouldBeFalse();
+        PageRoute.IsValid("/news/{a?}/{b?:^x$}").ShouldBeFalse();
+        PageRoute.IsValid("/news/{a?:^x$}/{b?}").ShouldBeTrue();
+
+        // A required placeholder after the last optional one is no reason for it to need a REGEX: the two
+        // readings take a different number of segments, so they never compete for the same path.
+        PageRoute.IsValid("/news/{a?}/{b}").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Should_Reject_More_Than_Four_Optional_Placeholders()
+    {
+        PageRoute.IsValid("/n/{a?:^a$}/{b?:^b$}/{c?:^c$}/{d?}").ShouldBeTrue();
+        PageRoute.IsValid("/n/{a?:^a$}/{b?:^b$}/{c?:^c$}/{d?:^d$}/{e?}").ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// {slug?} keeps its own meaning (an empty slug at the page's own address), so a decorated optional
+    /// slug has nothing coherent to mean next to it.
+    /// </summary>
+    [Fact]
+    public void Should_Reject_A_Decorated_Optional_Slug()
+    {
+        PageRoute.IsValid("/blog/{slug?}").ShouldBeTrue();
+        PageRoute.IsValid("/blog/{slug?:^[a-z-]+$}").ShouldBeFalse();
+        PageRoute.IsValid("/blog/{slug?:yyyy}").ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("/news/tutorials", "news-category", "tutorials")]
+    [InlineData("/news/2026", "publishTime:yyyy", "2026")]
+    public void Should_Match_A_Single_Optional_Segment_By_Its_Regex(string path, string key, string value)
+    {
+        PageRoute.TryMatchExact(CategoryYearMonthRoute, path, out var values).ShouldBeTrue();
+
+        values.Count.ShouldBe(1);
+        values[key].ShouldBe(value);
+    }
+
+    [Fact]
+    public void Should_Match_Several_Optional_Segments_Together()
+    {
+        PageRoute.TryMatchExact(CategoryYearMonthRoute, "/news/2026/08", out var yearMonth).ShouldBeTrue();
+        yearMonth.Count.ShouldBe(2);
+        yearMonth["publishTime:yyyy"].ShouldBe("2026");
+        yearMonth["publishTime:MM"].ShouldBe("08");
+
+        PageRoute.TryMatchExact(CategoryYearMonthRoute, "/news/tutorials/2026/08", out var all).ShouldBeTrue();
+        all.Count.ShouldBe(3);
+        all["news-category"].ShouldBe("tutorials");
+    }
+
+    [Theory]
+    [InlineData("/news/2026-08")] // one segment, and no placeholder's REGEX takes it
+    [InlineData("/news/sports")]
+    [InlineData("/news/2026/13")]
+    [InlineData("/news/2026/08/extra")]
+    public void Should_Not_Match_A_Segment_No_Optional_Placeholder_Accepts(string path)
+    {
+        PageRoute.TryMatchExact(CategoryYearMonthRoute, path, out _).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// Every placeholder being optional does not make the route's own bare address one of its matches -
+    /// that address stays the "page itself" fallback's, which is what lets a literal page sharing it win
+    /// (总体设计 §3.4) and a content with an empty slug be found there.
+    /// </summary>
+    [Fact]
+    public void Should_Not_Match_The_Bare_Address_Even_When_Every_Placeholder_Is_Optional()
+    {
+        PageRoute.TryMatchExact(CategoryYearMonthRoute, "/news", out _).ShouldBeFalse();
+        PageRoute.TryMatchPartial(CategoryYearMonthRoute, "/news", out _).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// The same bare-address rule, on a route with no optional placeholder at all: "/" used to fill
+    /// {category} with an empty string, which then reached the list as a filter no content could match.
+    /// </summary>
+    [Fact]
+    public void Should_Not_Fill_A_Root_Placeholder_With_Nothing()
+    {
+        PageRoute.TryMatchExact("/{category}", "/", out _).ShouldBeFalse();
+        PageRoute.TryMatchExact("/{category}", "/travel", out var values).ShouldBeTrue();
+        values["category"].ShouldBe("travel");
+    }
+
+    /// <summary>
+    /// Nothing in the routing layer knows a month needs a year - "/news/08" matches the month alone.
+    /// It is RoutePlaceholderDateFormat that refuses to turn that into a period, so the list is simply not
+    /// filtered by it.
+    /// </summary>
+    [Fact]
+    public void Should_Match_A_Later_Optional_Segment_On_Its_Own()
+    {
+        PageRoute.TryMatchExact(CategoryYearMonthRoute, "/news/08", out var values).ShouldBeTrue();
+
+        values.Count.ShouldBe(1);
+        values["publishTime:MM"].ShouldBe("08");
+    }
+
+    /// <summary>
+    /// Among readings keeping the same number of optional placeholders, the leftmost is tried first - its
+    /// REGEX is what hands a segment on to the next one.
+    /// </summary>
+    [Fact]
+    public void Should_Try_The_Leftmost_Optional_Placeholder_First()
+    {
+        const string route = "/tags/{letter?:^[a-z]$}/{tag?}";
+
+        PageRoute.TryMatchExact(route, "/tags/x", out var letter).ShouldBeTrue();
+        letter["letter"].ShouldBe("x");
+
+        PageRoute.TryMatchExact(route, "/tags/dotnet", out var tag).ShouldBeTrue();
+        tag["tag"].ShouldBe("dotnet");
+    }
+
+    [Theory]
+    [InlineData("/blog/travel/my-post")]
+    [InlineData("/blog/my-post")]
+    public void Should_Extract_The_Slug_With_Or_Without_An_Optional_Segment_Before_It(string path)
+    {
+        PageRoute.TryMatchSlug("/blog/{category?}/{slug}", path, out var slug).ShouldBeTrue();
+        slug.ShouldBe("my-post");
+    }
+
+    /// <summary>
+    /// A cut short of slug may leave an optional placeholder out too - here the dated segment fills the
+    /// deepest cut on its own, without the optional category before it.
+    /// </summary>
+    [Fact]
+    public void Should_Let_A_Partial_Match_Leave_An_Optional_Placeholder_Out()
+    {
+        const string route = @"/news/{category?:^(news|tutorials)$}/{publishTime:yyyy-MM:^\d{4}-\d{2}$}/{slug}";
+
+        PageRoute.TryMatchPartial(route, "/news/2026-08", out var dated).ShouldBeTrue();
+        dated.Count.ShouldBe(1);
+        dated["publishTime:yyyy-MM"].ShouldBe("2026-08");
+
+        PageRoute.TryMatchPartial(route, "/news/tutorials", out var category).ShouldBeTrue();
+        category.Count.ShouldBe(1);
+        category["category"].ShouldBe("tutorials");
+    }
+
+    /// <summary>
+    /// An optional placeholder with no value is left out of a built URL the same way a request may leave
+    /// it out - and Build and TryMatchSlug still agree on the result.
+    /// </summary>
+    [Theory]
+    [InlineData("travel", "/blog/travel/my-post")]
+    [InlineData(null, "/blog/my-post")]
+    [InlineData("", "/blog/my-post")]
+    public void Should_Build_And_Round_Trip_An_Optional_Segment(string? category, string expected)
+    {
+        const string route = "/blog/{category?}/{slug}";
+
+        var path = PageRoute.Build(route, (name, _, isOptional) => name switch
+        {
+            "category" => isOptional ? category : throw new InvalidOperationException("category should be optional"),
+            "slug" => "my-post",
+            _ => throw new InvalidOperationException()
+        });
+
+        path.ShouldBe(expected);
+
+        PageRoute.TryMatchSlug(route, path, out var slug).ShouldBeTrue();
+        slug.ShouldBe("my-post");
+    }
+
+    [Fact]
+    public void Should_Build_The_Root_When_Every_Segment_Is_Left_Out()
+    {
+        PageRoute.Build("/{lang?}/{slug}", (name, _, _) => name == "slug" ? "welcome" : null).ShouldBe("/welcome");
+        PageRoute.Build("/{lang?}", (_, _, _) => null).ShouldBe("/");
+        PageRoute.Build(CategoryYearMonthRoute, (_, _, _) => null).ShouldBe("/news");
+    }
+
+    /// <summary>
+    /// A declared filtered view's canonical URL is rebuilt from what was captured, not remembered from the
+    /// request - so every address TryMatchExact accepts has to come back out of BuildFromCapturedValues
+    /// unchanged.
+    /// </summary>
+    [Theory]
+    [InlineData("/news/tutorials")]
+    [InlineData("/news/2026")]
+    [InlineData("/news/2026/08")]
+    [InlineData("/news/tutorials/2026/08")]
+    [InlineData("/news/08")]
+    public void Should_Rebuild_A_Declared_Address_From_Its_Captured_Values(string path)
+    {
+        PageRoute.TryMatchExact(CategoryYearMonthRoute, path, out var values).ShouldBeTrue();
+
+        PageRoute.BuildFromCapturedValues(CategoryYearMonthRoute, values).ShouldBe(path);
+    }
+
+    [Fact]
+    public void Should_Refuse_To_Rebuild_Without_A_Required_Placeholders_Value()
+    {
+        Should.Throw<ArgumentException>(() => PageRoute.BuildFromCapturedValues(
+            "/updates/{publishTime:yyyy-MM}", new System.Collections.Generic.Dictionary<string, string>()));
+    }
+
+    [Fact]
+    public void Should_Derive_The_Pages_Own_Path_Before_An_Optional_Placeholder()
+    {
+        PageRoute.GetPath(CategoryYearMonthRoute).ShouldBe("/news");
+        PageRoute.IsHomeRoute("/{lang?:^(en|zh)$}/{slug}").ShouldBeTrue();
+    }
 }

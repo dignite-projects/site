@@ -19,6 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which is how preview.13's `ng-zorro-antd-tree.css` 404 loop went unnoticed. The failure message
   says which of the two happened. The list of names is maintained by hand: when a dependency starts
   fetching another bundle, the README and this step both need the new name.
+- **Route placeholders can be optional.** A `?` right after the name marks any placeholder optional
+  in all four shapes - `{name?}`, `{name?:FORMAT}`, `{name?:REGEX}`, `{name?:FORMAT:REGEX}` - and a
+  request may then leave out its whole path segment. One list page can now answer a category, a
+  year and a year/month archive from a single route:
+  `/news/{news-category?:^(news|tutorials)$}/{publishTime?:yyyy:^\d{4}$}/{publishTime?:MM:^(0[1-9]|1[0-2])$}`
+  answers `/news/tutorials`, `/news/2026` and `/news/2026/08`. An optional placeholder must fill a
+  whole segment on its own; every one but the last needs a `:REGEX`, since that is what decides
+  which segment belongs to which placeholder; a route may have at most four. Unlike the truncated
+  reading a deep route gets, these addresses still resolve when another page shares the same
+  address. A content URL leaves out an optional segment the content has no value for, so
+  `/blog/{category?}/{slug}` builds `/blog/my-post` for a content without a category. `{slug?}` keeps
+  its existing meaning.
+- **An address a page's route declares is now indexable, with a canonical URL of its own.**
+  `/news/tutorials` or `/news/2026/08` against a route that spells them out is a category or archive
+  landing page: canonical at itself, no `noindex`, titled `<page> - <values>` (e.g.
+  `News Home - tutorials / 2026 / 08`), with hreflang pointing at the same filtered path in each
+  language. A truncated reading - `/news/2026-07` read off `/news/{publishTime:yyyy-MM}/{slug}` -
+  keeps `noindex` and a canonical to the bare page, as does a declared address whose date filter is
+  incomplete (`/news/08`), since its list is unfiltered. `RouteMatch.IsTruncated` tells the two apart.
+  These addresses are not added to the sitemap.
 
 ### Changed
 
@@ -28,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and a tenant is a site in this product's terms. Move any overrides under `/Tenants` to `/Sites`.
   Nothing fails if you don't: the lookup silently falls back to the default views and the overrides
   are ignored.
+- **BREAKING: `HeadMetadataBuilder.BuildHreflangAlternatesAsync` takes a new `declaredFilterValues`
+  parameter.** Only a subclass overriding this protected method is affected; add the parameter to
+  the override.
+- **A date filter now has to spell out a period from the year down, or it does not filter.** A lone
+  `{publishTime:MM}` used to be read as that month of the current year, so its meaning changed every
+  January. It, and any other gap (a day with no month), is now dropped as a filter. For a
+  DateTime-typed business field, `ContentListTagHelper` drops such a filter too, instead of falling
+  back to an `Equals` condition on the raw text.
 
 ### Fixed
 
@@ -40,6 +68,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   camel-cased system properties such as `publishTime`. Both characters are unambiguous in a name
   because a name always ends at the first `}` or `:`, so `{slug}-{title}` still parses as before.
   The content editor's URL preview reads names by the same rule.
+- **A route with the same field in several date parts now filters on the period they form
+  together.** `/news/{publishTime:yyyy}/{publishTime:MM}` captured as `2025/08` filtered on each part
+  alone, the last one winning, and `08` alone was read as August of the current year - so
+  `/news/2025/08` listed August 2026. The parts are now parsed as one date: August 2025.
+- **A route whose own address is the root no longer captures an empty value there.** `/{category}`
+  answered `/` with `category` set to an empty string, which marked the home page `noindex` and
+  reached the list as an empty-string filter. `/` now resolves to the page itself.
 
 ## [0.1.0-preview.14] - 2026-09-23
 

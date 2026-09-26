@@ -145,6 +145,7 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
         match.Kind.ShouldBe(RouteMatchKind.Page);
         match.Page!.Id.ShouldBe(SiteTestData.NewsPageId);
         match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-07");
+        match.IsTruncated.ShouldBeTrue();
     }
 
     [Fact]
@@ -374,6 +375,57 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
         match.Kind.ShouldBe(RouteMatchKind.Page);
         match.Page!.Id.ShouldBe(dedicated.Id);
         match.Page.Id.ShouldNotBe(deep.Id);
+    }
+
+    /// <summary>
+    /// One list page answering a category, a year and a year/month archive, with the detail page sharing
+    /// its "/journal" address the way the dev seed's news-home/news pair does. The truncated reading a
+    /// deep template gets (tier 3) is withheld as soon as a second candidate exists there - but an optional
+    /// placeholder is not a truncation, it is the route's own declaration, so each of these is a full,
+    /// tier-1 match, sibling or no sibling.
+    /// </summary>
+    [Theory]
+    [InlineData("/journal/tutorials", "journal-category", "tutorials")]
+    [InlineData("/journal/2026", "publishTime:yyyy", "2026")]
+    [InlineData("/journal/2026/08", "publishTime:MM", "08")]
+    public async Task Should_Resolve_Every_Declared_Optional_Reading_Even_With_A_Sibling_Sharing_The_Address(
+        string path, string key, string value)
+    {
+        var home = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "journal-home", "Journal home",
+            @"/journal/{journal-category?:^(news|tutorials)$}/{publishTime?:yyyy:^\d{4}$}/{publishTime?:MM:^(0[1-9]|1[0-2])$}"));
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "journal", "Journal", @"/journal/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}"));
+
+        var match = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync(path, SiteTestData.EnglishCulture));
+
+        match.Kind.ShouldBe(RouteMatchKind.Page);
+        match.Page!.Id.ShouldBe(home.Id);
+        match.FilterValues[key].ShouldBe(value);
+        match.IsTruncated.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// Every placeholder being optional does not let a template claim its own bare address outright - a
+    /// literal page sharing it still wins that, exactly as it does against any other template (总体设计 §3.4).
+    /// </summary>
+    [Fact]
+    public async Task Should_Prefer_A_Literal_Page_Over_An_All_Optional_Template_At_Their_Shared_Address()
+    {
+        var literal = await WithUnitOfWorkAsync(() =>
+            _pageManager.CreateAsync("gazette", "Gazette", "/gazette"));
+        var template = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "gazette-archive", "Gazette archive", @"/gazette/{publishTime?:yyyy:^\d{4}$}"));
+
+        var bare = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/gazette", SiteTestData.EnglishCulture));
+        bare.Page!.Id.ShouldBe(literal.Id);
+
+        var year = await WithUnitOfWorkAsync(() =>
+            _resolver.ResolveAsync("/gazette/2026", SiteTestData.EnglishCulture));
+        year.Page!.Id.ShouldBe(template.Id);
+        year.FilterValues["publishTime:yyyy"].ShouldBe("2026");
     }
 
     /// <summary>
