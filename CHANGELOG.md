@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A content list filtered on a field now filters when Site is called over HTTP.** The field filters
+  `ContentListTagHelper` builds from a route - the `news` of `/blog/news` against
+  `/blog/{blog_category?}` - travel in `GetContentListInput.FlexFieldConditions`, and reached the
+  service as `FlexFieldConditions[0]=Dignite.Abp.FlexFields.FlexFieldQueryCondition`. ABP's client
+  proxy writes each item of a list parameter as its `ToString()`, which for an object is its type
+  name, and nothing binds that back: every condition was dropped without an error and the list came
+  back unfiltered. A host that runs the app services in-process, like the Host, never builds that
+  URL, so only a deployment whose public web app calls Site through `Dignite.Site.Public.HttpApi.Client`
+  saw it. `Dignite.Site.Common.HttpApi.Client` now writes each condition as indexed keys
+  (`FlexFieldConditions[0].FieldId=...&FlexFieldConditions[0].Value=...`), for the Public and the Admin
+  client alike. A date-range filter on a DateTime field was lost the same way; `publishTime` filters
+  were not, since they travel as `PublishedAfter`/`PublishedBefore`.
+
 ## [0.1.0-preview.15] - 2026-09-26
 
 ### Added

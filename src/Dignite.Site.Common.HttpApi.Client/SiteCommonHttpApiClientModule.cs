@@ -1,5 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Collections.Generic;
+using Dignite.Abp.FlexFields;
+using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Http.Client;
+using Volo.Abp.Http.Client.ClientProxying;
 using Volo.Abp.Modularity;
 using Volo.Abp.VirtualFileSystem;
 
@@ -28,6 +31,12 @@ public class SiteCommonHttpApiClientModule : AbpModule
         Configure<AbpVirtualFileSystemOptions>(options =>
         {
             options.FileSets.AddEmbedded<SiteCommonHttpApiClientModule>();
+        });
+
+        Configure<AbpHttpClientProxyingOptions>(options =>
+        {
+            options.QueryStringConverts[typeof(List<FlexFieldQueryCondition>)] =
+                typeof(FlexFieldQueryConditionListToQueryStringConverter);
         });
 
     }
