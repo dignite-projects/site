@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.16] - 2026-09-26
+
 ### Fixed
 
 - **A content list filtered on a field now filters when Site is called over HTTP.** The field filters
@@ -902,4 +904,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.15...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.16...HEAD
