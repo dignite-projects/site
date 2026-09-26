@@ -72,9 +72,10 @@ public class ContentListTagHelper : TagHelper
     /// <c>/blog/{category}/{slug}</c>. Each entry names a business field, typed via its field type's own
     /// <c>IndexValueType</c> and gated on the content type having opted it into <c>Searchable</c>
     /// (总体设计 §2.3), and becomes one or more <see cref="FlexFieldQueryCondition"/>s - range-shaped when
-    /// the field is itself DateTime-typed with a FORMAT. An entry naming an unknown or non-searchable field
-    /// is silently ignored, never an error - a route filter value is untrusted input and must never fail
-    /// the whole render.
+    /// the field is itself DateTime-typed with a FORMAT, every such entry for one field read together as
+    /// one period. An entry naming an unknown or non-searchable field, or date parts that do not form a
+    /// complete period, is silently ignored, never an error - a route filter value is untrusted input and
+    /// must never fail the whole render.
     /// <para>
     /// <c>PublishTime</c> is deliberately never a valid entry here - it is <c>Content</c>'s own system
     /// field, not a FlexFields field (总体设计 §2.4), and <c>SiteRenderFilterValueMapper</c> carves it out
@@ -215,6 +216,10 @@ public class ContentListTagHelper : TagHelper
 
         List<FlexFieldQueryCondition>? conditions = null;
 
+        // Every FORMAT-bearing part of one DateTime field, gathered before any of them is judged - see
+        // BuildDateRangeConditions for why a part is never turned into a condition on its own.
+        Dictionary<string, (FieldDto Field, List<(string Format, string CapturedValue)> Parts)>? dateParts = null;
+
         foreach (var (key, capturedValue) in FieldFilters)
         {
             // A placeholder's key is its name alone, or name:FORMAT when a format is present - never its
@@ -229,13 +234,41 @@ public class ContentListTagHelper : TagHelper
                 continue; // unknown, or not opted into search (总体设计 §2.3 Searchable) - not filterable, ignore
             }
 
-            var fieldConditions = BuildFieldConditions(field, format, capturedValue);
-            if (fieldConditions == null)
+            // Null when the field's type is not indexable at all (e.g. rich text - 总体设计 §2.3), the only
+            // case with nothing to filter on.
+            if (_fieldTypeResolver.Get(field.FieldTypeName).IndexValueType is not { } valueType)
             {
                 continue;
             }
 
-            (conditions ??= new List<FlexFieldQueryCondition>()).AddRange(fieldConditions);
+            if (valueType == FlexFieldValueType.DateTime && format != null)
+            {
+                dateParts ??= new Dictionary<string, (FieldDto, List<(string, string)>)>(StringComparer.Ordinal);
+                if (!dateParts.TryGetValue(field.Name, out var entry))
+                {
+                    entry = (field, new List<(string Format, string CapturedValue)>());
+                    dateParts[field.Name] = entry;
+                }
+                entry.Parts.Add((format, capturedValue));
+                continue;
+            }
+
+            // Everything else is one Equals condition against the raw captured text - the query executor
+            // parses FlexFieldQueryCondition.Value itself, per its own type; a caller building one never
+            // has to convert the value first.
+            (conditions ??= new List<FlexFieldQueryCondition>()).Add(
+                new FlexFieldQueryCondition(field.Id, field.Name, FlexFieldQueryOperator.Equals, capturedValue, valueType));
+        }
+
+        if (dateParts != null)
+        {
+            foreach (var (field, parts) in dateParts.Values)
+            {
+                if (BuildDateRangeConditions(field, parts) is { } range)
+                {
+                    (conditions ??= new List<FlexFieldQueryCondition>()).AddRange(range);
+                }
+            }
         }
 
         if (conditions is { Count: > 0 })
@@ -245,40 +278,33 @@ public class ContentListTagHelper : TagHelper
     }
 
     /// <summary>
-    /// Null when <paramref name="field"/>'s type is not indexable at all (e.g. rich text - 总体设计 §2.3),
-    /// the only case with nothing to filter on. A DateTime-typed field carrying a FORMAT gets the same
-    /// range treatment a <c>publishTime</c> route placeholder gets from <c>SiteRenderFilterValueMapper</c>,
-    /// as two conditions (<see cref="FlexFieldQueryOperator.LessThan"/> is already exclusive, unlike
-    /// <c>GetContentListInput.PublishedBefore</c> - no tick adjustment needed here); everything else is one
-    /// <see cref="FlexFieldQueryOperator.Equals"/> condition against the raw captured text (the query
-    /// executor parses <see cref="FlexFieldQueryCondition.Value"/> itself, per its own type - a caller
-    /// building one never has to convert the value first).
+    /// The same range treatment a <c>publishTime</c> route placeholder gets from
+    /// <c>SiteRenderFilterValueMapper</c>, for a DateTime-typed field: every FORMAT-bearing part naming
+    /// <paramref name="field"/> read together as one period - <c>{eventDate:yyyy}/{eventDate:MM}</c> is
+    /// one month, not a year and a month judged separately (see <see cref="RoutePlaceholderDateFormat"/>)
+    /// - as two conditions (<see cref="FlexFieldQueryOperator.LessThan"/> is already exclusive, unlike
+    /// <c>GetContentListInput.PublishedBefore</c> - no tick adjustment needed here). Null when the parts do
+    /// not form a complete period (a month with no year, or text that is not a date at all): that filter is
+    /// dropped, the same way <c>SiteRenderFilterValueMapper</c> drops an unusable <c>publishTime</c>,
+    /// rather than guessed at.
     /// </summary>
-    private IReadOnlyList<FlexFieldQueryCondition>? BuildFieldConditions(FieldDto field, string? format, string capturedValue)
+    private static IReadOnlyList<FlexFieldQueryCondition>? BuildDateRangeConditions(
+        FieldDto field,
+        List<(string Format, string CapturedValue)> parts)
     {
-        var indexValueType = _fieldTypeResolver.Get(field.FieldTypeName).IndexValueType;
-        if (indexValueType is not { } valueType)
+        if (!RoutePlaceholderDateFormat.TryGetRange(parts, out var start, out var endExclusive))
         {
             return null;
         }
 
-        if (valueType == FlexFieldValueType.DateTime && format != null &&
-            RoutePlaceholderDateFormat.TryGetRange(format, capturedValue, out var start, out var endExclusive))
-        {
-            return new[]
-            {
-                new FlexFieldQueryCondition(
-                    field.Id, field.Name, FlexFieldQueryOperator.GreaterThanOrEqual,
-                    start.ToString("O", CultureInfo.InvariantCulture), FlexFieldValueType.DateTime),
-                new FlexFieldQueryCondition(
-                    field.Id, field.Name, FlexFieldQueryOperator.LessThan,
-                    endExclusive.ToString("O", CultureInfo.InvariantCulture), FlexFieldValueType.DateTime)
-            };
-        }
-
         return new[]
         {
-            new FlexFieldQueryCondition(field.Id, field.Name, FlexFieldQueryOperator.Equals, capturedValue, valueType)
+            new FlexFieldQueryCondition(
+                field.Id, field.Name, FlexFieldQueryOperator.GreaterThanOrEqual,
+                start.ToString("O", CultureInfo.InvariantCulture), FlexFieldValueType.DateTime),
+            new FlexFieldQueryCondition(
+                field.Id, field.Name, FlexFieldQueryOperator.LessThan,
+                endExclusive.ToString("O", CultureInfo.InvariantCulture), FlexFieldValueType.DateTime)
         };
     }
 }

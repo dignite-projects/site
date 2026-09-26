@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -34,6 +35,19 @@ namespace Dignite.Site.Pages;
 /// whose segment is neither a valid format nor a compilable regex is rejected outright. Two colons
 /// resolve unambiguously the same way - the first segment must be a format, the rest (free to contain
 /// further colons, e.g. a time regex) is the regex.
+/// </para>
+/// <para>
+/// Any placeholder may also be marked optional with a <c>?</c> right after its name - <c>{name?}</c>,
+/// <c>{name?:FORMAT}</c>, <c>{name?:REGEX}</c>, <c>{name?:FORMAT:REGEX}</c> - and a request path may then
+/// leave it out altogether, together with the <c>/</c> that introduces its segment:
+/// <c>/news/{category?:^(news|tutorials)$}/{publishTime?:yyyy:^\d{4}$}/{publishTime?:MM:^(0[1-9]|1[0-2])$}</c>
+/// answers <c>/news/tutorials</c>, <c>/news/2026</c> and <c>/news/2026/08</c> alike. Right after the name,
+/// not at the end of the placeholder: <c>?</c> is never a name character, so there it cannot be mistaken
+/// for anything else, whereas at the end of a FORMAT or REGEX segment it would read as regex syntax.
+/// <c>{slug?}</c> is the one older instance of this shape and keeps its own, different meaning - an empty
+/// slug, served at the page's own address - so it is canonicalized to <c>{slug}</c> before any of this
+/// applies. See <see cref="AreOptionalPlaceholdersWellFormed"/> for the rules an optional placeholder has
+/// to follow, and <see cref="ExpandOptionalVariants"/> for how one is matched.
 /// </para>
 /// <para>
 /// Both directions live here, and they have to agree: <see cref="Build"/> composes a content's URL when
@@ -129,6 +143,13 @@ public static class PageRoute
     /// </summary>
     private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromMilliseconds(250);
 
+    /// <summary>
+    /// How many optional placeholders one route may carry. Each one doubles the concrete templates a
+    /// request is tried against (<see cref="ExpandOptionalVariants"/>) - four is sixteen, already more
+    /// than any real archive/category URL scheme needs.
+    /// </summary>
+    private const int MaxOptionalPlaceholders = 4;
+
     private enum RouteTokenKind
     {
         Literal,
@@ -137,17 +158,18 @@ public static class PageRoute
 
     /// <summary>
     /// One piece of a parsed route template - either a run of literal text matched verbatim, or a
-    /// placeholder carrying its name and (optionally) its format and/or regex. The unit every method below
-    /// actually works against once <see cref="TryParseTemplate"/> has run - ad hoc string slicing on the
-    /// route text cannot safely locate a placeholder's own boundaries once its regex may itself contain
-    /// <c>{</c>/<c>}</c> (see the class remarks).
+    /// placeholder carrying its name, (optionally) its format and/or regex, and whether it is optional. The
+    /// unit every method below actually works against once <see cref="TryParseTemplate"/> has run - ad hoc
+    /// string slicing on the route text cannot safely locate a placeholder's own boundaries once its regex
+    /// may itself contain <c>{</c>/<c>}</c> (see the class remarks).
     /// </summary>
-    private sealed record RouteToken(RouteTokenKind Kind, string? Literal, string? Name, string? Format, string? RegexPattern)
+    private sealed record RouteToken(
+        RouteTokenKind Kind, string? Literal, string? Name, string? Format, string? RegexPattern, bool IsOptional)
     {
-        public static RouteToken ForLiteral(string text) => new(RouteTokenKind.Literal, text, null, null, null);
+        public static RouteToken ForLiteral(string text) => new(RouteTokenKind.Literal, text, null, null, null, false);
 
-        public static RouteToken ForPlaceholder(string name, string? format, string? regexPattern) =>
-            new(RouteTokenKind.Placeholder, null, name, format, regexPattern);
+        public static RouteToken ForPlaceholder(string name, string? format, string? regexPattern, bool isOptional) =>
+            new(RouteTokenKind.Placeholder, null, name, format, regexPattern, isOptional);
     }
 
     /// <summary>
@@ -171,7 +193,9 @@ public static class PageRoute
     /// closing brace; a backslash escapes the next character so an explicitly-escaped <c>\{</c>/<c>\}</c>
     /// inside a regex never perturbs the count either. Returns <see langword="false"/> for anything that
     /// does not parse cleanly: a stray, unmatched brace; an empty or malformed name; a <c>:</c>-segment
-    /// that is neither a valid format nor a compilable regex (see <see cref="TryDisambiguate"/>). This
+    /// that is neither a valid format nor a compilable regex (see <see cref="TryDisambiguate"/>). A
+    /// <c>?</c> right after a name marks the placeholder optional - whether it is allowed to be where it
+    /// is, is <see cref="AreOptionalPlaceholdersWellFormed"/>'s question, not this scan's. This
     /// single scan is also what <see cref="IsValid"/> relies on to reject a syntax error - there is no
     /// separate "anything left with a brace in it" pass the way there used to be, because a route this
     /// method fails to parse never had a well-formed placeholder to begin with.
@@ -216,6 +240,13 @@ public static class PageRoute
                 i++;
             }
             var name = route[nameStart..i];
+
+            var isOptional = false;
+            if (i < route.Length && route[i] == '?')
+            {
+                isOptional = true;
+                i++;
+            }
 
             if (i >= route.Length)
             {
@@ -275,10 +306,10 @@ public static class PageRoute
             }
             else
             {
-                return false; // a name followed by neither ':' nor '}'
+                return false; // a name (and its '?', if any) followed by neither ':' nor '}'
             }
 
-            tokens.Add(RouteToken.ForPlaceholder(name, format, regexPattern));
+            tokens.Add(RouteToken.ForPlaceholder(name, format, regexPattern, isOptional));
         }
 
         if (literal.Length > 0)
@@ -373,6 +404,190 @@ public static class PageRoute
     private static Regex GetCompiledRegex(string pattern) => RegexCache[pattern];
 
     /// <summary>
+    /// <paramref name="route"/> parsed into tokens the way every public method here needs it:
+    /// <c>{slug?}</c> canonicalized to <c>{slug}</c> first, then rejected exactly like a syntax error when
+    /// an optional placeholder breaks one of <see cref="AreOptionalPlaceholdersWellFormed"/>'s rules - which
+    /// <see cref="Build"/> and every matching method rely on without checking them again.
+    /// </summary>
+    private static bool TryParseRoute(string route, out List<RouteToken> tokens)
+    {
+        return TryParseTemplate(Canonicalize(route), out tokens) && AreOptionalPlaceholdersWellFormed(tokens);
+    }
+
+    /// <summary>
+    /// Whether every optional placeholder in <paramref name="tokens"/> is one this class can actually match:
+    /// <list type="number">
+    /// <item>It fills a whole path segment on its own - a literal ending in <c>/</c> right before it, and
+    /// either nothing or a literal starting with <c>/</c> right after it. Leaving it out removes exactly that
+    /// segment; there is no equally obvious answer for what to remove from <c>post-{category?}</c>.</item>
+    /// <item>Every optional placeholder but the last one carries a REGEX. Without one it would claim any
+    /// segment offered to it, and a later optional placeholder could never be reached in its place -
+    /// <c>/news/{a?}/{b?}</c> would answer <c>/news/x</c> with <c>a</c> every time (see
+    /// <see cref="ExpandOptionalVariants"/>'s leftmost-first order). The last one has nothing after it to
+    /// shadow, which is also why <c>/blog/{category?}/{slug}</c> needs no REGEX: it is the only one.</item>
+    /// <item>There are at most <see cref="MaxOptionalPlaceholders"/> of them.</item>
+    /// </list>
+    /// A placeholder named <c>slug</c> is never optional this way. <c>{slug?}</c> itself is canonicalized
+    /// away before this runs, so one still marked optional here is a decorated form such as
+    /// <c>{slug?:REGEX}</c>, which has no coherent meaning next to <c>{slug?}</c>'s own.
+    /// </summary>
+    private static bool AreOptionalPlaceholdersWellFormed(List<RouteToken> tokens)
+    {
+        var optionalIndexes = GetOptionalPlaceholderIndexes(tokens);
+        if (optionalIndexes.Count > MaxOptionalPlaceholders)
+        {
+            return false;
+        }
+
+        for (var n = 0; n < optionalIndexes.Count; n++)
+        {
+            var index = optionalIndexes[n];
+            var token = tokens[index];
+
+            if (string.Equals(token.Name, "slug", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (index == 0 || tokens[index - 1] is not { Kind: RouteTokenKind.Literal, Literal: { } before } ||
+                !before.EndsWith('/'))
+            {
+                return false;
+            }
+
+            if (index + 1 < tokens.Count &&
+                (tokens[index + 1] is not { Kind: RouteTokenKind.Literal, Literal: { } after } || !after.StartsWith('/')))
+            {
+                return false;
+            }
+
+            if (n < optionalIndexes.Count - 1 && token.RegexPattern == null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static List<int> GetOptionalPlaceholderIndexes(List<RouteToken> tokens)
+    {
+        var indexes = new List<int>();
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            if (tokens[i] is { Kind: RouteTokenKind.Placeholder, IsOptional: true })
+            {
+                indexes.Add(i);
+            }
+        }
+
+        return indexes;
+    }
+
+    /// <summary>
+    /// Every concrete template <paramref name="tokens"/> stands for once each of its optional placeholders
+    /// is either kept or left out - 2^n of them for n optional placeholders, and just the tokens as they
+    /// are when there are none. Ordered most placeholders kept first, then, among those keeping the same
+    /// number, the one keeping the leftmost first - the order every matching method tries them in, taking
+    /// the first that fits. Since an optional placeholder is always a whole segment of its own, templates
+    /// keeping a different number of them never fit the same path at all; the leftmost-first order is what
+    /// settles the rest. <c>/news/2026</c> against the class remarks' example tries <c>category</c> before
+    /// <c>publishTime</c>, and it is <c>category</c>'s own REGEX that turns it down - which is why
+    /// <see cref="AreOptionalPlaceholdersWellFormed"/> requires one on every optional placeholder but the
+    /// last.
+    /// </summary>
+    private static IEnumerable<List<RouteToken>> ExpandOptionalVariants(List<RouteToken> tokens)
+    {
+        var optionalIndexes = GetOptionalPlaceholderIndexes(tokens);
+        if (optionalIndexes.Count == 0)
+        {
+            yield return tokens;
+            yield break;
+        }
+
+        var count = optionalIndexes.Count;
+
+        // Bit (count - 1 - n) set means the n-th optional placeholder is kept, so among masks keeping the
+        // same number of them, a larger one keeps placeholders further to the left.
+        var masks = Enumerable.Range(0, 1 << count)
+            .OrderByDescending(mask => BitOperations.PopCount((uint)mask))
+            .ThenByDescending(mask => mask);
+
+        foreach (var mask in masks)
+        {
+            var omitted = new HashSet<int>();
+            for (var n = 0; n < count; n++)
+            {
+                if ((mask & (1 << (count - 1 - n))) == 0)
+                {
+                    omitted.Add(optionalIndexes[n]);
+                }
+            }
+
+            yield return OmitPlaceholders(tokens, omitted);
+        }
+    }
+
+    /// <summary>
+    /// <paramref name="tokens"/> with the placeholders at <paramref name="omittedTokenIndexes"/> left out,
+    /// each together with the <c>/</c> that introduced its segment
+    /// (<see cref="AreOptionalPlaceholdersWellFormed"/> guarantees the literal right before one ends in it),
+    /// and every two literals that end up adjacent merged into one - <see cref="TryExtract"/> locates a
+    /// literal boundary by the whole literal's text at once, not piece by piece. Leaving out every segment
+    /// of a route whose own address is the root leaves nothing at all, which is the root itself, <c>/</c>.
+    /// </summary>
+    private static List<RouteToken> OmitPlaceholders(List<RouteToken> tokens, HashSet<int> omittedTokenIndexes)
+    {
+        var result = new List<RouteToken>();
+
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+
+            if (omittedTokenIndexes.Contains(i))
+            {
+                result[^1] = RouteToken.ForLiteral(result[^1].Literal![..^1]);
+                continue;
+            }
+
+            if (token.Kind == RouteTokenKind.Literal && result.Count > 0 && result[^1].Kind == RouteTokenKind.Literal)
+            {
+                result[^1] = RouteToken.ForLiteral(result[^1].Literal + token.Literal);
+                continue;
+            }
+
+            result.Add(token);
+        }
+
+        result.RemoveAll(t => t is { Kind: RouteTokenKind.Literal, Literal.Length: 0 });
+        if (result.Count == 0)
+        {
+            result.Add(RouteToken.ForLiteral("/"));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// <see cref="TryExtract"/> against each of <paramref name="tokens"/>'s optional-placeholder variants
+    /// in turn (<see cref="ExpandOptionalVariants"/>), the first that fits winning - which, for a template
+    /// with no optional placeholder, is exactly <see cref="TryExtract"/> itself, the only variant there is.
+    /// </summary>
+    private static bool TryExtractAny(List<RouteToken> tokens, string path, out Dictionary<string, string> captures)
+    {
+        foreach (var variant in ExpandOptionalVariants(tokens))
+        {
+            if (TryExtract(variant, path, out captures))
+            {
+                return true;
+            }
+        }
+
+        captures = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        return false;
+    }
+
+    /// <summary>
     /// Whether <paramref name="route"/> is usable.
     /// <para>
     /// <c>{slug}</c> and <c>{slug?}</c> are mutually exclusive - a route asking for both at once has no
@@ -383,7 +598,8 @@ public static class PageRoute
     /// requires reading a <c>ContentType</c>'s declared fields, which a route, on its own, has no way to
     /// reach. A route with no <c>{slug}</c>/<c>{slug?}</c> at all is valid - that is a page with nothing
     /// beneath it, not an error. See the class remarks for why this does not mirror Dignite.Cms's stricter
-    /// rule.
+    /// rule. An optional placeholder additionally has to follow <see cref="AreOptionalPlaceholdersWellFormed"/>'s
+    /// rules.
     /// </para>
     /// <para>
     /// A placeholder's dedup key is its name alone, or <c>name:FORMAT</c> when a format is present - never
@@ -413,7 +629,7 @@ public static class PageRoute
             return false;
         }
 
-        if (!TryParseTemplate(Canonicalize(route), out var tokens))
+        if (!TryParseRoute(route, out var tokens))
         {
             return false;
         }
@@ -506,9 +722,24 @@ public static class PageRoute
     /// </param>
     public static string Build(string route, Func<string, string?, string> valueResolver)
     {
-        var canonical = Canonicalize(route);
+        return Build(route, (name, format, _) => valueResolver(name, format));
+    }
 
-        if (!TryParseTemplate(canonical, out var tokens))
+    /// <summary>
+    /// <see cref="Build(string, Func{string, string, string})"/>, for a resolver that also needs to know
+    /// whether the placeholder it is resolving is optional - a field a content simply does not have is a
+    /// configuration mistake for a required placeholder, but an ordinary, empty value for an optional one
+    /// (<see cref="Page.BuildContentPath"/>). An optional placeholder resolved to null or empty is left out
+    /// of the URL together with the <c>/</c> that introduces its segment, exactly the way a request is
+    /// allowed to leave it out (see the class remarks): <c>/blog/{category?}/{slug}</c> builds
+    /// <c>/blog/my-post</c> for a content with no category. A required one resolved to null or empty is
+    /// written out empty, as it always was.
+    /// </summary>
+    /// <param name="route">The owning page's route.</param>
+    /// <param name="valueResolver">Resolves one placeholder from its name, optional format, and whether it is optional.</param>
+    public static string Build(string route, Func<string, string?, bool, string?> valueResolver)
+    {
+        if (!TryParseRoute(route, out var tokens))
         {
             // Build is only ever called with a route that already passed IsValid at the point it was
             // stored (Page.SetRoute) - reaching an unparseable one here means the stored value was
@@ -519,15 +750,67 @@ public static class PageRoute
         var result = new StringBuilder();
         foreach (var token in tokens)
         {
-            result.Append(token.Kind == RouteTokenKind.Literal ? token.Literal : valueResolver(token.Name!, token.Format));
+            if (token.Kind == RouteTokenKind.Literal)
+            {
+                result.Append(token.Literal);
+                continue;
+            }
+
+            var value = valueResolver(token.Name!, token.Format, token.IsOptional);
+            if (token.IsOptional && string.IsNullOrEmpty(value))
+            {
+                // AreOptionalPlaceholdersWellFormed guarantees what was just written is a literal ending in
+                // the '/' that introduces this placeholder's segment - it goes along with it.
+                result.Length--;
+                continue;
+            }
+
+            result.Append(value);
         }
 
-        return result.ToString();
+        return result.Length == 0 ? "/" : result.ToString();
     }
 
     /// <summary>
+    /// The reverse of <see cref="TryMatchExact"/>: the path <paramref name="capturedValues"/> were read
+    /// from, rebuilt from the route rather than remembered from the request - <c>/news/2026/08</c> again,
+    /// from <c>{"publishTime:yyyy": "2026", "publishTime:MM": "08"}</c> and a route with those two
+    /// placeholders. What a declared filtered view's canonical URL is derived from (总体设计 §5.3: canonical
+    /// is computed from the route's structure). Values are looked up by the same key the matching methods
+    /// capture them under - name, or <c>name:FORMAT</c> - and an optional placeholder with no value is left
+    /// out, exactly as <see cref="Build(string, Func{string, string, bool, string})"/> leaves it out.
+    /// </summary>
+    /// <exception cref="ArgumentException">A required placeholder has no value in <paramref name="capturedValues"/> - they were not captured from this route.</exception>
+    public static string BuildFromCapturedValues(string route, IReadOnlyDictionary<string, string> capturedValues)
+    {
+        return Build(route, (name, format, isOptional) =>
+        {
+            var key = GetCaptureKey(name, format);
+            if (capturedValues.TryGetValue(key, out var value))
+            {
+                return value;
+            }
+
+            if (isOptional)
+            {
+                return null;
+            }
+
+            throw new ArgumentException($"No captured value for '{key}' in route '{route}'.", nameof(capturedValues));
+        });
+    }
+
+    /// <summary>
+    /// The key a placeholder's captured value is stored under - its name alone, or <c>name:FORMAT</c> when
+    /// a format is present, never its regex (see <see cref="Accept"/> and <see cref="IsValid"/>).
+    /// </summary>
+    private static string GetCaptureKey(string name, string? format) => format != null ? $"{name}:{format}" : name;
+
+    /// <summary>
     /// The reverse of <see cref="Build"/>: reads the slug back out of a full request path, matched
-    /// against the whole route as one anchored template - not a prefix plus a remainder.
+    /// against the whole route as one anchored template - not a prefix plus a remainder - or, when the
+    /// route has optional placeholders, against the first of its variants that fits
+    /// (<see cref="ExpandOptionalVariants"/>).
     /// <para>
     /// Only the slug is returned, because only the slug identifies the content -
     /// <c>(PageId, CultureName, Slug)</c> is the unique constraint, so any other placeholder is decoration
@@ -560,8 +843,7 @@ public static class PageRoute
     {
         slug = string.Empty;
 
-        var canonical = Canonicalize(route);
-        if (!TryParseTemplate(canonical, out var tokens) || !TryExtract(tokens, path, out var captures))
+        if (!TryParseRoute(route, out var tokens) || !TryExtractAny(tokens, path, out var captures))
         {
             return false;
         }
@@ -607,6 +889,12 @@ public static class PageRoute
     /// it has one, is checked the same way at every cut it appears filled in, not only at the deepest one.
     /// </para>
     /// <para>
+    /// An optional placeholder inside a cut may still be left out, the same way it may be in a full match
+    /// (<see cref="ExpandOptionalVariants"/>) - but never so that nothing is left beyond the route's own
+    /// bare address: that address is <see cref="GetPath"/>'s and <c>SiteRouteResolver</c>'s "page itself"
+    /// fallback's, the only one that also knows to look for a content with an empty slug there.
+    /// </para>
+    /// <para>
     /// Callers decide which page's route to even try this against, and whether to try it at all - by the
     /// time this runs, <c>SiteRouteResolver</c> has already settled both which page a request belongs to
     /// and whether this candidate is even allowed a truncated reading (总体设计 §3.4); this only answers
@@ -622,8 +910,7 @@ public static class PageRoute
     {
         values = EmptyValues;
 
-        var canonical = Canonicalize(route);
-        if (!TryParseTemplate(canonical, out var tokens))
+        if (!TryParseRoute(route, out var tokens) || path == GetPath(route))
         {
             return false;
         }
@@ -659,7 +946,7 @@ public static class PageRoute
         {
             var prefix = BuildTruncatedPrefix(tokens, placeholderTokenIndexes[cut]);
 
-            if (!TryExtract(prefix, path, out var captures))
+            if (!TryExtractAny(prefix, path, out var captures))
             {
                 continue;
             }
@@ -689,6 +976,17 @@ public static class PageRoute
     /// <c>SiteRouteResolver</c>'s "page itself" fallback's territory, not this one's).
     /// </para>
     /// <para>
+    /// "None dropped" means none the route did not itself declare optional: an optional placeholder may be
+    /// left out here, and that is the whole point of one - <c>/news/{publishTime:yyyy}/{publishTime?:MM}</c>
+    /// answers <c>/news/2026</c> here, as a full match, rather than as a truncated one only
+    /// <see cref="TryMatchPartial"/> could offer and <c>SiteRouteResolver</c> withholds the moment another
+    /// page shares its address. Declared, not guessed at, so nothing needs withholding. The one thing still
+    /// refused is the route's own bare address itself, even when every placeholder is optional and leaving
+    /// them all out would fit it - for the same reason given above for a route with no placeholder at all;
+    /// letting a template claim it here would also let it beat a literal page sharing that address, the
+    /// tie-break 总体设计 §3.4 gives the literal one.
+    /// </para>
+    /// <para>
     /// Matched case-sensitively, for the same reason <see cref="TryMatchSlug"/> is - see its own remarks.
     /// </para>
     /// </summary>
@@ -703,13 +1001,13 @@ public static class PageRoute
             return false;
         }
 
-        var canonical = Canonicalize(route);
-        if (!TryParseTemplate(canonical, out var tokens) || tokens.All(t => t.Kind != RouteTokenKind.Placeholder))
+        if (!TryParseRoute(route, out var tokens) || tokens.All(t => t.Kind != RouteTokenKind.Placeholder) ||
+            path == GetPath(route))
         {
             return false;
         }
 
-        if (!TryExtract(tokens, path, out var captures))
+        if (!TryExtractAny(tokens, path, out var captures))
         {
             return false;
         }
@@ -837,7 +1135,7 @@ public static class PageRoute
             return false;
         }
 
-        var key = placeholder.Format != null ? $"{placeholder.Name}:{placeholder.Format}" : placeholder.Name!;
+        var key = GetCaptureKey(placeholder.Name!, placeholder.Format);
         captures.Add(key, value); // .Add, not the indexer - a duplicate key here means IsValid let one through it should not have
         return true;
     }
@@ -848,14 +1146,15 @@ public static class PageRoute
     /// A few placeholders every route can use without anything else being configured first - surfaced so
     /// an admin UI or an MCP tool description can show examples instead of hard-coding its own copy. Not
     /// exhaustive: <see cref="IsValid"/> accepts <c>{name}</c>/<c>{name:FORMAT}</c>/<c>{name:REGEX}</c>/
-    /// <c>{name:FORMAT:REGEX}</c> for any field name a content has, system property or <c>FlexFields</c>
-    /// business field alike.
+    /// <c>{name:FORMAT:REGEX}</c> - each optionally marked <c>{name?...}</c> - for any field name a content
+    /// has, system property or <c>FlexFields</c> business field alike.
     /// </summary>
     public static IReadOnlyList<string> SupportedPlaceholders { get; } = new[]
     {
         SlugToken,
         OptionalSlugToken,
         "{publishTime:yyyy-MM}",
-        "{publishTime:yyyy-MM:^\\d{4}-(0[1-9]|1[0-2])$}"
+        "{publishTime:yyyy-MM:^\\d{4}-(0[1-9]|1[0-2])$}",
+        "{publishTime?:MM:^(0[1-9]|1[0-2])$}"
     };
 }

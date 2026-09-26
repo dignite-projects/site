@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.Contents;
@@ -59,6 +60,19 @@ public class SiteUrlBuilder : DomainService
     public virtual string BuildPageUrl(SiteUrlContext context, Page page, string cultureName)
     {
         return context.BuildAbsolute(page.GetPath(), cultureName);
+    }
+
+    /// <summary>
+    /// The absolute URL of one filtered view of a page - its list narrowed by the values a request filled
+    /// its route's placeholders with, e.g. <c>/news/tutorials</c> (<see cref="Page.BuildFilteredPath"/>).
+    /// </summary>
+    public virtual string BuildFilteredPageUrl(
+        SiteUrlContext context,
+        Page page,
+        IReadOnlyDictionary<string, string> filterValues,
+        string cultureName)
+    {
+        return context.BuildAbsolute(page.BuildFilteredPath(filterValues), cultureName);
     }
 
     /// <summary>
