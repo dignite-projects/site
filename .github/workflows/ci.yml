@@ -93,6 +93,9 @@ jobs:
       - name: Run HttpApi.Client tests
         run: dotnet test test/Dignite.Site.Public.HttpApi.Client.Tests/Dignite.Site.Public.HttpApi.Client.Tests.csproj --no-build --configuration Release --verbosity normal
 
+      - name: Run Public.Web tests
+        run: dotnet test test/Dignite.Site.Public.Web.Tests/Dignite.Site.Public.Web.Tests.csproj --no-build --configuration Release --verbosity normal
+
       # Not currently run by release.yml either - the standing MCP-tool/DTO contract test that
       # fails when an MCP tool's parameters drift from the Create/Update/List DTO it builds. It is
       # the check that would have caught create_page/update_page silently dropping `template`.

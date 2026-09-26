@@ -136,6 +136,9 @@ jobs:
       - name: Run HttpApi.Client tests
         run: dotnet test test/Dignite.Site.Public.HttpApi.Client.Tests/Dignite.Site.Public.HttpApi.Client.Tests.csproj --no-build --configuration Release --verbosity normal
 
+      - name: Run Public.Web tests
+        run: dotnet test test/Dignite.Site.Public.Web.Tests/Dignite.Site.Public.Web.Tests.csproj --no-build --configuration Release --verbosity normal
+
       # Only src/*/*.csproj are packed - NOT `dotnet pack Dignite.Site.slnx`. The slnx also carries
       # the "/flex-fields/" folder (abp-modules' own packable projects, checked out above just so
       # they can be *referenced*) and host/ + test/ (IsPackable=false via common.test.props / the

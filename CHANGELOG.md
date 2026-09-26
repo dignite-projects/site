@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Template helpers for reading field values: `Dignite.Site.Public.Templating`** (in
+  `Dignite.Site.Public.Web`, imported by its own and the Host's `Views/_ViewImports.cshtml`). A template
+  had only `<flex-field-view>`, which renders a whole field by its type; anything else - a title as
+  text, a category's label, a Matrix block's sub-field - each host had to write itself. These come from
+  Dignite.Cloud.Web.Public, where they grew for exactly that reason, and carry no field names of their
+  own: a template names the fields it reads.
+  - `ContentTemplateExtensions`, on `ContentDto`, `ContentRenderViewModel` and a Matrix block's values
+    (`JsonElement`): `GetText`, `GetTexts`, `GetFileUrl`, `GetMatrixBlocks`. Each reads a value the
+    way it arrives - a `JsonElement` over HTTP, a plain CLR value in-process - and reads a value of the
+    wrong shape as empty instead of throwing.
+  - `GetSelectedOptions` on `ContentRenderViewModel`: a Select field's chosen options, value and
+    label, with labels from the field's own definition in `Fields`. A value no option has any more
+    comes back with the value as its label.
+  - `SelectFieldOptionsProvider`: every option of a Select field, found through a page by name - for a
+    category link bar, which has to list categories no content in view carries.
+  - `FileExplorerImageUrl.Sized(url, width, height)`: a FileExplorer image at the size a template
+    lays it out. Any other address is returned unchanged.
+  - A new `Dignite.Site.Public.Web.Tests` project covers them, run by both workflows.
+
 ### Changed
 
 - **A root-level route that requires a slug is no longer a home route.** `PageRoute.IsHomeRoute` now
