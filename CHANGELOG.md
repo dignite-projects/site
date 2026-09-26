@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.18] - 2026-09-26
+
 ### Added
 
 - **A page's slug can carry a regex: `{slug:REGEX}`.** Every other route placeholder already took one;
@@ -971,4 +973,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.17...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.18...HEAD
