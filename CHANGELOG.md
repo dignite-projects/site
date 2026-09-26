@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Nothing fails if you don't: the lookup silently falls back to the default views and the overrides
   are ignored.
 
+### Fixed
+
+- **A page route can now reference any field by name, including names with `_` or `-`.** Route
+  placeholder names were limited to letters and digits, starting with a letter, while a field name
+  may contain `_` and `-` and may start with a digit (`my_field`, `post-article`, `2026-report`). A
+  field with such a name could be created but not used in a route: `/blog/{my_field}/{slug}` was
+  rejected as an invalid route. A placeholder name now starts with a letter or digit and may
+  contain letters, digits, `_` and `-`. That covers every legal field name, plus uppercase for
+  camel-cased system properties such as `publishTime`. Both characters are unambiguous in a name
+  because a name always ends at the first `}` or `:`, so `{slug}-{title}` still parses as before.
+  The content editor's URL preview reads names by the same rule.
+
 ## [0.1.0-preview.14] - 2026-09-23
 
 ### Changed

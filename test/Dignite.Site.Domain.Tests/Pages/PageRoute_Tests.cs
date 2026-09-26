@@ -150,6 +150,66 @@ public class PageRoute_Tests
     }
 
     /// <summary>
+    /// Every name a field can legally have (IdentifierName) must also be a legal placeholder name -
+    /// otherwise a field is creatable but can never be referenced from a route. '_' and '-' are both
+    /// unambiguous here: a name ends at the first '}' or ':', never at route literal text.
+    /// </summary>
+    [Theory]
+    [InlineData("my_field")]
+    [InlineData("post-article")]
+    [InlineData("2026-report")]
+    [InlineData("a_b-c")]
+    public void Should_Accept_Every_Identifier_Name_As_A_Placeholder_Name(string fieldName)
+    {
+        IdentifierName.IsValid(fieldName).ShouldBeTrue();
+
+        PageRoute.IsValid($"/blog/{{{fieldName}}}/{{slug}}").ShouldBeTrue();
+        PageRoute.IsValid($"/blog/{{{fieldName}:yyyy-MM}}/{{slug}}").ShouldBeTrue();
+        PageRoute.IsValid($"/blog/{{{fieldName}:^[a-z]+$}}/{{slug}}").ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The same leading-character rule IdentifierName has - a name never starts with '_' or '-'.
+    /// </summary>
+    [Theory]
+    [InlineData("/blog/{_field}/{slug}")]
+    [InlineData("/blog/{-field}/{slug}")]
+    [InlineData("/blog/{my.field}/{slug}")]
+    [InlineData("/blog/{my field}/{slug}")]
+    public void Should_Reject_A_Malformed_Placeholder_Name(string route)
+    {
+        PageRoute.IsValid(route).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A name containing '_'/'-' is carried through both directions intact - Build asks the resolver for
+    /// it verbatim, and TryMatchPartial keys its capture by it verbatim, which is what
+    /// ContentListTagHelper then looks the field up by.
+    /// </summary>
+    [Fact]
+    public void Should_Round_Trip_Placeholder_Names_Containing_Underscore_And_Hyphen()
+    {
+        const string route = "/blog/{my_category}/{release-date:yyyy-MM}/{slug}";
+
+        var path = PageRoute.Build(route, (name, format) => name switch
+        {
+            "my_category" => "travel",
+            "release-date" => PublishTime.ToString(format, CultureInfo.InvariantCulture),
+            "slug" => "my-post",
+            _ => throw new InvalidOperationException($"Unexpected placeholder '{name}' in this test.")
+        });
+
+        path.ShouldBe("/blog/travel/2026-07/my-post");
+
+        PageRoute.TryMatchSlug(route, path, out var slug).ShouldBeTrue();
+        slug.ShouldBe("my-post");
+
+        PageRoute.TryMatchPartial(route, "/blog/travel/2026-07", out var values).ShouldBeTrue();
+        values["my_category"].ShouldBe("travel");
+        values["release-date:yyyy-MM"].ShouldBe("2026-07");
+    }
+
+    /// <summary>
     /// A stray, unmatched brace can never be a well-formed placeholder, whatever vocabulary is allowed for
     /// names.
     /// </summary>

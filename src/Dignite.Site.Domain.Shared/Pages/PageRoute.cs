@@ -150,9 +150,19 @@ public static class PageRoute
             new(RouteTokenKind.Placeholder, null, name, format, regexPattern);
     }
 
-    private static bool IsNameStartChar(char c) => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z');
+    /// <summary>
+    /// A placeholder name starts with a letter or digit and continues with letters, digits, <c>_</c> or
+    /// <c>-</c> - every <see cref="IdentifierName"/> a <c>Field</c> can be named (<c>my_field</c>,
+    /// <c>post-article</c>, <c>2026-report</c>), plus uppercase for <c>Content</c>'s own camel-cased system
+    /// properties (<c>publishTime</c>). A route must be able to reference any field a content can have
+    /// (总体设计 §2.4), so this set may never be narrower than <see cref="IdentifierName.Pattern"/>.
+    /// Neither <c>_</c> nor <c>-</c> is ambiguous here: a name only ever sits between <c>{</c> and the
+    /// first <c>}</c>/<c>:</c>, never next to a route's literal text, so a <c>-</c> separating two
+    /// placeholders in <c>{slug}-{title}</c> is outside both names and unaffected.
+    /// </summary>
+    private static bool IsNameStartChar(char c) => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9');
 
-    private static bool IsNameChar(char c) => IsNameStartChar(c) || (c is >= '0' and <= '9');
+    private static bool IsNameChar(char c) => IsNameStartChar(c) || c is '_' or '-';
 
     /// <summary>
     /// Scans <paramref name="route"/> into an ordered list of literal and placeholder tokens, tracking

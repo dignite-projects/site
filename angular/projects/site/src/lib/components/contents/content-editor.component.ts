@@ -532,11 +532,13 @@ export class ContentEditorComponent {
     let i = start + 1; // consume '{'
     const nameStart = i;
 
-    if (i >= route.length || !/[a-zA-Z]/.test(route[i])) {
+    // Mirrors `PageRoute.IsNameStartChar`/`IsNameChar`: every `IdentifierName` a field can have, plus
+    // uppercase for `Content`'s camel-cased system properties (`publishTime`).
+    if (i >= route.length || !/[a-zA-Z0-9]/.test(route[i])) {
       return null;
     }
     i++;
-    while (i < route.length && /[a-zA-Z0-9]/.test(route[i])) {
+    while (i < route.length && /[a-zA-Z0-9_-]/.test(route[i])) {
       i++;
     }
     const name = route.slice(nameStart, i);
