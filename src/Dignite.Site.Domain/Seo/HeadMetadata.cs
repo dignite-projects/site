@@ -60,6 +60,9 @@ public class HeadMetadata
     /// <summary>Reciprocal, self-referencing, absolute (总体设计 §5.5). Includes the current language.</summary>
     public IReadOnlyList<HreflangAlternate> HreflangAlternates { get; }
 
-    /// <summary>The home page's URL in the default language, or null if no page is currently the home page.</summary>
+    /// <summary>
+    /// The default-language member of <see cref="HreflangAlternates"/> - this same page, never another one.
+    /// Null when there is only one alternate, or none of them is in the default language.
+    /// </summary>
     public string? XDefaultUrl { get; }
 }

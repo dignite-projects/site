@@ -26,10 +26,10 @@ public class HeadMetadataDto
 
     public string? OgImageUrl { get; set; }
 
-    /// <summary>The Open Graph type SeoTags decided on, e.g. <c>"Website"</c>.</summary>
+    /// <summary>The Open Graph type SeoTags decided on, as the <c>og:type</c> value itself, e.g. <c>"website"</c>.</summary>
     public string? OgType { get; set; }
 
-    /// <summary>The Twitter card type SeoTags decided on based on whether an image is set, e.g. <c>"SummaryLargeImage"</c>.</summary>
+    /// <summary>The Twitter card type SeoTags decided on based on whether an image is set, as the <c>twitter:card</c> value itself, e.g. <c>"summary_large_image"</c>.</summary>
     public string? TwitterCardType { get; set; }
 
     /// <summary>Reciprocal, self-referencing, absolute (总体设计 §5.5). Includes the current language.</summary>

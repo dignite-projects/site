@@ -164,7 +164,7 @@ public class PageTools : ITransientDependency
         "those types, in every language. This is the only tool here that removes a whole section of the " +
         "site in one call, and it cannot be undone. Fails if the page has child pages in the Admin UI's " +
         "tree - move them elsewhere or delete them first with update_page/delete_page. If this page is " +
-        "the home page, the site is left with none, which is what hreflang's x-default points at - set " +
+        "the home page, the site is left with none and its root address stops resolving - set " +
         "another page as home first if that matters. Confirm with the user first.")]
     [Authorize(SiteAdminPermissions.Pages.Delete)]
     public virtual async Task<string> DeletePageAsync(

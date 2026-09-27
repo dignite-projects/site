@@ -10,10 +10,7 @@
 <head>
     <meta charset="utf-8" />
     <title>@(Model.HeadMetadata?.MetaTitle ?? Model.Page.DisplayName)</title>
-    @if (Model.HeadMetadata?.MetaDescription is { } description)
-    {
-        <meta name="description" content="@description" />
-    }
+    <site-head-metadata metadata="@Model.HeadMetadata" />
 </head>
 <body>
 @if (Model.Content != null)

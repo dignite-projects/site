@@ -55,7 +55,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     /// <summary>
     /// delete_page's own description now warns that removing the home page leaves the site without one -
     /// the return value has to say so too, since a generic "deleted X" message would hide the one
-    /// consequence that matters (总体设计 §5.5: hreflang's x-default needs exactly one home page).
+    /// consequence that matters: the site's root address no longer resolves to anything.
     /// </summary>
     [Fact]
     public async Task Should_Report_When_The_Deleted_Page_Was_The_Home_Page()

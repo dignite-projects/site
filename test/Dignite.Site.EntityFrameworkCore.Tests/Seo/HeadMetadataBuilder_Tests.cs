@@ -555,47 +555,67 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         metadata.HreflangAlternates.Select(a => a.CultureName).ShouldContain("en");
     }
 
-    [Fact]
-    public async Task XDefaultUrl_Should_Point_At_The_Seeded_Home_Page()
+    /// <summary>
+    /// x-default is this same page in the default language - the unprefixed address a visitor matching none
+    /// of the listed languages lands on - whichever language the page is being viewed in. The home page is a
+    /// different page: pointing every cluster at it is an annotation the home page never reciprocates.
+    /// </summary>
+    [Theory]
+    [InlineData(SiteTestData.EnglishCulture)]
+    [InlineData(SiteTestData.ChineseCulture)]
+    public async Task XDefaultUrl_Should_Be_The_Default_Language_Member_Of_Its_Own_Cluster(string cultureName)
     {
-        var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
+        var metadata = await BuildAsync("/about", cultureName);
 
-        metadata.XDefaultUrl.ShouldBe($"{BaseUrl}/");
+        metadata.XDefaultUrl.ShouldBe($"{BaseUrl}/about");
+        metadata.HreflangAlternates.Select(a => a.Url).ShouldContain(metadata.XDefaultUrl);
     }
 
     [Fact]
-    public async Task XDefaultUrl_Should_Be_Null_When_No_Page_Is_The_Home_Page()
+    public async Task XDefaultUrl_For_A_Declared_Filtered_View_Should_Be_The_Same_Filtered_Path()
     {
-        // Being the home page is derived from Route now, not a flag that can be cleared while Route stays
-        // "/" - the only way for no page to be the home page is for no page's own address to be the root,
-        // so this moves the seeded home page's route away from it instead.
-        await WithUnitOfWorkAsync(async () =>
-        {
-            var home = await _pageRepository.GetAsync(SiteTestData.HomePageId);
-            await _pageManager.UpdateAsync(home, home.Name, home.DisplayName, "/home-moved");
-        });
+        await CreateCategoryYearMonthPageAsync();
 
+        var metadata = await BuildAsync("/journal/tutorials", SiteTestData.ChineseCulture);
+
+        metadata.XDefaultUrl.ShouldBe($"{BaseUrl}/journal/tutorials");
+    }
+
+    /// <summary>A cluster of one has no language choice for x-default to settle.</summary>
+    [Fact]
+    public async Task XDefaultUrl_Should_Be_Null_For_A_Single_Language_Cluster()
+    {
         var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
 
+        metadata.HreflangAlternates.Count.ShouldBe(1);
         metadata.XDefaultUrl.ShouldBeNull();
     }
 
     /// <summary>
-    /// A deactivated page is not routable - <c>SiteRouteResolver</c> 404s it and the sitemap drops it. An
-    /// <c>x-default</c> still pointing there would have two derived SEO artifacts contradicting each other
-    /// about the same URL, and an x-default pointing at a 404 invalidates the whole hreflang cluster.
+    /// Content never translated into the default language has no member to name: x-default is left out
+    /// rather than pointed outside the cluster.
     /// </summary>
     [Fact]
-    public async Task XDefaultUrl_Should_Ignore_A_Deactivated_Home_Page()
+    public async Task XDefaultUrl_Should_Be_Null_When_No_Member_Is_In_The_Default_Language()
     {
-        await WithUnitOfWorkAsync(async () =>
-        {
-            var home = await _pageRepository.GetAsync(SiteTestData.HomePageId);
-            await _pageManager.UpdateAsync(home, home.Name, home.DisplayName, home.Route, isActive: false);
-        });
+        const string japanese = "ja";
+        _settings.Set(SiteSettings.EnabledLanguages,
+            $"{SiteTestData.EnglishCulture},{SiteTestData.ChineseCulture},{japanese}");
 
-        var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
+        var slug = $"no-default-{Guid.NewGuid():N}";
 
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, SiteTestData.ChineseCulture, slug, SiteTestData.PublishTime,
+            ContentStatus.Published, new Dictionary<string, object?> { ["title"] = "中文" }));
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            SiteTestData.PostArticleTypeId, japanese, slug, SiteTestData.PublishTime,
+            ContentStatus.Published, new Dictionary<string, object?> { ["title"] = "日本語" }));
+
+        var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.ChineseCulture);
+
+        metadata.HreflangAlternates.Select(a => a.CultureName).OrderBy(c => c, StringComparer.Ordinal)
+            .ShouldBe(new[] { japanese, SiteTestData.ChineseCulture });
         metadata.XDefaultUrl.ShouldBeNull();
     }
 

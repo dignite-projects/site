@@ -35,21 +35,17 @@ public class HeadMetadataBuilder : DomainService
 
     protected ContentSummaryResolver SummaryResolver { get; }
 
-    protected IPageRepository PageRepository { get; }
-
     protected IContentRepository ContentRepository { get; }
 
     public HeadMetadataBuilder(
         SiteUrlBuilder urlBuilder,
         NoIndexRecognizer noIndexRecognizer,
         ContentSummaryResolver summaryResolver,
-        IPageRepository pageRepository,
         IContentRepository contentRepository)
     {
         UrlBuilder = urlBuilder;
         NoIndexRecognizer = noIndexRecognizer;
         SummaryResolver = summaryResolver;
-        PageRepository = pageRepository;
         ContentRepository = contentRepository;
     }
 
@@ -160,21 +156,11 @@ public class HeadMetadataBuilder : DomainService
                 : baseTitle;
         }
 
-        // IsActive matters as much as being the home route here: FindHomePageAsync judges Route alone,
-        // but a deactivated page is not routable (SiteRouteResolver 404s it, and the sitemap drops it).
-        // An x-default or a Home crumb pointing at a 404 is worse than having neither - a bad x-default
-        // invalidates the whole hreflang cluster.
-        var homePage = await PageRepository.FindHomePageAsync(cancellationToken: cancellationToken);
-        if (homePage is { IsActive: false })
-        {
-            homePage = null;
-        }
-
-        var xDefaultUrl = homePage == null ? null : UrlBuilder.BuildPageUrl(context, homePage, context.DefaultCultureName);
-
         var hreflangAlternates = await BuildHreflangAlternatesAsync(
             page, content, cultureName, seoField, context, includeUnpublished, asOf,
             isDeclaredFilteredView ? match.FilterValues : null, cancellationToken);
+
+        var xDefaultUrl = SelectXDefaultUrl(hreflangAlternates, context);
 
         // The content's own CultureName is authoritative when there is one; the requested language is only
         // a fallback for a bare page match, which carries no language of its own.
@@ -192,6 +178,25 @@ public class HeadMetadataBuilder : DomainService
             includeUnpublished || contentNoIndex || (isFilteredView && !isDeclaredFilteredView),
             hreflangAlternates,
             xDefaultUrl);
+    }
+
+    /// <summary>
+    /// The <c>x-default</c> of one hreflang cluster: the same page in the default language, which is also
+    /// what a visitor gets at that page's unprefixed address when none of the listed languages fits - the
+    /// default language is the one without a prefix (总体设计 §5.5), so there is no language-neutral page
+    /// elsewhere for it to point at. Taken from the cluster itself, so it is never a URL outside it: an
+    /// annotation pointing at a different page is not reciprocated by that page and is dropped by search
+    /// engines. Null for a cluster of one - there is no choice for x-default to break - and for one with
+    /// no default-language member, e.g. content never translated into the default language.
+    /// </summary>
+    protected virtual string? SelectXDefaultUrl(IReadOnlyList<HreflangAlternate> alternates, SiteUrlContext context)
+    {
+        if (alternates.Count < 2)
+        {
+            return null;
+        }
+
+        return alternates.FirstOrDefault(a => string.Equals(a.CultureName, context.DefaultCultureName, StringComparison.Ordinal))?.Url;
     }
 
     /// <summary>

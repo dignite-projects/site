@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`<site-head-metadata>` writes a route's `<head>` tags** (`SiteHeadMetadataTagHelper`, in
+  `Dignite.Site.Public.Web`). Every host rendering through Site had to turn `HeadMetadataDto` into
+  description, canonical, robots, `og:*`, `twitter:card`, hreflang and x-default by hand. It takes the
+  metadata plus the template's own `title` (for `og:title`) and `fallback-description` (used only when
+  the content has none), and `current-page`/`page-query-key` for a paged list: beyond page 1 the
+  canonical, `og:url`, every hreflang alternate and x-default carry the page number. `<title>`, charset
+  and viewport stay with the host's layout.
+
 ### Changed
 
 - **The Seo field's share image is picked from the media library, and `og:image` is emitted at
@@ -28,6 +38,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FileExplorerImageUrl.Sized` dropped the address's whole query string, including the `__tenant`
   parameter FileExplorer issues its addresses with. It now replaces only `Width`/`Height` and keeps
   every other parameter.
+- **x-default pointed at the home page from every page.** Every cluster named the default-language
+  home page as its x-default, so `/blog` and `/ja/blog` announced `/` - a different page, which never
+  annotates them back, so search engines dropped the annotation. The design called for a
+  language-neutral home page, but the default language is served without a prefix, so `/` is the
+  default-language home page and no neutral one exists. x-default is now the default-language member
+  of the page's own cluster (`/blog`, or `/blog/engineering` for a filtered view). It is left out when
+  the cluster has a single language or no default-language member. `HeadMetadataBuilder` no longer
+  takes `IPageRepository`.
+- `HeadMetadataDto.OgType`/`TwitterCardType`'s doc comments gave the .NET enum names (`"Website"`,
+  `"SummaryLargeImage"`) as examples. The values have always been the tag values themselves
+  (`"website"`, `"summary_large_image"`), which a renderer writes as they are.
 
 ## [0.1.0-preview.20] - 2026-09-27
 
