@@ -330,7 +330,10 @@ public class HeadMetadataBuilder : DomainService
                 .Where(c => c.Id == content.Id || includeUnpublished || c.IsPubliclyAccessible(asOf))
                 .Where(c => c.Id == content.Id || includeUnpublished || !NoIndexRecognizer.IsNoIndex(c, seoField))
                 .Where(c => context.IsServed(c.CultureName))
-                .Select(c => new HreflangAlternate(c.CultureName, UrlBuilder.BuildContentUrl(context, page, c)))
+                .Select(c => new HreflangAlternate(
+                    c.CultureName,
+                    UrlBuilder.BuildContentUrl(context, page, c),
+                    UrlBuilder.BuildContentPath(context, page, c)))
                 .ToList();
         }
 
@@ -356,11 +359,15 @@ public class HeadMetadataBuilder : DomainService
                 .OrderBy(c => c, StringComparer.Ordinal));
 
         return cultures
-            .Select(culture => new HreflangAlternate(
-                culture,
-                declaredFilterValues != null
-                    ? UrlBuilder.BuildFilteredPageUrl(context, page, declaredFilterValues, culture)
-                    : UrlBuilder.BuildPageUrl(context, page, culture)))
+            .Select(culture => declaredFilterValues != null
+                ? new HreflangAlternate(
+                    culture,
+                    UrlBuilder.BuildFilteredPageUrl(context, page, declaredFilterValues, culture),
+                    UrlBuilder.BuildFilteredPagePath(context, page, declaredFilterValues, culture))
+                : new HreflangAlternate(
+                    culture,
+                    UrlBuilder.BuildPageUrl(context, page, culture),
+                    UrlBuilder.BuildPagePath(context, page, culture)))
             .ToList();
     }
 }

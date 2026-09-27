@@ -3,6 +3,7 @@ using Dignite.Site.Fields;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Seo;
+using Dignite.Site.Seo;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -87,12 +88,24 @@ public class SiteRenderController : AbpController
             return NotFound();
         }
 
+        // For the view's language helpers (GitHub issue #75): the site's languages straight from the match,
+        // rather than a second read of the setting the match was resolved with, and the head metadata the
+        // switcher finds this page's translations in. Only once the page is certain to render - a 404 must not
+        // leave a re-executed error page offering translations of a page that was never shown.
+        var languageContext = LazyServiceProvider.LazyGetRequiredService<SiteLanguageContext>();
+        if (match.EnabledCultureNames.Count > 0)
+        {
+            languageContext.SetLanguages(new SiteLanguages(match.DefaultCultureName, match.EnabledCultureNames));
+        }
+
+        languageContext.HeadMetadata = headMetadata;
+
         // One required view for every RouteMatchKindDto - the view itself branches on whether
         // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). A
         // missing or misconfigured Page.Template throws (standard ASP.NET Core view-not-found) rather than
         // silently degrading - issue #53.
         var templateName = ResolveTemplateName(match.Page.Template);
-        return new CultureScopedViewResult(View(templateName, viewModel), match.CultureName, match.DefaultCultureName);
+        return new CultureScopedViewResult(View(templateName, viewModel), match.CultureName);
     }
 
     /// <summary>
@@ -100,9 +113,9 @@ public class SiteRenderController : AbpController
     /// <see cref="CultureInfo.CurrentUICulture"/> set to the resolved content culture, so the view's own
     /// culture-sensitive formatting (<c>ToString("d")</c> in a field template, <c>IStringLocalizer</c>)
     /// follows the URL's language rather than whatever <c>UseAbpRequestLocalization()</c> picked from the
-    /// admin cookie / Accept-Language header. It also makes the site's default language the last one
-    /// <see cref="SiteTemplateResource"/>'s texts fall back to while the view renders
-    /// (<see cref="SiteTemplateDefaultCulture"/>).
+    /// admin cookie / Accept-Language header. The site's default language, the last one
+    /// <see cref="SiteTemplateResource"/>'s texts fall back to, is set around it by
+    /// <see cref="SiteLanguageResultFilter"/>, as for every other view.
     /// <para>
     /// A result wrapper, not an assignment inside <c>RenderAsync</c>, because the latter provably does not
     /// work: <c>CurrentCulture</c> is AsyncLocal-backed, and an async method restores its caller's
@@ -119,13 +132,11 @@ public class SiteRenderController : AbpController
     {
         private readonly ViewResult _inner;
         private readonly string _cultureName;
-        private readonly string? _defaultCultureName;
 
-        public CultureScopedViewResult(ViewResult inner, string cultureName, string? defaultCultureName = null)
+        public CultureScopedViewResult(ViewResult inner, string cultureName)
         {
             _inner = inner;
             _cultureName = cultureName;
-            _defaultCultureName = defaultCultureName;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -135,10 +146,7 @@ public class SiteRenderController : AbpController
             CultureInfo.CurrentCulture = culture;
             CultureInfo.CurrentUICulture = culture;
 
-            using (SiteTemplateDefaultCulture.Use(_defaultCultureName))
-            {
-                await _inner.ExecuteResultAsync(context);
-            }
+            await _inner.ExecuteResultAsync(context);
         }
     }
 

@@ -174,14 +174,11 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
 
     /// <summary>
     /// The canonical stored form of a route: exactly one leading slash, no trailing slash, except for
-    /// the site root which stays <c>/</c>.
+    /// the site root which stays <c>/</c> - see <see cref="PageRoute.Normalize"/>.
     /// </summary>
     public static string NormalizeRoute(string route)
     {
-        Check.NotNullOrWhiteSpace(route, nameof(route));
-
-        var normalized = "/" + route.Trim().Trim('/');
-        return normalized.Length > 1 ? normalized : "/";
+        return PageRoute.Normalize(route);
     }
 
     /// <summary>

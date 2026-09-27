@@ -431,6 +431,30 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         metadata.HreflangAlternates.Single(a => a.CultureName == "zh-Hans").Url.ShouldBe($"{BaseUrl}/zh-Hans/about");
     }
 
+    /// <summary>
+    /// Every alternate also carries its site-relative path - its URL without the site's base URL - for a
+    /// renderer linking within whichever host the visitor is on (GitHub issue #75). One case per way an
+    /// alternate is built: a content's translations, a bare page, a declared filtered view.
+    /// </summary>
+    [Fact]
+    public async Task Hreflang_Alternates_Should_Carry_Their_Site_Path()
+    {
+        await CreateCategoryYearMonthPageAsync();
+
+        var content = await BuildAsync("/about", SiteTestData.EnglishCulture);
+        var page = await BuildAsync("/blog", SiteTestData.EnglishCulture);
+        var filtered = await BuildAsync("/journal/tutorials", SiteTestData.ChineseCulture);
+
+        content.HreflangAlternates.Single(a => a.CultureName == "zh-Hans").Path.ShouldBe("/zh-Hans/about");
+        page.HreflangAlternates.Single(a => a.CultureName == "en").Path.ShouldBe("/blog");
+        filtered.HreflangAlternates.Single(a => a.CultureName == "zh-Hans").Path.ShouldBe("/zh-Hans/journal/tutorials");
+
+        foreach (var alternate in content.HreflangAlternates.Concat(page.HreflangAlternates).Concat(filtered.HreflangAlternates))
+        {
+            alternate.Url.ShouldBe(BaseUrl + alternate.Path);
+        }
+    }
+
     [Fact]
     public async Task Hreflang_Should_Be_Self_Referencing_Only_For_A_Single_Language_Content()
     {

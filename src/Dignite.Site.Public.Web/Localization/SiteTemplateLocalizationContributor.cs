@@ -148,12 +148,11 @@ public class SiteTemplateLocalizationContributor : ILocalizationResourceContribu
             return;
         }
 
-        // The invariant culture - the end of every Parent chain - has an empty name and no texts of its own.
-        for (; !string.IsNullOrEmpty(culture.Name); culture = culture.Parent)
+        foreach (var member in CultureChain.Of(culture))
         {
-            if (!chain.Contains(culture.Name))
+            if (!chain.Contains(member.Name))
             {
-                chain.Add(culture.Name);
+                chain.Add(member.Name);
             }
         }
     }

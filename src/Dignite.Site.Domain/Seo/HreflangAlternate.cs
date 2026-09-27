@@ -8,10 +8,11 @@ namespace Dignite.Site.Seo;
 /// </summary>
 public class HreflangAlternate
 {
-    public HreflangAlternate(string cultureName, string url)
+    public HreflangAlternate(string cultureName, string url, string path)
     {
         CultureName = cultureName;
         Url = url;
+        Path = path;
     }
 
     /// <summary>
@@ -21,4 +22,10 @@ public class HreflangAlternate
     public string CultureName { get; }
 
     public string Url { get; }
+
+    /// <summary>
+    /// <see cref="Url"/> as a site-relative path - culture prefix included, the site's base path not - for a
+    /// renderer linking within whichever host the visitor is on (a language switcher, GitHub issue #75).
+    /// </summary>
+    public string Path { get; }
 }

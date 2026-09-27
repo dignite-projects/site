@@ -14,6 +14,8 @@ See [docs/00-总体设计.md](docs/00-总体设计.md) for the full design (in C
 
 A site's own template texts (option names, labels, archive titles) are localized per tenant, with JSON files next to the templates. See [docs/template-localization.md](docs/template-localization.md).
 
+For a multilingual site, templates and the host's layout get the site's language rules: in-site links in the page's language, a language switcher, and an optional redirect of `/` to the visitor's language. See [docs/site-languages.md](docs/site-languages.md).
+
 ## Project structure
 
 | Path | Description |

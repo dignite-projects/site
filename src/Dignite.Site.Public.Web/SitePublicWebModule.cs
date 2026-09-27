@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Localization;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -75,6 +76,15 @@ public class SitePublicWebModule : AbpModule
             options.Resources
                 .Add<SiteTemplateResource>()
                 .Contributors.Add(new SiteTemplateLocalizationContributor());
+        });
+
+        // The site's languages on the rendering side (GitHub issue #75). Filters, not middleware: MVC runs
+        // after tenant resolution by construction, and the host has nothing to add to its pipeline - see
+        // SiteLanguageContext.
+        Configure<MvcOptions>(options =>
+        {
+            options.Filters.AddService<SiteLanguageResultFilter>();
+            options.Filters.AddService<SiteHomeLanguageRedirectFilter>();
         });
 
         // Replace, not TryAdd: AddViewLocalization() (called by ABP's MVC module, which this module runs

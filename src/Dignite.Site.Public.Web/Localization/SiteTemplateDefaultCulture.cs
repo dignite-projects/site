@@ -9,9 +9,9 @@ namespace Dignite.Site.Public.Localization;
 /// <see cref="SiteTemplateLocalizationContributor"/> tries before giving up on a text.
 /// <para>
 /// Ambient rather than looked up, because a localization contributor answers synchronously and the
-/// language comes from an async call (<c>RouteMatchDto.DefaultCultureName</c>). <c>SiteRenderController</c>
-/// sets it around the view it renders, in the same async flow; outside such a render it is null and that
-/// step is skipped.
+/// language comes from an async call. <see cref="SiteLanguageResultFilter"/> sets it around every view MVC
+/// renders, Site pages included, in the same async flow. Outside a view render it is null and that step is
+/// skipped.
 /// </para>
 /// </summary>
 public static class SiteTemplateDefaultCulture

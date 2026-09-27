@@ -96,7 +96,7 @@ public class HeadMetadataPublicAppService : SitePublicAppService, IHeadMetadataP
             OgType = ToWireValue(seoInfo.OpenGraph.Type),
             TwitterCardType = ToWireValue(seoInfo.TwitterCard.CardType),
             HreflangAlternates = metadata.HreflangAlternates
-                .Select(a => new HreflangAlternateDto { CultureName = a.CultureName, Url = a.Url })
+                .Select(a => new HreflangAlternateDto { CultureName = a.CultureName, Url = a.Url, Path = a.Path })
                 .ToList(),
             XDefaultUrl = metadata.XDefaultUrl
         };
