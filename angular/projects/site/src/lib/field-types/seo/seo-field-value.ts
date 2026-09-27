@@ -1,6 +1,6 @@
 /**
  * The value a `Seo` field stores. Mirrors `SeoFieldValue`
- * (`src/Dignite.Site.Domain.Shared/Seo/SeoFieldValue.cs`); the server serializes it with
+ * (`src/Dignite.FlexFields.Site/Dignite/FlexFields/Site/Seo/SeoFieldValue.cs`); the server serializes it with
  * `JsonSerializerDefaults.Web`, so the wire names are camelCase exactly as written here.
  *
  * One field, one composite value - a content type opts into the whole bundle with a single reference
@@ -14,8 +14,9 @@ export interface SeoFieldValue {
   metaDescription?: string;
 
   /**
-   * Absolute image URL for social sharing. A plain string until a media/file field type exists in this
-   * solution - see `SeoFieldType`'s remarks on the server.
+   * Absolute image URL for social sharing. The admin UI fills it with the `url` of a file picked from the
+   * `site-images` FileExplorer container; any absolute image URL is equally valid (an MCP client may
+   * write one). A FileExplorer image is emitted as `og:image` cropped to 1200x630.
    */
   ogImage?: string;
 

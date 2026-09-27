@@ -18,7 +18,20 @@
       <dt class="col-sm-4">{{ 'FlexFieldsSite::Seo:MetaDescription' | abpLocalization }}</dt>
       <dd class="col-sm-8">{{ seo.metaDescription || '---' }}</dd>
       <dt class="col-sm-4">{{ 'FlexFieldsSite::Seo:OgImage' | abpLocalization }}</dt>
-      <dd class="col-sm-8">{{ seo.ogImage || '---' }}</dd>
+      <dd class="col-sm-8">
+        @if (seo.ogImage) {
+          <fe-file-preview
+            width="160px"
+            type="image/*"
+            [src]="seo.ogImage"
+            [name]="'FlexFieldsSite::Seo:OgImage' | abpLocalization"
+            [resizeWidth]="ogImageWidth"
+            [resizeHeight]="ogImageHeight"
+          ></fe-file-preview>
+        } @else {
+          ---
+        }
+      </dd>
       <dt class="col-sm-4">{{ 'FlexFieldsSite::Seo:NoIndex' | abpLocalization }}</dt>
       <dd class="col-sm-8">
         {{ (seo.noIndex ? 'AbpUi::Yes' : 'AbpUi::No') | abpLocalization }}

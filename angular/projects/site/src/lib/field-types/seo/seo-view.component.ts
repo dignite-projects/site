@@ -1,7 +1,9 @@
 import { CoreModule } from '@abp/ng.core';
 import { Component, Input } from '@angular/core';
 import type { FlexFieldValue } from '@dignite/ng.flex-fields';
+import { FilePreviewComponent } from '@dignite/ng.file-explorer';
 import type { SeoFieldValue } from './seo-field-value';
+import { OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-og-image';
 
 /**
  * Displays the value of a `Seo` field read-only.
@@ -12,9 +14,12 @@ import type { SeoFieldValue } from './seo-field-value';
 @Component({
   selector: 'site-seo-view',
   templateUrl: './seo-view.component.html',
-  imports: [CoreModule],
+  imports: [CoreModule, FilePreviewComponent],
 })
 export class SeoViewComponent {
+  readonly ogImageWidth = OG_IMAGE_WIDTH;
+  readonly ogImageHeight = OG_IMAGE_HEIGHT;
+
   /** Renders bare, without the label wrapper, for use inside a table cell. */
   @Input() showInList = false;
 

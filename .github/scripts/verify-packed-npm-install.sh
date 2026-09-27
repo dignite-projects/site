@@ -124,10 +124,11 @@ EOF
       # direct dependency of this scratch project, and the packages that actually need redirecting
       # are ITS transitive dependencies, declared inside the tarball's own package.json.
       #
-      # @dignite/ng.file-explorer needs the same treatment despite never appearing in ng.site's own
-      # `dependencies`: it's a transitive dependency of @dignite/ng.flex-fields-file-explorer (a
-      # dependency of a dependency, one level too deep for this script to discover without resolving
-      # the tree first - the same chicken-and-egg problem the override exists to route around). It
+      # @dignite/ng.file-explorer is covered by the loop above now that ng.site imports it directly
+      # (GitHub issue #72); the fallback below stays for a tarball that only gets it transitively,
+      # through @dignite/ng.flex-fields-file-explorer (a dependency of a dependency, one level too
+      # deep for this script to discover without resolving the tree first - the same chicken-and-egg
+      # problem the override exists to route around). It
       # is, and always has been, version-locked to @dignite/ng.flex-fields in this workspace (see
       # angular/package.json's own `resolutions` block treating the pair identically), so reusing
       # ng.flex-fields' range for it is exact, not a guess.

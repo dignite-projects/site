@@ -336,6 +336,34 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// GitHub issue #72: an image picked from FileExplorer is stored as the original upload's address and
+    /// asked for at the 1200x630 social platforms recommend - FileExplorer crops it on request. The tenant
+    /// hint FileExplorer issued the address with stays on it.
+    /// </summary>
+    [Fact]
+    public async Task OgImageUrl_Should_Ask_FileExplorer_For_The_Share_Size()
+    {
+        var contentTypeId = await CreateSeoEnabledContentTypeAsync();
+        var slug = $"og-image-{Guid.NewGuid():N}";
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, slug, SiteTestData.PublishTime, ContentStatus.Published,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "Has an uploaded image",
+                [SeoFieldNames.FieldName] = new SeoFieldValue
+                {
+                    OgImage = "https://api.acme.example/api/file-explorer/files/site-images/share.jpg?__tenant="
+                }
+            }));
+
+        var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
+
+        metadata.OgImageUrl.ShouldBe(
+            "https://api.acme.example/api/file-explorer/files/site-images/share.jpg?__tenant=&Width=1200&Height=630");
+    }
+
+    /// <summary>
     /// A cleared-but-not-removed value: an author fills in og:image, then deletes the text, leaving an
     /// empty string rather than a null. <c>SeoFieldType.Validate</c> requires nothing inside the bundle, so
     /// this reaches storage - and must be treated the same as unset, matching

@@ -7,8 +7,14 @@ import {
   UntypedFormGroup,
 } from '@angular/forms';
 import { FieldTypeControlBase } from '@dignite/ng.flex-fields';
+import {
+  FileExplorerModalComponent,
+  FilePreviewComponent,
+  type FileDescriptorDto,
+} from '@dignite/ng.file-explorer';
 import { SeoConfiguration } from './seo-configuration';
 import type { SeoFieldValue } from './seo-field-value';
+import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-og-image';
 
 /**
  * Edits the value of a `Seo` field.
@@ -22,13 +28,24 @@ import type { SeoFieldValue } from './seo-field-value';
  * platform falls back to defaults for whatever is left blank (总体设计 §5.3). Since a `FormGroup`
  * always produces an object, a required Seo field is satisfied by being rendered at all - adding
  * `Validators.required` to the parts would enforce something the server does not.
+ *
+ * **The share image is picked, not typed** (GitHub issue #72): the FileExplorer modal, fixed to the
+ * `site-images` container, uploads or selects one file and its `url` is what `ogImage` stores - still a
+ * plain string, so a value an MCP client wrote (an external address included) shows and can be replaced
+ * or removed the same way.
  */
 @Component({
   selector: 'site-seo-control',
   templateUrl: './seo-control.component.html',
-  imports: [CoreModule, ReactiveFormsModule],
+  imports: [CoreModule, ReactiveFormsModule, FileExplorerModalComponent, FilePreviewComponent],
 })
 export class SeoControlComponent extends FieldTypeControlBase {
+  readonly ogImageContainerName = OG_IMAGE_CONTAINER_NAME;
+  readonly ogImageWidth = OG_IMAGE_WIDTH;
+  readonly ogImageHeight = OG_IMAGE_HEIGHT;
+
+  ogImagePickerOpen = false;
+
   protected configurationDefaults(): object {
     return new SeoConfiguration();
   }
@@ -55,6 +72,22 @@ export class SeoControlComponent extends FieldTypeControlBase {
     return this.fieldControl as UntypedFormGroup | null;
   }
 
+  /** The stored share image address, or '' when there is none. */
+  get ogImage(): string {
+    return String(this.seoGroup?.get('ogImage')?.value ?? '');
+  }
+
+  onOgImagePicked(files: FileDescriptorDto[]): void {
+    const url = files[0]?.url;
+    if (url) {
+      this.setOgImage(url);
+    }
+  }
+
+  removeOgImage(): void {
+    this.setOgImage('');
+  }
+
   get metaTitleLength(): number {
     return String(this.seoGroup?.get('metaTitle')?.value ?? '').length;
   }
@@ -69,6 +102,12 @@ export class SeoControlComponent extends FieldTypeControlBase {
 
   get metaDescriptionCharLimit(): number {
     return Number(this.fieldValue?.field.configuration['Seo.MetaDescriptionCharLimit'] ?? 160);
+  }
+
+  private setOgImage(url: string): void {
+    const control = this.seoGroup?.get('ogImage');
+    control?.setValue(url);
+    control?.markAsDirty();
   }
 
   /**

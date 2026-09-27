@@ -53,15 +53,42 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label" [for]="fieldValue.field.name + '-og-image'">
+        <label class="form-label d-block">
           {{ 'FlexFieldsSite::Seo:OgImage' | abpLocalization }}
         </label>
-        <input
-          type="url"
-          class="form-control"
-          formControlName="ogImage"
-          [id]="fieldValue.field.name + '-og-image'"
-        />
+        @if (ogImage) {
+          <div class="mb-2">
+            <fe-file-preview
+              width="240px"
+              type="image/*"
+              [src]="ogImage"
+              [name]="'FlexFieldsSite::Seo:OgImage' | abpLocalization"
+              [resizeWidth]="ogImageWidth"
+              [resizeHeight]="ogImageHeight"
+            ></fe-file-preview>
+          </div>
+        }
+        <div>
+          <button type="button" class="btn btn-sm btn-outline-primary" (click)="ogImagePickerOpen = true">
+            <i class="fa fa-image me-1" aria-hidden="true"></i>
+            {{ 'FlexFieldsSite::Seo:SelectOgImage' | abpLocalization }}
+          </button>
+          @if (ogImage) {
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" (click)="removeOgImage()">
+              <i class="fa fa-trash me-1" aria-hidden="true"></i>
+              {{ 'FlexFieldsSite::Seo:RemoveOgImage' | abpLocalization }}
+            </button>
+          }
+        </div>
+        <small class="form-text text-muted d-block">
+          {{ 'FlexFieldsSite::Seo:OgImageHint' | abpLocalization }}
+        </small>
+        <fe-file-explorer-modal
+          [(visible)]="ogImagePickerOpen"
+          [multiple]="false"
+          [fileContainerName]="ogImageContainerName"
+          (selectFilefn)="onOgImagePicked($event)"
+        ></fe-file-explorer-modal>
       </div>
 
       <div class="form-check">

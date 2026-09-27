@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The Seo field's share image is picked from the media library, and `og:image` is emitted at
+  1200x630** ([#72](https://github.com/dignite-projects/site/issues/72)). The admin editor no longer
+  has a free-text URL input: a button opens the FileExplorer modal on the `site-images` container
+  (fixed, not a field setting) to upload or select one image, shown as a 1200x630 preview with a remove
+  button. The stored value is unchanged - `ogImage` is still a URL string, the picked file's address -
+  so no data moves, and an MCP client still writes a plain URL (the value shape's `ogImage` description
+  now says so). A FileExplorer image is emitted as `og:image` with `?Width=1200&Height=630`, which
+  FileExplorer crops to exactly that size; an external address is emitted as written.
+  `@dignite/ng.site` now depends on `@dignite/ng.file-explorer` directly.
+- `FileExplorerImageUrl.Sized` moved to `Dignite.Site.Domain.Shared` (`Dignite.Site.Files`), so the
+  server-side `og:image` and the templates size images the same way.
+  `Dignite.Site.Public.Templating.FileExplorerImageUrl` stays as the templates' entry point and forwards
+  to it.
+
+### Fixed
+
+- `FileExplorerImageUrl.Sized` dropped the address's whole query string, including the `__tenant`
+  parameter FileExplorer issues its addresses with. It now replaces only `Width`/`Height` and keeps
+  every other parameter.
+
 ## [0.1.0-preview.20] - 2026-09-27
 
 ### Changed

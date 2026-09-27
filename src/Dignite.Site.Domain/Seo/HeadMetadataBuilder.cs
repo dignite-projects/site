@@ -7,6 +7,7 @@ using Dignite.Abp.FlexFields;
 using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
+using Dignite.Site.Files;
 using Dignite.Site.Pages;
 using Dignite.Site.Routing;
 using Microsoft.Extensions.Logging;
@@ -240,6 +241,11 @@ public class HeadMetadataBuilder : DomainService
     /// <c>NoIndexRecognizer.IsNoIndex</c>. There is no fallback beyond the field itself: unlike title and
     /// description, an image cannot be reasonably guessed from an arbitrary other field, so leaving it
     /// unset simply omits <c>og:image</c> rather than inventing a placeholder.
+    /// <para>
+    /// A FileExplorer image is asked for at <see cref="OpenGraphConsts"/>' size (GitHub issue #72) - the
+    /// field stores the original upload, and FileExplorer crops it on request. An external address is
+    /// returned as written: nothing here can resize it.
+    /// </para>
     /// </summary>
     protected virtual string? ReadOgImage(Content content, Field? seoField)
     {
@@ -251,7 +257,9 @@ public class HeadMetadataBuilder : DomainService
         try
         {
             var value = content.GetField(seoField.Name, new SeoFieldValue()).OgImage;
-            return string.IsNullOrWhiteSpace(value) ? null : value;
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : FileExplorerImageUrl.Sized(value, OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight);
         }
         catch (Exception ex)
         {

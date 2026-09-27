@@ -33,8 +33,10 @@ namespace Dignite.FlexFields.Site.Seo;
 /// the derived index exists for.
 /// </para>
 /// <para>
-/// <b>Not og-image's final form.</b> The image is a plain URL string because no media/file field type
-/// exists in this solution yet; adopting one is a separate change, not something to fold in here.
+/// <b>The share image stays a URL string</b> (GitHub issue #72). The admin UI picks or uploads it from
+/// the <c>site-images</c> FileExplorer container and stores the file's address, but the stored value is
+/// still just that address - not a FileExplorer file descriptor - so an MCP client writes it the same way
+/// it always has, and an external image address remains a valid value.
 /// </para>
 /// </summary>
 public class SeoFieldType : FieldTypeBase, INormalizesValue, IHasValueShape
@@ -112,13 +114,14 @@ public class SeoFieldType : FieldTypeBase, INormalizesValue, IHasValueShape
     /// <summary>
     /// The four keys of <see cref="SeoFieldValue"/>, camelCased - reuses the exact label/hint strings the
     /// Angular config UI already shows for the same properties (<c>Seo:MetaTitle</c> etc.), rather than
-    /// hand-maintaining a second copy of what each one means.
+    /// hand-maintaining a second copy of what each one means. <c>ogImage</c> is the exception: its UI label
+    /// no longer says "URL" (the editor picks a file), but a client writing the value has to know it is one.
     /// </summary>
     public IReadOnlyList<FieldValueShapeProperty> ValueShape => new[]
     {
         new FieldValueShapeProperty { Name = "metaTitle", Type = "string", Description = L["Seo:MetaTitle"] },
         new FieldValueShapeProperty { Name = "metaDescription", Type = "string", Description = L["Seo:MetaDescription"] },
-        new FieldValueShapeProperty { Name = "ogImage", Type = "string", Description = L["Seo:OgImage"] },
+        new FieldValueShapeProperty { Name = "ogImage", Type = "string", Description = L["Seo:OgImageValueHint"] },
         new FieldValueShapeProperty { Name = "noIndex", Type = "boolean", Description = L["Seo:NoIndexHint"] },
     };
 
