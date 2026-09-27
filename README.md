@@ -12,6 +12,8 @@ Dignite Site is the AI-native next generation of [Dignite.Cms](https://github.co
 
 See [docs/00-总体设计.md](docs/00-总体设计.md) for the full design (in Chinese).
 
+A site's own template texts (option names, labels, archive titles) are localized per tenant, with JSON files next to the templates. See [docs/template-localization.md](docs/template-localization.md).
+
 ## Project structure
 
 | Path | Description |

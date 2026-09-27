@@ -21,6 +21,15 @@ public class SiteRenderViewModel
     public required string CultureName { get; init; }
 
     /// <summary>
+    /// Every placeholder value the route captured, exactly as captured and keyed as the route names them -
+    /// e.g. <c>{"blog_category": "engineering", "publishTime:yyyy": "2025", "publishTime:MM": "10"}</c>.
+    /// <see cref="FieldFilters"/> and <see cref="PublishedAfter"/>/<see cref="PublishedBefore"/> are what
+    /// this becomes for querying; this is for a template that shows the values themselves, such as a
+    /// localized archive title (GitHub issue #73). Case-insensitive keys.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> FilterValues { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>
     /// Placeholders a partial page-route match resolved short of a slug, minus <c>PublishTime</c> - see
     /// <see cref="PublishedAfter"/>. Forwarded as-is to <c>ContentListTagHelper.FieldFilters</c>, which
     /// resolves each entry against FlexFields.

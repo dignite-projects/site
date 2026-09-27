@@ -15,6 +15,7 @@ public class HeadMetadata
 {
     public HeadMetadata(
         string title,
+        string baseTitle,
         string? description,
         string? ogImageUrl,
         string canonicalUrl,
@@ -24,6 +25,7 @@ public class HeadMetadata
         string? xDefaultUrl)
     {
         Title = title;
+        BaseTitle = baseTitle;
         Description = description;
         OgImageUrl = ogImageUrl;
         CanonicalUrl = canonicalUrl;
@@ -35,6 +37,14 @@ public class HeadMetadata
 
     /// <summary>Never blank - falls back through the same chain <c>ContentSummaryResolver</c> uses for a feed item.</summary>
     public string Title { get; }
+
+    /// <summary>
+    /// <see cref="Title"/> before a declared filtered view's filter values were appended to it - the page's
+    /// own title, e.g. "Blog" where <see cref="Title"/> is "Blog - engineering". Equal to <see cref="Title"/>
+    /// whenever nothing was appended, so a template can tell the two cases apart and swap in a localized
+    /// name for the filter value, which this API-side builder has no way to translate.
+    /// </summary>
+    public string BaseTitle { get; }
 
     /// <summary>
     /// The language this route resolved in, normalized BCP 47 - the matched content's own

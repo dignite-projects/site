@@ -24,6 +24,12 @@ namespace Dignite.Site.Public;
 /// </summary>
 public class TenantViewLocationExpander : IViewLocationExpander
 {
+    /// <summary>
+    /// The root every site template lives under - <c>/Sites/...</c>, or <c>/Sites/{tenantName}/...</c> for a
+    /// tenant. Shared with <c>SiteTemplateLocalizationContributor</c>, whose texts sit next to the templates.
+    /// </summary>
+    public const string SitesFolder = "/Sites";
+
     private const string TenantNameKey = "site_tenant_name";
 
     private readonly Lazy<ICurrentTenant?> _currentTenantLazy;
@@ -64,7 +70,7 @@ public class TenantViewLocationExpander : IViewLocationExpander
 
         var expanded = baseLocations
             .Where(location => location.StartsWith("/Views/"))
-            .Select(location => $"/Sites{tenantSegment}{location.RemovePreFix("/Views").RemovePreFix("/{1}")}")
+            .Select(location => $"{SitesFolder}{tenantSegment}{location.RemovePreFix("/Views").RemovePreFix("/{1}")}")
             .ToList();
         expanded.AddRange(baseLocations);
         return expanded;

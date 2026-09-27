@@ -17,6 +17,14 @@ public class HeadMetadataDto
 {
     public string MetaTitle { get; set; } = default!;
 
+    /// <summary>
+    /// <see cref="MetaTitle"/> before a declared filtered view's raw filter values were appended to it
+    /// ("Blog" where <see cref="MetaTitle"/> is "Blog - engineering"); equal to <see cref="MetaTitle"/> when
+    /// nothing was appended. A template that differs from it knows a suffix was added and can replace it
+    /// with a localized one (GitHub issue #73).
+    /// </summary>
+    public string BaseMetaTitle { get; set; } = default!;
+
     public string? MetaDescription { get; set; }
 
     public string CanonicalUrl { get; set; } = default!;

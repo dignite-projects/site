@@ -64,6 +64,7 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         // post-article never pulled in the SEO field, so the fallback chain lands on the first two text
         // fields in order: title supplies the title, body supplies the description.
         metadata.Title.ShouldBe("My trip");
+        metadata.BaseTitle.ShouldBe(metadata.Title);
         metadata.Description.ShouldBe("Trip body");
     }
 
@@ -73,6 +74,7 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         var metadata = await BuildAsync("/blog", SiteTestData.EnglishCulture);
 
         metadata.Title.ShouldBe("Blog");
+        metadata.BaseTitle.ShouldBe("Blog");
         metadata.Description.ShouldBeNull();
     }
 
@@ -256,6 +258,9 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         var metadata = await BuildAsync("/journal/tutorials", SiteTestData.EnglishCulture);
 
         metadata.Title.ShouldBe("Journal - tutorials");
+        // The title before the raw filter value was appended - what a template swaps a localized category
+        // name onto (GitHub issue #73).
+        metadata.BaseTitle.ShouldBe("Journal");
         metadata.Description.ShouldBeNull();
     }
 
@@ -288,6 +293,8 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         metadata.NoIndex.ShouldBeTrue();
         metadata.CanonicalUrl.ShouldBe($"{BaseUrl}/journal");
         metadata.Title.ShouldBe("Journal");
+        // Nothing appended, so a template comparing the two leaves this title alone.
+        metadata.BaseTitle.ShouldBe(metadata.Title);
     }
 
     /// <summary>

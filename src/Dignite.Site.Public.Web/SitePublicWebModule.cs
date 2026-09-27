@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Mvc.Localization;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Dignite.Site.Localization;
 using Microsoft.AspNetCore.Routing;
+using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Seo;
 using Volo.Abp.AspNetCore.Mvc.Localization;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
+using Volo.Abp.Localization;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.MultiTenancy;
@@ -63,6 +67,19 @@ public class SitePublicWebModule : AbpModule
             var currentTenantLazy = context.Services.GetServiceLazy<ICurrentTenant>();
             options.ViewLocationExpanders.Add(new TenantViewLocationExpander(currentTenantLazy));
         });
+
+        // A site's own template texts, read from JSON beside its templates (GitHub issue #73). Registered
+        // here and nowhere API-side - see SiteTemplateResource's remarks.
+        Configure<AbpLocalizationOptions>(options =>
+        {
+            options.Resources
+                .Add<SiteTemplateResource>()
+                .Contributors.Add(new SiteTemplateLocalizationContributor());
+        });
+
+        // Replace, not TryAdd: AddViewLocalization() (called by ABP's MVC module, which this module runs
+        // after) has already registered the framework's ViewLocalizer.
+        context.Services.Replace(ServiceDescriptor.Transient<IViewLocalizer, SiteViewLocalizer>());
 
         Configure<RazorPagesOptions>(options =>
         {

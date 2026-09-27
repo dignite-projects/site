@@ -88,6 +88,7 @@ public class HeadMetadataPublicAppService : SitePublicAppService, IHeadMetadataP
         return new HeadMetadataDto
         {
             MetaTitle = metadata.Title,
+            BaseMetaTitle = metadata.BaseTitle,
             MetaDescription = metadata.Description,
             CanonicalUrl = metadata.CanonicalUrl,
             RobotsContent = seoInfo.MetaLink.Robots,

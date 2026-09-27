@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Dignite.Site.Fields;
 using Dignite.Site.Public.Fields;
+using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Seo;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -91,7 +92,7 @@ public class SiteRenderController : AbpController
         // missing or misconfigured Page.Template throws (standard ASP.NET Core view-not-found) rather than
         // silently degrading - issue #53.
         var templateName = ResolveTemplateName(match.Page.Template);
-        return new CultureScopedViewResult(View(templateName, viewModel), match.CultureName);
+        return new CultureScopedViewResult(View(templateName, viewModel), match.CultureName, match.DefaultCultureName);
     }
 
     /// <summary>
@@ -99,7 +100,9 @@ public class SiteRenderController : AbpController
     /// <see cref="CultureInfo.CurrentUICulture"/> set to the resolved content culture, so the view's own
     /// culture-sensitive formatting (<c>ToString("d")</c> in a field template, <c>IStringLocalizer</c>)
     /// follows the URL's language rather than whatever <c>UseAbpRequestLocalization()</c> picked from the
-    /// admin cookie / Accept-Language header.
+    /// admin cookie / Accept-Language header. It also makes the site's default language the last one
+    /// <see cref="SiteTemplateResource"/>'s texts fall back to while the view renders
+    /// (<see cref="SiteTemplateDefaultCulture"/>).
     /// <para>
     /// A result wrapper, not an assignment inside <c>RenderAsync</c>, because the latter provably does not
     /// work: <c>CurrentCulture</c> is AsyncLocal-backed, and an async method restores its caller's
@@ -116,11 +119,13 @@ public class SiteRenderController : AbpController
     {
         private readonly ViewResult _inner;
         private readonly string _cultureName;
+        private readonly string? _defaultCultureName;
 
-        public CultureScopedViewResult(ViewResult inner, string cultureName)
+        public CultureScopedViewResult(ViewResult inner, string cultureName, string? defaultCultureName = null)
         {
             _inner = inner;
             _cultureName = cultureName;
+            _defaultCultureName = defaultCultureName;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -130,7 +135,10 @@ public class SiteRenderController : AbpController
             CultureInfo.CurrentCulture = culture;
             CultureInfo.CurrentUICulture = culture;
 
-            await _inner.ExecuteResultAsync(context);
+            using (SiteTemplateDefaultCulture.Use(_defaultCultureName))
+            {
+                await _inner.ExecuteResultAsync(context);
+            }
         }
     }
 
@@ -155,6 +163,7 @@ public class SiteRenderController : AbpController
         {
             Page = match.Page!,
             CultureName = match.CultureName,
+            FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
             FieldFilters = fieldFilters,
             PublishedAfter = publishedAfter,
             PublishedBefore = publishedBefore,
@@ -179,6 +188,7 @@ public class SiteRenderController : AbpController
         {
             Page = match.Page!,
             CultureName = match.CultureName,
+            FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
             FieldFilters = fieldFilters,
             PublishedAfter = publishedAfter,
             PublishedBefore = publishedBefore,

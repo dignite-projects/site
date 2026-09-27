@@ -22,6 +22,12 @@ public class RouteMatchDto
     /// </summary>
     public string CultureName { get; set; } = default!;
 
+    /// <summary>
+    /// The site's default language - the one whose URLs carry no culture prefix. Always populated. A
+    /// renderer falls back to it for a template text missing in <see cref="CultureName"/> (GitHub issue #73).
+    /// </summary>
+    public string DefaultCultureName { get; set; } = default!;
+
     /// <summary>The matched page. Null only when <see cref="Matched"/> is false.</summary>
     public PageDto? Page { get; set; }
 

@@ -92,6 +92,24 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-07");
     }
 
+    /// <summary>
+    /// A renderer falls back to the site's default language for a template text missing in the requested
+    /// one (GitHub issue #73) - so it must come back on every match, whichever language the path named.
+    /// </summary>
+    [Fact]
+    public async Task Should_Report_The_Sites_Default_Culture()
+    {
+        GetRequiredService<TestSettingValueProvider>().Set(SiteSettings.EnabledLanguages, "en,ja");
+
+        var unprefixed = await ResolveAsync("/blog");
+        unprefixed.CultureName.ShouldBe("en");
+        unprefixed.DefaultCultureName.ShouldBe("en");
+
+        var prefixed = await ResolveAsync("/ja/blog");
+        prefixed.CultureName.ShouldBe("ja");
+        prefixed.DefaultCultureName.ShouldBe("en");
+    }
+
     [Fact]
     public async Task Should_Have_Empty_FilterValues_For_A_Bare_Address()
     {

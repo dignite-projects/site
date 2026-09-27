@@ -109,6 +109,7 @@ public class HeadMetadataBuilder : DomainService
                 : UrlBuilder.BuildPageUrl(context, page, cultureName);
 
         string title;
+        string baseTitle;
         string? description = null;
         string? ogImageUrl = null;
         var contentNoIndex = false;
@@ -119,6 +120,7 @@ public class HeadMetadataBuilder : DomainService
             var fallbackTitle = string.IsNullOrWhiteSpace(content.Slug) ? page.DisplayName : content.Slug;
             var summary = SummaryResolver.Resolve(content, lookup, fallbackTitle);
             title = summary.Title;
+            baseTitle = title;
             description = summary.Summary;
 
             contentNoIndex = NoIndexRecognizer.IsNoIndex(content, seoField);
@@ -135,7 +137,7 @@ public class HeadMetadataBuilder : DomainService
             // view's own, since pointing them at the content's own URL would declare every filtered view a
             // duplicate of the bare page.
             var pageContent = await FindPageContentAsync(page, cultureName, includeUnpublished, asOf, cancellationToken);
-            var baseTitle = page.DisplayName;
+            baseTitle = page.DisplayName;
 
             if (pageContent != null)
             {
@@ -151,6 +153,9 @@ public class HeadMetadataBuilder : DomainService
             // A declared filtered view is indexable, so it needs a title of its own - every category and
             // archive of one page would otherwise share the page's, one duplicate title per filtered view. The
             // captured values, in the order the route names them, are the only per-view text there is to add.
+            // They are the raw values ("engineering", not "研发"): this runs API-side, where a template's own
+            // texts are out of reach - baseTitle is returned alongside so the template can compose a
+            // localized title itself (GitHub issue #73), with this one as the fallback when it doesn't.
             title = isDeclaredFilteredView
                 ? $"{baseTitle} - {string.Join(" / ", match.FilterValues.Values)}"
                 : baseTitle;
@@ -171,6 +176,7 @@ public class HeadMetadataBuilder : DomainService
 
         return new HeadMetadata(
             title,
+            baseTitle,
             description,
             ogImageUrl,
             canonicalUrl,
