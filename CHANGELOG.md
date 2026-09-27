@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A filtered view takes its `<head>` from the page's own content.** `/blog/engineering` or
+  `/blog/2025/10` against `/blog/{category?:...}/{publishTime?:yyyy}/{publishTime?:MM}` resolves to the
+  page with filter values, not to the empty-slug content `/blog` itself resolves to - so its title was
+  `Page.DisplayName` (one admin-facing label, the same in every language) plus the filter, with no
+  description or og:image at all. `HeadMetadataBuilder` now reads the page's own empty-slug content in
+  the language being viewed, under the same visibility rule as the bare address, and uses it as the base:
+  its SEO title (the filter still appended for a declared filtered view), description, og:image and
+  noindex. Canonical and hreflang stay the filtered view's own. A page with no such content in that
+  language is titled as before.
+
 ## [0.1.0-preview.19] - 2026-09-26
 
 ### Added

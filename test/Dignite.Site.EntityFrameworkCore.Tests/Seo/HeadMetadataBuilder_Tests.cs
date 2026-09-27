@@ -204,6 +204,76 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// A filtered view is the page narrowed down, so the page's own empty-slug content - what its bare
+    /// address resolves to - is the base of its head, in the language being viewed: the SEO title with the
+    /// filter appended, the SEO description and og:image as they are. Canonical and hreflang stay the
+    /// filtered view's own.
+    /// </summary>
+    [Theory]
+    [InlineData(SiteTestData.EnglishCulture, "The Journal - tutorials", "Notes from the team.", "")]
+    [InlineData(SiteTestData.ChineseCulture, "日志 - tutorials", "团队的记录。", "/zh-Hans")]
+    public async Task A_Filtered_View_Should_Take_Its_Head_From_The_Pages_Own_Content_In_The_Viewed_Language(
+        string cultureName, string title, string description, string prefix)
+    {
+        await CreateCategoryYearMonthPageAsync();
+        var contentTypeId = await CreateJournalOwnContentTypeAsync();
+        await CreateJournalOwnContentAsync(contentTypeId, SiteTestData.EnglishCulture, ContentStatus.Published,
+            new SeoFieldValue
+            {
+                MetaTitle = "The Journal",
+                MetaDescription = "Notes from the team.",
+                OgImage = "https://acme.example/journal.jpg"
+            });
+        await CreateJournalOwnContentAsync(contentTypeId, SiteTestData.ChineseCulture, ContentStatus.Published,
+            new SeoFieldValue
+            {
+                MetaTitle = "日志",
+                MetaDescription = "团队的记录。",
+                OgImage = "https://acme.example/journal.jpg"
+            });
+
+        var metadata = await BuildAsync("/journal/tutorials", cultureName);
+
+        metadata.Title.ShouldBe(title);
+        metadata.Description.ShouldBe(description);
+        metadata.OgImageUrl.ShouldBe("https://acme.example/journal.jpg");
+        metadata.NoIndex.ShouldBeFalse();
+        metadata.CanonicalUrl.ShouldBe($"{BaseUrl}{prefix}/journal/tutorials");
+    }
+
+    /// <summary>
+    /// The same visibility rule the bare address itself follows: a draft of the page's own content is not
+    /// what "/journal" shows, so it is not what "/journal/tutorials" takes its head from either.
+    /// </summary>
+    [Fact]
+    public async Task A_Filtered_View_Should_Ignore_A_Draft_Of_The_Pages_Own_Content()
+    {
+        await CreateCategoryYearMonthPageAsync();
+        var contentTypeId = await CreateJournalOwnContentTypeAsync();
+        await CreateJournalOwnContentAsync(contentTypeId, SiteTestData.EnglishCulture, ContentStatus.Draft,
+            new SeoFieldValue { MetaTitle = "The Journal", MetaDescription = "Notes from the team." });
+
+        var metadata = await BuildAsync("/journal/tutorials", SiteTestData.EnglishCulture);
+
+        metadata.Title.ShouldBe("Journal - tutorials");
+        metadata.Description.ShouldBeNull();
+    }
+
+    /// <summary>An author who kept the page itself out of search results keeps its filtered views out too.</summary>
+    [Fact]
+    public async Task A_Filtered_View_Should_Be_Noindex_When_The_Pages_Own_Content_Is()
+    {
+        await CreateCategoryYearMonthPageAsync();
+        var contentTypeId = await CreateJournalOwnContentTypeAsync();
+        await CreateJournalOwnContentAsync(contentTypeId, SiteTestData.EnglishCulture, ContentStatus.Published,
+            new SeoFieldValue { MetaTitle = "The Journal", NoIndex = true });
+
+        var metadata = await BuildAsync("/journal/tutorials", SiteTestData.EnglishCulture);
+
+        metadata.NoIndex.ShouldBeTrue();
+    }
+
+    /// <summary>
     /// "/journal/08" matches the month on its own, but a month with no year is no period at all - the list
     /// drops that filter and renders unfiltered, a duplicate of "/journal" itself. So it gets the same
     /// treatment a truncated reading does, not the declared one.
@@ -563,6 +633,34 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
             ContentStatus.Archived, new Dictionary<string, object?> { ["title"] = "中文" }));
 
         return slug;
+    }
+
+    /// <summary>A content type on the "journal-home" page holding only the SEO field - the shape a list page's own content takes.</summary>
+    private async Task<Guid> CreateJournalOwnContentTypeAsync()
+    {
+        return await WithUnitOfWorkAsync(async () =>
+        {
+            var page = await _pageRepository.FindByNameAsync("journal-home");
+            page.ShouldNotBeNull();
+
+            var seoField = await _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName);
+            seoField.ShouldNotBeNull();
+
+            var contentType = await _contentTypeManager.CreateAsync(
+                page.Id, "journal-own", "Journal's own",
+                fields: new[] { new ContentTypeField(seoField.Id, order: 0) });
+
+            return contentType.Id;
+        });
+    }
+
+    /// <summary>The "journal-home" page's own empty-slug content in <paramref name="cultureName"/>.</summary>
+    private Task CreateJournalOwnContentAsync(
+        Guid contentTypeId, string cultureName, ContentStatus status, SeoFieldValue seo)
+    {
+        return WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, cultureName, "", SiteTestData.PublishTime, status,
+            new Dictionary<string, object?> { [SeoFieldNames.FieldName] = seo }));
     }
 
     /// <summary>Returns the new content type's id, already committed in its own unit of work.</summary>

@@ -127,16 +127,36 @@ public class HeadMetadataBuilder : DomainService
             contentNoIndex = NoIndexRecognizer.IsNoIndex(content, seoField);
             ogImageUrl = ReadOgImage(content, seoField);
         }
-        else if (isDeclaredFilteredView)
-        {
-            // Indexable, so it needs a title of its own - every category and archive of one page would
-            // otherwise share the page's, one duplicate title per filtered view. The captured values, in the
-            // order the route names them, are the only per-view text there is to add.
-            title = $"{page.DisplayName} - {string.Join(" / ", match.FilterValues.Values)}";
-        }
         else
         {
-            title = page.DisplayName;
+            // No content matched, but the page may still carry its own empty-slug content in this language -
+            // the one its bare address resolves to (RouteMatch.ForContentOfPage). A filtered view of that page
+            // (/blog/engineering against /blog/{category?:...}) is the same page narrowed down, so that content
+            // is the base of its <head>: the title, description, og:image and noindex its author wrote for the
+            // page, in the language being viewed - rather than Page.DisplayName, which is one admin-facing
+            // label for every language. It is only the base: canonical and hreflang above stay the filtered
+            // view's own, since pointing them at the content's own URL would declare every filtered view a
+            // duplicate of the bare page.
+            var pageContent = await FindPageContentAsync(page, cultureName, includeUnpublished, asOf, cancellationToken);
+            var baseTitle = page.DisplayName;
+
+            if (pageContent != null)
+            {
+                var lookup = await SummaryResolver.CreateLookupAsync(page.Id, cancellationToken);
+                var summary = SummaryResolver.Resolve(pageContent, lookup, page.DisplayName);
+                baseTitle = summary.Title;
+                description = summary.Summary;
+
+                contentNoIndex = NoIndexRecognizer.IsNoIndex(pageContent, seoField);
+                ogImageUrl = ReadOgImage(pageContent, seoField);
+            }
+
+            // A declared filtered view is indexable, so it needs a title of its own - every category and
+            // archive of one page would otherwise share the page's, one duplicate title per filtered view. The
+            // captured values, in the order the route names them, are the only per-view text there is to add.
+            title = isDeclaredFilteredView
+                ? $"{baseTitle} - {string.Join(" / ", match.FilterValues.Values)}"
+                : baseTitle;
         }
 
         // IsActive matters as much as being the home route here: FindHomePageAsync judges Route alone,
@@ -171,6 +191,26 @@ public class HeadMetadataBuilder : DomainService
             includeUnpublished || contentNoIndex || (isFilteredView && !isDeclaredFilteredView),
             hreflangAlternates,
             xDefaultUrl);
+    }
+
+    /// <summary>
+    /// The page's own empty-slug content in <paramref name="cultureName"/>, under the same visibility rule
+    /// <c>SiteRouteResolver</c> applies when it resolves the page's bare address to that content - so a
+    /// filtered view never takes its <c>&lt;head&gt;</c> from a content its bare address would not show.
+    /// </summary>
+    protected virtual async Task<Content?> FindPageContentAsync(
+        Page page,
+        string cultureName,
+        bool includeUnpublished,
+        DateTime asOf,
+        CancellationToken cancellationToken)
+    {
+        var culture = CultureNameNormalizer.TryNormalize(cultureName, out var normalized) ? normalized : cultureName;
+        var pageContent = await ContentRepository.FindBySlugAsync(page.Id, culture, string.Empty, cancellationToken);
+
+        return pageContent != null && (includeUnpublished || pageContent.IsPubliclyAccessible(asOf))
+            ? pageContent
+            : null;
     }
 
     /// <summary>
