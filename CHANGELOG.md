@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.21] - 2026-09-27
+
 ### Added
 
 - **`<site-head-metadata>` writes a route's `<head>` tags** (`SiteHeadMetadataTagHelper`, in
@@ -1086,4 +1088,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.20...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.21...HEAD
