@@ -16,6 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the content has none), and `current-page`/`page-query-key` for a paged list: beyond page 1 the
   canonical, `og:url`, every hreflang alternate and x-default carry the page number. `<title>`, charset
   and viewport stay with the host's layout.
+- **A site's templates can have their own texts in every language, per tenant**
+  ([#73](https://github.com/dignite-projects/site/issues/73)). Texts a template shows that are not content -
+  a Select option's name, a label, an archive heading - live in JSON files next to the templates:
+  `/Sites/Localization/{culture}.json` for the host, `/Sites/{tenantName}/Localization/{culture}.json` for a
+  tenant, in ABP's `{"culture", "texts"}` format. Templates read them through the new
+  `SiteTemplateResource` with `IStringLocalizer<T>`, `IHtmlLocalizer<T>`, or `IViewLocalizer` (which now
+  reads that resource in any view under `/Sites/`), format arguments included. A text is looked up in the
+  page's language, then each parent language (`zh-Hant-TW`, `zh-Hant`, `zh`), then the site's default
+  language. A tenant never falls back to the host's texts. The template decides the keys; the new
+  `GetOrDefault(key, fallback)` helper returns the template's own fallback, such as the option's Text, when
+  a text is missing. Files are read through ABP's virtual file system: in development a saved file is
+  picked up without a restart; embedded files need a redeploy, like the templates. A file that does not
+  parse is logged and skipped. Usage: [docs/template-localization.md](docs/template-localization.md).
+- `HeadMetadataDto.BaseMetaTitle`: the title before a filtered view's raw filter values were appended
+  ("Blog" where `MetaTitle` is "Blog - engineering"), so a template can compose a localized title. The
+  raw-value `MetaTitle` is unchanged and stays the fallback.
+- `SiteRenderViewModel.FilterValues`: every route value the path captured, as captured, including the
+  publish-time parts `FieldFilters` leaves out.
+- `RouteMatchDto.DefaultCultureName`: the site's default language, on every match.
 
 ### Changed
 
