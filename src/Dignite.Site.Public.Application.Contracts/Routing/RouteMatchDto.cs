@@ -28,6 +28,13 @@ public class RouteMatchDto
     /// </summary>
     public string DefaultCultureName { get; set; } = default!;
 
+    /// <summary>
+    /// Every language the site serves, in configured order - <see cref="DefaultCultureName"/> first. Always
+    /// populated. Lets a renderer apply the site's language rules to the page it renders without reading
+    /// the setting a second time (GitHub issue #75).
+    /// </summary>
+    public List<string> EnabledCultureNames { get; set; } = new();
+
     /// <summary>The matched page. Null only when <see cref="Matched"/> is false.</summary>
     public PageDto? Page { get; set; }
 

@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Templates and the host's layout get the site's language rules**
+  ([#75](https://github.com/dignite-projects/site/issues/75)). A host rendering more than one language no
+  longer restates `Site.EnabledLanguages`'s rules itself. In `Dignite.Site.Public.Web`:
+  - `SiteLanguageContext`: the current site's languages, read once per request, and the language the
+    request is in, taken from its path by the same rule routing uses.
+  - In-site links written as `~/...` are rewritten into the current page's language (`SiteLinkTagHelper`,
+    on wherever `@addTagHelper *, Dignite.Site.Public.Web` is): `<a href>`, `<area href>`,
+    `<form action>`, and `formaction` on `<button>`/`<input>`. `Url.SiteContent("~/...")` does the same in
+    code. Paths under `SiteLanguageOptions.ExcludedPathPrefixes` (default `/Account`, `/Abp`, `/api`,
+    `/connect`, `/swagger`, `/Error`, `/.well-known`) and file-like paths are left alone. On a
+    single-language site no link changes.
+  - `SiteLanguageSwitcher`: for each language, the current page's translation (from its hreflang
+    alternates), or that language's home page when there is none, both as the request's PathBase plus a
+    site path. Data only; the markup and labels are the host's.
+  - An opt-in redirect of `/` to the visitor's language (`SiteLanguageOptions.RedirectHomeToVisitorLanguage`):
+    302, with a cookie the host's switcher writes taking precedence over `Accept-Language`, whose tags
+    match through their parent cultures and then a shared root language, never across scripts.
+    Same-origin navigations are never redirected, and the response varies by all three headers.
+  - Every view MVC renders now falls back to the site's default language for template texts, not only
+    Site pages.
+
+  Nothing goes into the host's pipeline: two global MVC filters load the languages after tenant
+  resolution. Usage: [docs/site-languages.md](docs/site-languages.md).
+- `HreflangAlternateDto.Path`: each alternate's site-relative path, for linking within the host the
+  visitor is on.
+- `RouteMatchDto.EnabledCultureNames`: every language the site serves, in configured order, on every
+  match.
+
+### Changed
+
+- `SiteSettings` moved from `Dignite.Site.Domain` to `Dignite.Site.Domain.Shared`, in the same
+  `Dignite.Site.Settings` namespace, so `Public.Web` reads `SiteSettings.EnabledLanguages` instead of a
+  copied string.
+- The enabled-languages parser and the culture-prefix rules moved into `Dignite.Site.Domain.Shared` as
+  `SiteLanguages` (`Dignite.Site.Seo`). `SiteLanguageProvider` and `SiteUrlContext` forward to it, with no
+  change in routing, sitemap, feeds or head metadata. `SiteUrlContext` also exposes it as `Languages`.
+- `Page.NormalizeRoute` forwards to the new `PageRoute.Normalize` in `Dignite.Site.Domain.Shared`.
+- `SiteRenderController.CultureScopedViewResult` no longer takes the default culture: the site's default
+  language for template texts is set around every view by `SiteLanguageResultFilter`, Site pages
+  included.
+
 ## [0.1.0-preview.21] - 2026-09-27
 
 ### Added

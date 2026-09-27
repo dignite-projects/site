@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,18 +9,14 @@ namespace Dignite.Site.Seo;
 
 /// <summary>
 /// Reads <see cref="SiteSettings.EnabledLanguages"/> and answers which languages this site serves and
-/// which of them is the default (总体设计 §5.5).
-/// <para>
-/// <b>The first entry is the default.</b> There is no separate "default language" setting on purpose: two
-/// settings can contradict each other - a default that is not in the enabled list has no defined meaning -
-/// and ordering already expresses everything a tenant needs. A site that wants French unprefixed writes
-/// <c>"fr,en"</c>.
-/// </para>
+/// which of them is the default (总体设计 §5.5). The parsing itself - order, normalization,
+/// de-duplication, the first entry being the default - is <see cref="SiteLanguages.ParseCultureNames"/>,
+/// shared with the rendering side.
 /// </summary>
 public class SiteLanguageProvider : DomainService
 {
     /// <summary>Used when the setting is blank or contains nothing recognizable.</summary>
-    public const string FallbackCultureName = "en";
+    public const string FallbackCultureName = SiteLanguages.FallbackCultureName;
 
     protected ISettingProvider SettingProvider { get; }
 
@@ -38,30 +33,7 @@ public class SiteLanguageProvider : DomainService
     public virtual async Task<IReadOnlyList<string>> GetEnabledLanguagesAsync(
         CancellationToken cancellationToken = default)
     {
-        var configured = await SettingProvider.GetOrNullAsync(SiteSettings.EnabledLanguages);
-
-        var languages = new List<string>();
-
-        foreach (var candidate in (configured ?? string.Empty).Split(
-                     ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            // Unrecognized entries are skipped rather than stored: the same predefinedOnly reasoning as
-            // CultureNameNormalizer - a typo must not become a phantom language with its own URL space.
-            // List<string>.Contains compares with EqualityComparer<string>.Default, which is ordinal -
-            // the comparison these canonical tags need.
-            if (CultureNameNormalizer.TryNormalize(candidate, out var normalized)
-                && !languages.Contains(normalized))
-            {
-                languages.Add(normalized);
-            }
-        }
-
-        if (languages.Count == 0)
-        {
-            languages.Add(FallbackCultureName);
-        }
-
-        return languages;
+        return SiteLanguages.ParseCultureNames(await SettingProvider.GetOrNullAsync(SiteSettings.EnabledLanguages));
     }
 
     /// <summary>The language whose URLs carry no culture prefix - the first enabled one.</summary>

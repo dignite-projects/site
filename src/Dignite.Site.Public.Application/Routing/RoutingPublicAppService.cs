@@ -44,6 +44,7 @@ public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppSe
             Kind = MapKind(match.Kind),
             CultureName = cultureName,
             DefaultCultureName = urlContext.DefaultCultureName,
+            EnabledCultureNames = new List<string>(urlContext.EnabledCultureNames),
             Page = match.Page == null ? null : ObjectMapper.Map<Page, PageDto>(match.Page),
             Content = contentDto,
             ContentType = match.ContentType?.ToDto(ObjectMapper),

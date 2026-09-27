@@ -110,6 +110,19 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         prefixed.DefaultCultureName.ShouldBe("en");
     }
 
+    /// <summary>
+    /// Every language the site serves, in configured order, on every match - so a renderer applies the
+    /// site's language rules without reading the setting again (GitHub issue #75).
+    /// </summary>
+    [Fact]
+    public async Task Should_Report_The_Sites_Enabled_Cultures()
+    {
+        GetRequiredService<TestSettingValueProvider>().Set(SiteSettings.EnabledLanguages, "fr, EN ,ja");
+
+        (await ResolveAsync("/blog")).EnabledCultureNames.ShouldBe(new[] { "fr", "en", "ja" });
+        (await ResolveAsync("/no-such-page")).EnabledCultureNames.ShouldBe(new[] { "fr", "en", "ja" });
+    }
+
     [Fact]
     public async Task Should_Have_Empty_FilterValues_For_A_Bare_Address()
     {

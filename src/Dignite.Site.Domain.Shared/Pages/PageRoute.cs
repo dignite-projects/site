@@ -5,6 +5,8 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
+using Dignite.Site.Seo;
+using Volo.Abp;
 
 namespace Dignite.Site.Pages;
 
@@ -101,7 +103,7 @@ namespace Dignite.Site.Pages;
 /// </para>
 /// <para>
 /// Every method here assumes its <c>route</c>/<c>path</c> argument is already normalized by
-/// <see cref="Page.NormalizeRoute"/> - leading slash, no trailing one. None of them normalize it again.
+/// <see cref="Normalize"/> - leading slash, no trailing one. None of them normalize it again.
 /// </para>
 /// </summary>
 public static class PageRoute
@@ -677,6 +679,20 @@ public static class PageRoute
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// The canonical stored form of a route: exactly one leading slash, no trailing slash, except for
+    /// the site root which stays <c>/</c>. <c>Page.NormalizeRoute</c> forwards here; it lives in this
+    /// project so the culture-prefix rules (<see cref="SiteLanguages"/>) can normalize a request path
+    /// exactly the way routing does, outside the Domain layer too.
+    /// </summary>
+    public static string Normalize(string route)
+    {
+        Check.NotNullOrWhiteSpace(route, nameof(route));
+
+        var normalized = "/" + route.Trim().Trim('/');
+        return normalized.Length > 1 ? normalized : "/";
     }
 
     /// <summary>

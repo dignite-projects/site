@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Shouldly;
@@ -127,6 +132,54 @@ public class SiteTemplateLocalization_Tests : IDisposable
             Get("ja", "OnlyInDefault").Value.ShouldBe("默认");
             Get("ja", "Nowhere").ResourceNotFound.ShouldBeTrue();
         }
+    }
+
+    /// <summary>
+    /// Any view, not only a Site page: a host's menu on an error page requested in a language the site does
+    /// not serve (fr) shows the site's default language, not keys. GitHub issue #75.
+    /// </summary>
+    [Fact]
+    public async Task Should_Fall_Back_To_The_Sites_Default_Language_In_Any_View()
+    {
+        Write(null, "zh-Hans", "\"Menu:Home\": \"首页\"");
+
+        var host = new SiteLanguageTestHost("zh-Hans,ja", "/Error");
+        var actionContext = new ActionContext(host.HttpContext, new RouteData(), new ActionDescriptor());
+        var filters = new List<IFilterMetadata>();
+        var result = new ViewResult();
+        var context = new ResultExecutingContext(actionContext, filters, result, controller: new object());
+
+        LocalizedString? text = null;
+        await new SiteLanguageResultFilter().OnResultExecutionAsync(context, () =>
+        {
+            text = Get("fr", "Menu:Home");
+            return Task.FromResult(new ResultExecutedContext(actionContext, filters, result, new object()));
+        });
+
+        text!.Value.ShouldBe("首页");
+        SiteTemplateDefaultCulture.Current.ShouldBeNull();
+        host.LanguageContext.Languages.ShouldNotBeNull();
+    }
+
+    /// <summary>A result that renders no view - an API response - never reads the setting.</summary>
+    [Fact]
+    public async Task Should_Leave_Results_That_Render_No_View_Alone()
+    {
+        var host = new SiteLanguageTestHost("zh-Hans,ja", "/api/site/contents");
+        var actionContext = new ActionContext(host.HttpContext, new RouteData(), new ActionDescriptor());
+        var filters = new List<IFilterMetadata>();
+        var result = new ObjectResult(new { });
+        var context = new ResultExecutingContext(actionContext, filters, result, controller: new object());
+
+        string? defaultCulture = "not called";
+        await new SiteLanguageResultFilter().OnResultExecutionAsync(context, () =>
+        {
+            defaultCulture = SiteTemplateDefaultCulture.Current;
+            return Task.FromResult(new ResultExecutedContext(actionContext, filters, result, new object()));
+        });
+
+        defaultCulture.ShouldBeNull();
+        host.Settings.ReadCount.ShouldBe(0);
     }
 
     [Fact]

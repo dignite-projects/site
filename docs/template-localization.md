@@ -87,7 +87,9 @@ Within the one folder that applies (the tenant's, or the host's when there is no
 4. otherwise the text is not found: `L[key]` shows the key, and `GetOrDefault` shows the template's
    fallback.
 
-Step 3 applies while `SiteRenderController` renders a page. The resource used anywhere else skips it.
+Step 3 applies in every view MVC renders, Site pages and the host's own pages alike (see
+[site-languages.md](site-languages.md#template-texts)). Outside a view, e.g. in a background job, it is
+skipped.
 
 ## Using the texts in a template
 

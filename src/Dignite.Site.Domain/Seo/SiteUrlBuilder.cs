@@ -62,6 +62,12 @@ public class SiteUrlBuilder : DomainService
         return context.BuildAbsolute(page.GetPath(), cultureName);
     }
 
+    /// <summary>The relative, culture-prefixed path <see cref="BuildPageUrl"/> makes absolute.</summary>
+    public virtual string BuildPagePath(SiteUrlContext context, Page page, string cultureName)
+    {
+        return context.ApplyCulturePrefix(page.GetPath(), cultureName);
+    }
+
     /// <summary>
     /// The absolute URL of one filtered view of a page - its list narrowed by the values a request filled
     /// its route's placeholders with, e.g. <c>/news/tutorials</c> (<see cref="Page.BuildFilteredPath"/>).
@@ -73,6 +79,16 @@ public class SiteUrlBuilder : DomainService
         string cultureName)
     {
         return context.BuildAbsolute(page.BuildFilteredPath(filterValues), cultureName);
+    }
+
+    /// <summary>The relative, culture-prefixed path <see cref="BuildFilteredPageUrl"/> makes absolute.</summary>
+    public virtual string BuildFilteredPagePath(
+        SiteUrlContext context,
+        Page page,
+        IReadOnlyDictionary<string, string> filterValues,
+        string cultureName)
+    {
+        return context.ApplyCulturePrefix(page.BuildFilteredPath(filterValues), cultureName);
     }
 
     /// <summary>
