@@ -238,4 +238,197 @@ public class ContentPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         translations.Items.Select(c => c.CultureName).OrderBy(c => c)
             .ShouldBe(new[] { SiteTestData.EnglishCulture, SiteTestData.ChineseCulture }.OrderBy(c => c));
     }
+
+    // GetAdjacentAsync. Every content these create is in AdjacentCulture, which the seed never uses, so the
+    // seeded blog posts - all sharing one PublishTime - never become anyone's neighbor by accident.
+
+    private const string AdjacentCulture = "fr";
+
+    private static readonly DateTime AdjacentBaseTime = new(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task GetAdjacent_Should_Return_The_Older_As_Previous_And_The_Newer_As_Next()
+    {
+        var older = await CreateAdjacentTestContentAsync("adj-older", AdjacentBaseTime);
+        var anchor = await CreateAdjacentTestContentAsync("adj-anchor", AdjacentBaseTime.AddDays(1));
+        var newer = await CreateAdjacentTestContentAsync("adj-newer", AdjacentBaseTime.AddDays(2));
+
+        var result = await _contentPublicAppService.GetAdjacentAsync(anchor.Id, new GetAdjacentContentsInput());
+
+        result.Previous.ShouldNotBeNull();
+        result.Previous.Id.ShouldBe(older.Id);
+        result.Previous.Url.ShouldEndWith("/blog/adj-older");
+
+        result.Next.ShouldNotBeNull();
+        result.Next.Id.ShouldBe(newer.Id);
+        result.Next.Url.ShouldEndWith("/blog/adj-newer");
+    }
+
+    [Fact]
+    public async Task GetAdjacent_Should_Return_Null_Past_Either_End()
+    {
+        var oldest = await CreateAdjacentTestContentAsync("adj-oldest", AdjacentBaseTime);
+        var newest = await CreateAdjacentTestContentAsync("adj-newest", AdjacentBaseTime.AddDays(1));
+
+        (await _contentPublicAppService.GetAdjacentAsync(oldest.Id, new GetAdjacentContentsInput()))
+            .Previous.ShouldBeNull();
+        (await _contentPublicAppService.GetAdjacentAsync(newest.Id, new GetAdjacentContentsInput()))
+            .Next.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// Comparing PublishTime alone would skip a tied content (strict) or bounce between two of them
+    /// (inclusive). Walking Next from the oldest and Previous from the newest must each visit every tied
+    /// content exactly once, in the same order the default list shows them.
+    /// </summary>
+    [Fact]
+    public async Task GetAdjacent_Should_Step_Through_Contents_Sharing_A_PublishTime_In_List_Order()
+    {
+        await CreateAdjacentTestContentAsync("adj-tie-1", AdjacentBaseTime);
+        await CreateAdjacentTestContentAsync("adj-tie-2", AdjacentBaseTime, contentTypeId: SiteTestData.PostGalleryTypeId);
+        await CreateAdjacentTestContentAsync("adj-tie-3", AdjacentBaseTime);
+        await CreateAdjacentTestContentAsync("adj-after-tie", AdjacentBaseTime.AddDays(1));
+
+        var listed = (await _contentPublicAppService.GetListAsync(new GetContentListInput
+        {
+            PageId = SiteTestData.BlogPageId,
+            CultureName = AdjacentCulture,
+            MaxResultCount = 1000
+        })).Items.Select(c => c.Id).ToList(); // newest first
+        listed.Count.ShouldBe(4);
+
+        var forward = new List<Guid> { listed[^1] };
+        for (var next = await NextOfAsync(listed[^1]); next != null; next = await NextOfAsync(next.Value))
+        {
+            forward.Count.ShouldBeLessThan(listed.Count, "walking Next looped");
+            forward.Add(next.Value);
+        }
+
+        var backward = new List<Guid> { listed[0] };
+        for (var previous = await PreviousOfAsync(listed[0]); previous != null; previous = await PreviousOfAsync(previous.Value))
+        {
+            backward.Count.ShouldBeLessThan(listed.Count, "walking Previous looped");
+            backward.Add(previous.Value);
+        }
+
+        forward.ShouldBe(Enumerable.Reverse(listed).ToList());
+        backward.ShouldBe(listed);
+    }
+
+    /// <summary>
+    /// The links lead into the list, so they skip whatever the list would not show: a draft, an archived
+    /// content, and a scheduled one whose PublishTime has not arrived.
+    /// </summary>
+    [Fact]
+    public async Task GetAdjacent_Should_Skip_Draft_Archived_And_Scheduled_Neighbors()
+    {
+        var now = AdjacentBaseTime.AddDays(30);
+        GetRequiredService<TestClock>().Set(now);
+
+        var older = await CreateAdjacentTestContentAsync("adj-live-older", AdjacentBaseTime);
+        await CreateAdjacentTestContentAsync("adj-draft", AdjacentBaseTime.AddDays(1), ContentStatus.Draft);
+        await CreateAdjacentTestContentAsync("adj-archived", AdjacentBaseTime.AddDays(2), ContentStatus.Archived);
+        var anchor = await CreateAdjacentTestContentAsync("adj-live-anchor", AdjacentBaseTime.AddDays(3));
+        await CreateAdjacentTestContentAsync("adj-scheduled", now.AddDays(10));
+
+        var result = await _contentPublicAppService.GetAdjacentAsync(anchor.Id, new GetAdjacentContentsInput());
+
+        result.Previous.ShouldNotBeNull();
+        result.Previous.Id.ShouldBe(older.Id);
+        result.Next.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetAdjacent_Should_Keep_To_The_Anchors_Own_Page_And_Language()
+    {
+        // The About page's single content in the same language, older - a different page.
+        await CreateAdjacentTestContentAsync("", AdjacentBaseTime, contentTypeId: SiteTestData.AboutTypeId);
+        var anchor = await CreateAdjacentTestContentAsync("adj-alone", AdjacentBaseTime.AddDays(1));
+        // The same page, newer - a different language.
+        await CreateAdjacentTestContentAsync("adj-other-culture", AdjacentBaseTime.AddDays(2), culture: "de");
+
+        var result = await _contentPublicAppService.GetAdjacentAsync(anchor.Id, new GetAdjacentContentsInput());
+
+        result.Previous.ShouldBeNull();
+        result.Next.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetAdjacent_Should_Span_Every_Content_Type_Unless_Narrowed_To_One()
+    {
+        var olderArticle = await CreateAdjacentTestContentAsync("adj-article-1", AdjacentBaseTime);
+        var olderGallery = await CreateAdjacentTestContentAsync(
+            "adj-gallery-1", AdjacentBaseTime.AddDays(1), contentTypeId: SiteTestData.PostGalleryTypeId);
+        var anchor = await CreateAdjacentTestContentAsync("adj-article-2", AdjacentBaseTime.AddDays(2));
+        var newerGallery = await CreateAdjacentTestContentAsync(
+            "adj-gallery-2", AdjacentBaseTime.AddDays(3), contentTypeId: SiteTestData.PostGalleryTypeId);
+        var newerArticle = await CreateAdjacentTestContentAsync("adj-article-3", AdjacentBaseTime.AddDays(4));
+
+        var wholePage = await _contentPublicAppService.GetAdjacentAsync(anchor.Id, new GetAdjacentContentsInput());
+        wholePage.Previous!.Id.ShouldBe(olderGallery.Id);
+        wholePage.Next!.Id.ShouldBe(newerGallery.Id);
+
+        var articlesOnly = await _contentPublicAppService.GetAdjacentAsync(
+            anchor.Id, new GetAdjacentContentsInput { ContentTypeId = SiteTestData.PostArticleTypeId });
+        articlesOnly.Previous!.Id.ShouldBe(olderArticle.Id);
+        articlesOnly.Next!.Id.ShouldBe(newerArticle.Id);
+    }
+
+    /// <summary>An archived detail page still answers (<see cref="Content.IsPubliclyAccessible"/>), so its links must too.</summary>
+    [Fact]
+    public async Task GetAdjacent_Should_Answer_For_An_Archived_Anchor()
+    {
+        var older = await CreateAdjacentTestContentAsync("adj-around-older", AdjacentBaseTime);
+        var anchor = await CreateAdjacentTestContentAsync(
+            "adj-archived-anchor", AdjacentBaseTime.AddDays(1), ContentStatus.Archived);
+        var newer = await CreateAdjacentTestContentAsync("adj-around-newer", AdjacentBaseTime.AddDays(2));
+
+        var result = await _contentPublicAppService.GetAdjacentAsync(anchor.Id, new GetAdjacentContentsInput());
+
+        result.Previous!.Id.ShouldBe(older.Id);
+        result.Next!.Id.ShouldBe(newer.Id);
+    }
+
+    [Fact]
+    public async Task GetAdjacent_Should_Not_Answer_For_A_Draft_Or_Not_Yet_Due_Anchor()
+    {
+        var now = AdjacentBaseTime.AddDays(30);
+        GetRequiredService<TestClock>().Set(now);
+
+        var draft = await CreateAdjacentTestContentAsync("adj-draft-anchor", AdjacentBaseTime, ContentStatus.Draft);
+        var scheduled = await CreateAdjacentTestContentAsync("adj-scheduled-anchor", now.AddDays(1));
+
+        await Should.ThrowAsync<EntityNotFoundException>(
+            () => _contentPublicAppService.GetAdjacentAsync(draft.Id, new GetAdjacentContentsInput()));
+        await Should.ThrowAsync<EntityNotFoundException>(
+            () => _contentPublicAppService.GetAdjacentAsync(scheduled.Id, new GetAdjacentContentsInput()));
+    }
+
+    private Task<ContentDto> CreateAdjacentTestContentAsync(
+        string slug,
+        DateTime publishTime,
+        ContentStatus status = ContentStatus.Published,
+        Guid? contentTypeId = null,
+        string culture = AdjacentCulture)
+    {
+        return _contentAdminAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = contentTypeId ?? SiteTestData.PostArticleTypeId,
+            CultureName = culture,
+            Slug = slug,
+            PublishTime = publishTime,
+            Status = status,
+            FieldValues = new Dictionary<string, object?> { ["title"] = slug }
+        });
+    }
+
+    private async Task<Guid?> NextOfAsync(Guid id)
+    {
+        return (await _contentPublicAppService.GetAdjacentAsync(id, new GetAdjacentContentsInput())).Next?.Id;
+    }
+
+    private async Task<Guid?> PreviousOfAsync(Guid id)
+    {
+        return (await _contentPublicAppService.GetAdjacentAsync(id, new GetAdjacentContentsInput())).Previous?.Id;
+    }
 }

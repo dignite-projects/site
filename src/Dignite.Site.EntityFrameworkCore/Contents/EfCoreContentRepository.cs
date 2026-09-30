@@ -94,8 +94,12 @@ public class EfCoreContentRepository : EfCoreRepository<ISiteDbContext, Content,
             pageId, cultureName, contentTypeId, status, publishedBefore, publishedAfter, filter,
             flexFieldConditions, cancellationToken);
 
+        // Id breaks PublishTime ties, so the default order is deterministic and agrees with
+        // FindPreviousAsync/FindNextAsync - a detail page's previous/next links walk exactly this list.
         return await query
-            .OrderBy(sorting.IsNullOrWhiteSpace() ? $"{nameof(Content.PublishTime)} desc" : sorting!)
+            .OrderBy(sorting.IsNullOrWhiteSpace()
+                ? $"{nameof(Content.PublishTime)} desc, {nameof(Content.Id)} desc"
+                : sorting!)
             .PageBy(skipCount, maxResultCount)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
@@ -116,6 +120,46 @@ public class EfCoreContentRepository : EfCoreRepository<ISiteDbContext, Content,
             flexFieldConditions, cancellationToken);
 
         return await query.CountAsync(GetCancellationToken(cancellationToken));
+    }
+
+    public virtual async Task<Content?> FindPreviousAsync(
+        Guid pageId,
+        string cultureName,
+        DateTime publishTime,
+        Guid id,
+        Guid? contentTypeId = null,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = await GetFilteredQueryableAsync(
+            pageId, cultureName, contentTypeId, status, publishedBefore, null, null, null, cancellationToken);
+
+        return await query
+            .Where(c => c.PublishTime < publishTime || (c.PublishTime == publishTime && c.Id.CompareTo(id) < 0))
+            .OrderByDescending(c => c.PublishTime)
+            .ThenByDescending(c => c.Id)
+            .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
+    }
+
+    public virtual async Task<Content?> FindNextAsync(
+        Guid pageId,
+        string cultureName,
+        DateTime publishTime,
+        Guid id,
+        Guid? contentTypeId = null,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = await GetFilteredQueryableAsync(
+            pageId, cultureName, contentTypeId, status, publishedBefore, null, null, null, cancellationToken);
+
+        return await query
+            .Where(c => c.PublishTime > publishTime || (c.PublishTime == publishTime && c.Id.CompareTo(id) > 0))
+            .OrderBy(c => c.PublishTime)
+            .ThenBy(c => c.Id)
+            .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
     }
 
     public virtual async Task<bool> AnyByContentTypeAsync(

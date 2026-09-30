@@ -47,4 +47,11 @@ public class ContentPublicController : SitePublicController, IContentPublicAppSe
     {
         return ContentPublicAppService.GetTranslationsAsync(pageId, contentTypeId, slug);
     }
+
+    [HttpGet]
+    [Route("{id}/adjacent")]
+    public virtual Task<AdjacentContentsDto> GetAdjacentAsync(Guid id, GetAdjacentContentsInput input)
+    {
+        return ContentPublicAppService.GetAdjacentAsync(id, input);
+    }
 }

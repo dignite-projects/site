@@ -84,6 +84,38 @@ public interface IContentRepository : IBasicRepository<Content, Guid>
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The content immediately <i>older</i> than the one at (<paramref name="publishTime"/>,
+    /// <paramref name="id"/>) under the same page and language - the "previous" link on a detail page.
+    /// <para>
+    /// Ordered by <c>(PublishTime, Id)</c>, not <c>PublishTime</c> alone: contents sharing one publish time
+    /// (a bulk import, a seed) would otherwise be skipped with a strict comparison, or bounce back and forth
+    /// with an inclusive one. <c>Id</c> only breaks the tie, so its order carries no meaning beyond being
+    /// stable. Visibility is the caller's to decide through <paramref name="status"/> and
+    /// <paramref name="publishedBefore"/>, as with <see cref="GetListAsync"/>.
+    /// </para>
+    /// </summary>
+    Task<Content?> FindPreviousAsync(
+        Guid pageId,
+        string cultureName,
+        DateTime publishTime,
+        Guid id,
+        Guid? contentTypeId = null,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>The <i>newer</i> counterpart of <see cref="FindPreviousAsync"/> - see its remarks.</summary>
+    Task<Content?> FindNextAsync(
+        Guid pageId,
+        string cultureName,
+        DateTime publishTime,
+        Guid id,
+        Guid? contentTypeId = null,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Whether any content still uses <paramref name="contentTypeId"/> - checked before deleting a
     /// content type.
     /// </summary>

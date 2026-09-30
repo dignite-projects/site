@@ -104,6 +104,37 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
             translations.Where(c => c.IsPubliclyAccessible(asOf)).Select(c => MapToDto(c, page, urlContext)).ToList());
     }
 
+    /// <summary>
+    /// The anchor is checked like <see cref="GetAsync"/> - an archived detail page still gets its links - but
+    /// the neighbors must be live (<see cref="Content.IsPublished"/>): the links are a way into the list, so
+    /// they never surface an archived content, nor a scheduled one ahead of its <c>PublishTime</c>.
+    /// </summary>
+    public virtual async Task<AdjacentContentsDto> GetAdjacentAsync(Guid id, GetAdjacentContentsInput input)
+    {
+        var content = await ContentRepository.GetAsync(id);
+        EnsureAccessible(content);
+
+        var asOf = Clock.Now;
+
+        var previous = await ContentRepository.FindPreviousAsync(
+            content.PageId, content.CultureName, content.PublishTime, content.Id,
+            contentTypeId: input.ContentTypeId, status: ContentStatus.Published, publishedBefore: asOf);
+
+        var next = await ContentRepository.FindNextAsync(
+            content.PageId, content.CultureName, content.PublishTime, content.Id,
+            contentTypeId: input.ContentTypeId, status: ContentStatus.Published, publishedBefore: asOf);
+
+        // Both neighbors share the anchor's page, so one lookup covers them.
+        var page = await PageRepository.FindAsync(content.PageId);
+        var urlContext = await UrlBuilder.CreateContextAsync();
+
+        return new AdjacentContentsDto
+        {
+            Previous = previous != null ? MapToDto(previous, page, urlContext) : null,
+            Next = next != null ? MapToDto(next, page, urlContext) : null
+        };
+    }
+
     protected virtual void EnsureAccessible(Content content)
     {
         if (!content.IsPubliclyAccessible(Clock.Now))

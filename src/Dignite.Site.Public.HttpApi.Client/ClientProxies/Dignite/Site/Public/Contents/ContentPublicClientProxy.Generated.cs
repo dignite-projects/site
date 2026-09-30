@@ -53,4 +53,13 @@ public partial class ContentPublicClientProxy : ClientProxyBase<IContentPublicAp
             { typeof(string), slug }
         });
     }
+
+    public virtual async Task<AdjacentContentsDto> GetAdjacentAsync(Guid id, GetAdjacentContentsInput input)
+    {
+        return await RequestAsync<AdjacentContentsDto>(nameof(GetAdjacentAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(Guid), id },
+            { typeof(GetAdjacentContentsInput), input }
+        });
+    }
 }

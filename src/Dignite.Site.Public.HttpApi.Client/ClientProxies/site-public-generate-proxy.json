@@ -107,6 +107,38 @@
                   }
                 },
                 {
+                  "name": "GetAdjacentAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Public.Contents.GetAdjacentContentsInput, Dignite.Site.Public.Application.Contracts",
+                      "type": "Dignite.Site.Public.Contents.GetAdjacentContentsInput",
+                      "typeSimple": "Dignite.Site.Public.Contents.GetAdjacentContentsInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Contents.AdjacentContentsDto",
+                    "typeSimple": "Dignite.Site.Public.Contents.AdjacentContentsDto",
+                    "summary": null
+                  }
+                },
+                {
                   "name": "GetAsync",
                   "parametersOnMethod": [
                     {
@@ -577,6 +609,81 @@
               "returnValue": {
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Contents.ContentDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Contents.ContentDto>",
+                "summary": null
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Contents.IContentPublicAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetAdjacentAsyncByIdAndInput": {
+              "uniqueName": "GetAdjacentAsyncByIdAndInput",
+              "name": "GetAdjacentAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/contents/{id}/adjacent",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Public.Contents.GetAdjacentContentsInput, Dignite.Site.Public.Application.Contracts",
+                  "type": "Dignite.Site.Public.Contents.GetAdjacentContentsInput",
+                  "typeSimple": "Dignite.Site.Public.Contents.GetAdjacentContentsInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "ContentTypeId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Contents.AdjacentContentsDto",
+                "typeSimple": "Dignite.Site.Public.Contents.AdjacentContentsDto",
                 "summary": null
               },
               "allowAnonymous": null,
