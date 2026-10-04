@@ -23,6 +23,7 @@
     "Site:040004": "This page's route ('{Route}') has no slug placeholder, so its content cannot have a slug ('{Slug}' given).",
     "Site:040005": "This page's route ('{Route}') requires a slug for every content beneath it; an empty slug is not allowed here.",
     "Site:040006": "The slug '{Slug}' does not match the pattern in this page's route ('{Route}'), so no request could reach it.",
+    "Site:040007": "'{CultureName}' is not a recognized language tag. Use a BCP 47 tag such as 'en', 'zh-Hans' or 'en-GB'.",
 
     "Site:050001": "This site has no primary domain configured, so absolute URLs cannot be generated. Set the 'Primary domain' setting.",
 

@@ -78,7 +78,10 @@ public class ContentManager : DomainService
         // Normalize before the uniqueness check, not after: the check has to run against the value that
         // will actually be stored, or "zh-cn" gets waved through against a stored "zh-Hans" row and then
         // lands as a duplicate.
-        var normalizedCulture = CultureNameNormalizer.Normalize(cultureName);
+        if (!CultureNameNormalizer.TryNormalize(cultureName, out var normalizedCulture))
+        {
+            throw new ContentCultureNotRecognizedException(cultureName);
+        }
         var normalizedSlug = slug ?? string.Empty;
 
         await CheckSlugRequirementAsync(contentType.PageId, normalizedSlug, cancellationToken);

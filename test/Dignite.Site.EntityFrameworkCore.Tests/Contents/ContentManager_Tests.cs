@@ -52,6 +52,26 @@ public class ContentManager_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// An unrecognized tag is the caller's mistake, so it must come back as a coded business error naming
+    /// the culture - not the normalizer's ArgumentException, which every API surface (the admin API, MCP)
+    /// can only report as an internal error.
+    /// </summary>
+    [Theory]
+    [InlineData("xx-XX")]
+    [InlineData("not-a-culture-at-all")]
+    public async Task Should_Reject_An_Unrecognized_Culture_With_A_Business_Error(string cultureName)
+    {
+        var exception = await Should.ThrowAsync<ContentCultureNotRecognizedException>(() => WithUnitOfWorkAsync(() =>
+            _contentManager.CreateAsync(
+                SiteTestData.PostGalleryTypeId, cultureName, "unknown-culture",
+                SiteTestData.PublishTime, ContentStatus.Draft,
+                new Dictionary<string, object?> { ["title"] = "Title" })));
+
+        exception.Code.ShouldBe(SiteErrorCodes.ContentCultureNotRecognized);
+        exception.Data["CultureName"].ShouldBe(cultureName);
+    }
+
+    /// <summary>
     /// Moving a content to a different type without resending field values must re-filter the bag against
     /// the NEW type's declared names - not leave the old type's values sitting under keys the new type
     /// never declared. <c>ValidateFlexFieldsAsync</c> only walks the new type's declared fields, so a
