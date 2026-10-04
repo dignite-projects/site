@@ -14,7 +14,7 @@ namespace Dignite.Site.Mcp.Schema;
 /// <para>
 /// It is not a duplicate surface, it is a shorter path. A client that supports resources has the schema
 /// on connect, which drops "post a news item" from two round trips to one; a client that does not calls
-/// <c>get_site_schema</c> instead. Both go through the one application service, so there is no second
+/// <c>site_get_schema</c> instead. Both go through the one application service, so there is no second
 /// answer to keep in step.
 /// </para>
 /// </summary>
@@ -37,7 +37,7 @@ public class SiteSchemaResources : ITransientDependency
         MimeType = "application/json")]
     [Description(
         "This site's languages, pages, content types and fields - the target shape for any content " +
-        "written here, and the same document get_site_schema returns.")]
+        "written here, and the same document site_get_schema returns.")]
     [Authorize(SiteAdminPermissions.Pages.Default)]
     [Authorize(SiteAdminPermissions.ContentTypes.Default)]
     [Authorize(SiteAdminPermissions.Fields.Default)]

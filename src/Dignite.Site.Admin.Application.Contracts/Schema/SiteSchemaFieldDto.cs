@@ -51,7 +51,7 @@ public class SiteSchemaFieldDto
     /// <summary>
     /// Whether list views surface this field.
     /// <para>
-    /// Present for a blunt reason: <c>update_content_type</c> replaces a type's whole field arrangement
+    /// Present for a blunt reason: <c>site_update_content_type</c> replaces a type's whole field arrangement
     /// and tells the caller to read the current one from here and send it back with its changes merged
     /// in. Any usage flag missing from this document is therefore silently reset to its default on every
     /// such edit, so the schema has to carry every flag the write side accepts - not merely the ones a

@@ -32,7 +32,7 @@ public class PageAdminController : SiteAdminController, IPageAdminAppService
     /// <summary>
     /// The name is a query parameter, not a route segment. Nothing constrains a page's name to
     /// URL-path-safe characters - <c>Page.SetName</c> checks only blankness and length, and the MCP
-    /// <c>create_page</c> tool hands the choice to a model - so a name containing a slash or a dot would
+    /// <c>site_create_page</c> tool hands the choice to a model - so a name containing a slash or a dot would
     /// be unreachable as a segment (the path is decoded before routing, so it presents as extra segments
     /// and matches nothing), while remaining perfectly addressable everywhere else.
     /// </summary>

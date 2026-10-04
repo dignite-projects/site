@@ -13,7 +13,7 @@ namespace Dignite.Site.Mcp;
 /// another caller of the AppService, not another implementation - and that includes not quietly falling
 /// behind it as the AppService's DTOs evolve.
 /// <para>
-/// Motivated by a real bug: <c>update_page</c> (and <c>create_page</c>) silently never had a
+/// Motivated by a real bug: <c>site_update_page</c> (and <c>site_create_page</c>) silently never had a
 /// <c>template</c>/<c>contentTemplate</c> parameter at all, even though <c>UpdatePageDto</c>/
 /// <c>CreatePageDto</c> had carried both fields from the start - nothing failed, nothing warned, the
 /// fields were just permanently unreachable from MCP. This test would have failed the moment those fields

@@ -1,4 +1,4 @@
-using System;
+using Dignite.Abp.AspNetCore.Mcp.Errors;
 using Volo.Abp;
 
 namespace Dignite.Site.Mcp.Errors;
@@ -16,20 +16,25 @@ namespace Dignite.Site.Mcp.Errors;
 /// <remarks>
 /// <b><see cref="UserFriendlyException"/>, not a plain <c>BusinessException</c>, and the difference is
 /// the whole point of the type.</b> ABP's <c>IExceptionToErrorInfoConverter</c> - which
-/// <see cref="McpErrorResultFactory"/> reuses - only passes an exception's own message through for
+/// <see cref="McpToolErrorFilter"/> reuses - only passes an exception's own message through for
 /// <c>IUserFriendlyException</c>; anything else is either localized by its error code or replaced with
 /// "An internal error occurred during your request!". This code has no localization entry (its message is
 /// written for a model, not a person, and is not translated), so as a plain business exception its
-/// carefully worded "call get_site_schema" text would be discarded on every real request and the client
+/// carefully worded "call site_get_schema" text would be discarded on every real request and the client
 /// would be told nothing it could act on.
+/// <para>
+/// That same base type would make the server classify it as a business-rule <c>conflict</c>, so it states
+/// its real kind through <see cref="IHasMcpToolErrorKind"/>: a client should re-read the schema, not
+/// treat this as a rule it broke.
+/// </para>
 /// </remarks>
-public class McpEntityNotFoundException : UserFriendlyException
+public class McpEntityNotFoundException : UserFriendlyException, IHasMcpToolErrorKind
 {
     public McpEntityNotFoundException(string entityKind, string name, string? scope = null)
         : base(
             message: scope == null
-                ? $"There is no {entityKind} named '{name}'. Call get_site_schema (or read the site://schema resource) for the names this site actually has."
-                : $"There is no {entityKind} named '{name}' {scope}. Call get_site_schema (or read the site://schema resource) for the names this site actually has.",
+                ? $"There is no {entityKind} named '{name}'. Call site_get_schema (or read the site://schema resource) for the names this site actually has."
+                : $"There is no {entityKind} named '{name}' {scope}. Call site_get_schema (or read the site://schema resource) for the names this site actually has.",
             code: SiteMcpErrorCodes.NameNotFound)
     {
         EntityKind = entityKind;
@@ -42,6 +47,8 @@ public class McpEntityNotFoundException : UserFriendlyException
     public string EntityKind { get; }
 
     public string Name { get; }
+
+    public string McpToolErrorKind => McpToolErrorKinds.NotFound;
 }
 
 public static class SiteMcpErrorCodes

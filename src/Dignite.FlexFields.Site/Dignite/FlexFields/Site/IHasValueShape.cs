@@ -12,7 +12,7 @@ namespace Dignite.FlexFields.Site;
 /// Seo's value shape does not vary - every Seo field has exactly the same four keys, fixed by
 /// <c>SeoFieldValue</c> - so it does not belong in <c>Configuration</c> (which would mean storing the
 /// same static fact redundantly on every field row, out of sync the moment the type gains a property).
-/// It belongs on the type itself, read once from <c>list_field_types</c>/<c>FieldTypeDto</c> - the
+/// It belongs on the type itself, read once from <c>site_list_field_types</c>/<c>FieldTypeDto</c> - the
 /// existing catalog of type-level facts (<c>Indexable</c>, <c>Composite</c>) an AI client already knows
 /// to consult when a field type's name alone is not enough (GitHub discussion on <c>SeoFieldValue</c>
 /// vs. <c>site_schema</c> exposure).

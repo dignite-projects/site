@@ -45,15 +45,15 @@ public class ContentTools : ITransientDependency
         Clock = clock;
     }
 
-    [McpServerTool(Name = "list_contents", Title = "List contents", ReadOnly = true)]
+    [McpServerTool(Name = "site_list_contents", Title = "List contents", ReadOnly = true)]
     [Description(
         "Lists contents, newest first, including drafts. Every filter is optional; with none, it lists " +
         "across the whole site.")]
     [Authorize(SiteAdminPermissions.Contents.Default)]
     public virtual async Task<PagedResultDto<ContentDto>> ListContentsAsync(
-        [Description("Page name to list under, from get_site_schema. Omit to list across the whole site.")]
+        [Description("Page name to list under, from site_get_schema. Omit to list across the whole site.")]
         string? page = null,
-        [Description("Content type name, from get_site_schema. Requires 'page', since a content type's name is unique only within its page.")]
+        [Description("Content type name, from site_get_schema. Requires 'page', since a content type's name is unique only within its page.")]
         string? contentType = null,
         [Description("Language tag, from the schema's enabledLanguages. Omit for all languages.")]
         string? cultureName = null,
@@ -72,7 +72,7 @@ public class ContentTools : ITransientDependency
         if (!contentType.IsNullOrWhiteSpace())
         {
             // A validation error, not a not-found. Reporting "there is no content type named X" for a
-            // type that does exist would send the model to get_site_schema, where it would find the name
+            // type that does exist would send the model to site_get_schema, where it would find the name
             // listed and retry the identical call - the missing argument is `page`, and saying so is the
             // only message it can act on.
             if (pageDto == null)
@@ -104,13 +104,13 @@ public class ContentTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "get_content", Title = "Get one content", ReadOnly = true)]
+    [McpServerTool(Name = "site_get_content", Title = "Get one content", ReadOnly = true)]
     [Description(
         "Reads one content by the triple that identifies it: page, language and slug. Returns its field " +
-        "values keyed by field name, in the same shape update_content accepts.")]
+        "values keyed by field name, in the same shape site_update_content accepts.")]
     [Authorize(SiteAdminPermissions.Contents.Default)]
     public virtual async Task<ContentDto> GetContentAsync(
-        [Description("Page name, from get_site_schema.")] string page,
+        [Description("Page name, from site_get_schema.")] string page,
         [Description("Language tag, from the schema's enabledLanguages.")] string cultureName,
         [Description("The content's slug. Pass an empty string for the page's own single content.")] string slug)
     {
@@ -118,29 +118,29 @@ public class ContentTools : ITransientDependency
         return content;
     }
 
-    [McpServerTool(Name = "create_content", Title = "Create a content")]
+    [McpServerTool(Name = "site_create_content", Title = "Create a content")]
     [Description(
         "Creates one content of the given type under the given page. Field values are validated against " +
         "the content type's field definitions; a value for a field the type does not declare is dropped, " +
         "and a missing required value is rejected with the field named.")]
     [Authorize(SiteAdminPermissions.Contents.Create)]
     public virtual async Task<ContentDto> CreateContentAsync(
-        [Description("Page name, from get_site_schema.")]
+        [Description("Page name, from site_get_schema.")]
         string page,
-        [Description("Content type name under that page, from get_site_schema. Pick the one whose description matches what is being written.")]
+        [Description("Content type name under that page, from site_get_schema. Pick the one whose description matches what is being written.")]
         string contentType,
         [Description("Language tag. Must be one of the schema's enabledLanguages - do not invent a variant.")]
         string cultureName,
         [Description(
             "The URL segment for this content, e.g. 'my-trip'. REQUIRED - state it explicitly. Whether an " +
-            "empty string is accepted depends on the page's route (get_site_schema): a route with '{slug}' " +
+            "empty string is accepted depends on the page's route (site_get_schema): a route with '{slug}' " +
             "requires a real slug from every content there; '{slug?}' also allows ONE content with an " +
             "empty slug, served at the page's own address - if that slot is already taken, an empty slug " +
             "fails with Site:040001, and if the route allows no slug at all, a non-empty one fails with " +
             "Site:040004. A route with '{slug:REGEX}' only accepts a slug that REGEX matches - any other " +
             "fails with Site:040006. A title is acceptable here and will be turned into a slug.")]
         string slug,
-        [Description("Field values keyed by the field 'name' from get_site_schema. Not the display name.")]
+        [Description("Field values keyed by the field 'name' from site_get_schema. Not the display name.")]
         Dictionary<string, object?>? fieldValues = null,
         [Description("Published or Draft. Defaults to Draft.")]
         ContentStatus status = ContentStatus.Draft,
@@ -163,7 +163,7 @@ public class ContentTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "update_content", Title = "Update a content", Idempotent = true)]
+    [McpServerTool(Name = "site_update_content", Title = "Update a content", Idempotent = true)]
     [Description(
         "Updates one content, addressed by page, language and slug. Anything left null is kept as it is - " +
         "so this can publish a draft, or reschedule, without resending the body. Supplying fieldValues " +
@@ -171,7 +171,7 @@ public class ContentTools : ITransientDependency
         "omit it entirely.")]
     [Authorize(SiteAdminPermissions.Contents.Update)]
     public virtual async Task<ContentDto> UpdateContentAsync(
-        [Description("Page name, from get_site_schema.")]
+        [Description("Page name, from site_get_schema.")]
         string page,
         [Description("Language tag of the content to update.")]
         string cultureName,
@@ -208,11 +208,11 @@ public class ContentTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "delete_content", Title = "Delete a content", Destructive = true)]
+    [McpServerTool(Name = "site_delete_content", Title = "Delete a content", Destructive = true)]
     [Description("Permanently deletes one content, addressed by page, language and slug. Other language versions of the same content are not affected.")]
     [Authorize(SiteAdminPermissions.Contents.Delete)]
     public virtual async Task<string> DeleteContentAsync(
-        [Description("Page name, from get_site_schema.")] string page,
+        [Description("Page name, from site_get_schema.")] string page,
         [Description("Language tag of the content to delete.")] string cultureName,
         [Description("The content's slug. Pass an empty string for the page's own single content.")] string slug)
     {

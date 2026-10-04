@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: every MCP tool name now starts with `site_`**, and `get_site_schema` is `site_get_schema`
+  (`site_list_contents`, `site_create_content`, …; the `site://schema` resource is unchanged). The MCP
+  server is now shared with other modules' tools - `Dignite.FileExplorer.Mcp`'s, to begin with - and the
+  C# SDK silently keeps only the first of two same-named tools, so each module owns a name prefix and the
+  server refuses to start on a collision. MCP clients configured with the old names (permission
+  allow-lists, saved prompts) need the new ones.
+- **Breaking: `Dignite.Site.Mcp` contributes tools to the shared server instead of hosting one.**
+  Transport, the `/mcp` endpoint, `tools/list` permission filtering, the structured error envelope and
+  server info moved to `Dignite.Abp.AspNetCore.Mcp` (abp-modules), which `SiteMcpModule` now depends on.
+  `SiteMcpOptions` is gone: a host sets the route and server name with `Configure<AbpMcpServerOptions>`
+  and the RFC 9728 discovery metadata with `AddAbpMcpAuthenticationDiscovery`. The error envelope's JSON
+  shape is unchanged.
+- The dev Host also loads `Dignite.FileExplorer.Mcp`, exposing the `site-images` and `site-files`
+  containers, so a client can upload an image and reference its URL from a content field over the same
+  connection.
+
+### Fixed
+
+- **MCP requests were authorized against the token's original claims, not ABP's dynamic claims.** The
+  endpoint named the MCP authentication scheme on its policy, which makes ASP.NET Core re-authenticate
+  through it and replace the principal `UseDynamicClaims` had already refreshed - so a role removed after
+  a token was issued kept working on `/mcp` until the token expired. The endpoint now uses the default
+  policy, and only the 401 challenge is MCP-specific.
+
 ## [0.1.0-preview.22] - 2026-09-27
 
 ### Added

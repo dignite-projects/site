@@ -33,7 +33,7 @@ public class FieldTools : ITransientDependency
         NameResolver = nameResolver;
     }
 
-    [McpServerTool(Name = "list_fields", Title = "List field definitions", ReadOnly = true)]
+    [McpServerTool(Name = "site_list_fields", Title = "List field definitions", ReadOnly = true)]
     [Description(
         "Lists the tenant's whole field library, including fields no content type currently uses. Useful " +
         "before defining a content type: reuse an existing field rather than creating a near-duplicate, " +
@@ -46,10 +46,10 @@ public class FieldTools : ITransientDependency
         return FieldAppService.GetListAsync(new GetFieldListInput { Filter = filter });
     }
 
-    [McpServerTool(Name = "list_field_types", Title = "List available field types", ReadOnly = true)]
+    [McpServerTool(Name = "site_list_field_types", Title = "List available field types", ReadOnly = true)]
     [Description(
         "The field types a definition can be bound to, e.g. Text or Select. Call this before " +
-        "create_field if you are unsure what fieldTypeName to use. Also call this before writing a value " +
+        "site_create_field if you are unsure what fieldTypeName to use. Also call this before writing a value " +
         "for a field whose type carries a non-null valueShape (e.g. Seo): that field's value is a JSON " +
         "object, and valueShape lists the exact keys to use - do not guess casing from any server-side " +
         "source code.")]
@@ -59,19 +59,19 @@ public class FieldTools : ITransientDependency
         return FieldAppService.GetFieldTypesAsync();
     }
 
-    [McpServerTool(Name = "create_field", Title = "Create a field definition")]
+    [McpServerTool(Name = "site_create_field", Title = "Create a field definition")]
     [Description(
         "Adds a definition to the field library. A field must exist before a content type can pull it " +
-        "in. Definitions are shared across the whole site, so check list_fields first.")]
+        "in. Definitions are shared across the whole site, so check site_list_fields first.")]
     [Authorize(SiteAdminPermissions.Fields.Create)]
     public virtual Task<FieldDto> CreateFieldAsync(
         [Description(
             "Machine name, unique across the site, e.g. 'title'. THIS IS THE KEY VALUES ARE STORED " +
-            "UNDER, so choose it carefully - changing it later is a data migration (rename_field).")]
+            "UNDER, so choose it carefully - changing it later is a data migration (site_rename_field).")]
         string name,
         [Description("Human-readable name, e.g. 'Title'.")]
         string displayName,
-        [Description("The field type this field is bound to, e.g. 'Text'. Call list_field_types for what is available.")]
+        [Description("The field type this field is bound to, e.g. 'Text'. Call site_list_field_types for what is available.")]
         string fieldTypeName,
         [Description(
             "What belongs in this field, written for a future AI client to read while generating " +
@@ -91,10 +91,10 @@ public class FieldTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "update_field", Title = "Update a field definition", Idempotent = true)]
+    [McpServerTool(Name = "site_update_field", Title = "Update a field definition", Idempotent = true)]
     [Description(
         "Updates a field definition. Anything left null keeps its current value. The change applies " +
-        "everywhere the field is used. Cannot rename - use rename_field.")]
+        "everywhere the field is used. Cannot rename - use site_rename_field.")]
     [Authorize(SiteAdminPermissions.Fields.Update)]
     public virtual async Task<FieldDto> UpdateFieldAsync(
         [Description("The field's machine name.")]
@@ -120,11 +120,11 @@ public class FieldTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "rename_field", Title = "Rename a field definition", Destructive = true)]
+    [McpServerTool(Name = "site_rename_field", Title = "Rename a field definition", Destructive = true)]
     [Description(
         "Renames a field definition AND moves every stored value to the new key across the whole site. " +
         "This is a data migration, not an edit - the field's name is the key its values are stored " +
-        "under. Separate from update_field, and separately permissioned, for that reason. Any external " +
+        "under. Separate from site_update_field, and separately permissioned, for that reason. Any external " +
         "template or front end referring to the old name breaks. Confirm with the user first.")]
     [Authorize(SiteAdminPermissions.Fields.Rename)]
     public virtual async Task<FieldDto> RenameFieldAsync(
@@ -139,7 +139,7 @@ public class FieldTools : ITransientDependency
         return await FieldAppService.RenameAsync(current.Id, new RenameFieldDto { NewName = newName });
     }
 
-    [McpServerTool(Name = "delete_field", Title = "Delete a field definition", Destructive = true)]
+    [McpServerTool(Name = "site_delete_field", Title = "Delete a field definition", Destructive = true)]
     [Description(
         "Deletes a field definition and strips its values from every content across the site. Content " +
         "types that still reference it are left as they are; the usage is simply skipped from then on. " +
