@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Creating a content with an unrecognized language tag reported an internal error.** `ContentManager`
+  passed the culture straight to `CultureNameNormalizer.Normalize`, whose `ArgumentException` every API
+  surface - the admin API and MCP alike - can only show as "an internal error occurred". It now throws
+  `ContentCultureNotRecognizedException` (`Site:040007`), a business error naming the culture, so the
+  caller - an AI client especially - knows which argument to fix.
 - **MCP requests were authorized against the token's original claims, not ABP's dynamic claims.** The
   endpoint named the MCP authentication scheme on its policy, which makes ASP.NET Core re-authenticate
   through it and replace the principal `UseDynamicClaims` had already refreshed - so a role removed after
