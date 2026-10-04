@@ -85,7 +85,7 @@ public static class McpSlug
     /// <summary>
     /// Shapes a <b>replacement</b> slug, and rejects an empty one.
     /// <para>
-    /// On <c>create_content</c> an empty slug is deliberate - the parameter is required, so the caller
+    /// On <c>site_create_content</c> an empty slug is deliberate - the parameter is required, so the caller
     /// had to say it. On an update it cannot be: <c>newSlug</c> is optional and "leave it alone" is
     /// spelled by omitting it, so an empty string is a model reaching for "no change" and getting it
     /// wrong. Accepting it would silently move an existing content onto the page's own URL - exactly the
@@ -118,7 +118,7 @@ public static class McpSlug
 
     /// <summary>
     /// Shapes a slug used to <b>address</b> an existing content, for a caller that may be echoing back
-    /// the string it passed to <c>create_content</c> rather than the slug that was stored.
+    /// the string it passed to <c>site_create_content</c> rather than the slug that was stored.
     /// <para>
     /// Returns null when normalization would not change anything, or when nothing survives it - both mean
     /// there is no second candidate worth a second query. Unlike the write paths this never throws: an

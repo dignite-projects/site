@@ -10,7 +10,7 @@ using Xunit;
 namespace Dignite.Site.Mcp;
 
 /// <summary>
-/// resolve_path carries no [Authorize] of its own (总体设计 §6.2.5) - the guard is that it only ever
+/// site_resolve_path carries no [Authorize] of its own (总体设计 §6.2.5) - the guard is that it only ever
 /// resolves against published content on a routable page. These tests exist to pin that the guard
 /// actually holds through the MCP wrapper specifically: a draft, and content beneath a page an operator
 /// has switched off, must come back looking exactly like a path that was never valid at all, not as a

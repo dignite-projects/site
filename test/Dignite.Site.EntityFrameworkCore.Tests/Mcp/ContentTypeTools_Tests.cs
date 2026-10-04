@@ -22,7 +22,7 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// update_content_type tells the caller to read the current arrangement from get_site_schema and send
+    /// site_update_content_type tells the caller to read the current arrangement from site_get_schema and send
     /// it back with changes merged in. Following that instruction must not destroy anything - so every
     /// usage flag the write side accepts has to survive the round trip, not just the ones a reader finds
     /// interesting. ShowInList was the one that did not.
@@ -97,7 +97,7 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// An empty 'fields' list is a real value, not a stand-in for "omitted": update_content_type's own
+    /// An empty 'fields' list is a real value, not a stand-in for "omitted": site_update_content_type's own
     /// description says supplying 'fields' replaces the whole arrangement, and an empty list replaces it
     /// with nothing. Distinct from <see cref="Should_Leave_Fields_Untouched_When_The_Parameter_Is_Omitted"/>,
     /// which must NOT do this.
@@ -151,7 +151,7 @@ public class ContentTypeTools_Tests : SiteEntityFrameworkCoreTestBase
     /// A content type can legitimately have no fields yet (just created, or every field removed). The
     /// schema service resolves every content type's fields in one batch via
     /// <c>ContentTypeFieldResolver.ResolveManyAsync</c> and then indexes into the result by content type
-    /// id - so a type with zero fields has to still produce a dictionary entry, or get_site_schema would
+    /// id - so a type with zero fields has to still produce a dictionary entry, or site_get_schema would
     /// throw for the one content type most likely to be mid-edit.
     /// </summary>
     [Fact]

@@ -10,7 +10,7 @@ using Xunit;
 namespace Dignite.Site.Mcp;
 
 /// <summary>
-/// get_site_schema and the site://schema resource are meant to be the same document down two different
+/// site_get_schema and the site://schema resource are meant to be the same document down two different
 /// pipes (总体设计 §6.2.4) - "there is no second answer to keep in step", per SiteSchemaResources's own
 /// doc comment. These tests are about that promise specifically: that the tool and the resource actually
 /// agree, and that the resource's wire format is what an MCP client expects. The document's own content
@@ -40,7 +40,7 @@ public class SiteSchemaTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// The resource is documented as "the same document get_site_schema returns", not merely an
+    /// The resource is documented as "the same document site_get_schema returns", not merely an
     /// equivalent one - so the values, not just the shape, have to match between the two paths.
     /// </summary>
     [Fact]

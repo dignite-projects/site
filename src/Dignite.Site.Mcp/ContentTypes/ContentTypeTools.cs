@@ -40,10 +40,10 @@ public class ContentTypeTools : ITransientDependency
         NameResolver = nameResolver;
     }
 
-    [McpServerTool(Name = "create_content_type", Title = "Create a content type")]
+    [McpServerTool(Name = "site_create_content_type", Title = "Create a content type")]
     [Description(
         "Defines a shape of content under a page: an ordered arrangement of fields from the field " +
-        "library. Every field named here must already exist - call create_field for any that does not. " +
+        "library. Every field named here must already exist - call site_create_field for any that does not. " +
         "The same field can be pulled into any number of content types, with different required and " +
         "searchable flags in each.")]
     [Authorize(SiteAdminPermissions.ContentTypes.Create)]
@@ -74,10 +74,10 @@ public class ContentTypeTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "update_content_type", Title = "Update a content type", Idempotent = true)]
+    [McpServerTool(Name = "site_update_content_type", Title = "Update a content type", Idempotent = true)]
     [Description(
         "Updates a content type. Anything left null keeps its current value. Supplying 'fields' REPLACES " +
-        "the whole arrangement, so read the current one from get_site_schema and send it back with your " +
+        "the whole arrangement, so read the current one from site_get_schema and send it back with your " +
         "changes merged in - dropping a field from the arrangement stops its stored values being read " +
         "back, though it does not delete them. An empty 'fields' list is a real value, not a synonym for " +
         "omitting the parameter: it clears the arrangement down to zero fields. To leave fields alone, " +
@@ -92,7 +92,7 @@ public class ContentTypeTools : ITransientDependency
         string? name = null,
         [Description("New human-readable name. Omit to keep it.")]
         string? displayName = null,
-        [Description("New description - see create_content_type on why this matters. Omit to keep it.")]
+        [Description("New description - see site_create_content_type on why this matters. Omit to keep it.")]
         string? description = null,
         [Description(
             "The complete replacement arrangement. Omit this parameter entirely to leave the fields " +
@@ -112,7 +112,7 @@ public class ContentTypeTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "delete_content_type", Title = "Delete a content type", Destructive = true)]
+    [McpServerTool(Name = "site_delete_content_type", Title = "Delete a content type", Destructive = true)]
     [Description(
         "Deletes a content type. Refused while any content still uses it - move or delete those contents " +
         "first. The field definitions it referenced are not affected; they live in the tenant-wide field " +

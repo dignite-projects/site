@@ -21,7 +21,7 @@ public class SiteSchemaTools : ITransientDependency
         SiteSchemaAppService = siteSchemaAppService;
     }
 
-    [McpServerTool(Name = "get_site_schema", Title = "Get the site's content schema", ReadOnly = true)]
+    [McpServerTool(Name = "site_get_schema", Title = "Get the site's content schema", ReadOnly = true)]
     [Description(
         "Returns everything needed to write content for this site: the enabled languages (the first is " +
         "the default and its URLs carry no language prefix), the primary domain, every page with its " +

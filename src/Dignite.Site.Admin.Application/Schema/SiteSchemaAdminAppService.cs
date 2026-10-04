@@ -20,7 +20,7 @@ namespace Dignite.Site.Admin.Schema;
 /// routing table (<c>Pages</c>), the field arrangements (<c>ContentTypes</c>) and - because a field's
 /// definition is merged in whole, configuration included - the field library itself (<c>Fields</c>).
 /// Without that last one, a role granted Pages and ContentTypes but explicitly denied Fields would be
-/// refused by <c>list_fields</c> and read every definition here instead.
+/// refused by <c>site_list_fields</c> and read every definition here instead.
 /// </para>
 /// <para>
 /// Three queries, whatever the site's size - pages, content types, field definitions - because the field

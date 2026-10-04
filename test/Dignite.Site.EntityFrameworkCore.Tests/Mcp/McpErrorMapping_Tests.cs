@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Dignite.Abp.AspNetCore.Mcp.Errors;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Mcp.Contents;
@@ -73,7 +74,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
         // Through the REAL converter, not the services: null fallback. The two branches build
         // ValidationErrors from different sources - RemoteServiceValidationErrorInfo.Members versus
         // ValidationResult.MemberNames - so only this one says anything about what a client receives.
-        var result = McpErrorResultFactory.Create(exception, GetRequiredService<IServiceProvider>());
+        var result = McpToolErrorFilter.Create(exception, GetRequiredService<IServiceProvider>());
 
         result.IsError.ShouldBe(true);
 
@@ -115,7 +116,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
 
         error.Kind.ShouldBe(McpToolErrorKinds.NotFound);
         error.Code.ShouldBe(SiteMcpErrorCodes.NameNotFound);
-        error.Message.ShouldContain("get_site_schema");
+        error.Message.ShouldContain("site_get_schema");
     }
 
     /// <summary>
@@ -179,7 +180,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// The catch-all. An exception type the tool layer never anticipated must still come back as a
-    /// well-formed error result (McpErrorResultFactory's try/catch sees everything), classified as Unknown
+    /// well-formed error result (McpToolErrorFilter's try/catch sees everything), classified as Unknown
     /// rather than mis-reported as one of the specific, actionable kinds a client might treat as safe to
     /// retry blindly or ignore outright.
     /// </summary>
@@ -198,7 +199,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
     /// This distinction is the whole reason the test exists. The converter only passes an exception's own
     /// message through for <c>IUserFriendlyException</c>; anything else is localized by its error code or
     /// replaced with "An internal error occurred during your request!". This code has no localization
-    /// entry on purpose, so a plain <c>BusinessException</c> here would have its "call get_site_schema"
+    /// entry on purpose, so a plain <c>BusinessException</c> here would have its "call site_get_schema"
     /// text silently discarded on every real call while the fallback-path test above kept passing.
     /// </para>
     /// </summary>
@@ -210,13 +211,13 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
         // Proves the converter really is in play, not silently absent.
         GetRequiredService<IExceptionToErrorInfoConverter>().ShouldNotBeNull();
 
-        var result = McpErrorResultFactory.Create(
+        var result = McpToolErrorFilter.Create(
             new McpEntityNotFoundException("page", "blogg"), services);
 
         var error = ReadError(result.StructuredContent!.Value);
 
         error.Code.ShouldBe(SiteMcpErrorCodes.NameNotFound);
-        error.Message.ShouldContain("get_site_schema");
+        error.Message.ShouldContain("site_get_schema");
         error.Message.ShouldNotContain("internal error");
     }
 
@@ -238,7 +239,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
                 fieldValues: new Dictionary<string, object?> { ["title"] = "Colliding" },
                 publishTime: SiteTestData.PublishTime));
 
-        var error = ReadError(McpErrorResultFactory.Create(exception, services).StructuredContent!.Value);
+        var error = ReadError(McpToolErrorFilter.Create(exception, services).StructuredContent!.Value);
 
         error.Code.ShouldBe(SiteErrorCodes.ContentSlugAlreadyExists);
         error.Message.ShouldNotContain("internal error");
@@ -251,7 +252,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public void Should_Repeat_The_Field_Names_In_The_Text_Content()
     {
-        var result = McpErrorResultFactory.Create(
+        var result = McpToolErrorFilter.Create(
             new AbpValidationException(
                 "Invalid.",
                 new List<ValidationResult> { new("Title is required.", new[] { "title" }) }),
@@ -275,14 +276,14 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
     /// <summary>
     /// The filter itself, not just the factory it delegates to. Everything else in this file and in
     /// <c>ContentTools_Tests</c> asserts a thrown exception - a shape production never produces, because
-    /// this filter converts it. If the registration in <c>SiteMcpModule</c> were dropped or an SDK upgrade
+    /// this filter converts it. If the registration in <c>AbpAspNetCoreMcpModule</c> were dropped or an SDK upgrade
     /// renamed the hook, every domain failure would reach the client as a protocol-level fault with no
     /// structured content, and nothing else here would notice.
     /// </summary>
     [Fact]
     public async Task Should_Convert_A_Thrown_Exception_Into_An_Error_Result()
     {
-        var handler = McpErrorResultFactory.CallToolFilter(
+        var handler = McpToolErrorFilter.CallToolFilter(
             (_, _) => throw new McpEntityNotFoundException("page", "blogg"));
 
         var result = await InvokeAsync(handler);
@@ -297,7 +298,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
     {
         var expected = new CallToolResult();
 
-        var result = await InvokeAsync(McpErrorResultFactory.CallToolFilter((_, _) => new(expected)));
+        var result = await InvokeAsync(McpToolErrorFilter.CallToolFilter((_, _) => new(expected)));
 
         result.ShouldBeSameAs(expected);
         result.IsError.ShouldNotBe(true);
@@ -311,7 +312,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Let_Cancellation_Propagate_Rather_Than_Reporting_It()
     {
-        var handler = McpErrorResultFactory.CallToolFilter(
+        var handler = McpToolErrorFilter.CallToolFilter(
             (_, ct) => throw new OperationCanceledException(ct));
 
         await Should.ThrowAsync<OperationCanceledException>(async () =>
@@ -337,7 +338,7 @@ public class McpErrorMapping_Tests : SiteEntityFrameworkCoreTestBase
 
     private McpToolError Describe(Exception exception)
     {
-        return ReadError(McpErrorResultFactory
+        return ReadError(McpToolErrorFilter
             .Create(exception, GetRequiredService<IServiceProvider>()).StructuredContent!.Value);
     }
 

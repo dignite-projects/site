@@ -82,7 +82,7 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     /// <summary>
     /// [RegularExpression] on the DTO - the admin API stores a slug verbatim (no SlugNormalizer pass, see
     /// Content.SetSlug's remarks), so this is the only thing standing between a stray space or "/" and
-    /// the routing table for a slug entered here rather than through create_content.
+    /// the routing table for a slug entered here rather than through site_create_content.
     /// </summary>
     [Fact]
     public async Task Should_Reject_A_Slug_With_An_Invalid_Format()
@@ -215,7 +215,7 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     /// The list path must handle an unrecognized culture the same way the single-content lookup does, and
     /// the same way <c>EfCoreContentRepository.GetFilteredQueryableAsync</c> handles it for the query it
     /// builds: "nothing matches", not a thrown exception - this is the app-service-level pin for the
-    /// culture-handling fix the repository layer carries (used by the MCP <c>list_contents</c> tool).
+    /// culture-handling fix the repository layer carries (used by the MCP <c>site_list_contents</c> tool).
     /// </summary>
     [Fact]
     public async Task Should_Return_An_Empty_Page_Rather_Than_Throw_When_Listing_By_An_Unrecognized_Culture()

@@ -19,7 +19,7 @@ using Xunit;
 namespace Dignite.Site.Mcp;
 
 /// <summary>
-/// The site-building tools. The one that matters most here is <c>rename_field</c>: a field's name is the
+/// The site-building tools. The one that matters most here is <c>site_rename_field</c>: a field's name is the
 /// key its values are stored under, so a rename is a data migration, and the tool has to go through the
 /// manager that performs it (总体设计 §2.4).
 /// </summary>
@@ -74,7 +74,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// Each of rename_field, list_fields and get_site_schema is its own MCP request - and therefore, under
+    /// Each of site_rename_field, site_list_fields and site_get_schema is its own MCP request - and therefore, under
     /// the Streamable HTTP transport this server uses (总体设计 §6.2.7), its own unit of work against the
     /// same database. Nothing here caches a field's name across that boundary, so a read immediately after
     /// the rename must see the new name and never the old one - both through the plain list and through
@@ -132,7 +132,7 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// There are no field-group tools (总体设计 §6.2.3) - group membership is not something an MCP client
-    /// can see or name, so update_field has no <c>groupName</c> parameter and always resubmits the field's
+    /// can see or name, so site_update_field has no <c>groupName</c> parameter and always resubmits the field's
     /// current group underneath. This pins that behaviour down: an edit to something unrelated must not
     /// have the side effect of clearing a field's group, which is what the naive "omit means keep" pattern
     /// used elsewhere in this method would do (omitted and "clear it" both arrive as null with no way to

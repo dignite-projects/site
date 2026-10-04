@@ -7,12 +7,12 @@ namespace Dignite.Site.Mcp.ContentTypes;
 /// <para>
 /// The name-addressed counterpart of <c>ContentTypeFieldDto</c>, which carries a <c>FieldId</c>. Only the
 /// usage half is here: what the field intrinsically is - its type, its configuration - belongs to the
-/// definition and is edited with <c>create_field</c> / <c>update_field</c>.
+/// definition and is edited with <c>site_create_field</c> / <c>site_update_field</c>.
 /// </para>
 /// </summary>
 public class McpContentTypeFieldInput
 {
-    [Description("The field's machine name from the field library, e.g. 'title'. The field must already exist - create it with create_field first.")]
+    [Description("The field's machine name from the field library, e.g. 'title'. The field must already exist - create it with site_create_field first.")]
     public string Field { get; set; } = default!;
 
     [Description("Whether a value is required when saving content of this type. The same field can be required here and optional in another type.")]

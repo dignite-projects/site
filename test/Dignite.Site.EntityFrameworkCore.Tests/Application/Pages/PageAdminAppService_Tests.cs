@@ -109,7 +109,7 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// <c>PageManager.DeleteAsync</c>'s cascade (总体设计 §2.5), pinned here at the app-service surface -
-    /// not only through the MCP <c>delete_page</c> tool, which calls the very same manager method. The
+    /// not only through the MCP <c>site_delete_page</c> tool, which calls the very same manager method. The
     /// seeded "blog" page carries two content types (<c>post-article</c>, <c>post-gallery</c>) and three
     /// contents between them, which is exactly the shape that exercises the manager's nested loop; the
     /// database's own foreign keys cannot do this cascade because these entities are soft-deleted, so a

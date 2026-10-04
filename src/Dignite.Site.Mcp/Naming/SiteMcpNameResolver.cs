@@ -85,7 +85,7 @@ public class SiteMcpNameResolver : ITransientDependency
     /// </para>
     /// <para>
     /// Tries the slug as given, then its normalized form. The second attempt is what makes the write and
-    /// read paths agree: <c>create_content</c> stores <c>McpSlug.Normalize(slug)</c> and its own
+    /// read paths agree: <c>site_create_content</c> stores <c>McpSlug.Normalize(slug)</c> and its own
     /// description invites a title ("A title is acceptable here and will be turned into a slug"), so a
     /// client that echoes back what it passed to create - the obvious thing to do - is addressing with a
     /// string that was never stored. Trying the raw value first keeps contents written through the admin
@@ -106,7 +106,7 @@ public class SiteMcpNameResolver : ITransientDependency
                 new List<ValidationResult>
                 {
                     new(
-                        "Use one of the site's enabled languages exactly as get_site_schema reports them "
+                        "Use one of the site's enabled languages exactly as site_get_schema reports them "
                         + "in 'enabledLanguages' - they are IETF tags such as 'en' or 'zh-Hans', not "
                         + "language names.",
                         new[] { "cultureName" })

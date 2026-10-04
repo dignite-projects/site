@@ -14,7 +14,7 @@ namespace Dignite.Site.Mcp.Pages;
 /// <summary>
 /// The site-building surface: a page is a node of the routing table (总体设计 §2.2, §3.1).
 /// <para>
-/// There is no <c>list_pages</c> - <c>get_site_schema</c> already returns every page with its route and
+/// There is no <c>list_pages</c> - <c>site_get_schema</c> already returns every page with its route and
 /// the content types beneath it, and a second, thinner listing would only give a model a reason to skip
 /// the schema.
 /// </para>
@@ -32,13 +32,13 @@ public class PageTools : ITransientDependency
         NameResolver = nameResolver;
     }
 
-    [McpServerTool(Name = "create_page", Title = "Create a page")]
+    [McpServerTool(Name = "site_create_page", Title = "Create a page")]
     [Description(
         "Creates a page - a node of the site's routing table, owning a URL prefix. Content types are " +
         "defined beneath a page, and contents beneath those, so a page is the first thing to create when " +
         "building a new section. Comes with one content type already, named the same as the page and " +
-        "carrying only the SEO field - call update_content_type on it to set the real field arrangement " +
-        "(or create_content_type for an additional type, if this page needs more than one shape of " +
+        "carrying only the SEO field - call site_update_content_type on it to set the real field arrangement " +
+        "(or site_create_content_type for an additional type, if this page needs more than one shape of " +
         "content).")]
     [Authorize(SiteAdminPermissions.Pages.Create)]
     public virtual async Task<PageDto> CreatePageAsync(
@@ -101,29 +101,29 @@ public class PageTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "update_page", Title = "Update a page", Idempotent = true)]
+    [McpServerTool(Name = "site_update_page", Title = "Update a page", Idempotent = true)]
     [Description(
         "Updates a page. Anything left null keeps its current value. Changing 'route' changes the URL " +
         "of every content beneath this page, so old links stop working.")]
     [Authorize(SiteAdminPermissions.Pages.Update)]
     public virtual async Task<PageDto> UpdatePageAsync(
-        [Description("The page's current machine name, from get_site_schema.")]
+        [Description("The page's current machine name, from site_get_schema.")]
         string page,
         [Description("A new machine name. Omit to keep the current one.")]
         string? name = null,
         [Description("New human-readable name. Omit to keep it.")]
         string? displayName = null,
         [Description(
-            "New route template - see create_page for the placeholder syntax. Omit to keep the current " +
+            "New route template - see site_create_page for the placeholder syntax. Omit to keep the current " +
             "one; see the warning above before changing it. Dropping '{slug}'/'{slug?}' turns a page that " +
             "has content beneath it into one that does not, and vice versa; switching between '{slug}' " +
             "and '{slug?}' changes whether an empty slug is allowed there. Changing this to or from a " +
-            "home route also changes whether this page is the home page - see create_page's note on " +
+            "home route also changes whether this page is the home page - see site_create_page's note on " +
             "'route'. None of this re-validates contents that already " +
             "exist - only the next write to one of them sees the new rule.")]
         string? route = null,
         [Description(
-            "New view for this page - see create_page's 'template' for what it's for. Required, like " +
+            "New view for this page - see site_create_page's 'template' for what it's for. Required, like " +
             "every other field on a page - omit to keep the current one; it cannot be cleared to empty.")]
         string? template = null,
         [Description(
@@ -158,17 +158,17 @@ public class PageTools : ITransientDependency
         });
     }
 
-    [McpServerTool(Name = "delete_page", Title = "Delete a page", Destructive = true)]
+    [McpServerTool(Name = "site_delete_page", Title = "Delete a page", Destructive = true)]
     [Description(
         "Deletes a page AND EVERYTHING UNDER IT - every content type defined on it and every content of " +
         "those types, in every language. This is the only tool here that removes a whole section of the " +
         "site in one call, and it cannot be undone. Fails if the page has child pages in the Admin UI's " +
-        "tree - move them elsewhere or delete them first with update_page/delete_page. If this page is " +
+        "tree - move them elsewhere or delete them first with site_update_page/site_delete_page. If this page is " +
         "the home page, the site is left with none and its root address stops resolving - set " +
         "another page as home first if that matters. Confirm with the user first.")]
     [Authorize(SiteAdminPermissions.Pages.Delete)]
     public virtual async Task<string> DeletePageAsync(
-        [Description("The page's machine name, from get_site_schema.")] string page)
+        [Description("The page's machine name, from site_get_schema.")] string page)
     {
         var current = await NameResolver.GetPageAsync(page);
 

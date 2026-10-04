@@ -182,7 +182,7 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
 
         read.Slug.ShouldBe("my-trip-to-iceland");
 
-        // ...and the stored form keeps working too, which is the form list_contents hands back.
+        // ...and the stored form keeps working too, which is the form site_list_contents hands back.
         (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "my-trip-to-iceland"))
             .Id.ShouldBe(read.Id);
     }
@@ -203,7 +203,7 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// The ordering, pinned properly: with BOTH forms stored under the same page and language - reachable
-    /// in practice, since the admin API stores slugs verbatim while create_content normalizes - the raw
+    /// in practice, since the admin API stores slugs verbatim while site_create_content normalizes - the raw
     /// address must win. Storing only one form would leave this passing whichever order the lookups ran in,
     /// while a swap would silently make get/update/delete operate on the wrong row.
     /// </summary>
@@ -317,7 +317,7 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// The same footgun as the create path's null slug, on the address side: `"slug": null` binds straight
-    /// through get_content's non-nullable parameter too. There is no separate guard for it here - this
+    /// through site_get_content's non-nullable parameter too. There is no separate guard for it here - this
     /// walks the same call into <c>ContentAdminAppService.FindBySlugAsync</c>'s own null check - but that
     /// has to still produce a field-level error naming 'slug' rather than a NullReferenceException, and
     /// that guarantee is worth pinning at the tool boundary a model actually calls.
@@ -436,7 +436,7 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
 
         exception.EntityKind.ShouldBe("page");
         exception.Name.ShouldBe("blogg");
-        exception.Message.ShouldContain("get_site_schema");
+        exception.Message.ShouldContain("site_get_schema");
     }
 
     /// <summary>
@@ -605,7 +605,7 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// The same rule <c>get_content</c> already follows, applied to the list. A culture no CultureInfo
+    /// The same rule <c>site_get_content</c> already follows, applied to the list. A culture no CultureInfo
     /// recognizes matches nothing this site could have stored, so it is an empty result - never an
     /// ArgumentException, which the error filter can only report as an opaque internal error and which
     /// would reach an HTTP caller as a 500 over a one-token typo.

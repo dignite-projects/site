@@ -25,7 +25,7 @@ public class RoutingTools : ITransientDependency
         RoutingAppService = routingAppService;
     }
 
-    [McpServerTool(Name = "resolve_path", Title = "Resolve a URL path", ReadOnly = true)]
+    [McpServerTool(Name = "site_resolve_path", Title = "Resolve a URL path", ReadOnly = true)]
     [Description(
         "Resolves a request path to the page and, if the path names one, the content beneath it - the " +
         "same page/content matching a visitor's request goes through. It does not consult the redirect " +

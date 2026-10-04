@@ -1,23 +1,18 @@
+using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Site.Mcp.ContentTypes;
 using Dignite.Site.Mcp.Contents;
-using Dignite.Site.Mcp.Errors;
 using Dignite.Site.Mcp.Fields;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
 using Dignite.Site.Mcp.Schema;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using ModelContextProtocol.Protocol;
-using Volo.Abp.AspNetCore;
 using Volo.Abp.Modularity;
 
 namespace Dignite.Site.Mcp;
 
 /// <summary>
-/// Exposes the site's authoring capability as an MCP server (总体设计 §6.1, §6.2; GitHub issue #26).
+/// Exposes the site's authoring capability over MCP (总体设计 §6.1, §6.2; GitHub issue #26), as the
+/// <c>site</c> namespace of the application's MCP server.
 /// <para>
 /// <b>The tools are another caller, not a second implementation.</b> Every write goes through the same
 /// Admin application services the HTTP API uses, which go through the same domain managers - so slug
@@ -25,93 +20,35 @@ namespace Dignite.Site.Mcp;
 /// where they already were (§6.2.2).
 /// </para>
 /// <para>
-/// <b>Authentication, multi-tenancy and the unit of work cost nothing here</b>, and that is a
-/// consequence of the transport rather than luck. The Streamable HTTP transport runs stateless by
-/// default (the <c>2026-07-28</c> protocol revision), so every MCP request is an ordinary HTTP request
-/// through the host's ordinary pipeline: OpenIddict has validated the bearer token, ABP has resolved the
-/// tenant from its <c>tenantid</c> claim and opened a unit of work, all before the endpoint runs. Hence
-/// the same tokens as the HTTP API, and no MCP-specific permission scheme (§6.2.5).
+/// <b>This module contributes tools; it does not host the server.</b> Transport, the <c>/mcp</c>
+/// endpoint, <c>tools/list</c> permission filtering, the structured error envelope and server info belong
+/// to <see cref="AbpAspNetCoreMcpModule"/>, because the SDK keeps exactly one server per application and
+/// any other module's tools - <c>Dignite.FileExplorer.Mcp</c>'s, for one - share it. Configuring any of
+/// those here would be configuring them for every module on the server. A deployment configures them in
+/// its host (总体设计 §6.2.7).
 /// </para>
 /// </summary>
 [DependsOn(
     // The unified contracts: Admin app services (MCP is an authoring surface, so it must see drafts)
-    // plus the Public routing service behind resolve_path.
+    // plus the Public routing service behind site_resolve_path.
     typeof(SiteApplicationContractsModule),
-    // For AbpEndpointRouterOptions - the seam that lets this module map an endpoint without owning any
-    // middleware ordering of its own.
-    typeof(AbpAspNetCoreModule)
+    typeof(AbpAspNetCoreMcpModule)
 )]
 public class SiteMcpModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        var options = context.Services.ExecutePreConfiguredActions<SiteMcpOptions>();
-
-        Configure<SiteMcpOptions>(mcpOptions =>
-        {
-            mcpOptions.RoutePattern = options.RoutePattern;
-            mcpOptions.ServerName = options.ServerName;
-            mcpOptions.ServerVersion = options.ServerVersion;
-            mcpOptions.Instructions = options.Instructions;
-            mcpOptions.AuthenticationSchemes.AddRange(options.AuthenticationSchemes);
-        });
-
-        context.Services
-            .AddMcpServer(serverOptions =>
-            {
-                serverOptions.ServerInfo = new Implementation
-                {
-                    Name = options.ServerName,
-                    Version = options.ServerVersion
-                };
-
-                serverOptions.ServerInstructions = options.Instructions;
-            })
-            .WithHttpTransport()
-            // Honours [Authorize] on tools and resources in two places: tools the current user cannot
-            // call never appear in tools/list, and a call that slips through is refused. The first is
-            // not only a safety property - it saves the model a turn it would have spent on a guaranteed
-            // 403 (总体设计 §6.2.5).
-            .AddAuthorizationFilters()
-            .WithTools<SiteSchemaTools>()
-            .WithTools<ContentTools>()
-            .WithTools<PageTools>()
-            .WithTools<ContentTypeTools>()
-            .WithTools<FieldTools>()
-            .WithTools<RoutingTools>()
-            .WithResources<SiteSchemaResources>()
-            // One place turns a domain exception into a machine-readable failure, rather than eighteen
-            // try/catch blocks that would drift apart (总体设计 §6.2.4).
-            .WithRequestFilters(filters => filters.AddCallToolFilter(McpErrorResultFactory.CallToolFilter));
-
-        Configure<AbpEndpointRouterOptions>(routerOptions =>
-        {
-            routerOptions.EndpointConfigureActions.Add(endpointContext =>
-            {
-                var mcpOptions = endpointContext.ScopeServiceProvider
-                    .GetRequiredService<IOptions<SiteMcpOptions>>().Value;
-
-                // RequireAuthorization, not an anonymous endpoint: 总体设计 §6.2.5 rules out an anonymous
-                // MCP surface for now - the Public app services serve published content only and opening
-                // *those* anonymously is a separate decision, entangled with the §5.6 AI-crawler toggles.
-                //
-                // The explicit scheme list matters as much as the requirement itself - without it an ABP
-                // MVC host answers an unauthenticated MCP request with a 302 to its login page instead of
-                // the 401 an MCP client needs. See SiteMcpOptions.AuthenticationSchemes.
-                var endpoint = endpointContext.Endpoints.MapMcp(mcpOptions.RoutePattern);
-
-                if (mcpOptions.AuthenticationSchemes.Count > 0)
-                {
-                    endpoint.RequireAuthorization(new AuthorizeAttribute
-                    {
-                        AuthenticationSchemes = string.Join(",", mcpOptions.AuthenticationSchemes)
-                    });
-                }
-                else
-                {
-                    endpoint.RequireAuthorization();
-                }
-            });
-        });
+        // Every tool name starts with "site_" and every resource uses the site:// scheme - the server
+        // refuses to start otherwise. That is what keeps names as generic as list_fields from colliding
+        // with another module's on the same server, where the SDK would silently keep only one of them.
+        context.Services.AddAbpMcpModule(SiteMcpConsts.ModuleName, mcp => mcp
+            .AddTools<SiteSchemaTools>()
+            .AddTools<ContentTools>()
+            .AddTools<PageTools>()
+            .AddTools<ContentTypeTools>()
+            .AddTools<FieldTools>()
+            .AddTools<RoutingTools>()
+            .AddResources<SiteSchemaResources>()
+            .AddInstructions(SiteMcpConsts.Instructions));
     }
 }

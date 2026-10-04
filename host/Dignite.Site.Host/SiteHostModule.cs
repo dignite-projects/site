@@ -71,8 +71,9 @@ using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Dignite.Site.Public;
-using ModelContextProtocol.AspNetCore.Authentication;
-using ModelContextProtocol.Authentication;
+using Dignite.Abp.AspNetCore.Mcp;
+using Dignite.FileExplorer;
+using Dignite.FileExplorer.Mcp;
 
 using Microsoft.Extensions.Hosting;
 
@@ -155,8 +156,16 @@ namespace Dignite.Site.Host;
 
     // The MCP endpoint (总体设计 §6.1). Loaded here rather than inside SiteApplicationModule because it
     // maps an HTTP endpoint - it needs a host with a pipeline, and it needs to sit behind the same
-    // authentication, multi-tenancy and unit-of-work middleware everything else here does.
-    typeof(SiteMcpModule)
+    // authentication, multi-tenancy and unit-of-work middleware everything else here does. SiteMcpModule
+    // only contributes the site_* tools; the server itself (transport, /mcp, filters) comes with it from
+    // Dignite.Abp.AspNetCore.Mcp, and is configured for this deployment in ConfigureMcp.
+    typeof(SiteMcpModule),
+
+    // FileExplorer's file_explorer_* tools on the same /mcp server, so a client can upload an image and
+    // then reference its url from a content field. Deliberately a host decision rather than a SiteMcpModule
+    // dependency: Site's MCP surface does not need files to work, and which containers an AI client may
+    // touch is set per deployment (ConfigureMcp).
+    typeof(FileExplorerMcpModule)
 
     // Dignite.FileExplorer's own Application + HttpApi (GitHub issue #41's follow-up) reach this Host
     // transitively through SiteApplicationModule/SiteHttpApiModule -> Admin/Public -> CommonApplication/
@@ -224,17 +233,6 @@ public class SiteHostModule : AbpModule
             });
         }
 
-        // PreConfigure, not Configure: SiteMcpModule reads these while building the service collection.
-        PreConfigure<SiteMcpOptions>(options =>
-        {
-            // Pin the MCP endpoint to the MCP scheme, which forwards authentication to OpenIddict (see
-            // ConfigureMcpResourceMetadata) and answers a challenge with 401 plus the RFC 9728
-            // `resource_metadata` header. Leaving it on the application's default policy instead would
-            // hand the challenge to the Identity application cookie handler, which answers with a 302 to
-            // /Account/Login - a redirect no MCP client can act on.
-            options.AuthenticationSchemes.Add(McpAuthenticationDefaults.AuthenticationScheme);
-        });
-
         SiteHostGlobalFeatureConfigurator.Configure();
         SiteHostModuleExtensionConfigurator.Configure();
         SiteHostEfCoreEntityExtensionMappings.Configure();
@@ -267,9 +265,35 @@ public class SiteHostModule : AbpModule
         ConfigureNavigationServices();
         ConfigureEfCore(context);
         ConfigureBlobStoring(hostingEnvironment);
+        ConfigureMcp();
 
         Configure<RazorPagesOptions>(options =>
         {
+        });
+    }
+
+    /// <summary>
+    /// This deployment's settings for the application's MCP server - the server is shared by every
+    /// module that contributes tools (site_*, file_explorer_*), so its identity and reach are the host's to
+    /// set, not any one module's.
+    /// </summary>
+    private void ConfigureMcp()
+    {
+        Configure<AbpMcpServerOptions>(options =>
+        {
+            options.ServerName = "Dignite.Site";
+        });
+
+        // Which file containers an AI client may use. Both of Site's: the same containers its content
+        // fields point at, with the same per-container permissions (SiteAdminApplicationModule) applying
+        // to an MCP upload as to one from the admin UI.
+        Configure<FileExplorerMcpOptions>(options =>
+        {
+            options.Containers
+                .Add(SiteFileContainerNames.Images,
+                    "Pictures for site content (raster images only, no SVG). Use this for any image a content field will show.")
+                .Add(SiteFileContainerNames.Default,
+                    "General attachments for site content - documents and images that are downloaded rather than shown.");
         });
     }
 
@@ -355,13 +379,10 @@ public class SiteHostModule : AbpModule
         var configuredAuthority = configuration["AuthServer:Authority"]?.TrimEnd('/');
         var authority = configuredAuthority.IsNullOrWhiteSpace() ? selfUrl : configuredAuthority;
 
-        // Fails at startup rather than degrading. Neither half of this is optional once the MCP module is
-        // loaded: the endpoint is pinned to the MCP scheme, so not registering it would leave every
-        // request demanding a handler that does not exist; and the SDK does NOT synthesize a metadata
-        // document from the request when ResourceMetadata is left unset - it throws out of
-        // UseAuthentication(), which turns an anonymous GET of the public
-        // /.well-known/oauth-protected-resource path into a 500. A misconfigured deployment should hear
-        // about it here, not from an AI client that cannot discover where to authenticate.
+        // Fails at startup rather than degrading: an MCP client that cannot discover where to authenticate
+        // cannot connect at all, and a misconfigured deployment should hear about it here rather than from
+        // that client. (AddAbpMcpAuthenticationDiscovery would refuse empty values too; this message names
+        // the configuration key to fix.)
         if (selfUrl.IsNullOrWhiteSpace() || authority.IsNullOrWhiteSpace())
         {
             throw new AbpException(
@@ -370,34 +391,19 @@ public class SiteHostModule : AbpModule
                 + "optionally AuthServer:Authority, which defaults to it).");
         }
 
-        context.Services.AddAuthentication()
-            .AddMcp(options =>
-            {
-                // The MCP scheme authenticates nothing itself - it forwards, and its default target is a
-                // scheme literally named "Bearer" (what the SDK's own JwtBearer samples register). This
-                // host has no such scheme, so without redirecting it here every MCP request fails with
-                // "No authentication handler is registered for the scheme 'Bearer'".
-                options.ForwardAuthenticate = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-
-                options.ResourceMetadata = new ProtectedResourceMetadata
-                {
-                    Resource = selfUrl!,
-                    AuthorizationServers = { authority! },
-                    ScopesSupported = { SiteHostConsts.ApiScopeName }
-                };
-            });
-
-        // AddMcp() gives the scheme a DisplayName, which the ABP Account module reads as reason
-        // enough to render it as an external-login button on /Account/Login. The MCP scheme isn't a
-        // user-interactive login provider - it exists only for the discovery self-service above and
-        // the /mcp endpoint's 401 challenge - so clear the DisplayName to remove the button (GitHub
-        // issue #47; same fix as dignite-projects/vault-extract). Discovery and challenge behaviour
-        // are untouched: both key off the scheme name, not its DisplayName.
-        context.Services.Configure<AuthenticationOptions>(options =>
+        // Publishes /.well-known/oauth-protected-resource and makes an unauthenticated /mcp request answer
+        // 401 + WWW-Authenticate: Bearer resource_metadata="..." instead of this MVC host's default 302 to
+        // /Account/Login. Only the challenge is taken over: authentication stays on the default policy -
+        // the Identity cookie, which ForwardIdentityAuthenticationForBearer hands to OpenIddict for a bearer
+        // token - so the principal that UseDynamicClaims refreshed is the one MCP tools are authorized
+        // against. (Pinning the endpoint to the MCP scheme, as this host once did, re-authenticated through
+        // it and replaced that principal with the raw token's.) It also hides the MCP scheme from the
+        // Account module's external-login buttons (GitHub issue #47).
+        context.Services.AddAbpMcpAuthenticationDiscovery(metadata =>
         {
-            var mcpScheme = options.Schemes.FirstOrDefault(s => s.Name == McpAuthenticationDefaults.AuthenticationScheme);
-            if (mcpScheme != null)
-                mcpScheme.DisplayName = null;
+            metadata.Resource = selfUrl!;
+            metadata.AuthorizationServers.Add(authority!);
+            metadata.ScopesSupported.Add(SiteHostConsts.ApiScopeName);
         });
     }
 

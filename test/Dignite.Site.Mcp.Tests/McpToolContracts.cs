@@ -141,16 +141,16 @@ public static class McpToolContracts
             Omitted("PublishedBefore", typeof(DateTime?),
                 "Open gap, not a design decision - flagged 2026-08-27 alongside the Template/ContentTemplate " +
                 "fix this test suite was built for, but left unwired pending a decision on whether to expose " +
-                "it. Revisit before relying on list_contents for time-range queries."),
+                "it. Revisit before relying on site_list_contents for time-range queries."),
             Omitted("PublishedAfter", typeof(DateTime?),
                 "Same open gap as PublishedBefore - see there."),
             Direct("Filter", typeof(string), "filter"),
             Omitted("FlexFieldConditions", typeof(List<FlexFieldQueryCondition>),
                 "Structured per-field query conditions - deliberately not exposed as a raw MCP parameter; " +
                 "there is no ergonomic shape for a model to construct one. Revisit if content search needs " +
-                "grow past the slug/status/date filters list_contents already has."),
+                "grow past the slug/status/date filters site_list_contents already has."),
             Omitted("Sorting", typeof(string),
-                "list_contents deliberately hardcodes newest-first (see its [Description]) rather than " +
+                "site_list_contents deliberately hardcodes newest-first (see its [Description]) rather than " +
                 "exposing a raw sort-field string, which would leak internal property names to the model."),
             Direct("SkipCount", typeof(int), "skipCount"),
             Direct("MaxResultCount", typeof(int), "maxResultCount"),

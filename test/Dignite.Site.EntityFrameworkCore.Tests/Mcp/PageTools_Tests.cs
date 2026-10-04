@@ -24,7 +24,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// delete_page tells the user it removes every content type and content beneath the page, and asks
+    /// site_delete_page tells the user it removes every content type and content beneath the page, and asks
     /// them to confirm on that basis. It has to be true.
     /// </summary>
     [Fact]
@@ -53,7 +53,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// delete_page's own description now warns that removing the home page leaves the site without one -
+    /// site_delete_page's own description now warns that removing the home page leaves the site without one -
     /// the return value has to say so too, since a generic "deleted X" message would hide the one
     /// consequence that matters: the site's root address no longer resolves to anything.
     /// </summary>
@@ -130,7 +130,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
                 name: "about-2", displayName: "About Two", route: "about", template: "Default"));
     }
 
-    /// <summary>create_page's "parent" takes a machine name like every other reference in this surface, not a Guid.</summary>
+    /// <summary>site_create_page's "parent" takes a machine name like every other reference in this surface, not a Guid.</summary>
     [Fact]
     public async Task Should_Create_A_Page_Under_A_Parent_By_Name()
     {
@@ -141,7 +141,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
         created.ParentId.ShouldBe(SiteTestData.BlogPageId);
     }
 
-    /// <summary>update_page's "parent" resolves the same way create_page's does.</summary>
+    /// <summary>site_update_page's "parent" resolves the same way site_create_page's does.</summary>
     [Fact]
     public async Task Should_Reparent_A_Page_By_Name()
     {
@@ -180,7 +180,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// create_page went without a 'template' parameter entirely until this test was written -
+    /// site_create_page went without a 'template' parameter entirely until this test was written -
     /// CreatePageDto carried the field from the start, but nothing on the MCP surface could reach it. See
     /// Dignite.Site.Mcp.McpToolDtoContract_Tests for the structural check that now catches a gap like that
     /// without needing a behavioral test like this one for every field.
