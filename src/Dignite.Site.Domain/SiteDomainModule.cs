@@ -3,6 +3,7 @@ using Dignite.Abp.FlexFields.CKEditor;
 using Dignite.Abp.FlexFields.FileExplorer;
 using Dignite.FlexFields.Site;
 using Volo.Abp.Domain;
+using Volo.Abp.Features;
 using Volo.Abp.Modularity;
 using Volo.Abp.UI;
 
@@ -10,6 +11,7 @@ namespace Dignite.Site;
 
 [DependsOn(
     typeof(AbpDddDomainModule),
+    typeof(AbpFeaturesModule),
     typeof(SiteDomainSharedModule),
     // The entire field mechanism - field types, the value bag, validation, the derived query index, and
     // rename migration - comes from here (总体设计 §8.2). Site contributes only Field, Content's bag and

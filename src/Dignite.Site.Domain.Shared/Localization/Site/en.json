@@ -58,6 +58,10 @@
 
     "Branding:DefaultAppName": "Site",
 
+    "Feature:Site": "Site",
+    "Feature:Site.Enable": "Enable Site",
+    "Feature:Site.Enable:Description": "Whether this tenant may use Site's management features: the admin UI, the admin API and the MCP tools. A published site is still served either way.",
+
     "Permission:Site": "Site",
     "Permission:SiteAdmin": "Admin",
     "Permission:SitePublic": "Public",
