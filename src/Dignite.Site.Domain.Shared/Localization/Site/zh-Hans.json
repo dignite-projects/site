@@ -25,6 +25,10 @@
 
     "Site:060001": "'{PropertyName}' 的值 '{Value}' 格式不合法。",
 
+    "Feature:Site": "Site",
+    "Feature:Site.Enable": "启用 Site",
+    "Feature:Site.Enable:Description": "该租户是否可以使用 Site 的管理功能：管理后台、管理 API 和 MCP 工具。已发布的站点无论开关都照常对外访问。",
+
     "Permission:Site": "Site",
     "Permission:SiteAdmin": "网站管理",
     "Permission:SitePublic": "公开端",

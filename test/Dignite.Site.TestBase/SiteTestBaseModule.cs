@@ -2,9 +2,11 @@
 using Volo.Abp;
 using Volo.Abp.Authorization;
 using Volo.Abp.Autofac;
+using Volo.Abp.Features;
 using Volo.Abp.Guids;
 using Volo.Abp.Modularity;
 using Volo.Abp.Settings;
+using Dignite.Site.Features;
 using Dignite.Site.Settings;
 
 namespace Dignite.Site;
@@ -26,6 +28,7 @@ namespace Dignite.Site;
     typeof(AbpAutofacModule),
     typeof(AbpTestBaseModule),
     typeof(AbpAuthorizationModule),
+    typeof(AbpFeaturesModule),
     typeof(AbpGuidsModule)
 )]
 public class SiteTestBaseModule : AbpModule
@@ -40,6 +43,12 @@ public class SiteTestBaseModule : AbpModule
         Configure<AbpSettingOptions>(options =>
         {
             options.ValueProviders.Add<TestSettingValueProvider>();
+        });
+
+        // Same idea for features: last registered, so a test can switch Site.Enable off for the tenant.
+        Configure<AbpFeatureOptions>(options =>
+        {
+            options.ValueProviders.Add<TestFeatureValueProvider>();
         });
     }
 }

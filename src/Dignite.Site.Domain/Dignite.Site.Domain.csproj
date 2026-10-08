@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Ddd.Domain" Version="10.5.0"/>
+    <!-- SiteFeatureDefinitionProvider. Volo.Abp.Ddd.Domain does not pull Features in; it only arrives
+         transitively at the Application layer. -->
+    <PackageReference Include="Volo.Abp.Features" Version="10.5.0"/>
     <!-- IBrandingProvider, replaced tenant-wide by SiteBrandingProvider (总体设计 §4.1) - core ABP
          infrastructure with no ASP.NET Core dependency, not a rendering package, so it does not break the
          "Domain stays library-agnostic" rule the sitemap/robots/feed generators already follow. -->
