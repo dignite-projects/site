@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.24] - 2026-10-09
+
+### Added
+
+- **`Site.Enable` feature gates the management surface**
+  ([#80](https://github.com/dignite-projects/site/pull/80)). `SiteFeatures.Enable` is defined by the new
+  `SiteFeatureDefinitionProvider` (a toggle, visible to clients) and enforced with `[RequiresFeature]` on
+  the `SiteAdminAppService` base class, so every Admin application service - and the MCP tools, which
+  only call those services through their interfaces - is refused for a tenant or edition that has the
+  feature off. The Public application services are deliberately not gated: they answer anonymous
+  requests, which carry no `editionid` claim, so an edition-granted feature would read as off for every
+  visitor and take the published site down. The default is **on**, so existing deployments keep their
+  admin surface with no action; a host that wants Site to be opt-in overrides the default to `false` in
+  its own `FeatureDefinitionProvider` and grants the feature per edition or tenant. A reflection test
+  fails when an Admin application service is not gated.
+- A Japanese (`ja`) localization resource for Site, covering every key of the English resource,
+  including the new feature texts. Other locales still fall back to English.
+
 ### Changed
 
 - **Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
@@ -1173,4 +1191,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.23...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.24...HEAD
