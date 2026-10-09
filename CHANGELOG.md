@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bumped `@dignite/ng.flex-fields`, its `-ckeditor` and `-file-explorer` adapters and
+  `@dignite/ng.file-explorer` from `^10.0.0-rc.17` to `^10.0.0-rc.22`** in `angular/package.json`
+  (Host dev app, including its `resolutions` pins), `angular/projects/site/package.json` (published
+  library) and `angular/yarn.lock`.
+
 ## [0.1.0-preview.23] - 2026-10-04
 
 ### Changed
