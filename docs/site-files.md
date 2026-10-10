@@ -112,9 +112,14 @@ image, and an uploaded image's `width`/`height` are read from it. The upload pro
 uploaded file's address on the API's host for the same reason (`SiteFileUrlService.toDisplay`). HTML and
 Markdown fields alike, since both load images into the same model; links (`<a href>`) are not converted.
 
-Known gap: the read-only rich-text view (`ff-ckeditor-view`, e.g. a content list cell) renders the stored
-HTML as is, so an image in it loads only when the UI shares its API's origin. The display hook it needs is
-being added in `@dignite/ng.flex-fields-ckeditor` (abp-modules); Site will use it once released.
+The read-only rich-text view (`ff-ckeditor-view`, e.g. a content list cell) has no editor, so it is handled
+separately: `siteCKEditorDisplayContributor`, registered by `provideSite()` under
+`CKEDITOR_DISPLAY_CONTRIBUTORS` (from `@dignite/ng.flex-fields-ckeditor` `10.0.0-rc.27`), receives the HTML
+the view is about to render (after Markdown has been turned into HTML, before the sanitizer) and puts the
+`SiteAdmin` API's host in front of every `src="/api/site-public/files/..."`, double- or single-quoted. Only
+`src` is touched, not `href`, and external addresses stay as they are. The result is shown, never saved or
+handed back, so nothing stored carries the host; when the UI shares its API's origin the HTML is returned
+unchanged.
 
 ## CKEditor image upload
 

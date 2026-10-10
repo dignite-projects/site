@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`@dignite/ng.site` shows Site's images in the read-only rich-text view when the UI is served from another
+  origin than its API.** `ff-ckeditor-view` (a content list cell, say) rendered the stored HTML as is, so a
+  relative `<img src="/api/site-public/files/...">` did not load. The new `siteCKEditorDisplayContributor`,
+  registered by `provideSite()` under `CKEDITOR_DISPLAY_CONTRIBUTORS`, puts the `SiteAdmin` API's host in
+  front of those `src` values (double- or single-quoted; `href` is left alone) before the view renders them;
+  nothing saved carries the host. An Angular host needs `@dignite/ng.flex-fields` and
+  `@dignite/ng.flex-fields-ckeditor` `^10.0.0-rc.27` for that hook.
+
 ## [0.1.0-preview.26] - 2026-10-10
 
 ### Changed
