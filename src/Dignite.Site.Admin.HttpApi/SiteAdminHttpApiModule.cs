@@ -1,4 +1,5 @@
 using Localization.Resources.AbpUi;
+using Dignite.Site.Admin.Files;
 using Dignite.Site.Localization;
 using Dignite.Site.Common;
 using Volo.Abp.AspNetCore.Mvc;
@@ -29,6 +30,13 @@ public class SiteAdminHttpApiModule : AbpModule
             options.Resources
                 .Get<SiteResource>()
                 .AddBaseTypes(typeof(AbpUiResource));
+        });
+
+        Configure<AbpAspNetCoreMvcOptions>(options =>
+        {
+            // An upload is multipart/form-data with the rest in the query string; without this ABP's
+            // service convention would bind CreateFileInput from a JSON body instead.
+            options.ConventionalControllers.FormBodyBindingIgnoredTypes.Add(typeof(CreateFileInput));
         });
     }
 }

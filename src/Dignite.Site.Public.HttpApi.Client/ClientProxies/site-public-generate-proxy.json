@@ -60,7 +60,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Contents.ContentDto",
                     "typeSimple": "Dignite.Site.Contents.ContentDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -103,7 +105,9 @@
                   "returnValue": {
                     "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Contents.ContentDto>",
                     "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Contents.ContentDto>",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -135,7 +139,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Contents.AdjacentContentsDto",
                     "typeSimple": "Dignite.Site.Public.Contents.AdjacentContentsDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -156,7 +162,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Contents.ContentDto",
                     "typeSimple": "Dignite.Site.Contents.ContentDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -177,7 +185,9 @@
                   "returnValue": {
                     "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Contents.ContentDto>",
                     "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Contents.ContentDto>",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -223,7 +233,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Contents.ContentDto",
                 "typeSimple": "Dignite.Site.Contents.ContentDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -324,7 +336,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Contents.ContentDto",
                 "typeSimple": "Dignite.Site.Contents.ContentDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -508,7 +522,9 @@
               "returnValue": {
                 "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Contents.ContentDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Contents.ContentDto>",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -609,7 +625,9 @@
               "returnValue": {
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Contents.ContentDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Contents.ContentDto>",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -684,7 +702,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Contents.AdjacentContentsDto",
                 "typeSimple": "Dignite.Site.Public.Contents.AdjacentContentsDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -730,7 +750,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.ContentTypes.ContentTypeDto",
                     "typeSimple": "Dignite.Site.ContentTypes.ContentTypeDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -751,7 +773,9 @@
                   "returnValue": {
                     "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
                     "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -797,7 +821,9 @@
               "returnValue": {
                 "type": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "typeSimple": "Dignite.Site.ContentTypes.ContentTypeDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -846,7 +872,9 @@
               "returnValue": {
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -892,7 +920,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Fields.FieldDto",
                     "typeSimple": "Dignite.Site.Fields.FieldDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -913,7 +943,9 @@
                   "returnValue": {
                     "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldDto>",
                     "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldDto>",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -959,7 +991,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Fields.FieldDto",
                 "typeSimple": "Dignite.Site.Fields.FieldDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1008,11 +1042,301 @@
               "returnValue": {
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldDto>",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
               "implementFrom": "Dignite.Site.Public.Fields.IFieldPublicAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.Site.Public.Files.FilePublicController": {
+          "controllerName": "FilePublic",
+          "controllerGroupName": "FilePublic",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Public.Files.FilePublicController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Public.Files.IFilePublicAppService",
+              "name": "IFilePublicAppService",
+              "methods": [
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "containerName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "blobName",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Public.Files.GetFileInput, Dignite.Site.Public.Application.Contracts",
+                      "type": "Dignite.Site.Public.Files.GetFileInput",
+                      "typeSimple": "Dignite.Site.Public.Files.GetFileInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Content.IRemoteStreamContent",
+                    "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetAsyncByContainerNameAndBlobNameAndInput": {
+              "uniqueName": "GetAsyncByContainerNameAndBlobNameAndInput",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/files/{containerName}/{blobName}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "containerName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "blobName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Public.Files.GetFileInput, Dignite.Site.Public.Application.Contracts",
+                  "type": "Dignite.Site.Public.Files.GetFileInput",
+                  "typeSimple": "Dignite.Site.Public.Files.GetFileInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "containerName",
+                  "name": "containerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "blobName",
+                  "name": "blobName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Width",
+                  "jsonName": null,
+                  "type": "System.Int32?",
+                  "typeSimple": "number?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Height",
+                  "jsonName": null,
+                  "type": "System.Int32?",
+                  "typeSimple": "number?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Content.IRemoteStreamContent",
+                "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Files.IFilePublicAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DownloadAsyncByContainerNameAndBlobNameAndFileName": {
+              "uniqueName": "DownloadAsyncByContainerNameAndBlobNameAndFileName",
+              "name": "DownloadAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/files/download/{containerName}/{blobName}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "containerName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "blobName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "fileName",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": true,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "containerName",
+                  "name": "containerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "blobName",
+                  "name": "blobName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "fileName",
+                  "name": "fileName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Content.IRemoteStreamContent",
+                "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Files.FilePublicController",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -1054,7 +1378,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Pages.PageDto",
                     "typeSimple": "Dignite.Site.Pages.PageDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -1075,7 +1401,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Pages.PageDto",
                     "typeSimple": "Dignite.Site.Pages.PageDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -1096,7 +1424,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Pages.PageDto",
                     "typeSimple": "Dignite.Site.Pages.PageDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -1117,7 +1447,9 @@
                   "returnValue": {
                     "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Pages.PageDto>",
                     "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Pages.PageDto>",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -1163,7 +1495,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Pages.PageDto",
                 "typeSimple": "Dignite.Site.Pages.PageDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1212,7 +1546,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Pages.PageDto",
                 "typeSimple": "Dignite.Site.Pages.PageDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1261,7 +1597,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Pages.PageDto",
                 "typeSimple": "Dignite.Site.Pages.PageDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1310,7 +1648,9 @@
               "returnValue": {
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Pages.PageDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Pages.PageDto>",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1356,7 +1696,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Routing.RouteMatchDto",
                     "typeSimple": "Dignite.Site.Public.Routing.RouteMatchDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -1402,7 +1744,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Routing.RouteMatchDto",
                 "typeSimple": "Dignite.Site.Public.Routing.RouteMatchDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1470,7 +1814,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Seo.SiteDocument",
                     "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -1491,7 +1837,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Seo.SiteDocument",
                     "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -1589,7 +1937,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Seo.SiteDocument",
                 "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1638,7 +1988,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Seo.SiteDocument",
                 "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1684,7 +2036,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Seo.HeadMetadataDto",
                     "typeSimple": "Dignite.Site.Public.Seo.HeadMetadataDto",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -1730,7 +2084,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Seo.HeadMetadataDto",
                 "typeSimple": "Dignite.Site.Public.Seo.HeadMetadataDto",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1764,7 +2120,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Seo.SiteDocument",
                     "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -1773,7 +2131,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Seo.SiteDocument",
                     "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -1791,7 +2151,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Seo.SiteDocument",
                 "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1812,7 +2174,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Seo.SiteDocument",
                 "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1846,7 +2210,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Seo.SiteDocument",
                     "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 },
                 {
@@ -1867,7 +2233,9 @@
                   "returnValue": {
                     "type": "Dignite.Site.Public.Seo.SiteDocument",
                     "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                    "summary": null
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
                   }
                 }
               ]
@@ -1885,7 +2253,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Seo.SiteDocument",
                 "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
@@ -1934,7 +2304,9 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Seo.SiteDocument",
                 "typeSimple": "Dignite.Site.Public.Seo.SiteDocument",
-                "summary": null
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],

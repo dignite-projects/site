@@ -14,6 +14,9 @@
     <ProjectReference Include="..\Dignite.Site.Admin.Application.Contracts\Dignite.Site.Admin.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application\Dignite.Site.Common.Application.csproj" />
+    <!-- ImageResizeHandler, which the Site containers' upload pipelines run (AddImageResizeHandler in
+         SiteAdminApplicationModule). -->
+    <ProjectReference Include="..\..\..\abp-modules\file-storing\core\src\Dignite.Abp.FileStoring.Imaging\Dignite.Abp.FileStoring.Imaging.csproj" />
   </ItemGroup>
 
 </Project>
