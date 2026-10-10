@@ -1,11 +1,14 @@
 using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Site.Mcp.ContentTypes;
 using Dignite.Site.Mcp.Contents;
+using Dignite.Site.Files;
 using Dignite.Site.Mcp.Fields;
+using Dignite.Site.Mcp.Files;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
 using Dignite.Site.Mcp.Schema;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Volo.Abp.Modularity;
 
 namespace Dignite.Site.Mcp;
@@ -23,7 +26,7 @@ namespace Dignite.Site.Mcp;
 /// <b>This module contributes tools; it does not host the server.</b> Transport, the <c>/mcp</c>
 /// endpoint, <c>tools/list</c> permission filtering, the structured error envelope and server info belong
 /// to <see cref="AbpAspNetCoreMcpModule"/>, because the SDK keeps exactly one server per application and
-/// any other module's tools - <c>Dignite.FileExplorer.Mcp</c>'s, for one - share it. Configuring any of
+/// any other module's tools share it. Configuring any of
 /// those here would be configuring them for every module on the server. A deployment configures them in
 /// its host (总体设计 §6.2.7).
 /// </para>
@@ -48,7 +51,26 @@ public class SiteMcpModule : AbpModule
             .AddTools<ContentTypeTools>()
             .AddTools<FieldTools>()
             .AddTools<RoutingTools>()
+            .AddTools<FileContainerTools>()
+            .AddTools<DirectoryTools>()
+            .AddTools<FileTools>()
             .AddResources<SiteSchemaResources>()
-            .AddInstructions(SiteMcpConsts.Instructions));
+            .AddInstructions(SiteMcpConsts.Instructions)
+            .AddInstructions(SiteMcpConsts.FileInstructions));
+
+        // The file tools reach both of Site's containers unless the host narrows the list. Same containers,
+        // same per-container permissions (SiteAdminApplicationModule) as an upload from the admin UI.
+        context.Services.Configure<SiteMcpFileOptions>(options =>
+        {
+            options.Containers
+                .Add(SiteFileContainerNames.Images,
+                    "Pictures for site content (raster images only, no SVG). Use this for any image a content field will show.")
+                .Add(SiteFileContainerNames.Default,
+                    "General attachments for site content - documents and images that are downloaded rather than shown.");
+        });
+
+        // Upload bytes travel base64-encoded in the request body, so the endpoint's body limit has to make
+        // room for SiteMcpFileOptions.MaxUploadSize - while still refusing anything larger before it is read.
+        context.Services.AddTransient<IPostConfigureOptions<AbpMcpServerOptions>, SiteMcpFileServerOptionsSetup>();
     }
 }

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.CKEditor;
-using Dignite.Abp.FlexFields.FileExplorer;
 using Dignite.Abp.FlexFields.Matrix;
 using Dignite.Abp.FlexFields.Table;
+using Dignite.FlexFields.Site.Files;
 using Dignite.FlexFields.Site.Seo;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
@@ -107,9 +107,9 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
         var companyEmailFieldId = await GetOrCreateFieldAsync(
             "company_email", "公司邮箱", "Text", "公司对外联系使用的电子邮箱地址。");
         var companyWechatQrFieldId = await GetOrCreateFieldAsync(
-            "company_wechat_qr", "公司微信二维码", FileExplorerFieldType.ControlName,
+            "company_wechat_qr", "公司微信二维码", FileFieldType.ControlName,
             "公司官方微信或客服微信的二维码图片。",
-            new FileExplorerConfiguration { FileContainerName = SiteFileContainerNames.Images, UploadFileMultiple = false }
+            new FileFieldConfiguration { FileContainerName = SiteFileContainerNames.Images, UploadFileMultiple = false }
                 .ConfigurationDictionary);
 
         // The platform's SEO field is seeded separately (SeoFieldPresetSeedContributor, host-side, ahead

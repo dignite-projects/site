@@ -3,8 +3,8 @@
  *
  * The container mirrors `SiteFileContainerNames.Images` on the server - fixed, not a field setting: the
  * share image is always a picture, and `site-images` is the container whose policy is pictures only.
- * The size mirrors `OpenGraphConsts`: the server emits a FileExplorer `og:image` cropped to exactly this,
- * so previewing it at the same crop shows the editor what a shared link will look like.
+ * The size mirrors `OpenGraphConsts`: the server emits a file-library `og:image` cropped to exactly
+ * this, so previewing it at the same crop shows the editor what a shared link will look like.
  */
 export const OG_IMAGE_CONTAINER_NAME = 'site-images';
 

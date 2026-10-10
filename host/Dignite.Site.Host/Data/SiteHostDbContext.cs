@@ -1,6 +1,3 @@
-using Dignite.FileExplorer.Directories;
-using Dignite.FileExplorer.EntityFrameworkCore;
-using Dignite.FileExplorer.Files;
 using Dignite.Site.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.DependencyInjection;
@@ -27,20 +24,14 @@ namespace Dignite.Site.Host.Data;
 /// derived from, and EF Core cannot compose a query across two.
 ///
 /// <para>
-/// <see cref="IFileExplorerDbContext"/> is replaced the same way (GitHub issue #41's follow-up), so
-/// Dignite.FileExplorer's tables land in this same physical database rather than a separate one -
-/// FileExplorerDbContext's own <c>[ConnectionStringName]</c> is moot once replaced, the same way
-/// SiteDbContext's would be. The model itself is not configured here, though: FileExplorer is part of
-/// Site (same as FlexFields), so <c>ConfigureFileExplorer()</c> lives in
-/// <c>SiteDbContextModelCreatingExtensions.ConfigureSite()</c> alongside Site's own entities - this
-/// class only supplies the concrete DbSets and the interface implementation the replace attribute
-/// requires, the same division <see cref="ISiteDbContext"/> already has between here and
+/// The file library's tables (<c>SiteFileDescriptors</c>, <c>SiteDirectoryDescriptors</c>) are Site's own
+/// and configured by <c>ConfigureSite()</c> with the rest; this class only supplies the concrete DbSets the
+/// interface requires, the same division <see cref="ISiteDbContext"/> has between here and
 /// <c>SiteDbContext</c>.
 /// </para>
 /// </summary>
 [ReplaceDbContext(typeof(ISiteDbContext))]
-[ReplaceDbContext(typeof(IFileExplorerDbContext))]
-public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext, IFileExplorerDbContext
+public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
 {
     public DbSet<Dignite.Site.Pages.Page> Pages { get; set; } = default!;
 
@@ -53,9 +44,9 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
 
     public DbSet<Dignite.Site.Contents.ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; } = default!;
 
-    public DbSet<DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
+    public DbSet<Dignite.Site.Directories.DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
 
-    public DbSet<FileDescriptor> FileDescriptors { get; set; } = default!;
+    public DbSet<Dignite.Site.Files.FileDescriptor> FileDescriptors { get; set; } = default!;
 
 
     public const string DbTablePrefix = "App";
@@ -84,7 +75,6 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
 
         /* Configure your own entities here */
 
-        // Configures FileExplorer's entities too - see the class doc comment.
         builder.ConfigureSite();
     }
 }

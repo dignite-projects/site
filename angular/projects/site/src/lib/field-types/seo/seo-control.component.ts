@@ -7,11 +7,9 @@ import {
   UntypedFormGroup,
 } from '@angular/forms';
 import { FieldTypeControlBase } from '@dignite/ng.flex-fields';
-import {
-  FileExplorerModalComponent,
-  FilePreviewComponent,
-  type FileDescriptorDto,
-} from '@dignite/ng.file-explorer';
+import { FileModalComponent } from '../../files/components/file-modal/file-modal.component';
+import { FilePreviewComponent } from '../../files/previews/file-preview.component';
+import type { FileDescriptorDto } from '../../proxy/dignite/site/admin/files';
 import { SeoConfiguration } from './seo-configuration';
 import type { SeoFieldValue } from './seo-field-value';
 import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-og-image';
@@ -29,7 +27,7 @@ import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-
  * always produces an object, a required Seo field is satisfied by being rendered at all - adding
  * `Validators.required` to the parts would enforce something the server does not.
  *
- * **The share image is picked, not typed** (GitHub issue #72): the FileExplorer modal, fixed to the
+ * **The share image is picked, not typed** (GitHub issue #72): the file library's modal, fixed to the
  * `site-images` container, uploads or selects one file and its `url` is what `ogImage` stores - still a
  * plain string, so a value an MCP client wrote (an external address included) shows and can be replaced
  * or removed the same way.
@@ -37,7 +35,7 @@ import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-
 @Component({
   selector: 'site-seo-control',
   templateUrl: './seo-control.component.html',
-  imports: [CoreModule, ReactiveFormsModule, FileExplorerModalComponent, FilePreviewComponent],
+  imports: [CoreModule, ReactiveFormsModule, FileModalComponent, FilePreviewComponent],
 })
 export class SeoControlComponent extends FieldTypeControlBase {
   readonly ogImageContainerName = OG_IMAGE_CONTAINER_NAME;

@@ -1,0 +1,36 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { FileUploadComponent } from './file-upload.component';
+import { CoreTestingModule } from '@abp/ng.core/testing';
+import { NgxValidateCoreModule } from '@ngx-validate/core';
+import { ObjectUrlService } from '../../services/object-url.service';
+
+describe('FileUploadComponent', () => {
+  let component: FileUploadComponent;
+  let fixture: ComponentFixture<FileUploadComponent>;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [FileUploadComponent,CoreTestingModule.withConfig(), NgxValidateCoreModule.forRoot()]
+    });
+    fixture = TestBed.createComponent(FileUploadComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should finish preparing every selected file before returning', async () => {
+    const imageUrlService = TestBed.inject(ObjectUrlService);
+    imageUrlService.get = () => 'blob:test-preview';
+    const files = [new File(['content'], 'test.txt', { type: 'text/plain' })] as any[];
+
+    await (component as any).addFiles(files);
+
+    expect(files[0].src).toBe('blob:test-preview');
+    expect(files[0].fileSize).toBeTruthy();
+    expect(component.filesTableData).toEqual(files);
+  });
+});

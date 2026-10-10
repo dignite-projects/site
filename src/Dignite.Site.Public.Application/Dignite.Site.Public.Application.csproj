@@ -25,6 +25,9 @@
     <ProjectReference Include="..\Dignite.Site.Public.Application.Contracts\Dignite.Site.Public.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application\Dignite.Site.Common.Application.csproj" />
+    <!-- The public read endpoint's on-request resize (FilePublicAppService): ABP Imaging's ImageSharp
+         resizer, and the imaging error codes the upload pipeline already uses for the same limits. -->
+    <ProjectReference Include="..\..\..\abp-modules\file-storing\core\src\Dignite.Abp.FileStoring.Imaging\Dignite.Abp.FileStoring.Imaging.csproj" />
   </ItemGroup>
 
 </Project>

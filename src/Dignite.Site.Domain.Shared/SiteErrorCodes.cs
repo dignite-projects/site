@@ -38,4 +38,19 @@ public static class SiteErrorCodes
     /// (fix the value's characters), so the reason does not need its own number per field.
     /// </summary>
     public const string InvalidValueFormat = "Site:060001";
+
+    // The file library's directories (Dignite.Site.Directories). A directory belongs to the user who
+    // created it, so "not found" also answers for another user's or another tenant's directory.
+    public const string DirectoryNameAlreadyExists = "Site:070001";
+    public const string DirectoryNotFound = "Site:070002";
+    public const string DirectoryCannotMoveAcrossContainers = "Site:070003";
+    public const string DirectoryCannotMoveIntoItself = "Site:070004";
+    public const string DirectoryHasChildren = "Site:070005";
+    public const string DirectoryHasFiles = "Site:070006";
+    public const string DirectoryRequiresUser = "Site:070007";
+
+    // The file library's files (Dignite.Site.Files). Upload rules - size, type, image bounds - are
+    // Dignite.Abp.FileStoring's own codes, raised by IFileStorer.
+    public const string FileContainerNotAvailable = "Site:080001";
+    public const string FileSortingNotSupported = "Site:080002";
 }

@@ -6,7 +6,7 @@ It references source code from the following third-party component(s) via
 project references. These components remain under their own license and are
 **not** relicensed by this project's MIT license.
 
-## Dignite abp-modules (flex-fields, file-storing/file-explorer)
+## Dignite abp-modules (flex-fields, file-storing)
 
 - **License:** GNU Lesser General Public License v3.0 (LGPL-3.0)
 - **Source:** `abp-modules` repository (sibling repo, referenced via `ProjectReference`)
@@ -23,14 +23,9 @@ project references. These components remain under their own license and are
 | Dignite.Abp.FlexFields.EntityFrameworkCore | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.EntityFrameworkCore` |
 | Dignite.Abp.FlexFields.CKEditor | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.CKEditor` |
 | Dignite.Abp.FlexFields.CKEditor.Web | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.CKEditor.Web` |
-| Dignite.Abp.FlexFields.FileExplorer | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.FileExplorer` |
-| Dignite.Abp.FlexFields.FileExplorer.Web | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.FileExplorer.Web` |
 | Dignite.Abp.FlexFields.Web | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.Web` |
-| Dignite.FileExplorer.Application | `abp-modules/file-storing/file-explorer/src/Dignite.FileExplorer.Application` |
-| Dignite.FileExplorer.Application.Contracts | `abp-modules/file-storing/file-explorer/src/Dignite.FileExplorer.Application.Contracts` |
-| Dignite.FileExplorer.HttpApi | `abp-modules/file-storing/file-explorer/src/Dignite.FileExplorer.HttpApi` |
-| Dignite.FileExplorer.HttpApi.Client | `abp-modules/file-storing/file-explorer/src/Dignite.FileExplorer.HttpApi.Client` |
-| Dignite.FileExplorer.EntityFrameworkCore | `abp-modules/file-storing/file-explorer/src/Dignite.FileExplorer.EntityFrameworkCore` |
+| Dignite.Abp.FileStoring | `abp-modules/file-storing/core/src/Dignite.Abp.FileStoring` |
+| Dignite.Abp.FileStoring.Imaging | `abp-modules/file-storing/core/src/Dignite.Abp.FileStoring.Imaging` |
 
 ### Compliance notes
 

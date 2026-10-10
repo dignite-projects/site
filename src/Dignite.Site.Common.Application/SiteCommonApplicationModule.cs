@@ -1,5 +1,4 @@
-﻿using Dignite.FileExplorer;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.Application;
@@ -10,11 +9,7 @@ namespace Dignite.Site.Common;
     typeof(SiteDomainModule),
     typeof(SiteCommonApplicationContractsModule),
     typeof(AbpDddApplicationModule),
-    typeof(AbpMapperlyModule),
-    // Dignite.FileExplorer's own Application layer (GitHub issue #41's follow-up) - unmodified, own
-    // permission model. Site calls FileDescriptorManager directly for its own field-type wiring; this is
-    // what FileExplorer's own Angular picker calls.
-    typeof(FileExplorerApplicationModule)
+    typeof(AbpMapperlyModule)
     )]
 public class SiteCommonApplicationModule : AbpModule
 {

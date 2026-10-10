@@ -15,7 +15,7 @@ export const CONTENT_FIELD_TYPE_NAME = 'Content';
  * `Content`, so the field type is named after what it actually references.
  *
  * **No search component.** `ContentFieldType.IndexValueType` is `Guid` on the server (so a future
- * filter UI is possible), but no `searchComponent` ships this round - same state CKEditor/FileExplorer
+ * filter UI is possible), but no `searchComponent` ships this round - same state CKEditor/the file field
  * are currently in.
  */
 export const CONTENT_FIELD_TYPE: FieldTypeDefinition = {

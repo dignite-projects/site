@@ -51,14 +51,14 @@ jobs:
           path: site
 
       # Several Dignite.Site .NET projects carry relative ProjectReferences into the sibling
-      # abp-modules repository for FlexFields / FileExplorer (see Dignite.Site.slnx's
+      # abp-modules repository for FlexFields / file-storing (see Dignite.Site.slnx's
       # "/flex-fields/" folder). A single-repo checkout has no such directory, so restore and build
       # would fail without this. Both repositories are public, so the default token suffices.
       #
       # The Angular side does NOT need this checkout: angular/package.json resolves the @dignite/*
       # packages as installed npm packages (see angular/.npmrc), not from local file: paths into
       # this sibling.
-      - name: Checkout abp-modules (sibling dependency for FlexFields / FileExplorer)
+      - name: Checkout abp-modules (sibling dependency for FlexFields / file-storing)
         uses: actions/checkout@v5
         with:
           repository: dignite-projects/abp-modules

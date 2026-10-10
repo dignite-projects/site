@@ -3,6 +3,7 @@
   "texts": {
     "FieldType:Content": "Content",
     "FieldType:Seo": "SEO",
+    "FieldType:File": "File",
     "Validate:Required": "{0} Field Required!",
     "Validate:MinValue": "The value must be at least {0}.",
     "Validate:MaxValue": "The value must be at most {0}.",
@@ -16,7 +17,7 @@
     "Seo:MetaDescription": "Meta description",
     "Seo:OgImage": "Share image",
     "Seo:OgImageHint": "Shown when this page is shared on social platforms, cropped to 1200 × 630. Use an image at least that large.",
-    "Seo:OgImageValueHint": "Absolute URL of the image shown when this page is shared on social platforms. An image stored in FileExplorer is cropped to 1200x630 when emitted as og:image.",
+    "Seo:OgImageValueHint": "Absolute URL of the image shown when this page is shared on social platforms. An image from the site's file library is cropped to 1200x630 when emitted as og:image.",
     "Seo:SelectOgImage": "Select or upload image",
     "Seo:RemoveOgImage": "Remove image",
     "Seo:NoIndex": "No index",
@@ -25,6 +26,9 @@
     "Seo:MetaTitleCharLimit": "Meta title character limit",
     "Seo:MetaDescriptionCharLimit": "Meta description character limit",
     "Seo:OverCharLimitHint": "over the suggested length",
-    "Seo:CharLimitAdvisoryHint": "These limits are guidance, not validation. A search engine truncates an over-long title or description rather than rejecting it, so a longer value still saves."
+    "Seo:CharLimitAdvisoryHint": "These limits are guidance, not validation. A search engine truncates an over-long title or description rather than rejecting it, so a longer value still saves.",
+    "File:FileContainerName": "File container",
+    "File:UploadFileMultiple": "Allow multiple files",
+    "File:ContainerNotConfigured": "This field has no file container configured yet. Set one in the field's configuration before it can be used."
   }
 }

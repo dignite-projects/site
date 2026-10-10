@@ -9,8 +9,6 @@
     "@angular/cdk",
     "@dignite/ng.flex-fields",
     "@dignite/ng.flex-fields-ckeditor",
-    "@dignite/ng.file-explorer",
-    "@dignite/ng.flex-fields-file-explorer",
     "ng-zorro-antd"
   ]
 }

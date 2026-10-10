@@ -1,12 +1,17 @@
 import { eLayoutType, RoutesService } from '@abp/ng.core';
 import { provideFlexFields } from '@dignite/ng.flex-fields';
-import { provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor';
-import { provideFileExplorerFieldType } from '@dignite/ng.flex-fields-file-explorer';
-import { CONTENT_FIELD_TYPE, SEO_FIELD_TYPE } from '@dignite/ng.site';
+import { CKEDITOR_UPLOAD_PROVIDER, provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor';
+import {
+  CONTENT_FIELD_TYPE,
+  FILE_FIELD_TYPE,
+  SEO_FIELD_TYPE,
+  SiteCKEditorUploadProvider,
+} from '@dignite/ng.site';
 import {
   EnvironmentProviders,
   inject,
   makeEnvironmentProviders,
+  Provider,
   provideAppInitializer,
 } from '@angular/core';
 import { eSiteRouteNames } from '../enums/route-names';
@@ -61,24 +66,24 @@ export function configureRoutes() {
   // Content types have no menu entry: they belong to a page, and are reached from the Pages list.
 }
 
-const SITE_PROVIDERS: EnvironmentProviders[] = [
+const SITE_PROVIDERS: (EnvironmentProviders | Provider)[] = [
   ...SITE_ROUTE_PROVIDERS,
   // The six built-ins (Matrix/Table among them as of flex-fields 10.0.0-rc.16, via
   // provideFlexFields()'s own BUILT_IN_FIELD_TYPES - they used to be Site's own MATRIX_FIELD_TYPE/
   // TABLE_FIELD_TYPE, registered explicitly here, until flex-fields shipped them as kernel built-ins)
-  // plus Site's own `Seo` and `Content` types (GitHub issue #49). `FieldTypeResolver` is root-provided
-  // and reads the registry once when first injected, so this has to happen at application-config level
-  // - registering from inside the lazy-loaded Site routes would come too late for a resolver already
-  // constructed.
-  provideFlexFields(SEO_FIELD_TYPE, CONTENT_FIELD_TYPE),
-  // CKEditor (GitHub issue #43) and FileExplorer (#42) field types. Unlike the server, where DependsOn
-  // plus DI discovery is enough (总体设计 §8.2), the client has no equivalent - each field type's
-  // control/config/view trio has to be registered explicitly or FieldTypeResolver.get(...) throws and
-  // the content editor breaks on first use, the same failure mode SEO_FIELD_TYPE's own comment warns
-  // about. This was missing entirely until now, which is why a content type pulling in a CKEditor field
-  // failed to render at all - not just the field, the page around it.
+  // plus Site's own `Seo`, `Content` and file (GitHub issue #42) types (GitHub issue #49). `FieldTypeResolver` is root-provided and reads the registry once when first
+  // injected, so this has to happen at application-config level - registering from inside the
+  // lazy-loaded Site routes would come too late for a resolver already constructed.
+  provideFlexFields(SEO_FIELD_TYPE, CONTENT_FIELD_TYPE, FILE_FIELD_TYPE),
+  // The CKEditor field type (GitHub issue #43). Unlike the server, where DependsOn plus DI discovery is
+  // enough (总体设计 §8.2), the client has no equivalent - each field type's control/config/view trio has
+  // to be registered explicitly or FieldTypeResolver.get(...) throws and the content editor breaks on
+  // first use, the same failure mode SEO_FIELD_TYPE's own comment warns about.
   provideCKEditorFieldType(),
-  provideFileExplorerFieldType(),
+  // Inline images in a CKEditor field go into Site's file library (the field's CKEditor.ImagesContainerName,
+  // normally site-images) and are embedded by their public address. Without a provider the editor shows
+  // no upload button at all.
+  { provide: CKEDITOR_UPLOAD_PROVIDER, useExisting: SiteCKEditorUploadProvider },
 ];
 
 export function provideSite() {

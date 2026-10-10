@@ -1,6 +1,9 @@
 ﻿using Dignite.Abp.FileStoring;
+using Dignite.Site.Admin.Directories;
+using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Files;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.Mapperly;
@@ -32,6 +35,12 @@ public class SiteAdminApplicationModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         context.Services.AddMapperlyObjectMapper<SiteAdminApplicationModule>();
+
+        // Resource-based authorization of the file library: who may read, upload, change or delete a file or
+        // a directory, per container. Singletons, as ASP.NET Core registers handlers; they hold no request
+        // state (IPermissionChecker and the configuration provider are resolved through singletons too).
+        context.Services.AddSingleton<IAuthorizationHandler, FileDescriptorAuthorizationHandler>();
+        context.Services.AddSingleton<IAuthorizationHandler, DirectoryDescriptorAuthorizationHandler>();
 
         ConfigureFileContainers();
     }
@@ -87,14 +96,16 @@ public class SiteAdminApplicationModule : AbpModule
     /// <summary>
     /// Files ride on the Contents permissions rather than a Files permission group of their own - an upload
     /// is how a content's images and attachments get here, so whoever may create/edit/delete content may do
-    /// the same to its files (总体设计 §6.2.5). Update and Delete have to be set explicitly: FileExplorer's
-    /// default for unset is "only the file's creator", which would stop one editor from replacing or removing
-    /// a file another editor uploaded. CreateDirectory has to be set for the opposite reason - its default
-    /// for unset is "nobody" - and goes with Create, since a directory only exists to hold uploads.
+    /// the same to its files (总体设计 §6.2.5); and <c>SiteAdmin.Contents</c> itself lets a user list and manage
+    /// every editor's files (<see cref="FileDescriptorAuthorizationHandler"/>). Update and Delete have to be
+    /// set explicitly: the default for unset is "only the file's creator", which would stop one editor from
+    /// replacing or removing a file another editor uploaded. CreateDirectory has to be set for the opposite
+    /// reason - its default for unset is "nobody" - and goes with Create, since a directory only exists to
+    /// hold uploads.
     /// <para>
-    /// <c>GetFilePermissionName</c> is deliberately left unset: unset means unauthenticated reads
-    /// (FileDescriptorAuthorizationHandler's own default), which a published content's files need for
-    /// anonymous site visitors.
+    /// <c>GetFilePermissionName</c> is deliberately left unset: a published content's files are served to
+    /// anonymous visitors by the public read endpoint (<c>api/site-public/files/</c>) regardless, so gating
+    /// the admin API's read of the same descriptor would protect nothing.
     /// </para>
     /// </summary>
     private static void ConfigureContentPermissions(BlobContainerConfiguration container)

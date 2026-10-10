@@ -27,8 +27,7 @@ namespace Dignite.FlexFields.Site.Content;
 /// depend on Site's own domain model - exactly what referencing only
 /// <c>Dignite.Abp.FlexFields.Abstractions</c> rules out. So this type validates only what it can see:
 /// presence, per <c>Required</c>. Anything deeper is the picker's job at pick time and the renderer's job
-/// at display time (same precedent <c>FileExplorerFieldType</c> already set for its own out-of-reach
-/// domain, <c>Dignite.FileExplorer</c>).
+/// at display time (the same as <c>FileFieldType</c> for the file library, which it cannot reach either).
 /// </para>
 /// </summary>
 public class ContentFieldType : FieldTypeBase

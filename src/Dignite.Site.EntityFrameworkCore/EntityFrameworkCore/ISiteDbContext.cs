@@ -1,6 +1,8 @@
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
+using Dignite.Site.Directories;
 using Dignite.Site.Fields;
+using Dignite.Site.Files;
 using Dignite.Site.Pages;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.Data;
@@ -27,4 +29,8 @@ public interface ISiteDbContext : IEfCoreDbContext
     /// avoids ever naming a concrete DbContext.
     /// </summary>
     DbSet<ContentFlexFieldIndex> ContentFlexFieldIndexes { get; }
+
+    DbSet<DirectoryDescriptor> DirectoryDescriptors { get; }
+
+    DbSet<FileDescriptor> FileDescriptors { get; }
 }

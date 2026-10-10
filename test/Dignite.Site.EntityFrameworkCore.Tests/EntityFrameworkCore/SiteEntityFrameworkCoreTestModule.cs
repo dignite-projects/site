@@ -67,7 +67,7 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
 
         Configure<AbpBlobStoringOptions>(options =>
         {
-            foreach (var containerName in new[] { SiteFileContainerNames.Default, SiteFileContainerNames.Images })
+            foreach (var containerName in SiteFileContainerNames.All)
             {
                 options.Containers.Configure(containerName, container =>
                 {
@@ -105,11 +105,8 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
-        // SiteDbContext.OnModelCreating -> ConfigureSite() now configures FileExplorer's entities too
-        // (GitHub issue #41's follow-up - FileExplorer is part of Site, not a separate model), so this one
-        // call creates its tables as well. FileDescriptorManager still resolves the default
-        // FileExplorerDbContext class at runtime, sharing this same connection via the AbpDbContextOptions
-        // default configured below - no [ReplaceDbContext] needed for that to work.
+        // SiteDbContext.OnModelCreating -> ConfigureSite() configures the file library's entities too, so
+        // this one call creates their tables as well.
         new SiteDbContext(
             new DbContextOptionsBuilder<SiteDbContext>().UseSqlite(connection).Options
         ).GetService<IRelationalDatabaseCreator>().CreateTables();

@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using Dignite.Abp.FlexFields.EntityFrameworkCore;
-using Dignite.FileExplorer.EntityFrameworkCore;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore.ValueComparers;
+using Dignite.Site.Directories;
 using Dignite.Site.Fields;
+using Dignite.Site.Files;
 using Dignite.Site.Pages;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp;
@@ -145,10 +146,60 @@ public static class SiteDbContextModelCreatingExtensions
             b.HasIndex(x => new { x.FieldId, x.ValueType, x.DateTimeValue });
         });
 
-        // Dignite.FileExplorer (GitHub issue #41's follow-up) is consumed the same way FlexFields is
-        // (§8.2) - part of Site's own EF Core wiring, not something Host bolts on separately. Whatever
-        // DbContext calls ConfigureSite() - SiteDbContext for standalone use, SiteHostDbContext once a host
-        // replaces it - gets FileExplorer's tables for free from this one call.
-        builder.ConfigureFileExplorer();
+        // The file library. Rows describe blobs in the SiteFileContainerNames containers; the bytes are
+        // ABP BlobStoring's, put there by IFileStorer.
+        builder.Entity<DirectoryDescriptor>(b =>
+        {
+            b.ToTable(SiteDbProperties.DbTablePrefix + "DirectoryDescriptors", SiteDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(d => d.ContainerName).IsRequired().HasMaxLength(FileDescriptorConsts.MaxContainerNameLength);
+            b.Property(d => d.Name).IsRequired().HasMaxLength(DirectoryDescriptorConsts.MaxNameLength);
+
+            // Every directory query is one owner's tree in one container.
+            b.HasIndex(d => new { d.TenantId, d.ContainerName, d.CreatorId, d.ParentId });
+
+            b.HasOne<DirectoryDescriptor>().WithMany().HasForeignKey(d => d.ParentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<FileDescriptor>(b =>
+        {
+            b.ToTable(SiteDbProperties.DbTablePrefix + "FileDescriptors", SiteDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(f => f.ContainerName).IsRequired().HasMaxLength(FileDescriptorConsts.MaxContainerNameLength);
+            b.Property(f => f.BlobName).IsRequired().HasMaxLength(FileDescriptorConsts.MaxBlobNameLength);
+            b.Property(f => f.Name).IsRequired().HasMaxLength(FileDescriptorConsts.MaxNameLength);
+            b.Property(f => f.MimeType).IsRequired().HasMaxLength(FileDescriptorConsts.MaxMimeTypeLength);
+            b.Property(f => f.Hash).IsRequired().HasMaxLength(FileDescriptorConsts.MaxHashLength);
+            b.Property(f => f.ReferBlobName).IsRequired().HasMaxLength(FileDescriptorConsts.MaxBlobNameLength);
+
+            // A blob name is a descriptor's address, unique per tenant and container - soft-deleted rows
+            // included, since a name is never reused. SQL treats NULLs as distinct in a unique index, so
+            // host rows (TenantId NULL) get an index of their own.
+            b.HasIndex(f => new { f.TenantId, f.ContainerName, f.BlobName })
+                .IsUnique()
+                .HasFilter($"{nameof(FileDescriptor.TenantId)} IS NOT NULL");
+            b.HasIndex(f => new { f.ContainerName, f.BlobName })
+                .IsUnique()
+                .HasFilter($"{nameof(FileDescriptor.TenantId)} IS NULL");
+
+            // Content dedup's arbiter (FileDescriptorManager.CreateAsync): one live owner per hash. Live
+            // rows only - a deleted owner keeps its hash for the audit trail, and must not stop the same
+            // bytes from being uploaded again.
+            b.HasIndex(f => new { f.TenantId, f.ContainerName, f.Hash })
+                .IsUnique()
+                .HasFilter($"{nameof(FileDescriptor.TenantId)} IS NOT NULL AND {nameof(FileDescriptor.Hash)} <> '' AND {nameof(FileDescriptor.IsDeleted)} = 0");
+            b.HasIndex(f => new { f.ContainerName, f.Hash })
+                .IsUnique()
+                .HasFilter($"{nameof(FileDescriptor.TenantId)} IS NULL AND {nameof(FileDescriptor.Hash)} <> '' AND {nameof(FileDescriptor.IsDeleted)} = 0");
+
+            // "Does anything still refer to this blob" - asked on every delete.
+            b.HasIndex(f => new { f.TenantId, f.ContainerName, f.ReferBlobName });
+            // The listing: a container, optionally one creator and one directory, newest first.
+            b.HasIndex(f => new { f.TenantId, f.ContainerName, f.CreationTime, f.CreatorId, f.DirectoryId });
+
+            b.HasOne<DirectoryDescriptor>().WithMany().HasForeignKey(f => f.DirectoryId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

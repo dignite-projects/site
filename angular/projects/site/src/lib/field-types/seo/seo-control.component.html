@@ -58,14 +58,14 @@
         </label>
         @if (ogImage) {
           <div class="mb-2">
-            <fe-file-preview
+            <site-file-preview
               width="240px"
               type="image/*"
               [src]="ogImage"
               [name]="'FlexFieldsSite::Seo:OgImage' | abpLocalization"
               [resizeWidth]="ogImageWidth"
               [resizeHeight]="ogImageHeight"
-            ></fe-file-preview>
+            ></site-file-preview>
           </div>
         }
         <div>
@@ -83,12 +83,12 @@
         <small class="form-text text-muted d-block">
           {{ 'FlexFieldsSite::Seo:OgImageHint' | abpLocalization }}
         </small>
-        <fe-file-explorer-modal
+        <site-file-modal
           [(visible)]="ogImagePickerOpen"
           [multiple]="false"
           [fileContainerName]="ogImageContainerName"
           (selectFilefn)="onOgImagePicked($event)"
-        ></fe-file-explorer-modal>
+        ></site-file-modal>
       </div>
 
       <div class="form-check">

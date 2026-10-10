@@ -1,15 +1,19 @@
 using System;
 using System.Collections.Generic;
+using Volo.Abp.Content;
 using Dignite.Abp.FlexFields;
 using Dignite.Site.Admin.Contents;
 using Dignite.Site.Admin.ContentTypes;
+using Dignite.Site.Admin.Directories;
 using Dignite.Site.Admin.Fields;
+using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Pages;
 using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Mcp.Contents;
 using Dignite.Site.Mcp.ContentTypes;
 using Dignite.Site.Mcp.Fields;
+using Dignite.Site.Mcp.Files;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
 using Dignite.Site.Public.Routing;
@@ -191,6 +195,41 @@ public static class McpToolContracts
         new(typeof(RoutingTools), nameof(RoutingTools.ResolvePathAsync), typeof(ResolvePathInput),
         [
             Direct("Path", typeof(string), "path"),
+        ]),
+
+        new(typeof(FileTools), nameof(FileTools.UploadFileAsync), typeof(CreateFileInput),
+        [
+            Translated("ContainerName", typeof(string), "containerName"),
+            Direct("DirectoryId", typeof(Guid?), "directoryId"),
+            Translated("File", typeof(IRemoteStreamContent), "contentBase64"),
+        ]),
+
+        new(typeof(FileTools), nameof(FileTools.UpdateFileAsync), typeof(UpdateFileInput),
+        [
+            Direct("Name", typeof(string), "name"),
+            Translated("DirectoryId", typeof(Guid?), "directoryId"),
+            Omitted("DirectoryIdSpecified", typeof(bool),
+                "Not an input of its own - assigning DirectoryId sets it; moveToRoot is how a model asks for the null."),
+        ]),
+
+        new(typeof(FileTools), nameof(FileTools.ListFilesAsync), typeof(GetFilesInput),
+        [
+            Translated("ContainerName", typeof(string), "containerName"),
+            Direct("DirectoryId", typeof(Guid?), "directoryId"),
+            Omitted("CreatorId", typeof(Guid?),
+                "Deliberate - the service already narrows a caller without SiteAdmin.Contents to their own " +
+                "files, and a model has no user ids to filter by."),
+            Direct("Filter", typeof(string), "filter"),
+            Omitted("Sorting", typeof(string), "Deliberate - newest first is what a model browsing for a file it just uploaded needs."),
+            Direct("SkipCount", typeof(int), "skipCount"),
+            Direct("MaxResultCount", typeof(int), "maxResultCount"),
+        ]),
+
+        new(typeof(DirectoryTools), nameof(DirectoryTools.CreateDirectoryAsync), typeof(CreateDirectoryInput),
+        [
+            Translated("ContainerName", typeof(string), "containerName"),
+            Direct("Name", typeof(string), "name"),
+            Direct("ParentId", typeof(Guid?), "parentId"),
         ]),
     };
 }

@@ -35,7 +35,7 @@ public class SeoFieldType_Tests : SiteDomainTestBase<SiteDomainTestModule>
 
     /// <summary>
     /// The value is a composite object, not a scalar or list of scalars - there is no typed index column
-    /// for it, the same reason FlexFields' own FileExplorer/RichText field types return null here.
+    /// for it, the same reason the file and RichText field types return null here.
     /// </summary>
     [Fact]
     public void Should_Not_Be_Indexable()

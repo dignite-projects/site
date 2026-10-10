@@ -16,6 +16,8 @@ A site's own template texts (option names, labels, archive titles) are localized
 
 For a multilingual site, templates and the host's layout get the site's language rules: in-site links in the page's language, a language switcher, and an optional redirect of `/` to the visitor's language. See [docs/site-languages.md](docs/site-languages.md).
 
+Site has its own file library - the images and attachments content fields use, uploaded from the admin UI, over MCP or from a CKEditor field, and served to visitors from `/api/site-public/files/`. Permissions ride on the Contents permissions. See [docs/site-files.md](docs/site-files.md).
+
 ## Project structure
 
 | Path | Description |

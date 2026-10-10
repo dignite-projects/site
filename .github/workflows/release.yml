@@ -55,18 +55,18 @@ jobs:
 
       # Several Dignite.Site *.NET* projects (Domain, Common.Application(.Contracts)/HttpApi(.Client),
       # Public.Web, Admin.Application.Contracts, ...) carry relative ProjectReferences into the
-      # sibling `abp-modules` repo for FlexFields / FileExplorer - see Dignite.Site.slnx's
+      # sibling `abp-modules` repo for FlexFields / file-storing - see Dignite.Site.slnx's
       # "/flex-fields/" folder and its "..\..\..\abp-modules\..." paths. A single-repo checkout
       # does not have that directory, so restore/build/pack would fail without it. Both repos are
       # public, so the default GITHUB_TOKEN is enough to check abp-modules out - no extra secret
       # needed. This tracks abp-modules' default branch, the same moving target local development
       # already builds against.
       #
-      # The Angular side does NOT need this checkout: angular/package.json resolves FlexFields /
-      # FileExplorer as real installed @dignite/* npm dependencies - currently aliased through
+      # The Angular side does NOT need this checkout: angular/package.json resolves FlexFields as
+      # real installed @dignite/* npm dependencies - currently aliased through
       # GitHub Packages, see angular/.npmrc and the "Install Angular dependencies" step below - not
       # local file: paths into this sibling.
-      - name: Checkout abp-modules (sibling dependency for FlexFields / FileExplorer)
+      - name: Checkout abp-modules (sibling dependency for FlexFields / file-storing)
         uses: actions/checkout@v5
         with:
           repository: dignite-projects/abp-modules
@@ -143,7 +143,7 @@ jobs:
       # the "/flex-fields/" folder (abp-modules' own packable projects, checked out above just so
       # they can be *referenced*) and host/ + test/ (IsPackable=false via common.test.props / the
       # inline override on Dignite.Site.Host.csproj). Packing the whole slnx would re-publish
-      # abp-modules' own FlexFields/FileExplorer packages under this release by mistake.
+      # abp-modules' own FlexFields/file-storing packages under this release by mistake.
       - name: Pack NuGet packages
         run: |
           mkdir -p artifacts

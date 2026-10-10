@@ -31,4 +31,17 @@ public static class SiteMcpConsts
         "- `slug` is always required. Pass an empty string only when the content IS the page (a home or " +
         "\"about\" page whose URL is the page's route). Otherwise pass a real slug.\n" +
         "- `cultureName` must be one of the schema's `enabledLanguages`. Do not invent a variant.";
+
+    /// <summary>
+    /// The file tools' section of the instructions. Separate from <see cref="Instructions"/> so each stays
+    /// about one surface; both are handed to the client.
+    /// </summary>
+    public const string FileInstructions =
+        "Site files (site_*_file*, site_*_director* tools): images and attachments for content fields. " +
+        "Call `site_list_file_containers` first - it returns the containers you may use, with each one's " +
+        "purpose, upload size limit and allowed file types. Every other file tool takes a `containerName` " +
+        "from that list; do not guess one.\n\n" +
+        "Uploading: `site_upload_file` takes the file's bytes as base64, so it suits small files only. The " +
+        "result carries the file's `url` - that is what to put in a content field (an SEO share image, a " +
+        "file field). Files and directories are addressed by the `id` the list tools return.";
 }
