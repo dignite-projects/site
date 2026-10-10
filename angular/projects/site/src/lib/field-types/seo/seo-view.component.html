@@ -20,14 +20,14 @@
       <dt class="col-sm-4">{{ 'FlexFieldsSite::Seo:OgImage' | abpLocalization }}</dt>
       <dd class="col-sm-8">
         @if (seo.ogImage) {
-          <fe-file-preview
+          <site-file-preview
             width="160px"
             type="image/*"
             [src]="seo.ogImage"
             [name]="'FlexFieldsSite::Seo:OgImage' | abpLocalization"
             [resizeWidth]="ogImageWidth"
             [resizeHeight]="ogImageHeight"
-          ></fe-file-preview>
+          ></site-file-preview>
         } @else {
           ---
         }

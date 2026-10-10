@@ -1,2 +1,3 @@
 import * as Dignite from './dignite';
-export { Dignite };
+import * as Volo from './volo';
+export { Dignite, Volo };

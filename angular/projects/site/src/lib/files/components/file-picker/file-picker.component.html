@@ -1,0 +1,51 @@
+@if (fileContainerName) {
+  <button class="btn btn-sm btn-dark soft ms-2 float-end" type="button"
+  (click.stop)="modalOpen = true">{{'Site::Files:SelectFile' | abpLocalization}}</button>
+
+  <site-file-modal [(visible)]="modalOpen" [selectPickerFile]="fileShowTable" [multiple]="multiple"
+  (selectFilefn)="onSelectFile($event)" [fileContainerName]="fileContainerName"></site-file-modal>
+  @if (fileShowTable.length>0) {
+    <table class="table" cdkDropList (cdkDropListDropped)="drop($event)">
+      <thead>
+        <tr>
+          <th scope="col" style="width: 50px;">{{'Site::Files:RowNumber' | abpLocalization}}</th>
+          <th scope="col">{{'Site::Files:FileName' | abpLocalization}}</th>
+          <th scope="col" style="width: 120px;">{{'Site::Files:FileSize' | abpLocalization}}</th>
+          <th scope="col" style="width: 50px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of fileShowTable; track item; let i = $index) {
+          <tr cdkDrag cdkDragLockAxis="y" [cdkDragData]="item">
+            <td>{{ i + 1 }}</td>
+            <td>
+                  <div class="d-flex">
+                    <div class="flex-grow-1 file-name-drag-handle" cdkDragHandle
+                      [title]="'Site::Files:DragFileNameToReorder' | abpLocalization"
+                      [attr.aria-label]="'Site::Files:DragFileNameToReorder' | abpLocalization">
+                      <div>{{ item.name }}</div>
+                    </div>
+                    <div class="" [attr.title]="item.name">
+                      <site-file-preview [width]="'60px'" [src]="item.url" [resizeWidth]="120" [resizeHeight]="120"
+                        [name]="item.name" [type]="item.mimeType"></site-file-preview>
+                    </div>
+                  </div>
+            </td>
+            <td>{{(item.size)|formatFileSize}}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary p-0" (click.stop)="deleteFileTableItem(i)">
+                <i class="fas fa-trash p-2"></i>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <div class="no-file-hint text-muted small mt-2">{{ 'Site::Files:NoFileSelected' | abpLocalization }}</div>
+  }
+} @else {
+  <div class="alert alert-warning py-2 px-3 mb-0">
+    {{ 'Site::Files:ContainerNotConfigured' | abpLocalization }}
+  </div>
+}

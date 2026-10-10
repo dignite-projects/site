@@ -8,6 +8,7 @@
 
 export * from './lib/enums';
 export * from './lib/field-types';
+export * from './lib/files';
 export * from './lib/proxy';
 export * from './lib/services';
 export * from './lib/site.routes';

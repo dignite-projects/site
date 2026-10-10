@@ -14,18 +14,24 @@ npm install @dignite/ng.site
 [README](../../README.md) / `angular/.npmrc` for the registry setup, and alias the dependency:
 `"@dignite/ng.site": "npm:@dignite-projects/ng.site@<version>"`.)
 
-### CKEditor and File Explorer dependencies
+### CKEditor dependency and the file library
 
-`provideSite()` (from `@dignite/ng.site/config`) unconditionally registers the CKEditor and File
-Explorer flex-fields field types - it's not optional, skipping either one makes
-`FieldTypeResolver.get(...)` throw and the content editor fails to render entirely. So this package
-declares `@dignite/ng.flex-fields-ckeditor` and `@dignite/ng.flex-fields-file-explorer` as its own
-`dependencies`, not `peerDependencies` - and from `10.0.0-rc.13` those two adapters in turn declare
-everything *they* need (`@ckeditor/ckeditor5-angular`, `ckeditor5`, `marked`,
-`@dignite/ng.file-explorer`) as their own dependencies rather than peers. `npm install
-@dignite/ng.site` (see "Installing" above) is the whole install; there's nothing to add by hand.
+`provideSite()` (from `@dignite/ng.site/config`) unconditionally registers the CKEditor field type and
+Site's own field types - it's not optional, skipping one makes `FieldTypeResolver.get(...)` throw and the
+content editor fails to render entirely. So this package declares `@dignite/ng.flex-fields-ckeditor` as
+its own `dependency`, not a `peerDependency` - and from `10.0.0-rc.13` that adapter in turn declares
+everything *it* needs (`@ckeditor/ckeditor5-angular`, `ckeditor5`, `marked`) as its own dependencies
+rather than peers. `npm install @dignite/ng.site` (see "Installing" above) is the whole install; there's
+nothing to add by hand.
 
-That `>= 10.0.0-rc.13` floor is load-bearing, not cosmetic. Below `rc.12` those four packages were
+The file picker, the file field type (registration key `FileExplorer`) and the SEO share-image picker
+are this package's own (`src/lib/files`, `src/lib/field-types/file`) and talk to Site's admin API
+(`apiName: 'SiteAdmin'`) - there is no separate file-picker package to install any more, and no extra
+entry to keep in `environment.apis`. `provideSite()` also registers `SiteCKEditorUploadProvider` as the
+`CKEDITOR_UPLOAD_PROVIDER` (which needs `@dignite/ng.flex-fields-ckeditor >= 10.0.0-rc.25`), so an image
+inserted into a CKEditor field is uploaded into Site's file library. See `docs/site-files.md`.
+
+That `>= 10.0.0-rc.13` floor is load-bearing, not cosmetic. Below `rc.12` those packages were
 the adapters' `peerDependencies`, and every ABP 10.5 + Angular 21 host installs with
 `--legacy-peer-deps` (`@abp/ng.theme.shared` pins `@swimlane/ngx-datatable@~22`, whose own Angular
 peer range stops at 20), under which npm does not install peers at all. Loosening the floor back
@@ -33,7 +39,7 @@ below `rc.12` would silently reintroduce four unresolvable imports - discovered 
 app's build, with nothing in `npm install` to warn about them.
 
 During the pre-release (GitHub Packages) channel you do not need to separately alias the
-`@dignite/*` packages this one depends on (`@dignite/ng.flex-fields` and the two adapters above) -
+`@dignite/*` packages this one depends on (`@dignite/ng.flex-fields` and the adapter above) -
 the release workflow's scope-swap step rewrites every `@dignite/*` entry under `dependencies` in
 the published package.json to the same alias form used for `@dignite/ng.site` itself above. That
 step never covered `peerDependencies`, which is exactly why the old manual alias instruction lived

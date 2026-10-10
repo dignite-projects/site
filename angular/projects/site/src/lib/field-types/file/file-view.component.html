@@ -1,0 +1,44 @@
+@if (showInList) {
+  @if (files.length > 0) {
+    <div class="d-flex align-items-center">
+      <site-file-preview
+        width="60px"
+        className="overflow-hidden me-1"
+        [src]="files[0].url ?? ''"
+        [resizeWidth]="120"
+        [resizeHeight]="120"
+        [name]="files[0].name ?? ''"
+        [type]="files[0].mimeType ?? ''"
+      />
+      @if (files.length - 1 > 0) {
+        <span>+{{ files.length - 1 }}</span>
+      }
+    </div>
+  } @else {
+    <span>&mdash;</span>
+  }
+} @else {
+  <div class="mb-3">
+    @if (fields?.field?.displayName) {
+      <label class="form-label">{{ fields?.field?.displayName }}</label>
+    }
+    @if (files.length > 0) {
+      <div class="d-flex align-items-center">
+        <site-file-preview
+          width="60px"
+          className="overflow-hidden me-1"
+          [src]="files[0].url ?? ''"
+          [resizeWidth]="120"
+          [resizeHeight]="120"
+          [name]="files[0].name ?? ''"
+          [type]="files[0].mimeType ?? ''"
+        />
+        @if (files.length - 1 > 0) {
+          <span>+{{ files.length - 1 }}</span>
+        }
+      </div>
+    } @else {
+      <div>&mdash;</div>
+    }
+  </div>
+}
