@@ -59,4 +59,11 @@ public static class SiteMcpErrorCodes
     /// than for a person.
     /// </summary>
     public const string NameNotFound = "Site.Mcp:001";
+
+    /// <summary>
+    /// A file container not exposed to MCP, or a file or directory that does not exist, may not be read, or
+    /// lives in such a container - one code for all of them, so ids cannot be probed. Same range and same
+    /// reasoning as <see cref="NameNotFound"/>.
+    /// </summary>
+    public const string FileNotFound = "Site.Mcp:002";
 }
