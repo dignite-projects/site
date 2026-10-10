@@ -1,11 +1,16 @@
 import { eLayoutType, RoutesService } from '@abp/ng.core';
 import { provideFlexFields } from '@dignite/ng.flex-fields';
-import { CKEDITOR_UPLOAD_PROVIDER, provideCKEditorFieldType } from '@dignite/ng.flex-fields-ckeditor';
+import {
+  CKEDITOR_CONFIG_CONTRIBUTORS,
+  CKEDITOR_UPLOAD_PROVIDER,
+  provideCKEditorFieldType,
+} from '@dignite/ng.flex-fields-ckeditor';
 import {
   CONTENT_FIELD_TYPE,
   FILE_FIELD_TYPE,
   SEO_FIELD_TYPE,
   SiteCKEditorUploadProvider,
+  siteCKEditorConfigContributor,
 } from '@dignite/ng.site';
 import {
   EnvironmentProviders,
@@ -84,6 +89,9 @@ const SITE_PROVIDERS: (EnvironmentProviders | Provider)[] = [
   // normally site-images) and are embedded by their public address. Without a provider the editor shows
   // no upload button at all.
   { provide: CKEDITOR_UPLOAD_PROVIDER, useExisting: SiteCKEditorUploadProvider },
+  // Those addresses are stored relative (/api/site-public/files/...); the editor shows them from the
+  // SiteAdmin API's host, in its editing view only - getData(), and so what is saved, stays relative.
+  { provide: CKEDITOR_CONFIG_CONTRIBUTORS, multi: true, useFactory: siteCKEditorConfigContributor },
 ];
 
 export function provideSite() {

@@ -17,7 +17,7 @@
     "Seo:MetaDescription": "Meta description",
     "Seo:OgImage": "Share image",
     "Seo:OgImageHint": "Shown when this page is shared on social platforms, cropped to 1200 × 630. Use an image at least that large.",
-    "Seo:OgImageValueHint": "Absolute URL of the image shown when this page is shared on social platforms. An image from the site's file library is cropped to 1200x630 when emitted as og:image.",
+    "Seo:OgImageValueHint": "URL of the image shown when this page is shared on social platforms: an image from the site's file library, or any absolute URL. A file-library image is emitted as og:image on the site's primary domain, cropped to 1200x630.",
     "Seo:SelectOgImage": "Select or upload image",
     "Seo:RemoveOgImage": "Remove image",
     "Seo:NoIndex": "No index",

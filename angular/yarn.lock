@@ -2277,22 +2277,22 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-4.2.0.tgz#ba5d0b917303c0b3d3c14c4865cdc6ded25ac05f"
   integrity sha512-kzyuwOAQnXJNLS9PSyrk0CWk35nWJW/zl/6KvnTBMFK65gm7U1/Z5BqjxeapjZCIhQcM/DsrEmcbRwDyXyXK4A==
 
-"@dignite/ng.flex-fields-ckeditor@^10.0.0-rc.25":
-  version "10.0.0-rc.25"
-  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields-ckeditor/-/ng.flex-fields-ckeditor-10.0.0-rc.25.tgz#77452dd867561c575aa536f037d6f324c72bab82"
-  integrity sha512-qyL0J6uSwdeVIqUqIbVgSAD2k+/+xyKRY+euvXPNvJu4xPASzO5tBNWxBKTwuZSXm1c+c38JYsuYfP54SDQzlw==
+"@dignite/ng.flex-fields-ckeditor@^10.0.0-rc.26":
+  version "10.0.0-rc.26"
+  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields-ckeditor/-/ng.flex-fields-ckeditor-10.0.0-rc.26.tgz#9d36c81bb49b43976f6462e9073e21f144a90a2b"
+  integrity sha512-wIzOZ4ZnrfkbDFsAQLwKHPXaKumJCK430fi4SClPXabUGRsZ653j+yDPqI+PuieKugv1PYiaDEcYxBGfp4TLNQ==
   dependencies:
     "@ckeditor/ckeditor5-angular" "^11.2.0"
     "@ckeditor/ckeditor5-integrations-common" "^2.4.0"
-    "@dignite/ng.flex-fields" "10.0.0-rc.25"
+    "@dignite/ng.flex-fields" "10.0.0-rc.26"
     ckeditor5 "^48.0.0"
     marked "^18.0.0"
     tslib "^2.0.0"
 
-"@dignite/ng.flex-fields@10.0.0-rc.25", "@dignite/ng.flex-fields@^10.0.0-rc.25":
-  version "10.0.0-rc.25"
-  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields/-/ng.flex-fields-10.0.0-rc.25.tgz#a2b7f37b9951982e399b0c0571db26e62c919b63"
-  integrity sha512-d/+uRhGF0/zAVsehpSQIObem4YHFcVE39o0OuLjOJqKQwexVsyGQO/XjCRbor9r8C9ViO9ycMXjlqaSxKJHYxg==
+"@dignite/ng.flex-fields@10.0.0-rc.26", "@dignite/ng.flex-fields@^10.0.0-rc.26":
+  version "10.0.0-rc.26"
+  resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields/-/ng.flex-fields-10.0.0-rc.26.tgz#2fb6820d9fea82608223c912bbadc4052e4247a0"
+  integrity sha512-6x+LBaPicIE0TCOh+ZcFfU3OTsFGOMSSWlyo3wiAA4q0mKLCHRsY/XgISXDK8g/5Gl5wRmqYO1Mj+XqoGbtxMw==
   dependencies:
     "@abp/ng.components" "~10.5.0"
     tslib "^2.0.0"

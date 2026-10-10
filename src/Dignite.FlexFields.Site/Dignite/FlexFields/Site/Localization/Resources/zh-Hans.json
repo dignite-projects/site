@@ -17,7 +17,7 @@
     "Seo:MetaDescription": "Meta 描述",
     "Seo:OgImage": "分享图片",
     "Seo:OgImageHint": "在社交平台分享本页时显示，会裁剪为 1200 × 630。建议使用不小于该尺寸的图片。",
-    "Seo:OgImageValueHint": "在社交平台分享本页时显示的图片的绝对 URL。站点文件库中的图片输出为 og:image 时会裁剪为 1200x630。",
+    "Seo:OgImageValueHint": "在社交平台分享本页时显示的图片：站点文件库中的图片，或任意绝对 URL。文件库中的图片输出为 og:image 时会加上站点主域名，并裁剪为 1200x630。",
     "Seo:SelectOgImage": "选择或上传图片",
     "Seo:RemoveOgImage": "移除图片",
     "Seo:NoIndex": "不索引",

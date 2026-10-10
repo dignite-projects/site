@@ -6,16 +6,52 @@ namespace Dignite.Site.Files;
 
 public class SiteFileUrl_Tests
 {
+    /// <summary>
+    /// Relative, like CmsKit's media addresses: no host is written into the data a field stores.
+    /// </summary>
     [Fact]
-    public void Builds_The_Public_Read_Address_With_The_Tenant()
+    public void Builds_The_Relative_Public_Read_Address_With_The_Tenant()
     {
         var tenantId = Guid.Parse("8c6f0e64-6b8f-4c1b-9d5e-1f7d8c4f5a10");
 
-        SiteFileUrl.Build("https://x/", SiteFileContainerNames.Images, "abc", tenantId)
-            .ShouldBe($"https://x/api/site-public/files/site-images/abc?__tenant={tenantId}");
+        SiteFileUrl.Build(SiteFileContainerNames.Images, "abc", tenantId)
+            .ShouldBe($"/api/site-public/files/site-images/abc?__tenant={tenantId}");
         // The host has no tenant; __tenant is still there, empty, so the address always names its tenant.
-        SiteFileUrl.Build("https://x", SiteFileContainerNames.Default, "abc", null)
-            .ShouldBe("https://x/api/site-public/files/site-files/abc?__tenant=");
+        SiteFileUrl.Build(SiteFileContainerNames.Default, "abc", null)
+            .ShouldBe("/api/site-public/files/site-files/abc?__tenant=");
+    }
+
+    [Fact]
+    public void Sizes_A_Relative_Address()
+    {
+        SiteFileUrl.Sized("/api/site-public/files/site-images/a.jpg?__tenant=", 1200, 630)
+            .ShouldBe("/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200&Height=630");
+    }
+
+    [Fact]
+    public void Absolutize_Puts_A_Relative_Address_On_The_Base_Url()
+    {
+        const string relative = "/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200";
+
+        SiteFileUrl.Absolutize(relative, "https://acme.example")
+            .ShouldBe("https://acme.example/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200");
+        SiteFileUrl.Absolutize(relative, "https://acme.example/")
+            .ShouldBe("https://acme.example/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200");
+        // A site hosted under a path keeps it, as SiteUrlContext.BuildAbsolute does.
+        SiteFileUrl.Absolutize(relative, "https://acme.example/site")
+            .ShouldBe("https://acme.example/site/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200");
+        SiteFileUrl.Absolutize("images/a.jpg", "https://acme.example").ShouldBe("https://acme.example/images/a.jpg");
+    }
+
+    [Fact]
+    public void Absolutize_Leaves_An_Absolute_Address_Alone()
+    {
+        SiteFileUrl.Absolutize("https://cdn.example.com/a.png", "https://acme.example").ShouldBe("https://cdn.example.com/a.png");
+        SiteFileUrl.Absolutize("HTTP://cdn.example.com/a.png", "https://acme.example").ShouldBe("HTTP://cdn.example.com/a.png");
+        SiteFileUrl.Absolutize("//cdn.example.com/a.png", "https://acme.example").ShouldBe("//cdn.example.com/a.png");
+        SiteFileUrl.Absolutize("data:image/png;base64,AAAA", "https://acme.example").ShouldBe("data:image/png;base64,AAAA");
+        SiteFileUrl.Absolutize(null, "https://acme.example").ShouldBeNull();
+        SiteFileUrl.Absolutize(" ", "https://acme.example").ShouldBe(" ");
     }
 
     [Fact]

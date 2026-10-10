@@ -1,4 +1,4 @@
-import { isSiteFileUrl, sizedFileUrl } from './site-file-url';
+import { absoluteFileUrl, isSiteFileUrl, sizedFileUrl } from './site-file-url';
 
 describe('sizedFileUrl', () => {
   const file = 'https://api.example/api/site-public/files/site-images/abc?__tenant=';
@@ -21,5 +21,22 @@ describe('sizedFileUrl', () => {
   it('recognizes Site file addresses only', () => {
     expect(isSiteFileUrl(file)).toBe(true);
     expect(isSiteFileUrl('https://cdn.example/a.png')).toBe(false);
+  });
+});
+
+describe('absoluteFileUrl', () => {
+  const relative = '/api/site-public/files/site-images/abc?__tenant=';
+
+  it('puts a relative Site file address on the API host', () => {
+    expect(absoluteFileUrl(relative, 'https://api.example')).toBe(`https://api.example${relative}`);
+    expect(absoluteFileUrl(relative, 'https://api.example/')).toBe(`https://api.example${relative}`);
+  });
+
+  it('leaves absolute, local and external addresses alone, and everything when there is no API host', () => {
+    expect(absoluteFileUrl(`https://api.example${relative}`, 'https://api.example')).toBe(`https://api.example${relative}`);
+    expect(absoluteFileUrl('blob:http://localhost/x', 'https://api.example')).toBe('blob:http://localhost/x');
+    expect(absoluteFileUrl('https://cdn.example/a.png', 'https://api.example')).toBe('https://cdn.example/a.png');
+    expect(absoluteFileUrl(relative, '')).toBe(relative);
+    expect(absoluteFileUrl(undefined, 'https://api.example')).toBe('');
   });
 });

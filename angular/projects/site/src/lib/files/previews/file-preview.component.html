@@ -1,5 +1,5 @@
 <div class="image_box" [style]="{ width: width, maxWidth: '100%' }">
-  <a class="file-preview-link" [href]="src" [download]="name" [attr.aria-label]="name">
+  <a class="file-preview-link" [href]="linkHref" [download]="name" [attr.aria-label]="name">
     @if (isImage) {
       <div class="img_box" [class]="className">
         <img [src]="displaySrc" [alt]="name" />

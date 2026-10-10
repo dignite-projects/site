@@ -29,19 +29,15 @@ public class FileTools : ITransientDependency
 
     protected SiteMcpFileContainerGuard ContainerGuard { get; }
 
-    protected SiteMcpFileUrlBuilder UrlBuilder { get; }
-
     protected SiteMcpFileOptions Options { get; }
 
     public FileTools(
         IFileAdminAppService fileAppService,
         SiteMcpFileContainerGuard containerGuard,
-        SiteMcpFileUrlBuilder urlBuilder,
         IOptions<SiteMcpFileOptions> options)
     {
         FileAppService = fileAppService;
         ContainerGuard = containerGuard;
-        UrlBuilder = urlBuilder;
         Options = options.Value;
     }
 
@@ -62,7 +58,7 @@ public class FileTools : ITransientDependency
         int maxResultCount = 20)
     {
         var container = ContainerGuard.GetContainer(containerName);
-        var result = await FileAppService.GetListAsync(new GetFilesInput
+        return await FileAppService.GetListAsync(new GetFilesInput
         {
             ContainerName = container.Name,
             DirectoryId = directoryId,
@@ -70,13 +66,6 @@ public class FileTools : ITransientDependency
             SkipCount = Math.Max(skipCount, 0),
             MaxResultCount = Math.Clamp(maxResultCount, 1, 100)
         });
-
-        foreach (var file in result.Items)
-        {
-            UrlBuilder.WithUrl(file);
-        }
-
-        return result;
     }
 
     [McpServerTool(Name = "site_get_file", Title = "Get a file", ReadOnly = true)]
@@ -85,7 +74,7 @@ public class FileTools : ITransientDependency
         [Description("The file's id, from site_list_files or site_upload_file.")]
         Guid id)
     {
-        return UrlBuilder.WithUrl(await GetExposedFileAsync(id));
+        return await GetExposedFileAsync(id);
     }
 
     [McpServerTool(Name = "site_upload_file", Title = "Upload a file")]
@@ -113,15 +102,13 @@ public class FileTools : ITransientDependency
         var configuration = await FileAppService.GetContainerConfigurationAsync(container.Name);
         var bytes = Decode(contentBase64, Options.GetMaxUploadSize(configuration));
 
-        var dto = await FileAppService.CreateAsync(new CreateFileInput
+        return await FileAppService.CreateAsync(new CreateFileInput
         {
             ContainerName = container.Name,
             DirectoryId = directoryId,
             // The content type here is never used: the upload pipeline detects the real one from the bytes.
             File = new RemoteStreamContent(new MemoryStream(bytes, writable: false), fileName, "application/octet-stream", bytes.LongLength)
         });
-
-        return UrlBuilder.WithUrl(dto);
     }
 
     [McpServerTool(Name = "site_update_file", Title = "Rename or move a file", Idempotent = true)]
@@ -163,7 +150,7 @@ public class FileTools : ITransientDependency
             input.DirectoryId = directoryId;
         }
 
-        return UrlBuilder.WithUrl(await FileAppService.UpdateAsync(id, input));
+        return await FileAppService.UpdateAsync(id, input);
     }
 
     [McpServerTool(Name = "site_delete_file", Title = "Delete a file", Destructive = true)]

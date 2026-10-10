@@ -1,12 +1,14 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, OnChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IMAGE_TYPE_OPTIONS } from './models';
 import { sizedFileUrl } from '../services/site-file-url';
+import { SiteFileUrlService } from '../services/site-file-url.service';
 
 /**
  * A thumbnail (image) or type icon (anything else) for one file. Site's file containers are publicly
  * readable, so an image is shown straight from its public address (`/api/site-public/files/...`), asked
- * for at the thumbnail's size so the browser does not download the full upload.
+ * for at the thumbnail's size so the browser does not download the full upload. The address is stored
+ * relative; it is shown - and linked - from the `SiteAdmin` API's host (`SiteFileUrlService`).
  */
 @Component({
   selector: 'site-file-preview',
@@ -15,6 +17,8 @@ import { sizedFileUrl } from '../services/site-file-url';
   imports: [CommonModule],
 })
 export class FilePreviewComponent implements OnChanges {
+  private readonly fileUrls = inject(SiteFileUrlService);
+
   @Input() width = '100px';
   /** The file's address: the public read endpoint's, or a local `blob:`/`data:` URL for a file not uploaded yet. */
   @Input() src = '';
@@ -29,10 +33,13 @@ export class FilePreviewComponent implements OnChanges {
   isAudio = false;
   isVideo = false;
   displaySrc = '';
+  /** {@link src} where this UI can reach it - the download link. */
+  linkHref = '';
 
   ngOnChanges(): void {
     this.updateFileType();
-    this.displaySrc = this.isImage ? sizedFileUrl(this.src, this.resizeWidth, this.resizeHeight) : this.src;
+    this.linkHref = this.fileUrls.toDisplay(this.src);
+    this.displaySrc = this.isImage ? sizedFileUrl(this.linkHref, this.resizeWidth, this.resizeHeight) : this.linkHref;
   }
 
   private updateFileType() {
