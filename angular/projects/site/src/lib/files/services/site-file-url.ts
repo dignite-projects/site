@@ -1,6 +1,9 @@
 /**
  * The path every Site file is served under - the server's `SiteFileUrl.RoutePrefix`. The admin API hands
- * out absolute addresses on it (`FileDescriptorDto.url`), which is what a file field stores.
+ * out addresses relative to it (`FileDescriptorDto.url`, `/api/site-public/files/...?__tenant=`), and that
+ * relative address is what a field stores: no host is written into content. The public site resolves it
+ * against its own origin; this admin UI, served from another origin, shows it from its `SiteAdmin` API
+ * host (`SiteFileUrlService`).
  */
 export const SITE_FILE_PATH = '/api/site-public/files/';
 
@@ -36,4 +39,19 @@ export function sizedFileUrl(url: string | null | undefined, width?: number, hei
 
   const size = [width ? `Width=${width}` : '', height ? `Height=${height}` : ''].filter(Boolean);
   return `${base}?${[...kept, ...size].join('&')}`;
+}
+
+/**
+ * `url` on `apiBase` when it is a relative Site file address; anything else - an absolute address, a local
+ * `blob:`/`data:` URL, an external image - comes back unchanged, as does every address when `apiBase` is
+ * empty (an admin UI served from its API's own origin). Mirrors the server's `SiteFileUrl.Absolutize`.
+ */
+export function absoluteFileUrl(url: string | null | undefined, apiBase: string): string {
+  const value = url ?? '';
+  const base = trimBase(apiBase);
+  return base && value.toLowerCase().startsWith(SITE_FILE_PATH) ? base + value : value;
+}
+
+function trimBase(apiBase: string | null | undefined): string {
+  return (apiBase ?? '').trim().replace(/\/+$/, '');
 }
