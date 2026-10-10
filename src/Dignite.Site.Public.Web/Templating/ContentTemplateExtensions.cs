@@ -41,7 +41,7 @@ public static class ContentTemplateExtensions
         return content.FieldValues.TryGetValue(fieldName, out var value) ? ReadTexts(value) : Array.Empty<string>();
     }
 
-    /// <summary>The first file's address in a FileExplorer field (an array of file descriptors).</summary>
+    /// <summary>The first file's address in a file field (an array of file descriptors).</summary>
     public static string? GetFileUrl(this ContentDto content, string fieldName)
     {
         return content.FieldValues.TryGetValue(fieldName, out var value) ? ReadFileUrl(value) : null;
@@ -121,7 +121,7 @@ public static class ContentTemplateExtensions
             : null;
     }
 
-    /// <summary>The first file's address in a FileExplorer sub-field of a Matrix block's values.</summary>
+    /// <summary>The first file's address in a file sub-field of a Matrix block's values.</summary>
     public static string? GetFileUrl(this JsonElement blockValues, string fieldName)
     {
         return blockValues.ValueKind == JsonValueKind.Object && blockValues.TryGetProperty(fieldName, out var value)
@@ -155,7 +155,7 @@ public static class ContentTemplateExtensions
     }
 
     /// <summary>
-    /// A FileExplorer value is an array of file descriptor objects (<c>id</c>, <c>name</c>, <c>url</c>,
+    /// A file field's value is an array of file descriptor objects (<c>id</c>, <c>name</c>, <c>url</c>,
     /// ...); a single descriptor object is accepted too.
     /// </summary>
     private static string? ReadFileUrl(object? value)

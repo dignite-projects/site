@@ -18,7 +18,6 @@ using Volo.Abp.MultiTenancy;
 using Volo.Abp.VirtualFileSystem;
 using Dignite.Abp.FlexFields.Web;
 using Dignite.Abp.FlexFields.CKEditor.Web;
-using Dignite.Abp.FlexFields.FileExplorer.Web;
 
 namespace Dignite.Site.Public;
 
@@ -27,10 +26,10 @@ namespace Dignite.Site.Public;
     typeof(AbpAspNetCoreMvcUiThemeSharedModule),
     typeof(AbpMapperlyModule),
     // Read-only field display (<flex-field-view>) for SiteRenderController's Views - each self-registers
-    // its own compiled Razor assembly part, nothing else to wire here.
+    // its own compiled Razor assembly part, nothing else to wire here. The file field's view (under
+    // Views/Shared/FlexFields/, named after the field type's registration key) is this project's own.
     typeof(FlexFieldsWebModule),
-    typeof(FlexFieldsCKEditorWebModule),
-    typeof(FlexFieldsFileExplorerWebModule)
+    typeof(FlexFieldsCKEditorWebModule)
     )]
 public class SitePublicWebModule : AbpModule
 {

@@ -35,7 +35,6 @@
          counterpart of the FlexFields kernel Dignite.Site.Domain already depends on. -->
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Web\Dignite.Abp.FlexFields.Web.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.CKEditor.Web\Dignite.Abp.FlexFields.CKEditor.Web.csproj" />
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.FileExplorer.Web\Dignite.Abp.FlexFields.FileExplorer.Web.csproj" />
     <!-- Content/Seo (GitHub issue #49) - same "portable field-type library" role as the three above,
          just living in this repo. References only Dignite.Abp.FlexFields.Abstractions itself, so it
          carries none of the Site-app-specific coupling the "Contracts-only" rule above exists to keep
