@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The `0.1.0-preview.25` data migration missed file addresses stored in JSON-escaped form.**
+  `SiteContents.FlexFields` is JSON, and the serializer may write `/` as `\/`, so some values hold
+  `http:\/\/host\/api\/file-explorer\/files\/...`. The plain `REPLACE` in `Site_MigrateFileExplorerData` (and
+  in the preview.25 SQL below) cannot match that spelling, so those addresses - typically on home and list
+  pages - kept pointing at the removed `/api/file-explorer/files/` route. The new EF Core migration
+  `Site_MigrateFileExplorerEscapedPaths` rewrites the escaped spelling too, in `SiteContents.FlexFields` and
+  the `Site.Branding.*` settings. It is a separate migration because `Site_MigrateFileExplorerData` already
+  shipped; databases that ran it still need this one. If you applied the preview.25 SQL by hand instead, run
+  the supplement below.
+
+```sql
+-- Escaped form (\/api\/...). In SQL Server a backslash is an ordinary character in a string literal.
+-- In the database holding Site's contents:
+UPDATE [SiteContents] SET [FlexFields] = REPLACE([FlexFields], N'\/api\/file-explorer\/files\/', N'\/api\/site-public\/files\/')
+    WHERE [FlexFields] LIKE N'%\/api\/file-explorer\/files\/%';
+-- In the database holding AbpSettings:
+UPDATE [AbpSettings] SET [Value] = REPLACE([Value], N'\/api\/file-explorer\/files\/', N'\/api\/site-public\/files\/')
+    WHERE [Name] LIKE N'Site.Branding.%' AND [Value] LIKE N'%\/api\/file-explorer\/files\/%';
+```
+
 ## [0.1.0-preview.25] - 2026-10-10
 
 ### Changed
@@ -116,6 +138,7 @@ UPDATE [AbpSettings] SET [Value] = REPLACE([Value], N'/api/file-explorer/files/'
     WHERE [Name] LIKE N'Site.Branding.%' AND [Value] LIKE N'%/api/file-explorer/files/%';
 -- In the database holding permission grants:
 DELETE FROM [AbpPermissionGrants] WHERE [Name] = N'FileExplorer.File.Management';
+-- JSON-escaped addresses (\/api\/...) need the two extra UPDATEs under "Fixed" in [Unreleased].
 ```
 
 After the `UPDATE` is applied, also check where else a file address may have been copied by hand (a
