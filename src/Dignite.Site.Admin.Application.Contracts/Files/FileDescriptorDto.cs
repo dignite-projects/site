@@ -22,9 +22,9 @@ public class FileDescriptorDto : CreationAuditedEntityDto<Guid>, IMultiTenant
     public string MimeType { get; set; } = default!;
 
     /// <summary>
-    /// The absolute address the public read endpoint serves the file at
-    /// (<c>/api/site-public/files/{container}/{blob}?__tenant=</c>). Not stored: the HTTP API and the MCP
-    /// tools fill it in from the request they answer.
+    /// The address the public read endpoint serves the file at, relative to whichever host serves the site
+    /// (<c>/api/site-public/files/{container}/{blob}?__tenant=</c>) - what a file field stores. Not stored on
+    /// the file itself: composed from its container, blob name and tenant.
     /// </summary>
     public string? Url { get; set; }
 

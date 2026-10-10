@@ -9,8 +9,8 @@ namespace Dignite.Site.Admin.Files;
 
 /// <summary>
 /// The file library's admin API. Every <see cref="FileDescriptorDto.Url"/> it returns is the public read
-/// endpoint's address on the host this request came in on (<see cref="SiteFileUrl.Build"/>); behind a
-/// gateway, that host is the gateway's, which then has to route <c>/api/site-public/files/</c> here too.
+/// endpoint's relative address (<see cref="SiteFileUrl.Build"/>); a client that shows the file from another
+/// origin - the admin UI - puts its own API host in front of it.
 /// </summary>
 [RemoteService(Name = SiteAdminRemoteServiceConsts.RemoteServiceName)]
 [Area(SiteAdminRemoteServiceConsts.ModuleName)]
@@ -26,21 +26,15 @@ public class FileAdminController : SiteAdminController, IFileAdminAppService
 
     [HttpGet]
     [Route("{id:guid}")]
-    public virtual async Task<FileDescriptorDto> GetAsync(Guid id)
+    public virtual Task<FileDescriptorDto> GetAsync(Guid id)
     {
-        return WithUrl(await FileAdminAppService.GetAsync(id));
+        return FileAdminAppService.GetAsync(id);
     }
 
     [HttpGet]
-    public virtual async Task<PagedResultDto<FileDescriptorDto>> GetListAsync(GetFilesInput input)
+    public virtual Task<PagedResultDto<FileDescriptorDto>> GetListAsync(GetFilesInput input)
     {
-        var result = await FileAdminAppService.GetListAsync(input);
-        foreach (var file in result.Items)
-        {
-            WithUrl(file);
-        }
-
-        return result;
+        return FileAdminAppService.GetListAsync(input);
     }
 
     /// <summary>
@@ -49,16 +43,16 @@ public class FileAdminController : SiteAdminController, IFileAdminAppService
     /// </summary>
     [HttpPost]
     [TypeFilter(typeof(FileUploadSizeLimitFilter))]
-    public virtual async Task<FileDescriptorDto> CreateAsync(CreateFileInput input)
+    public virtual Task<FileDescriptorDto> CreateAsync(CreateFileInput input)
     {
-        return WithUrl(await FileAdminAppService.CreateAsync(input));
+        return FileAdminAppService.CreateAsync(input);
     }
 
     [HttpPut]
     [Route("{id:guid}")]
-    public virtual async Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input)
+    public virtual Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input)
     {
-        return WithUrl(await FileAdminAppService.UpdateAsync(id, input));
+        return FileAdminAppService.UpdateAsync(id, input);
     }
 
     [HttpDelete]
@@ -73,11 +67,5 @@ public class FileAdminController : SiteAdminController, IFileAdminAppService
     public virtual Task<FileContainerConfigurationDto> GetContainerConfigurationAsync(string containerName)
     {
         return FileAdminAppService.GetContainerConfigurationAsync(containerName);
-    }
-
-    protected virtual FileDescriptorDto WithUrl(FileDescriptorDto file)
-    {
-        file.Url = SiteFileUrl.Build($"{Request.Scheme}://{Request.Host.Value}", file.ContainerName, file.BlobName, file.TenantId);
-        return file;
     }
 }

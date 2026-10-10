@@ -7,8 +7,9 @@ using Volo.Abp.Mapperly;
 namespace Dignite.Site.Admin.Files;
 
 /// <summary>
-/// <see cref="FileDescriptor"/> -&gt; <see cref="FileDescriptorDto"/>. <c>Url</c> is not stored: the HTTP API
-/// and the MCP tools fill it in from the request they answer (<c>SiteFileUrl.Build</c>).
+/// <see cref="FileDescriptor"/> -&gt; <see cref="FileDescriptorDto"/>. <c>Url</c> is not stored: it is
+/// composed from the container, blob name and tenant (<see cref="SiteFileUrl.Build"/>), relative to whichever
+/// host serves the site, so every caller - the HTTP API, the MCP tools, an in-process consumer - gets the same.
 /// </summary>
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class FileDescriptorToDtoMapper : MapperBase<FileDescriptor, FileDescriptorDto>
@@ -18,6 +19,11 @@ public partial class FileDescriptorToDtoMapper : MapperBase<FileDescriptor, File
 
     [MapperIgnoreTarget(nameof(FileDescriptorDto.Url))]
     public override partial void Map(FileDescriptor source, FileDescriptorDto destination);
+
+    public override void AfterMap(FileDescriptor source, FileDescriptorDto destination)
+    {
+        destination.Url = SiteFileUrl.Build(source.ContainerName, source.BlobName, source.TenantId);
+    }
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]

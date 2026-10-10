@@ -53,7 +53,8 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         file.DirectoryId.ShouldBe(directory.Id);
         file.MimeType.ShouldBe("image/png");
-        file.Url.ShouldBeNull(); // only the HTTP API and the MCP tools know the host to build it on
+        // Relative to whichever host serves the site - the same for the HTTP API, the MCP tools and in-process callers.
+        file.Url.ShouldBe($"/api/site-public/files/{SiteFileContainerNames.Images}/{file.BlobName}?__tenant={file.TenantId}");
 
         var listed = await _fileAppService.GetListAsync(new GetFilesInput
         {
