@@ -9,9 +9,10 @@
 # `tsc --noEmit` type-check does not catch this either: ng-packagr's rolled-up `.d.ts` for
 # `provideSite()` only exposes the opaque `EnvironmentProviders` return type, so TypeScript never
 # needs to load the field types' own declaration files - only a bundler walking the actual .mjs
-# import graph does. This is what caught `@dignite/ng.flex-fields-ckeditor` /
-# `@dignite/ng.flex-fields-file-explorer` missing from angular/projects/site/package.json's
-# `dependencies` in 0.1.0-preview.4 - see CHANGELOG.md's 0.1.0-preview.5 entry.
+# import graph does. This is what caught `@dignite/ng.flex-fields-ckeditor` (and the file-picker
+# packages ng.site depended on before it took the file library over) missing from
+# angular/projects/site/package.json's `dependencies` in 0.1.0-preview.4 - see CHANGELOG.md's
+# 0.1.0-preview.5 entry.
 #
 # Two modes, because the same check is worth running on two different artifacts:
 #
@@ -123,15 +124,6 @@ EOF
       # overrides` (not a top-level dependency edit) is what's needed: @dignite/ng.site is the only
       # direct dependency of this scratch project, and the packages that actually need redirecting
       # are ITS transitive dependencies, declared inside the tarball's own package.json.
-      #
-      # @dignite/ng.file-explorer is covered by the loop above now that ng.site imports it directly
-      # (GitHub issue #72); the fallback below stays for a tarball that only gets it transitively,
-      # through @dignite/ng.flex-fields-file-explorer (a dependency of a dependency, one level too
-      # deep for this script to discover without resolving the tree first - the same chicken-and-egg
-      # problem the override exists to route around). It
-      # is, and always has been, version-locked to @dignite/ng.flex-fields in this workspace (see
-      # angular/package.json's own `resolutions` block treating the pair identically), so reusing
-      # ng.flex-fields' range for it is exact, not a guess.
       extract_dir=$(mktemp -d)
       tar -xzf "$tarball" -C "$extract_dir"
       overrides_json=$(node -e '
@@ -141,10 +133,6 @@ EOF
           if (name.startsWith("@dignite/")) {
             overrides[name] = `npm:@dignite-projects/${name.slice("@dignite/".length)}@${range}`;
           }
-        }
-        const flexFieldsRange = pkg.dependencies?.["@dignite/ng.flex-fields"];
-        if (flexFieldsRange && !overrides["@dignite/ng.file-explorer"]) {
-          overrides["@dignite/ng.file-explorer"] = `npm:@dignite-projects/ng.file-explorer@${flexFieldsRange}`;
         }
         console.log(JSON.stringify(overrides));
       ' "$extract_dir")
@@ -175,9 +163,9 @@ EOF
     ;;
 esac
 
-# Nothing beyond the host baseline is pre-installed here: the CKEditor and File Explorer packages
-# arrive transitively, as `dependencies` of @dignite/ng.flex-fields-ckeditor and
-# @dignite/ng.flex-fields-file-explorer at >= 10.0.0-rc.13. Pre-supplying them would hide the
+# Nothing beyond the host baseline is pre-installed here: the CKEditor packages arrive
+# transitively, as `dependencies` of @dignite/ng.flex-fields-ckeditor at >= 10.0.0-rc.13 (the file
+# library is ng.site's own since 0.1.0-preview.25). Pre-supplying them would hide the
 # regression this step exists to catch - a flex-fields floor loosened back below rc.12, where those
 # same packages were peers that `--legacy-peer-deps` never installs.
 cat > "$workdir/package.json" <<EOF

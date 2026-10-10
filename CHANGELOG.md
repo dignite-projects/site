@@ -7,6 +7,137 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: the file library is Site's own; Dignite.FileExplorer is gone.** abp-modules `10.0.0-rc.25`
+  keeps only the upload pipeline (`Dignite.Abp.FileStoring`, `IFileStorer`); the file browser, its data
+  and its API moved here, under Site's namespaces, tables, permissions and routes (see
+  [docs/site-files.md](docs/site-files.md)):
+  - Domain: `Dignite.Site.Files.FileDescriptor` / `FileDescriptorManager` / `IFileDescriptorRepository`
+    and `Dignite.Site.Directories.DirectoryDescriptor` / `DirectoryManager` /
+    `IDirectoryDescriptorRepository`, in `Dignite.Site.Domain`, with EF Core and (new) MongoDB
+    repositories. `FileDescriptorManager` stores bytes through `IFileStorer` - the type is detected from
+    the content, never the uploader's claim, and content that contradicts its extension is refused - and
+    keeps only the rows and the content dedup on top.
+  - Tables `FeFileDescriptors` / `FeDirectoryDescriptors` are renamed `SiteFileDescriptors` /
+    `SiteDirectoryDescriptors`; the column `Md5` (which always held a SHA-256) is `Hash`; `CellName` and
+    `EntityId` are dropped with the file grid and entity-authorization handlers that used them. The
+    unique hash indexes now cover live rows only, so re-uploading the bytes of a deleted file no longer
+    fails. The blob containers (`site-files`, `site-images`) and every stored blob are unchanged.
+  - Admin API: `api/site-admin/files` and `api/site-admin/directories` (`IFileAdminAppService`,
+    `IDirectoryAdminAppService`, remote service `SiteAdmin`) replace `api/file-explorer/files` and
+    `api/file-explorer/directories`. The container-configuration endpoint is
+    `GET api/site-admin/files/containers/{containerName}`. The by-entity endpoints and the file grid
+    (cells) are not carried over. Only `SiteFileContainerNames` are accepted (`Site:080001` otherwise).
+  - Reading a file is a new anonymous endpoint, `GET`/`HEAD`
+    `api/site-public/files/{containerName}/{blobName}` (plus `.../download/...`, `?Width=&Height=` for
+    images), serving Site's containers only, with `ETag`, `Cache-Control: public, max-age=86400`,
+    `X-Content-Type-Options: nosniff` and `304` on a matching `If-None-Match`. `FileDescriptorDto.Url` (admin
+    API, MCP) points here.
+  - Permissions: `FileExplorer.File.Management` is gone - `SiteAdmin.Contents` now lists and manages
+    everyone's files; upload/update/delete stay on `SiteAdmin.Contents.Create/Update/Delete` per container.
+    The file services are behind the `Site.Enable` feature like the rest of the admin surface.
+  - Error codes: directories `Site:070001`-`Site:070007`, files `Site:080001`-`Site:080002` (in
+    `SiteResource`) replace `Dignite.FileExplorer:*`.
+  - MCP: the `file_explorer_*` tools are `site_*` tools of `Dignite.Site.Mcp` -
+    `site_list_file_containers`, `site_list_files`, `site_get_file`, `site_upload_file`,
+    `site_update_file`, `site_delete_file`, `site_list_directories`, `site_create_directory` - with
+    `SiteMcpFileOptions` (both Site containers by default) instead of `FileExplorerMcpOptions`. A host no
+    longer loads `FileExplorerMcpModule`. `site_upload_file` has no `mimeType`, `cellName` or `entityId`
+    parameter; `site_update_file` no `cellName`.
+  - The file field type is `Dignite.FlexFields.Site.Files.FileFieldType` (with `FileFieldConfiguration`);
+    its registration key `FileExplorer` and configuration keys `FileExplorer.FileContainerName` /
+    `FileExplorer.UploadFileMultiple` are unchanged, so stored fields keep working. Its server-side view
+    is Site's own (`Views/Shared/FlexFields/FileExplorer.cshtml`; CSS classes `flex-field-view-file` /
+    `flex-field-value-file`).
+  - The template helper `FileExplorerImageUrl.Sized(...)` is `SiteFileUrl.Sized(...)` (namespace
+    `Dignite.Site.Public.Templating` for templates, `Dignite.Site.Files` elsewhere). It still sizes a
+    pre-migration `/api/file-explorer/files/` address, for this version only.
+- **Breaking (Angular): `@dignite/ng.site` no longer depends on `@dignite/ng.file-explorer` or
+  `@dignite/ng.flex-fields-file-explorer`.** The file picker, the browsing modal, the upload and preview
+  components and the file field type are its own (`site-file-*` components, `FILE_FIELD_TYPE`, registered
+  by `provideSite()`), calling `api/site-admin/files` through the regenerated `SiteAdmin` proxies;
+  previews load from the public read endpoint. `provideSite()` also registers
+  `SiteCKEditorUploadProvider` as `CKEDITOR_UPLOAD_PROVIDER`, so CKEditor image uploads go into Site's
+  file library. `@dignite/ng.flex-fields` and `-ckeditor` are bumped to `^10.0.0-rc.25` (the first
+  version with `CKEDITOR_UPLOAD_PROVIDER`). A host app drops the `FileExplorer` entry from
+  `environment.apis`.
+
+### Migrate
+
+The dev Host applies all of this with `host/migrate-database.ps1`: `Site_AbsorbFileExplorer` (schema,
+renames - never drop and recreate) and `Site_MigrateFileExplorerData` (data). Another host on another
+database has to do the same; EF Core's own diff would drop and recreate the tables, so do not scaffold
+it - for SQL Server:
+
+```sql
+-- Schema: rename, don't recreate. Adjust the names if your Fe*/Site* prefixes differ.
+ALTER TABLE [FeFileDescriptors] DROP CONSTRAINT [FK_FeFileDescriptors_FeDirectoryDescriptors_DirectoryId];
+ALTER TABLE [FeDirectoryDescriptors] DROP CONSTRAINT [FK_FeDirectoryDescriptors_FeDirectoryDescriptors_ParentId];
+DROP INDEX [IX_FeFileDescriptors_TenantId_ContainerName_EntityId] ON [FeFileDescriptors];
+DROP INDEX [IX_FeFileDescriptors_ContainerName_Md5] ON [FeFileDescriptors];
+DROP INDEX [IX_FeFileDescriptors_TenantId_ContainerName_Md5] ON [FeFileDescriptors];
+
+EXEC sp_rename N'[FeDirectoryDescriptors]', N'SiteDirectoryDescriptors';
+EXEC sp_rename N'[FeFileDescriptors]', N'SiteFileDescriptors';
+EXEC sp_rename N'[PK_FeDirectoryDescriptors]', N'PK_SiteDirectoryDescriptors', N'OBJECT';
+EXEC sp_rename N'[PK_FeFileDescriptors]', N'PK_SiteFileDescriptors', N'OBJECT';
+
+ALTER TABLE [SiteFileDescriptors] DROP COLUMN [CellName], [EntityId];
+EXEC sp_rename N'[SiteFileDescriptors].[Md5]', N'Hash', N'COLUMN';
+
+EXEC sp_rename N'[SiteDirectoryDescriptors].[IX_FeDirectoryDescriptors_ParentId]', N'IX_SiteDirectoryDescriptors_ParentId', N'INDEX';
+EXEC sp_rename N'[SiteDirectoryDescriptors].[IX_FeDirectoryDescriptors_TenantId_ContainerName_CreatorId_ParentId]', N'IX_SiteDirectoryDescriptors_TenantId_ContainerName_CreatorId_ParentId', N'INDEX';
+EXEC sp_rename N'[SiteFileDescriptors].[IX_FeFileDescriptors_ContainerName_BlobName]', N'IX_SiteFileDescriptors_ContainerName_BlobName', N'INDEX';
+EXEC sp_rename N'[SiteFileDescriptors].[IX_FeFileDescriptors_DirectoryId]', N'IX_SiteFileDescriptors_DirectoryId', N'INDEX';
+EXEC sp_rename N'[SiteFileDescriptors].[IX_FeFileDescriptors_TenantId_ContainerName_BlobName]', N'IX_SiteFileDescriptors_TenantId_ContainerName_BlobName', N'INDEX';
+EXEC sp_rename N'[SiteFileDescriptors].[IX_FeFileDescriptors_TenantId_ContainerName_CreationTime_CreatorId_DirectoryId]', N'IX_SiteFileDescriptors_TenantId_ContainerName_CreationTime_CreatorId_DirectoryId', N'INDEX';
+EXEC sp_rename N'[SiteFileDescriptors].[IX_FeFileDescriptors_TenantId_ContainerName_ReferBlobName]', N'IX_SiteFileDescriptors_TenantId_ContainerName_ReferBlobName', N'INDEX';
+
+ALTER TABLE [SiteDirectoryDescriptors] ADD CONSTRAINT [FK_SiteDirectoryDescriptors_SiteDirectoryDescriptors_ParentId]
+    FOREIGN KEY ([ParentId]) REFERENCES [SiteDirectoryDescriptors] ([Id]);
+ALTER TABLE [SiteFileDescriptors] ADD CONSTRAINT [FK_SiteFileDescriptors_SiteDirectoryDescriptors_DirectoryId]
+    FOREIGN KEY ([DirectoryId]) REFERENCES [SiteDirectoryDescriptors] ([Id]);
+
+-- Live rows only: a deleted file keeps its hash and must not block the same bytes coming back.
+CREATE UNIQUE INDEX [IX_SiteFileDescriptors_ContainerName_Hash] ON [SiteFileDescriptors] ([ContainerName], [Hash])
+    WHERE TenantId IS NULL AND Hash <> '' AND IsDeleted = 0;
+CREATE UNIQUE INDEX [IX_SiteFileDescriptors_TenantId_ContainerName_Hash] ON [SiteFileDescriptors] ([TenantId], [ContainerName], [Hash])
+    WHERE TenantId IS NOT NULL AND Hash <> '' AND IsDeleted = 0;
+
+-- Data: stored file addresses move to the public read endpoint (host and ?__tenant= unchanged).
+-- In the database holding Site's contents:
+UPDATE [SiteContents] SET [FlexFields] = REPLACE([FlexFields], N'/api/file-explorer/files/', N'/api/site-public/files/')
+    WHERE [FlexFields] LIKE N'%/api/file-explorer/files/%';
+-- In the database holding AbpSettings (the branding logos may point at a file):
+UPDATE [AbpSettings] SET [Value] = REPLACE([Value], N'/api/file-explorer/files/', N'/api/site-public/files/')
+    WHERE [Name] LIKE N'Site.Branding.%' AND [Value] LIKE N'%/api/file-explorer/files/%';
+-- In the database holding permission grants:
+DELETE FROM [AbpPermissionGrants] WHERE [Name] = N'FileExplorer.File.Management';
+```
+
+After the `UPDATE` is applied, also check where else a file address may have been copied by hand (a
+template, a theme setting) - `SiteFileUrl` still sizes the old path for this version, but the old route no
+longer serves anything. With a dynamic permission store, the `FileExplorer` permission group and its
+definition can be removed from `AbpPermissionGroups` / `AbpPermissions` as well.
+
+Then:
+
+- **Gateway**: route `GET`/`HEAD` `/api/site-public/files/{**catch-all}` to the service hosting Site, and
+  `/api/site-admin/files/{**}`, `/api/site-admin/directories/{**}` with the other `site-admin` routes; the
+  `/api/file-explorer/{**}` routes can go. Upload requests carry the file in the body (up to 20 MB plus the
+  multipart envelope), so the route's body-size limit must allow it.
+- **Host modules**: drop `FileExplorerMcpModule` and `Configure<FileExplorerMcpOptions>` (narrow
+  `SiteMcpFileOptions.Containers` instead if needed), any `[ReplaceDbContext(typeof(IFileExplorerDbContext))]`
+  and its `DbSet`s (the file DbSets are now on `ISiteDbContext`), and the `Dignite.FileExplorer.*` /
+  `Dignite.Abp.FlexFields.FileExplorer*` package references.
+- **Templates**: `FileExplorerImageUrl.Sized(...)` becomes `SiteFileUrl.Sized(...)`.
+- **Angular host**: remove `@dignite/ng.file-explorer` and `@dignite/ng.flex-fields-file-explorer` (and
+  their `resolutions`), bump `@dignite/ng.flex-fields(-ckeditor)` to `^10.0.0-rc.25`, drop
+  `provideFileExplorerFieldType()` if the host registered it itself, and drop the `FileExplorer` entry in
+  `environment.apis`.
+- **MCP clients**: allow-lists and saved prompts that name `file_explorer_*` tools need the `site_*` names.
+
 ## [0.1.0-preview.24] - 2026-10-09
 
 ### Added
