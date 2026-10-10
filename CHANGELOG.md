@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: Site file addresses are relative; no host is stored any more.** `FileDescriptorDto.Url` - what
+  the admin API and the MCP tools hand out, and what a file field, the SEO share image, a CKEditor image and
+  a branding logo store - is now `/api/site-public/files/{container}/{blob}?__tenant=`, without the scheme
+  and host of the request it came in on, the way CmsKit hands out `/api/cms-kit/media/{id}`. Moving the
+  public site, the API or a gateway to another host no longer leaves stored addresses pointing at the old
+  one. See [docs/site-files.md](docs/site-files.md#addresses).
+  - `SiteFileUrl.Build(containerName, blobName, tenantId)` lost its `baseUrl` parameter; the new
+    `SiteFileUrl.Absolutize(url, baseUrl)` puts a relative address on a base URL and returns an absolute one
+    as is.
+  - `FileDescriptorDto.Url` is filled by the application service's mapper, so an in-process caller of
+    `IFileAdminAppService` gets it too. `FileAdminController.WithUrl` and the MCP tools'
+    `SiteMcpFileUrlBuilder` are gone.
+  - `og:image` puts a relative value on the site's primary domain (`SiteUrlContext.BaseUrl`, the origin the
+    canonical URL uses); `HeadMetadataBuilder.ReadOgImage` takes the `SiteUrlContext` as a third parameter.
+    Nothing else Site emits carries a file address (feeds, `llms.txt` and the sitemap have none).
+  - `@dignite/ng.site` shows a relative address from the `SiteAdmin` API's host
+    (`environment.apis.SiteAdmin.url`, new `SiteFileUrlService`): file previews, the file picker and modal,
+    the SEO share image. In a CKEditor field the new `siteCKEditorConfigContributor` (registered by
+    `provideSite()` under `CKEDITOR_CONFIG_CONTRIBUTORS`) does the same inside the editor - absolute in its
+    model, relative in the data it hands out - so what the editor saves stays relative. `@dignite/ng.flex-fields(-ckeditor)` move to `^10.0.0-rc.26` for that
+    hook.
+
 ### Fixed
 
 - **The `0.1.0-preview.25` data migration missed file addresses stored in JSON-escaped form.**
@@ -28,6 +52,73 @@ UPDATE [SiteContents] SET [FlexFields] = REPLACE([FlexFields], N'\/api\/file-exp
 UPDATE [AbpSettings] SET [Value] = REPLACE([Value], N'\/api\/file-explorer\/files\/', N'\/api\/site-public\/files\/')
     WHERE [Name] LIKE N'Site.Branding.%' AND [Value] LIKE N'%\/api\/file-explorer\/files\/%';
 ```
+
+### Migrate
+
+- **Stored addresses.** The dev Host's new EF Core migration `Site_RelativeFileUrls` strips the host from
+  the addresses already stored, in `SiteContents.FlexFields` and the `Site.Branding.*` settings, plain and
+  JSON-escaped. It lists the hosts to strip (only the Host's own `https://localhost:44315`), so another
+  database runs the script below with **its own** hosts: every scheme + host an address was ever handed
+  out on - the public site, the web gateway the admin UI talks to, the MCP endpoint's host. Run it after
+  the `[Unreleased]` "Fixed" supplement above if that one is still pending. For SQL Server:
+
+```sql
+-- 1. Which hosts are stored? Shows the 60 characters before the first address in each row; repeat with
+--    N'%:\/\/%\/api\/site-public\/files\/%' and N'\/api\/site-public\/files\/' for the escaped form, and on
+--    [AbpSettings].[Value] (WHERE [Name] LIKE N'Site.Branding.%').
+SELECT TOP 100 SUBSTRING([FlexFields], CHARINDEX(N'/api/site-public/files/', [FlexFields]) - 60, 83)
+FROM [SiteContents] WHERE [FlexFields] LIKE N'%://%/api/site-public/files/%';
+
+-- 2. Strip them. In the database holding Site's contents, with your hosts in @hosts (no trailing slash).
+--    In SQL Server a backslash is an ordinary character in a string literal.
+DECLARE @hosts TABLE ([Host] nvarchar(400));
+INSERT INTO @hosts VALUES (N'https://your-public-host'), (N'http://your-web-gateway');
+DECLARE @host nvarchar(400), @plain nvarchar(500), @escaped nvarchar(1000);
+DECLARE hosts CURSOR LOCAL FAST_FORWARD FOR SELECT [Host] FROM @hosts;
+OPEN hosts;
+FETCH NEXT FROM hosts INTO @host;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @plain = @host + N'/api/site-public/files/';
+    SET @escaped = REPLACE(@plain, N'/', N'\/');
+    UPDATE [SiteContents] SET [FlexFields] = REPLACE([FlexFields], @plain, N'/api/site-public/files/')
+        WHERE CHARINDEX(@plain, [FlexFields]) > 0;
+    UPDATE [SiteContents] SET [FlexFields] = REPLACE([FlexFields], @escaped, N'\/api\/site-public\/files\/')
+        WHERE CHARINDEX(@escaped, [FlexFields]) > 0;
+    FETCH NEXT FROM hosts INTO @host;
+END;
+CLOSE hosts;
+DEALLOCATE hosts;
+-- In the database holding AbpSettings, the same loop with these two UPDATEs instead:
+--  UPDATE [AbpSettings] SET [Value] = REPLACE([Value], @plain, N'/api/site-public/files/')
+--      WHERE [Name] LIKE N'Site.Branding.%' AND CHARINDEX(@plain, [Value]) > 0;
+--  UPDATE [AbpSettings] SET [Value] = REPLACE([Value], @escaped, N'\/api\/site-public\/files\/')
+--      WHERE [Name] LIKE N'Site.Branding.%' AND CHARINDEX(@escaped, [Value]) > 0;
+
+-- 3. Check: both should be 0, and every row still valid JSON.
+SELECT COUNT(*) FROM [SiteContents]
+WHERE [FlexFields] LIKE N'%://%/api/site-public/files/%' OR [FlexFields] LIKE N'%:\/\/%\/api\/site-public\/files\/%';
+SELECT COUNT(*) FROM [SiteContents] WHERE [FlexFields] IS NOT NULL AND ISJSON([FlexFields]) = 0;
+```
+
+  The migration's `Down` does nothing: the hosts are gone, and a relative address works on the earlier
+  version too. An address copied by hand outside these two places (a template, a theme setting) is not
+  rewritten; it keeps working as long as its host does.
+- **Public web app.** It has to serve `/api/site-public/files/{**}` on its own origin, since pages now
+  render the relative address. A host running Site in-process already does. A public web app that calls
+  Site through `Dignite.Site.Public.HttpApi.Client` (with `AbpHttpClientWebModule`) is answered by the
+  generated proxy controller, without `ETag` or `Cache-Control`; add a dependency on
+  `SitePublicHttpApiModule` (package `Dignite.Site.Public.HttpApi`) so its `FilePublicController` replaces
+  the proxy controller and serves the file with the caching headers, fetching it through the client proxy.
+  That module brings the other `site-public` controllers along, which replace their proxy controllers in
+  the same way.
+- **Gateway.** Unchanged: keep routing `GET`/`HEAD` `/api/site-public/files/{**}` to the service running
+  Site - the admin UI shows files from the `SiteAdmin` API's host.
+- **Primary domain.** `og:image` is now made absolute on `Site.PrimaryDomain`; check it is set to the public
+  site, as it already must be for canonical URLs.
+- **Angular host.** Bump `@dignite/ng.flex-fields` and `@dignite/ng.flex-fields-ckeditor` (and a
+  `resolutions` pin, if any) to `^10.0.0-rc.26`. Nothing else: `@dignite/ng.site` reads the `SiteAdmin`
+  entry it already needs in `environment.apis`, and `provideSite()` registers the CKEditor contributor.
 
 ## [0.1.0-preview.25] - 2026-10-10
 
