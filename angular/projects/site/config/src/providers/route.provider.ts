@@ -2,6 +2,7 @@ import { eLayoutType, RoutesService } from '@abp/ng.core';
 import { provideFlexFields } from '@dignite/ng.flex-fields';
 import {
   CKEDITOR_CONFIG_CONTRIBUTORS,
+  CKEDITOR_DISPLAY_CONTRIBUTORS,
   CKEDITOR_UPLOAD_PROVIDER,
   provideCKEditorFieldType,
 } from '@dignite/ng.flex-fields-ckeditor';
@@ -11,6 +12,7 @@ import {
   SEO_FIELD_TYPE,
   SiteCKEditorUploadProvider,
   siteCKEditorConfigContributor,
+  siteCKEditorDisplayContributor,
 } from '@dignite/ng.site';
 import {
   EnvironmentProviders,
@@ -92,6 +94,9 @@ const SITE_PROVIDERS: (EnvironmentProviders | Provider)[] = [
   // Those addresses are stored relative (/api/site-public/files/...); the editor shows them from the
   // SiteAdmin API's host, in its editing view only - getData(), and so what is saved, stays relative.
   { provide: CKEDITOR_CONFIG_CONTRIBUTORS, multi: true, useFactory: siteCKEditorConfigContributor },
+  // The read-only view (ff-ckeditor-view: a content list cell) has no editor to convert in, so its HTML gets
+  // the same host in front of those addresses before it is rendered; nothing is saved from there.
+  { provide: CKEDITOR_DISPLAY_CONTRIBUTORS, multi: true, useFactory: siteCKEditorDisplayContributor },
 ];
 
 export function provideSite() {

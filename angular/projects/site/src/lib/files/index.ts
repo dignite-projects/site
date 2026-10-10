@@ -10,6 +10,7 @@ export * from './previews/file-preview.component';
 export * from './previews/models';
 export * from './services/object-url.service';
 export * from './services/site-ckeditor-config-contributor';
+export * from './services/site-ckeditor-display-contributor';
 export * from './services/site-ckeditor-upload-provider';
 export * from './services/site-file-containers';
 export * from './services/site-file-url';
