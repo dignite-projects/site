@@ -26,7 +26,7 @@ namespace Dignite.FlexFields.Site.Seo;
 /// </para>
 /// <para>
 /// <b>Not indexable, deliberately</b> - same shape and same reasoning as FlexFields' own
-/// <c>FileExplorerFieldType</c>, whose value is likewise a composite object rather than a bare scalar or
+/// <c>FileFieldType</c>, whose value is likewise a composite object rather than a bare scalar or
 /// list of scalars. <c>noindex</c> does not need SQL-level querying: the sitemap generator that will
 /// consume it (#15) already has to enumerate every published content to emit its URLs, so checking a
 /// boolean while already iterating costs nothing - unlike an arbitrary filtered search, which is the case
@@ -34,8 +34,8 @@ namespace Dignite.FlexFields.Site.Seo;
 /// </para>
 /// <para>
 /// <b>The share image stays a URL string</b> (GitHub issue #72). The admin UI picks or uploads it from
-/// the <c>site-images</c> FileExplorer container and stores the file's address, but the stored value is
-/// still just that address - not a FileExplorer file descriptor - so an MCP client writes it the same way
+/// the <c>site-images</c> file container and stores the file's address, but the stored value is
+/// still just that address - not a file descriptor - so an MCP client writes it the same way
 /// it always has, and an external image address remains a valid value.
 /// </para>
 /// </summary>
@@ -127,7 +127,7 @@ public class SeoFieldType : FieldTypeBase, INormalizesValue, IHasValueShape
 
     /// <summary>
     /// Storage-shape-agnostic read, in the spirit of <c>FieldTypeBase.ReadStringList</c> and
-    /// <c>FileExplorerFieldType.HasAnyValue</c>: a fresh in-memory value is a live <see cref="SeoFieldValue"/>,
+    /// <c>FileFieldType.HasAnyValue</c>: a fresh in-memory value is a live <see cref="SeoFieldValue"/>,
     /// one that has round-tripped through JSON storage is a <see cref="JsonElement"/>. Anything else -
     /// a bare string, a number, a list - is not a shape this field type ever produces, so it fails rather
     /// than being coerced into something misleading.

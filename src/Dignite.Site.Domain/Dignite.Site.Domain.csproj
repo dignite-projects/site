@@ -21,8 +21,11 @@
     <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Domain\Dignite.Abp.FlexFields.Domain.csproj" />
     <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.CKEditor\Dignite.Abp.FlexFields.CKEditor.csproj" />
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.FileExplorer\Dignite.Abp.FlexFields.FileExplorer.csproj" />
-    <!-- Content/Seo field types (GitHub issue #49) - same bolt-on role as CKEditor/FileExplorer above,
+    <!-- The file library's upload pipeline: IFileStorer runs a container's handlers and stores the bytes;
+         FileDescriptorManager keeps only the descriptor rows on top of it. A library on ABP BlobStoring,
+         not a module with data of its own - the file library itself is Site's (Files/, Directories/). -->
+    <ProjectReference Include="..\..\..\abp-modules\file-storing\core\src\Dignite.Abp.FileStoring\Dignite.Abp.FileStoring.csproj" />
+    <!-- Content/Seo/file field types (GitHub issue #49) - same bolt-on role as CKEditor above,
          just living in this repo instead of abp-modules. Matrix/Table used to live here too, until
          flex-fields shipped them as kernel built-ins at 10.0.0-rc.16. -->
     <ProjectReference Include="..\Dignite.FlexFields.Site\Dignite.FlexFields.Site.csproj" />

@@ -3,6 +3,7 @@
   "texts": {
     "FieldType:Content": "内容引用",
     "FieldType:Seo": "SEO",
+    "FieldType:File": "文件",
     "Validate:Required": "{0} 字段要求必填！",
     "Validate:MinValue": "数值不能小于 {0}。",
     "Validate:MaxValue": "数值不能大于 {0}。",
@@ -16,7 +17,7 @@
     "Seo:MetaDescription": "Meta 描述",
     "Seo:OgImage": "分享图片",
     "Seo:OgImageHint": "在社交平台分享本页时显示，会裁剪为 1200 × 630。建议使用不小于该尺寸的图片。",
-    "Seo:OgImageValueHint": "在社交平台分享本页时显示的图片的绝对 URL。存放在 FileExplorer 中的图片输出为 og:image 时会裁剪为 1200x630。",
+    "Seo:OgImageValueHint": "在社交平台分享本页时显示的图片的绝对 URL。站点文件库中的图片输出为 og:image 时会裁剪为 1200x630。",
     "Seo:SelectOgImage": "选择或上传图片",
     "Seo:RemoveOgImage": "移除图片",
     "Seo:NoIndex": "不索引",
@@ -25,6 +26,9 @@
     "Seo:MetaTitleCharLimit": "Meta 标题字数上限",
     "Seo:MetaDescriptionCharLimit": "Meta 描述字数上限",
     "Seo:OverCharLimitHint": "已超出建议长度",
-    "Seo:CharLimitAdvisoryHint": "这两个上限只是参考，不是校验。搜索引擎对过长的标题或描述是截断而非拒绝，所以超出后仍可正常保存。"
+    "Seo:CharLimitAdvisoryHint": "这两个上限只是参考，不是校验。搜索引擎对过长的标题或描述是截断而非拒绝，所以超出后仍可正常保存。",
+    "File:FileContainerName": "文件容器",
+    "File:UploadFileMultiple": "允许多选文件",
+    "File:ContainerNotConfigured": "该字段尚未配置文件容器，请先在字段配置中设置容器后再使用。"
   }
 }

@@ -29,6 +29,16 @@
 
     "Site:060001": "'{Value}' は '{PropertyName}' の有効な値ではありません。",
 
+    "Site:070001": "この場所には '{DirectoryName}' という名前のディレクトリがすでにあります。",
+    "Site:070002": "ディレクトリが存在しません。",
+    "Site:070003": "ディレクトリを別のファイルコンテナのディレクトリへ移動することはできません。",
+    "Site:070004": "ディレクトリを自身またはそのサブディレクトリへ移動することはできません。",
+    "Site:070005": "このディレクトリにはまだサブディレクトリがあります。先に削除または移動してください。",
+    "Site:070006": "このディレクトリにはまだファイルがあります。先に削除または移動してください。",
+    "Site:070007": "ディレクトリはユーザーに属するため、この操作にはクライアント資格情報ではなくサインイン済みのユーザーが必要です。",
+    "Site:080001": "'{ContainerName}' はこのサイトのファイルコンテナではありません。",
+    "Site:080002": "指定された並べ替えはサポートされていません。",
+
     "DisplayName:Site.EnabledLanguages": "有効な言語",
     "Description:Site.EnabledLanguages": "このサイトが提供するカルチャ名をカンマ区切りで指定します（例: \"en,fr,zh-Hans\"）。先頭が既定の言語で、その URL には言語プレフィックスが付きません。それ以外は \"/{culture}/\" の下で提供されます。",
 
@@ -156,6 +166,33 @@
 
     "Enum:ContentStatus:Draft": "下書き",
     "Enum:ContentStatus:Published": "公開済み",
-    "Enum:ContentStatus:Archived": "アーカイブ済み"
+    "Enum:ContentStatus:Archived": "アーカイブ済み",
+
+    "Files:Files": "ファイル",
+    "Files:MyFiles": "マイファイル",
+    "Files:NewDirectory": "新しいディレクトリ",
+    "Files:DirectoryName": "ディレクトリ名",
+    "Files:DeletionConfirmationTitle": "削除の確認",
+    "Files:DeletionConfirmationMessage": "「{0}」を削除してもよろしいですか？この操作は取り消せません。",
+    "Files:BatchDeletionConfirmationTitle": "一括削除の確認",
+    "Files:BatchDeletionConfirmationMessage": "選択した {0} 件のファイルを削除してもよろしいですか？この操作は取り消せません。",
+    "Files:DeletedSuccessfully": "削除しました。",
+    "Files:SavedSuccessfully": "保存しました。",
+    "Files:FileName": "ファイル名",
+    "Files:FileSize": "ファイルサイズ",
+    "Files:CreationTime": "作成日時",
+    "Files:ExceedsMaximumSize": "ファイルサイズは {0} 以下にしてください。",
+    "Files:UploadFiles": "ファイルのアップロード",
+    "Files:Confirm": "OK",
+    "Files:Move": "移動",
+    "Files:MovedSuccessfully": "移動しました。",
+    "Files:MoveFailed": "移動に失敗しました。",
+    "Files:SelectFile": "ファイルを選択",
+    "Files:NoFileSelected": "ファイルが選択されていません。",
+    "Files:ContainerNotConfigured": "ファイルコンテナが設定されていません。",
+    "Files:RowNumber": "番号",
+    "Files:DragFileNameToReorder": "ファイル名をドラッグして並べ替え",
+    "Files:ItemsFailedToDelete": "{0} 件を削除できませんでした。",
+    "Files:Delete": "削除"
   }
 }

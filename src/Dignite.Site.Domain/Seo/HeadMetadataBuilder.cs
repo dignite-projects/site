@@ -253,8 +253,9 @@ public class HeadMetadataBuilder : DomainService
     /// description, an image cannot be reasonably guessed from an arbitrary other field, so leaving it
     /// unset simply omits <c>og:image</c> rather than inventing a placeholder.
     /// <para>
-    /// A FileExplorer image is asked for at <see cref="OpenGraphConsts"/>' size (GitHub issue #72) - the
-    /// field stores the original upload, and FileExplorer crops it on request. An external address is
+    /// An image from the site's file library is asked for at <see cref="OpenGraphConsts"/>' size (GitHub
+    /// issue #72) - the field stores the original upload, and the public read endpoint crops it on request
+    /// (<see cref="SiteFileUrl"/>). An external address is
     /// returned as written: nothing here can resize it.
     /// </para>
     /// </summary>
@@ -270,7 +271,7 @@ public class HeadMetadataBuilder : DomainService
             var value = content.GetField(seoField.Name, new SeoFieldValue()).OgImage;
             return string.IsNullOrWhiteSpace(value)
                 ? null
-                : FileExplorerImageUrl.Sized(value, OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight);
+                : SiteFileUrl.Sized(value, OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight);
         }
         catch (Exception ex)
         {

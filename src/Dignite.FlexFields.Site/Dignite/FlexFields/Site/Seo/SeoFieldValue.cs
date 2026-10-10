@@ -27,8 +27,8 @@ public class SeoFieldValue
 
     /// <summary>
     /// Absolute image URL for social sharing. The admin UI fills it with the address of a file picked from
-    /// the <c>site-images</c> FileExplorer container; any absolute image URL is equally valid (see
-    /// <c>SeoFieldType</c>'s remarks). A FileExplorer image is emitted as <c>og:image</c> cropped to 1200x630.
+    /// the <c>site-images</c> file container; any absolute image URL is equally valid (see
+    /// <c>SeoFieldType</c>'s remarks). An image from the site's file library is emitted as <c>og:image</c> cropped to 1200x630.
     /// </summary>
     public string? OgImage { get; set; }
 

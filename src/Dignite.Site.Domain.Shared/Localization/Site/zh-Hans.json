@@ -25,6 +25,16 @@
 
     "Site:060001": "'{PropertyName}' 的值 '{Value}' 格式不合法。",
 
+    "Site:070001": "此处已有名为 '{DirectoryName}' 的目录。",
+    "Site:070002": "目录不存在。",
+    "Site:070003": "不能把目录移动到另一个文件容器的目录下。",
+    "Site:070004": "不能把目录移动到它自身或它的子目录下。",
+    "Site:070005": "该目录下仍有子目录，请先删除或移走。",
+    "Site:070006": "该目录下仍有文件，请先删除或移走。",
+    "Site:070007": "目录归属于用户，此操作需要已登录的用户，不能使用客户端凭据。",
+    "Site:080001": "'{ContainerName}' 不是本站点的文件容器。",
+    "Site:080002": "不支持请求的排序方式。",
+
     "Feature:Site": "Site",
     "Feature:Site.Enable": "启用 Site",
     "Feature:Site.Enable:Description": "该租户是否可以使用 Site 的管理功能：管理后台、管理 API 和 MCP 工具。已发布的站点无论开关都照常对外访问。",
@@ -123,6 +133,33 @@
 
     "Enum:ContentStatus:Draft": "草稿",
     "Enum:ContentStatus:Published": "发布",
-    "Enum:ContentStatus:Archived": "已归档"
+    "Enum:ContentStatus:Archived": "已归档",
+
+    "Files:Files": "文件",
+    "Files:MyFiles": "我的文件",
+    "Files:NewDirectory": "新建目录",
+    "Files:DirectoryName": "目录名",
+    "Files:DeletionConfirmationTitle": "确认删除",
+    "Files:DeletionConfirmationMessage": "确定要删除“{0}”吗？此操作不可撤销。",
+    "Files:BatchDeletionConfirmationTitle": "确认批量删除",
+    "Files:BatchDeletionConfirmationMessage": "确定要删除选中的 {0} 个文件吗？此操作不可撤销。",
+    "Files:DeletedSuccessfully": "已删除。",
+    "Files:SavedSuccessfully": "已保存。",
+    "Files:FileName": "文件名",
+    "Files:FileSize": "文件大小",
+    "Files:CreationTime": "创建时间",
+    "Files:ExceedsMaximumSize": "文件大小不能超过 {0}。",
+    "Files:UploadFiles": "上传文件",
+    "Files:Confirm": "确定",
+    "Files:Move": "移动",
+    "Files:MovedSuccessfully": "已移动。",
+    "Files:MoveFailed": "移动失败。",
+    "Files:SelectFile": "选择文件",
+    "Files:NoFileSelected": "尚未选择文件。",
+    "Files:ContainerNotConfigured": "尚未配置文件容器。",
+    "Files:RowNumber": "序号",
+    "Files:DragFileNameToReorder": "拖拽文件名可调整顺序",
+    "Files:ItemsFailedToDelete": "{0} 个项目删除失败。",
+    "Files:Delete": "删除"
   }
 }

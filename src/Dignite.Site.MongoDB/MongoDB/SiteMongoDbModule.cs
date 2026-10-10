@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Dignite.Site.Directories;
+using Dignite.Site.Files;
+using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Modularity;
 using Volo.Abp.MongoDB;
 
@@ -15,10 +17,9 @@ public class SiteMongoDbModule : AbpModule
         context.Services.AddMongoDbContext<SiteMongoDbContext>(options =>
         {
             options.AddDefaultRepositories<ISiteMongoDbContext>();
-            
-            /* Add custom repositories here. Example:
-             * options.AddRepository<Question, MongoQuestionRepository>();
-             */
+
+            options.AddRepository<FileDescriptor, MongoFileDescriptorRepository>();
+            options.AddRepository<DirectoryDescriptor, MongoDirectoryDescriptorRepository>();
         });
     }
 }

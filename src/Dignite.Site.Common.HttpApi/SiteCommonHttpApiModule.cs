@@ -1,5 +1,4 @@
 ﻿using Localization.Resources.AbpUi;
-using Dignite.FileExplorer;
 using Dignite.Site.Localization;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Localization;
@@ -10,9 +9,7 @@ namespace Dignite.Site.Common;
 
 [DependsOn(
     typeof(SiteCommonApplicationContractsModule),
-    typeof(AbpAspNetCoreMvcModule),
-    // Dignite.FileExplorer's own controllers under api/file-explorer/* (GitHub issue #41's follow-up).
-    typeof(FileExplorerHttpApiModule))]
+    typeof(AbpAspNetCoreMvcModule))]
 public class SiteCommonHttpApiModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)

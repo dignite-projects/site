@@ -1,6 +1,6 @@
+using Dignite.Abp.FileStoring;
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.CKEditor;
-using Dignite.Abp.FlexFields.FileExplorer;
 using Dignite.FlexFields.Site;
 using Volo.Abp.Domain;
 using Volo.Abp.Features;
@@ -20,15 +20,14 @@ namespace Dignite.Site;
     // The CKEditor field type (registration name "CKEditor") - self-registers as IFieldType via DI once
     // referenced, same mechanism as the six built-in types and Site's own SeoFieldType (GitHub issue #43).
     typeof(FlexFieldsCKEditorModule),
-    // The FileExplorer field type (registration name "FileExplorer") - same self-registering mechanism.
-    // Its FileContainerName has to name a container the host actually configured (GitHub issue #41
-    // stood up SiteFileContainerNames.Default); unlike CKEditor this field type is unusable until that
-    // exists, which is why #41 had to land first (GitHub issue #42).
-    typeof(FlexFieldsFileExplorerModule),
-    // The Content and Seo field types (registration names "Content"/"Seo") - same self-registering
-    // mechanism, but living in this repo rather than abp-modules (GitHub issue #49). Matrix and Table
-    // used to live here too, until flex-fields shipped them as kernel built-ins at 10.0.0-rc.16.
+    // The Content, Seo and file field types (FileFieldType keeps the registration key it had in
+    // abp-modules) - same self-registering mechanism, but living in this repo (GitHub issue #49). A file
+    // field's FileContainerName names one of SiteFileContainerNames (GitHub issue #42).
+    // Matrix and Table used to live here too, until flex-fields shipped them as kernel built-ins at
+    // 10.0.0-rc.16.
     typeof(FlexFieldsSiteModule),
+    // IFileStorer - the upload pipeline the file library (Files/, Directories/) stores bytes through.
+    typeof(DigniteAbpFileStoringModule),
     // IBrandingProvider, for JSON-LD's Organization/WebSite name and logo (GitHub issue #20).
     typeof(AbpUiModule)
 )]

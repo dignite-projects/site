@@ -29,6 +29,16 @@
 
     "Site:060001": "'{Value}' is not a valid value for '{PropertyName}'.",
 
+    "Site:070001": "A directory named '{DirectoryName}' already exists here.",
+    "Site:070002": "The directory does not exist.",
+    "Site:070003": "A directory cannot be moved into a directory of another file container.",
+    "Site:070004": "A directory cannot be moved into itself or one of its own subdirectories.",
+    "Site:070005": "The directory still has subdirectories; delete or move them first.",
+    "Site:070006": "The directory still has files; delete or move them first.",
+    "Site:070007": "Directories belong to a user, so this needs a signed-in user rather than a client credential.",
+    "Site:080001": "'{ContainerName}' is not one of this site's file containers.",
+    "Site:080002": "The requested sorting is not supported.",
+
     "DisplayName:Site.EnabledLanguages": "Enabled languages",
     "Description:Site.EnabledLanguages": "Comma-separated culture names (e.g. \"en,fr,zh-Hans\") this site serves. The first one is the default language: its URLs carry no language prefix, while the others are served under \"/{culture}/\".",
 
@@ -156,6 +166,33 @@
 
     "Enum:ContentStatus:Draft": "Draft",
     "Enum:ContentStatus:Published": "Published",
-    "Enum:ContentStatus:Archived": "Archived"
+    "Enum:ContentStatus:Archived": "Archived",
+
+    "Files:Files": "Files",
+    "Files:MyFiles": "My files",
+    "Files:NewDirectory": "New directory",
+    "Files:DirectoryName": "Directory name",
+    "Files:DeletionConfirmationTitle": "Confirm deletion",
+    "Files:DeletionConfirmationMessage": "Are you sure you want to delete \"{0}\"? This cannot be undone.",
+    "Files:BatchDeletionConfirmationTitle": "Confirm bulk deletion",
+    "Files:BatchDeletionConfirmationMessage": "Are you sure you want to delete the {0} selected files? This cannot be undone.",
+    "Files:DeletedSuccessfully": "Deleted.",
+    "Files:SavedSuccessfully": "Saved.",
+    "Files:FileName": "File name",
+    "Files:FileSize": "File size",
+    "Files:CreationTime": "Created",
+    "Files:ExceedsMaximumSize": "A file cannot be larger than {0}.",
+    "Files:UploadFiles": "Upload files",
+    "Files:Confirm": "OK",
+    "Files:Move": "Move",
+    "Files:MovedSuccessfully": "Moved.",
+    "Files:MoveFailed": "Move failed.",
+    "Files:SelectFile": "Select file",
+    "Files:NoFileSelected": "No file selected.",
+    "Files:ContainerNotConfigured": "No file container configured.",
+    "Files:RowNumber": "#",
+    "Files:DragFileNameToReorder": "Drag a file name to reorder",
+    "Files:ItemsFailedToDelete": "{0} item(s) could not be deleted.",
+    "Files:Delete": "Delete"
   }
 }

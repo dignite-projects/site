@@ -7,8 +7,8 @@ using Volo.Abp.VirtualFileSystem;
 namespace Dignite.FlexFields.Site;
 
 /// <summary>
-/// Bolt-on module for Site's Content and Seo field types - same role as
-/// <c>Dignite.Abp.FlexFields.FileExplorer</c>'s own module: each field type self-registers as
+/// Bolt-on module for Site's Content, Seo and file field types - same role as
+/// <c>Dignite.Abp.FlexFields.CKEditor</c>'s own module: each field type self-registers as
 /// <c>IFieldType</c> via <c>ITransientDependency</c> the moment this assembly is scanned, so all this
 /// module does is make that scan happen (<c>SiteDomainModule</c> depends on it) and register this
 /// project's own localization resource.
