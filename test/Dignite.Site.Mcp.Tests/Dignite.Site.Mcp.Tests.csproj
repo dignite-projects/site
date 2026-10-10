@@ -9,9 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Pure reflection over MCP tool methods and the DTOs they construct - no ABP host, no DI container,
-         no mocking, so none of TestBase's Autofac/TestBase machinery is needed here. -->
+    <!-- Reflection over MCP tool methods and the DTOs they construct, plus the file tools against
+         substituted application services - no ABP host, so none of TestBase's Autofac/TestBase machinery
+         is needed here. -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />

@@ -1,18 +1,14 @@
-using System;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using Dignite.Abp.FileStoring;
-using Dignite.FileExplorer.Files;
+using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using Volo.Abp;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.BlobStoring.FileSystem;
-using Volo.Abp.Content;
 using Xunit;
 
 namespace Dignite.Site.Files;
@@ -23,12 +19,10 @@ namespace Dignite.Site.Files;
 /// policy, and the provider assertion proves the host's <c>Containers.Configure</c> call merged onto it
 /// rather than replacing it.
 /// <para>
-/// The permission assertions are plain configuration reads, not authorization-behaviour tests:
-/// <c>SiteTestBaseModule.AddAlwaysAllowAuthorization</c> makes every permission check in this suite
-/// succeed, so a live call could not tell a wrong permission name from a right one. Whether the names
-/// actually gate FileDescriptorAppService is FileExplorer's own mechanism, covered by that repo's
-/// <c>FileDescriptorAuthorizationHandler_Tests</c>. The type checks, in contrast, are exercised for real
-/// through <see cref="FileDescriptorManager"/>.
+/// The permission assertions are configuration reads: <c>SiteTestBaseModule.AddAlwaysAllowAuthorization</c>
+/// makes every permission check in this suite succeed, so a live call could not tell a wrong permission name
+/// from a right one - <c>FileDescriptorAuthorizationHandler_Tests</c> covers what the names do. The type
+/// checks, in contrast, run for real through <see cref="FileDescriptorManager"/> and <c>IFileStorer</c>.
 /// </para>
 /// </summary>
 public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
@@ -51,15 +45,14 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
         var authorization = configuration.GetAuthorizationConfiguration();
 
         authorization.CreateFilePermissionName.ShouldBe(SiteAdminPermissions.Contents.Create);
-        // Set explicitly - FileExplorer's default for unset is "creator only", which would stop one editor
-        // from replacing or removing another editor's file.
+        // Set explicitly - the default for unset is "creator only", which would stop one editor from
+        // replacing or removing another editor's file.
         authorization.UpdateFilePermissionName.ShouldBe(SiteAdminPermissions.Contents.Update);
         authorization.DeleteFilePermissionName.ShouldBe(SiteAdminPermissions.Contents.Delete);
-        // Set explicitly - FileExplorer's default for unset is "nobody may create a directory".
+        // Set explicitly - the default for unset is "nobody may create a directory".
         authorization.CreateDirectoryPermissionName.ShouldBe(SiteAdminPermissions.Contents.Create);
 
-        // Unset, not locked down: a published content's files must load for anonymous site visitors
-        // (FileDescriptorAuthorizationHandler's own default for unset is "everyone may read").
+        // Unset, not locked down: a published content's files load for anonymous site visitors.
         authorization.GetFilePermissionName.ShouldBeNull();
 
         configuration.ProviderType.ShouldBe(typeof(FileSystemBlobProvider));
@@ -81,7 +74,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     [InlineData(SiteFileContainerNames.Default, "report.pdf")]
     public async Task Allowed_File_Type_Is_Stored(string containerName, string fileName)
     {
-        var descriptor = await UploadAsync(containerName, fileName);
+        var descriptor = await UploadAsync(containerName, fileName, TestFiles.For(fileName));
 
         descriptor.ContainerName.ShouldBe(containerName);
     }
@@ -96,71 +89,54 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     [InlineData(SiteFileContainerNames.Images, "report.pdf")]
     public async Task Disallowed_File_Type_Is_Rejected(string containerName, string fileName)
     {
-        var exception = await Should.ThrowAsync<BusinessException>(() => UploadAsync(containerName, fileName));
+        var exception = await Should.ThrowAsync<BusinessException>(() => UploadAsync(containerName, fileName, TestFiles.For(fileName)));
 
         exception.Code.ShouldBe(FileErrorCodes.Files.InvalidImageType);
+    }
+
+    /// <summary>The type comes from the bytes: text named <c>.png</c> is not let in as an image.</summary>
+    [Fact]
+    public async Task Content_That_Contradicts_Its_Extension_Is_Rejected()
+    {
+        var exception = await Should.ThrowAsync<BusinessException>(() =>
+            UploadAsync(SiteFileContainerNames.Images, "photo.png", TestFiles.Text("not a picture")));
+
+        exception.Code.ShouldBe(FileErrorCodes.Files.ContentTypeMismatch);
     }
 
     [Fact]
     public async Task Image_Wider_Than_The_Images_Container_Limit_Is_Scaled_Down_On_Upload()
     {
-        var descriptor = await UploadAsync(SiteFileContainerNames.Images, "banner.jpg", CreateJpeg(3000, 1000));
+        var descriptor = await UploadAsync(SiteFileContainerNames.Images, "banner.jpg", TestFiles.Jpeg(3000, 1000));
 
-        var stored = await WithUnitOfWorkAsync(() => _fileDescriptorManager.GetStreamOrNullAsync(
-            SiteFileContainerNames.Images, descriptor.BlobName));
+        var stored = await WithUnitOfWorkAsync(() => _fileDescriptorManager.GetStreamOrNullAsync(descriptor));
         var info = await Image.IdentifyAsync(stored!);
 
         info.Width.ShouldBe(1920);
         info.Height.ShouldBe(640); // aspect ratio kept
+        descriptor.MimeType.ShouldBe("image/jpeg");
     }
 
     [Fact]
     public async Task Resize_Handler_Leaves_Non_Image_Files_Untouched()
     {
-        var bytes = Encoding.ASCII.GetBytes("%PDF-1.4 not really a pdf, but not an image either");
+        var bytes = TestFiles.Pdf();
 
         var descriptor = await UploadAsync(SiteFileContainerNames.Default, "report.pdf", bytes);
 
-        var stored = await WithUnitOfWorkAsync(() => _fileDescriptorManager.GetStreamOrNullAsync(
-            SiteFileContainerNames.Default, descriptor.BlobName));
+        var stored = await WithUnitOfWorkAsync(() => _fileDescriptorManager.GetStreamOrNullAsync(descriptor));
         using var readBack = new MemoryStream();
         await stored!.CopyToAsync(readBack);
         readBack.ToArray().ShouldBe(bytes);
+        descriptor.MimeType.ShouldBe("application/pdf");
     }
 
-    private Task<FileDescriptor> UploadAsync(string containerName, string fileName, byte[]? bytes = null)
+    private Task<FileDescriptor> UploadAsync(string containerName, string fileName, byte[] bytes)
     {
         return WithUnitOfWorkAsync(async () =>
         {
-            using var stream = new MemoryStream(bytes ?? Encoding.UTF8.GetBytes("policy test"));
-            var content = new RemoteStreamContent(stream, fileName, "application/octet-stream");
-
-            return await _fileDescriptorManager.CreateAsync(
-                containerName, content, cellName: null, directoryId: null, entityId: null);
+            using var stream = new MemoryStream(bytes);
+            return await _fileDescriptorManager.CreateAsync(containerName, fileName, stream);
         });
-    }
-
-    /// <summary>
-    /// Noise rather than a flat colour: a flat image compresses so well that it trips ImageResizeHandler's
-    /// decompression-ratio guard (pixels per stored byte) before any resizing happens.
-    /// </summary>
-    private static byte[] CreateJpeg(int width, int height)
-    {
-        var random = new Random(42);
-        using var image = new Image<Rgb24>(width, height);
-        image.ProcessPixelRows(rows =>
-        {
-            for (var y = 0; y < rows.Height; y++)
-            {
-                foreach (ref var pixel in rows.GetRowSpan(y))
-                {
-                    pixel = new Rgb24((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
-                }
-            }
-        });
-
-        using var output = new MemoryStream();
-        image.SaveAsJpeg(output);
-        return output.ToArray();
     }
 }
