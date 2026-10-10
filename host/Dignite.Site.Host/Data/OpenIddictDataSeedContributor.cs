@@ -202,9 +202,9 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
         //
         // It is seeded with NO permissions on purpose, so out of the box every Admin tool refuses it and
         // its tools/list is reduced to the tools that carry no permission of their own: site_resolve_path,
-        // which reads published content only, i.e. what any visitor can already see, and the
-        // file_explorer_* tools, whose permissions are per container and checked when called (Site's
-        // containers require the Contents permissions to write, so they refuse it too). A client-credentials
+        // which reads published content only, i.e. what any visitor can already see, and the file tools,
+        // whose permissions are per container and checked when called (Site's containers require the
+        // Contents permissions to write, so they refuse it too). A client-credentials
         // token carries no user, so ABP resolves its permissions from the client grant instead - an
         // operator grants exactly what a given deployment's automation needs (provider name "C", provider
         // key = this client id). Seeding Admin.* here would hand full authoring rights to a client whose

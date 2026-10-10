@@ -72,8 +72,6 @@ using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Dignite.Site.Public;
 using Dignite.Abp.AspNetCore.Mcp;
-using Dignite.FileExplorer;
-using Dignite.FileExplorer.Mcp;
 
 using Microsoft.Extensions.Hosting;
 
@@ -158,18 +156,9 @@ namespace Dignite.Site.Host;
     // maps an HTTP endpoint - it needs a host with a pipeline, and it needs to sit behind the same
     // authentication, multi-tenancy and unit-of-work middleware everything else here does. SiteMcpModule
     // only contributes the site_* tools; the server itself (transport, /mcp, filters) comes with it from
-    // Dignite.Abp.AspNetCore.Mcp, and is configured for this deployment in ConfigureMcp.
-    typeof(SiteMcpModule),
-
-    // FileExplorer's file_explorer_* tools on the same /mcp server, so a client can upload an image and
-    // then reference its url from a content field. Deliberately a host decision rather than a SiteMcpModule
-    // dependency: Site's MCP surface does not need files to work, and which containers an AI client may
-    // touch is set per deployment (ConfigureMcp).
-    typeof(FileExplorerMcpModule)
-
-    // Dignite.FileExplorer's own Application + HttpApi (GitHub issue #41's follow-up) reach this Host
-    // transitively through SiteApplicationModule/SiteHttpApiModule -> Admin/Public -> CommonApplication/
-    // CommonHttpApi, the same as FlexFields does - no direct dependency needed here.
+    // Dignite.Abp.AspNetCore.Mcp, and is configured for this deployment in ConfigureMcp. Its site_* tools
+    // include the file library's (both Site containers by default - SiteMcpFileOptions).
+    typeof(SiteMcpModule)
 )]
 public class SiteHostModule : AbpModule
 {
@@ -274,26 +263,13 @@ public class SiteHostModule : AbpModule
 
     /// <summary>
     /// This deployment's settings for the application's MCP server - the server is shared by every
-    /// module that contributes tools (site_*, file_explorer_*), so its identity and reach are the host's to
-    /// set, not any one module's.
+    /// module that contributes tools, so its identity and reach are the host's to set, not any one module's.
     /// </summary>
     private void ConfigureMcp()
     {
         Configure<AbpMcpServerOptions>(options =>
         {
             options.ServerName = "Dignite.Site";
-        });
-
-        // Which file containers an AI client may use. Both of Site's: the same containers its content
-        // fields point at, with the same per-container permissions (SiteAdminApplicationModule) applying
-        // to an MCP upload as to one from the admin UI.
-        Configure<FileExplorerMcpOptions>(options =>
-        {
-            options.Containers
-                .Add(SiteFileContainerNames.Images,
-                    "Pictures for site content (raster images only, no SVG). Use this for any image a content field will show.")
-                .Add(SiteFileContainerNames.Default,
-                    "General attachments for site content - documents and images that are downloaded rather than shown.");
         });
     }
 
@@ -302,7 +278,7 @@ public class SiteHostModule : AbpModule
     /// filesystem for dev. Only the provider - each container's policy (types, size, permissions) comes
     /// from SiteAdminApplicationModule, and <c>Containers.Configure</c> merges this onto it. Production
     /// provider (Azure/S3/other) is still an open decision (#41) - swapping it later only touches this
-    /// method, since FileDescriptorManager/DirectoryManager address blobs by container name, never by
+    /// method, since IFileStorer and FileDescriptorManager address blobs by container name, never by
     /// provider.
     /// </summary>
     private void ConfigureBlobStoring(IHostEnvironment hostingEnvironment)
@@ -313,7 +289,7 @@ public class SiteHostModule : AbpModule
             // under its own name-derived subdirectory.
             var basePath = Path.Combine(hostingEnvironment.ContentRootPath, "App_Data", "files");
 
-            foreach (var containerName in new[] { SiteFileContainerNames.Default, SiteFileContainerNames.Images })
+            foreach (var containerName in SiteFileContainerNames.All)
             {
                 options.Containers.Configure(containerName, container =>
                 {
