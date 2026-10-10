@@ -124,7 +124,7 @@ public class HeadMetadataBuilder : DomainService
             description = summary.Summary;
 
             contentNoIndex = NoIndexRecognizer.IsNoIndex(content, seoField);
-            ogImageUrl = ReadOgImage(content, seoField);
+            ogImageUrl = ReadOgImage(content, seoField, context);
         }
         else
         {
@@ -147,7 +147,7 @@ public class HeadMetadataBuilder : DomainService
                 description = summary.Summary;
 
                 contentNoIndex = NoIndexRecognizer.IsNoIndex(pageContent, seoField);
-                ogImageUrl = ReadOgImage(pageContent, seoField);
+                ogImageUrl = ReadOgImage(pageContent, seoField, context);
             }
 
             // A declared filtered view is indexable, so it needs a title of its own - every category and
@@ -258,8 +258,13 @@ public class HeadMetadataBuilder : DomainService
     /// (<see cref="SiteFileUrl"/>). An external address is
     /// returned as written: nothing here can resize it.
     /// </para>
+    /// <para>
+    /// <c>og:image</c> has to be absolute, and a file-library address is stored relative, so a relative value
+    /// is put on the site's primary domain (<see cref="SiteUrlContext.BaseUrl"/>, the same origin as the
+    /// canonical URL) - the public site serves <c>/api/site-public/files/</c> itself.
+    /// </para>
     /// </summary>
-    protected virtual string? ReadOgImage(Content content, Field? seoField)
+    protected virtual string? ReadOgImage(Content content, Field? seoField, SiteUrlContext context)
     {
         if (seoField == null)
         {
@@ -271,7 +276,9 @@ public class HeadMetadataBuilder : DomainService
             var value = content.GetField(seoField.Name, new SeoFieldValue()).OgImage;
             return string.IsNullOrWhiteSpace(value)
                 ? null
-                : SiteFileUrl.Sized(value, OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight);
+                : SiteFileUrl.Absolutize(
+                    SiteFileUrl.Sized(value, OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight),
+                    context.BaseUrl);
         }
         catch (Exception ex)
         {

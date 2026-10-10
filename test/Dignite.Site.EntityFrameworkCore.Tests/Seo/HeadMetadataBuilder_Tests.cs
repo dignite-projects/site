@@ -371,6 +371,33 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// A file-library address is stored relative (<c>SiteFileUrl.Build</c>), and <c>og:image</c> has to be
+    /// absolute: it is put on the site's primary domain - the same origin as the canonical URL - and sized.
+    /// </summary>
+    [Fact]
+    public async Task OgImageUrl_Should_Put_A_Relative_Address_On_The_Primary_Domain()
+    {
+        var contentTypeId = await CreateSeoEnabledContentTypeAsync();
+        var slug = $"og-image-{Guid.NewGuid():N}";
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, slug, SiteTestData.PublishTime, ContentStatus.Published,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "Has a relative image",
+                [SeoFieldNames.FieldName] = new SeoFieldValue
+                {
+                    OgImage = "/api/site-public/files/site-images/share.jpg?__tenant="
+                }
+            }));
+
+        var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
+
+        metadata.OgImageUrl.ShouldBe(
+            $"{BaseUrl}/api/site-public/files/site-images/share.jpg?__tenant=&Width=1200&Height=630");
+    }
+
+    /// <summary>
     /// A cleared-but-not-removed value: an author fills in og:image, then deletes the text, leaving an
     /// empty string rather than a null. <c>SeoFieldType.Validate</c> requires nothing inside the bundle, so
     /// this reaches storage - and must be treated the same as unset, matching

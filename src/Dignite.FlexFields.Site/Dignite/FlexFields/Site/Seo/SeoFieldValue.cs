@@ -26,9 +26,10 @@ public class SeoFieldValue
     public string? MetaDescription { get; set; }
 
     /// <summary>
-    /// Absolute image URL for social sharing. The admin UI fills it with the address of a file picked from
+    /// Image URL for social sharing. The admin UI fills it with the relative address of a file picked from
     /// the <c>site-images</c> file container; any absolute image URL is equally valid (see
-    /// <c>SeoFieldType</c>'s remarks). An image from the site's file library is emitted as <c>og:image</c> cropped to 1200x630.
+    /// <c>SeoFieldType</c>'s remarks). A relative address is made absolute on the site's primary domain, and
+    /// an image from the site's file library is cropped to 1200x630, when emitted as <c>og:image</c>.
     /// </summary>
     public string? OgImage { get; set; }
 

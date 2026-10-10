@@ -14,9 +14,10 @@ export interface SeoFieldValue {
   metaDescription?: string;
 
   /**
-   * Absolute image URL for social sharing. The admin UI fills it with the `url` of a file picked from the
-   * `site-images` file container; any absolute image URL is equally valid (an MCP client may
-   * write one). An image from the site's file library is emitted as `og:image` cropped to 1200x630.
+   * Image URL for social sharing. The admin UI fills it with the (relative) `url` of a file picked from the
+   * `site-images` file container; any absolute image URL is equally valid (an MCP client may write one).
+   * When emitted as `og:image` a relative address is put on the site's primary domain, and an image from the
+   * site's file library is cropped to 1200x630.
    */
   ogImage?: string;
 
