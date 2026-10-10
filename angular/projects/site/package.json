@@ -4,8 +4,8 @@
   "dependencies": {
     "@abp/ng.components": "~10.5.0",
     "@angular/cdk": "^21.2.0",
-    "@dignite/ng.flex-fields": "^10.0.0-rc.25",
-    "@dignite/ng.flex-fields-ckeditor": "^10.0.0-rc.25",
+    "@dignite/ng.flex-fields": "^10.0.0-rc.26",
+    "@dignite/ng.flex-fields-ckeditor": "^10.0.0-rc.26",
     "ng-zorro-antd": "~21.0.2",
     "tslib": "^2.1.0"
   },
