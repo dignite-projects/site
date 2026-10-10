@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.25] - 2026-10-10
+
 ### Changed
 
 - **Breaking: the file library is Site's own; Dignite.FileExplorer is gone.** abp-modules `10.0.0-rc.25`
@@ -1322,4 +1324,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.24...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.25...HEAD
