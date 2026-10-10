@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.26] - 2026-10-10
+
 ### Changed
 
 - **Breaking: Site file addresses are relative; no host is stored any more.** `FileDescriptorDto.Url` - what
@@ -1438,4 +1440,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.25...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.26...HEAD
