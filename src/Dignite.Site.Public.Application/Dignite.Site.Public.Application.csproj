@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Volo.Abp.Mapperly" Version="10.5.0" />
-    <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Mapperly" Version="10.7.0" />
+    <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.7.0" />
     <!-- The generated site documents (总体设计 §8.3). Sitemap sharding/index XML, RSS+Atom, and JSON Feed
          are all solved problems with maintained MIT libraries; only the glue that feeds them URLs,
          timestamps and titles is written here. -->
@@ -19,15 +19,18 @@
     <PackageReference Include="JsonFeed.NET" Version="2.0.0" />
     <!-- Meta/OG/Twitter tag decisions - GitHub issue #13. Referenced directly rather than through
          Dignite.Abp.Seo: that wrapper module drags in Volo.Abp.AspNetCore.Mvc.UI and is built against ABP
-         8.3.1 against this solution's 10.5.0, for no benefit here since only the plain POCO types
+         8.3.1 against this solution's 10.7.0, for no benefit here since only the plain POCO types
          (SeoInfo, ArticleInfo, ...) are used, never the IHtmlHelper rendering extensions. -->
     <PackageReference Include="SeoTags" Version="2.0.3" />
     <ProjectReference Include="..\Dignite.Site.Public.Application.Contracts\Dignite.Site.Public.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application\Dignite.Site.Common.Application.csproj" />
-    <!-- The public read endpoint's on-request resize (FilePublicAppService): ABP Imaging's ImageSharp
-         resizer, and the imaging error codes the upload pipeline already uses for the same limits. -->
-    <ProjectReference Include="..\..\..\abp-modules\file-storing\core\src\Dignite.Abp.FileStoring.Imaging\Dignite.Abp.FileStoring.Imaging.csproj" />
+    <!-- The public read endpoint's on-request resize (FilePublicAppService): the imaging error codes (and
+         their localization) the upload contributors already use for the same limits... -->
+    <PackageReference Include="Dignite.Abp.BlobStoring.Imaging" Version="$(DigniteAbpModulesVersion)" />
+    <!-- ...and the IImageResizer behind it - the same provider Admin.Application uses for uploads (see the
+         comment there for why SkiaSharp). -->
+    <PackageReference Include="Volo.Abp.Imaging.SkiaSharp" Version="10.7.0" />
   </ItemGroup>
 
 </Project>

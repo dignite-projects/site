@@ -12,7 +12,7 @@ import {
   ThemeSharedModule,
   ToasterService,
 } from '@abp/ng.theme.shared';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FlexFieldSearchComponent, FlexFieldViewComponent } from '@dignite/ng.flex-fields';
@@ -39,6 +39,7 @@ import { PageTreeSelectComponent } from './page-tree-select.component';
 
 @Component({
   selector: 'site-contents',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './contents.component.html',
   imports: [
     CoreModule,

@@ -30,6 +30,19 @@ Site has its own file library - the images and attachments content fields use, u
 
 ## Getting started
 
+Install the .NET 10 SDK, then restore and build from the repository root:
+
+```sh
+dotnet restore Dignite.Site.slnx
+dotnet build Dignite.Site.slnx --no-restore --configuration Release
+```
+
+The .NET dependencies from [abp-modules](https://github.com/dignite-projects/abp-modules)
+(FlexFields, BLOB storage and the MCP server) are NuGet packages from nuget.org, pinned to
+`10.0.0-rc.29` by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
+checkout or package registry credentials are needed. Local builds, PR CI and release builds
+use the same package references. See [angular/README.md](angular/README.md) for the admin UI setup.
+
 This is an [ABP Framework](https://abp.io) solution. See the [ABP documentation](https://docs.abp.io) for general setup, and `host/Dignite.Site.Host/migrate-database.ps1` for database migration.
 
 ## License

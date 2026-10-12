@@ -1,5 +1,5 @@
 import { CoreModule } from '@abp/ng.core';
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -34,6 +34,7 @@ import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-
  */
 @Component({
   selector: 'site-seo-control',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './seo-control.component.html',
   imports: [CoreModule, ReactiveFormsModule, FileModalComponent, FilePreviewComponent],
 })

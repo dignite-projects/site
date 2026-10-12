@@ -16,7 +16,7 @@
          startup checks - which this project only contributes tools to (under the "site" namespace). It
          also brings the official C# MCP SDK (ModelContextProtocol.AspNetCore, Apache-2.0, 总体设计 §8.4),
          pinned in abp-modules' Directory.Packages.props so every module on one server agrees on a version. -->
-    <ProjectReference Include="..\..\..\abp-modules\aspnetcore-mcp\src\Dignite.Abp.AspNetCore.Mcp\Dignite.Abp.AspNetCore.Mcp.csproj" />
+    <PackageReference Include="Dignite.Abp.AspNetCore.Mcp" Version="$(DigniteAbpModulesVersion)" />
   </ItemGroup>
 
 </Project>

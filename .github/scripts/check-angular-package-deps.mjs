@@ -17,8 +17,8 @@
 //
 // 2. The peers of everything this package drags in are satisfied.
 //    Check 1 only sees the specifiers *this* package emits. It is blind to the dependencies' own
-//    requirements, and those are not the installer's problem to solve here: every ABP 10.5 +
-//    Angular 21 host installs with `--legacy-peer-deps` (`@abp/ng.theme.shared` pins
+//    requirements, and those are not the installer's problem to solve here: every ABP 10.7 +
+//    Angular 22 host installs with `--legacy-peer-deps` (`@abp/ng.theme.shared` pins
 //    `@swimlane/ngx-datatable@~22`, whose Angular peer range stops at 20), and under that flag npm
 //    does not install peerDependencies *at any depth*. A peer declared by a transitive dependency is
 //    therefore simply absent unless something else in the graph happens to pull it in as a real

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, inject } from '@angular/core';
+import { Component, Input, OnChanges, inject, ChangeDetectionStrategy } from '@angular/core';
 import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { readStringList } from '@dignite/ng.flex-fields';
 import { forkJoin, of } from 'rxjs';
@@ -14,6 +14,7 @@ import type { ContentDto } from '../../proxy/dignite/site/contents/models';
  */
 @Component({
   selector: 'site-content-view',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './content-view.component.html',
   imports: [CommonModule],
 })

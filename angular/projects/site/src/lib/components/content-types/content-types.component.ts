@@ -5,7 +5,7 @@ import {
   ThemeSharedModule,
   ToasterService,
 } from '@abp/ng.theme.shared';
-import { Component, ElementRef, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -31,6 +31,7 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 /** The content types of one page. Reached from the Pages list; there is no menu entry. */
 @Component({
   selector: 'site-content-types',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './content-types.component.html',
   imports: [
     CoreModule,

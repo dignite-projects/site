@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Volo.Abp.Mapperly" Version="10.5.0" />
-    <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Mapperly" Version="10.7.0" />
+    <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.7.0" />
     <ProjectReference Include="..\Dignite.Site.Application.Contracts\Dignite.Site.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Admin.Application\Dignite.Site.Admin.Application.csproj" />
     <ProjectReference Include="..\Dignite.Site.Public.Application\Dignite.Site.Public.Application.csproj" />

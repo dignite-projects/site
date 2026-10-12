@@ -28,8 +28,8 @@ namespace Dignite.Site.Public;
     // Read-only field display (<flex-field-view>) for SiteRenderController's Views - each self-registers
     // its own compiled Razor assembly part, nothing else to wire here. The file field's view (under
     // Views/Shared/FlexFields/, named after the field type's registration key) is this project's own.
-    typeof(FlexFieldsWebModule),
-    typeof(FlexFieldsCKEditorWebModule)
+    typeof(AbpFlexFieldsWebModule),
+    typeof(AbpFlexFieldsCKEditorWebModule)
     )]
 public class SitePublicWebModule : AbpModule
 {

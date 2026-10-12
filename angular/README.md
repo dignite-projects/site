@@ -9,7 +9,7 @@ It has two parts:
 
 ## Pre-requirements
 
-* [Node.js v18 or later](https://nodejs.org/)
+* [Node.js](https://nodejs.org/) `^22.22.3`, `^24.15.0` or `>=26` (Angular 22's requirement; CI uses 22.23.2)
 * [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
 ## Getting Started

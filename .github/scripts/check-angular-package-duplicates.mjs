@@ -19,8 +19,8 @@
 //
 // The failure mode is a property of the library, not of its name, so the targets are NOT limited to
 // scopes. `ng-zorro-antd` is the unscoped case this repository actually carries: `@abp/ng.components`
-// pins it at `~21.0.0-next.1` (i.e. `< 21.1.0`) while angular/projects/site/package.json asks for
-// `^21.0.2` (any 21.x). The moment the root resolves to 21.1+, the installer nests a second
+// depends on `~21.3.1` while angular/projects/site/package.json asks for
+// `~21.3.1` too. The moment the two resolve differently, the installer nests a second
 // ng-zorro-antd under `@abp/ng.components` - two `NZ_CONFIG` tokens and two `NzConfigService`
 // instances, so a `provideNzConfig()` from one side is invisible to a component from the other.
 // A scope-only check cannot see that at all, which is why targets are now "scope or bare package

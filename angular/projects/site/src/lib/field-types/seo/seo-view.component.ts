@@ -1,5 +1,5 @@
 import { CoreModule } from '@abp/ng.core';
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { FilePreviewComponent } from '../../files/previews/file-preview.component';
 import type { SeoFieldValue } from './seo-field-value';
@@ -13,6 +13,7 @@ import { OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-og-image';
  */
 @Component({
   selector: 'site-seo-view',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './seo-view.component.html',
   imports: [CoreModule, FilePreviewComponent],
 })

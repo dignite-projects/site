@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Dignite.Abp.FileStoring;
+using Dignite.Abp.BlobStoring.Pipeline;
 using Dignite.Site.Files;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -8,10 +8,12 @@ using Volo.Abp.BlobStoring;
 namespace Dignite.Site.Admin.Files;
 
 /// <summary>
-/// Sets the upload request's body limit to the target container's file size limit (plus room for the
-/// multipart envelope) before the body is read, so an oversized upload is refused at the HTTP layer - by the
-/// server, before it is buffered - rather than after. <c>IFileStorer</c> still enforces the limit itself
-/// while copying; this is the outer bound file-storing's invariant §1 expects a host to keep.
+/// Sets the upload request's body limit to the target container's size limit (plus room for the multipart
+/// envelope) before the body is read, so an oversized upload is refused at the HTTP layer - by the server,
+/// before it is buffered - rather than after. The limit is the container's <c>MaxSize</c> contributor, or
+/// <see cref="BlobStoringPipelineConsts.DefaultMaxBufferedBytes"/> without one - the same bound
+/// <c>FileDescriptorManager</c> buffers the upload to and the pipeline enforces while saving. This is the
+/// request-body limit at the HTTP layer that <c>Dignite.Abp.BlobStoring.Pipeline</c> still expects a host to keep.
 /// </summary>
 public class FileUploadSizeLimitFilter : IAsyncResourceFilter
 {
@@ -32,19 +34,12 @@ public class FileUploadSizeLimitFilter : IAsyncResourceFilter
         // get a limit raised on its behalf.
         if (SiteFileContainerNames.Contains(containerName))
         {
-            var maxFileSizeInBytes = _configurationProvider
-                .Get(containerName)
-                .GetFileSizeLimitConfiguration()
-                .MaxFileSizeInBytes;
-            if (maxFileSizeInBytes <= 0)
-            {
-                maxFileSizeInBytes = FileConsts.DefaultMaxFileSizeInBytes;
-            }
+            var maxSizeInBytes = BlobStreamBuffering.GetMaxBufferedBytes(_configurationProvider.Get(containerName));
 
             var feature = context.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
             if (feature is { IsReadOnly: false })
             {
-                feature.MaxRequestBodySize = checked(maxFileSizeInBytes + MultipartOverheadBytes);
+                feature.MaxRequestBodySize = checked(maxSizeInBytes + MultipartOverheadBytes);
             }
         }
 

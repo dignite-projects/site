@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CoreModule } from '@abp/ng.core';
 import { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { FilePreviewComponent } from '../../files/previews/file-preview.component';
@@ -13,6 +13,7 @@ interface FileFieldFileValue {
 /** Displays a file field's value read-only: the first file's preview, plus a count. */
 @Component({
   selector: 'site-file-view',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-view.component.html',
   imports: [CoreModule, FilePreviewComponent],
 })

@@ -5,7 +5,7 @@ import {
   ThemeSharedModule,
   ToasterService,
 } from '@abp/ng.theme.shared';
-import { Component, ElementRef, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NzAutocompleteModule } from 'ng-zorro-antd/auto-complete';
 import { Observable, forkJoin, map, switchMap } from 'rxjs';
@@ -56,6 +56,7 @@ interface FieldGroupSection {
  */
 @Component({
   selector: 'site-fields',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './fields.component.html',
   imports: [
     CoreModule,

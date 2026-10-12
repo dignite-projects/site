@@ -13,11 +13,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Volo.Abp.Mapperly" Version="10.5.0" />
-    <PackageReference Include="Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Mapperly" Version="10.7.0" />
+    <PackageReference Include="Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared" Version="10.7.0" />
     <!-- Caching for the generated site documents. ABP's IDistributedCache prefixes every key with the
          current tenant, which is the namespace isolation #15 and #18 both require. -->
-    <PackageReference Include="Volo.Abp.Caching" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.Caching" Version="10.7.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,7 +25,7 @@
          portable (someday reusable inside a different host, e.g. Dignite.Cloud.Web.Public), so it must
          never touch Domain, Common.Application, the unified Admin+Public Application.Contracts, or any
          concrete Application-layer project - only this Contracts interface surface. The FlexFields.Web
-         references below are a separate, already-portable sibling repo (abp-modules) and are not subject
+         packages below are separate, already-portable libraries from abp-modules and are not subject
          to this constraint. -->
     <ProjectReference Include="..\Dignite.Site.Public.Application.Contracts\Dignite.Site.Public.Application.Contracts.csproj" />
   </ItemGroup>
@@ -33,8 +33,8 @@
   <ItemGroup>
     <!-- Read-only field display for SiteRenderController's Views (<flex-field-view>) - the rendering
          counterpart of the FlexFields kernel Dignite.Site.Domain already depends on. -->
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Web\Dignite.Abp.FlexFields.Web.csproj" />
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.CKEditor.Web\Dignite.Abp.FlexFields.CKEditor.Web.csproj" />
+    <PackageReference Include="Dignite.Abp.FlexFields.Web" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Abp.FlexFields.CKEditor.Web" Version="$(DigniteAbpModulesVersion)" />
     <!-- Content/Seo (GitHub issue #49) - same "portable field-type library" role as the three above,
          just living in this repo. References only Dignite.Abp.FlexFields.Abstractions itself, so it
          carries none of the Site-app-specific coupling the "Contracts-only" rule above exists to keep
@@ -45,7 +45,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.9" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup>

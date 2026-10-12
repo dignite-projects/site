@@ -1,5 +1,5 @@
 /* eslint-disable @angular-eslint/component-selector */
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { CoreModule } from '@abp/ng.core';
 import { FileModalComponent } from '../file-modal/file-modal.component';
@@ -9,6 +9,7 @@ import { FileDescriptorDto } from '../../../proxy/dignite/site/admin/files';
 
 @Component({
   selector: 'site-file-picker',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-picker.component.html',
   styleUrls: ['./file-picker.component.scss'],
   imports: [

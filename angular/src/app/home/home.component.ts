@@ -1,8 +1,9 @@
 import { AuthService, LocalizationPipe } from '@abp/ng.core';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-home',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   imports: [LocalizationPipe]

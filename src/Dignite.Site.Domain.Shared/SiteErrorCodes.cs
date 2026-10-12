@@ -49,8 +49,10 @@ public static class SiteErrorCodes
     public const string DirectoryHasFiles = "Site:070006";
     public const string DirectoryRequiresUser = "Site:070007";
 
-    // The file library's files (Dignite.Site.Files). Upload rules - size, type, image bounds - are
-    // Dignite.Abp.FileStoring's own codes, raised by IFileStorer.
+    // The file library's files (Dignite.Site.Files). Upload rules - size, type, image bounds - are the
+    // codes of Dignite.Abp.BlobStoring.Pipeline (Dignite.Abp.BlobStoring:*, raised by its contributors and
+    // IMimeTypeDetector) and Dignite.Abp.BlobStoring.Imaging (Dignite.Abp.BlobStoring.Imaging:*), localized
+    // by those packages; the public read endpoint's on-request resize reuses the Imaging codes.
     public const string FileContainerNotAvailable = "Site:080001";
     public const string FileSortingNotSupported = "Site:080002";
 }

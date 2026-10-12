@@ -29,9 +29,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
-    # Both checkouts below land as siblings directly under $GITHUB_WORKSPACE (site/, abp-modules/)
-    # rather than the default bare checkout at $GITHUB_WORKSPACE itself, so every `run:` step below
-    # can stay written as if it executes from the repository root.
+    # Keep Site under site/ to match CI's working directories and the artifact paths below.
     defaults:
       run:
         working-directory: site
@@ -42,9 +40,9 @@ jobs:
 
     # No job-level package credential: every @dignite/* dependency resolves from public npmjs, so
     # the install below authenticates against nothing. The steps that genuinely need a token supply
-    # their own - "Verify packed NuGet packages restore cleanly" (PACKAGES_READ_TOKEN, for
-    # abp-modules' NuGet feed) and the two publish steps (GITHUB_TOKEN, for this repo's own
-    # packages). 10.0.0-rc.16 briefly required more than that, while it existed only on GitHub
+    # their own - the publish steps use GITHUB_TOKEN for this repo's own packages.
+    # NuGet restore, including the packed-package check, uses public nuget.org.
+    # 10.0.0-rc.16 briefly required more than that, while it existed only on GitHub
     # Packages; see CHANGELOG.md.
 
     steps:
@@ -52,25 +50,6 @@ jobs:
         uses: actions/checkout@v5
         with:
           path: site
-
-      # Several Dignite.Site *.NET* projects (Domain, Common.Application(.Contracts)/HttpApi(.Client),
-      # Public.Web, Admin.Application.Contracts, ...) carry relative ProjectReferences into the
-      # sibling `abp-modules` repo for FlexFields / file-storing - see Dignite.Site.slnx's
-      # "/flex-fields/" folder and its "..\..\..\abp-modules\..." paths. A single-repo checkout
-      # does not have that directory, so restore/build/pack would fail without it. Both repos are
-      # public, so the default GITHUB_TOKEN is enough to check abp-modules out - no extra secret
-      # needed. This tracks abp-modules' default branch, the same moving target local development
-      # already builds against.
-      #
-      # The Angular side does NOT need this checkout: angular/package.json resolves FlexFields as
-      # real installed @dignite/* npm dependencies - currently aliased through
-      # GitHub Packages, see angular/.npmrc and the "Install Angular dependencies" step below - not
-      # local file: paths into this sibling.
-      - name: Checkout abp-modules (sibling dependency for FlexFields / file-storing)
-        uses: actions/checkout@v5
-        with:
-          repository: dignite-projects/abp-modules
-          path: abp-modules
 
       # Fail fast when the tag and common.props <Version> disagree. common.props is the truth
       # source.
@@ -139,11 +118,7 @@ jobs:
       - name: Run Public.Web tests
         run: dotnet test test/Dignite.Site.Public.Web.Tests/Dignite.Site.Public.Web.Tests.csproj --no-build --configuration Release --verbosity normal
 
-      # Only src/*/*.csproj are packed - NOT `dotnet pack Dignite.Site.slnx`. The slnx also carries
-      # the "/flex-fields/" folder (abp-modules' own packable projects, checked out above just so
-      # they can be *referenced*) and host/ + test/ (IsPackable=false via common.test.props / the
-      # inline override on Dignite.Site.Host.csproj). Packing the whole slnx would re-publish
-      # abp-modules' own FlexFields/file-storing packages under this release by mistake.
+      # Pack the distributable src/* libraries; host/ and test/ are development projects.
       - name: Pack NuGet packages
         run: |
           mkdir -p artifacts
@@ -159,24 +134,12 @@ jobs:
           if-no-files-found: error
 
       # Restores every packed .nupkg in an isolated scratch project against the same sources a
-      # real consumer sees (this artifacts/ folder + GitHub Packages + nuget.org), so an
-      # unresolvable transitive dependency - e.g. a cross-repo abp-modules ProjectReference pinned
-      # to a version that was never published, the exact NU1102 failure documented in
-      # CHANGELOG.md's 0.1.0-preview.3 entry - fails this workflow instead of a downstream
-      # consumer's restore. Runs for both channels: a broken transitive dependency breaks a stable
-      # release exactly the same way it breaks a preview one.
-      #
-      # Uses PACKAGES_READ_TOKEN (a PAT scoped to read:packages only), not secrets.GITHUB_TOKEN:
-      # GITHUB_TOKEN can restore this repo's own packages but 403s reading GitHub Packages NuGet
-      # feeds published by a *different* repository (abp-modules) - confirmed against the actual
-      # endpoint, a repo-scope-only token gets 403, a read:packages-scope token gets 200.
-      # GITHUB_TOKEN's package access is documented as scoped to "the workflow repository" only; the
-      # npm side now uses this same token for the same documented reason, once flex-fields itself
-      # became a cross-repo GitHub Packages dependency at 10.0.0-rc.16 (see the job-level env:
-      # block's comment).
+      # real consumer sees (this artifacts/ folder + public nuget.org), so an unresolvable
+      # transitive dependency fails this workflow instead of a downstream consumer's restore.
+      # Runs for both channels without package registry credentials.
       - name: Verify packed NuGet packages restore cleanly
         run: |
-          bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}' '${{ github.actor }}' '${{ secrets.PACKAGES_READ_TOKEN }}'
+          bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}'
 
       # Pre-release builds go to GitHub Packages only (private to the org, authenticated with the
       # workflow's built-in GITHUB_TOKEN). The package's <RepositoryUrl> in common.props links it
@@ -216,7 +179,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.14.0'
+          node-version: '22.23.2'
           cache: yarn
           cache-dependency-path: site/angular/yarn.lock
 
@@ -227,7 +190,7 @@ jobs:
       # npmjs - so the release can be built from the tree the lockfile actually describes rather than
       # from a fresh resolution that ignores it. --legacy-peer-deps is gone with npm: Yarn Classic
       # does not enforce peer ranges, which is what that flag was working around
-      # (@swimlane/ngx-datatable@22 wants @angular/common 18-20.x, workspace is on 21.2.x).
+      # (@swimlane/ngx-datatable@22 wants @angular/common 18-20.x, workspace is on 22.2.x).
       #
       # It also matters for the duplicate check below: npm dedupes graphs that Yarn Classic splits
       # into nested copies, so that check after an npm install would pass vacuously.
@@ -328,7 +291,7 @@ jobs:
       - name: Configure npm registry for publishing
         uses: actions/setup-node@v4
         with:
-          node-version: '22.14.0'
+          node-version: '22.23.2'
           registry-url: 'https://registry.npmjs.org'
 
       # npm equivalent of the GH Packages NuGet mirror above, and the same rename-in-a-scratch-copy

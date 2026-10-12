@@ -1,4 +1,5 @@
-﻿using Dignite.Abp.FileStoring;
+﻿using Dignite.Abp.BlobStoring.Imaging;
+using Dignite.Abp.BlobStoring.Pipeline;
 using Dignite.Site.Admin.Directories;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
@@ -6,11 +7,11 @@ using Dignite.Site.Files;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.BlobStoring;
+using Volo.Abp.Imaging;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.Application;
 using Dignite.Site.Common;
-using Dignite.Abp.FileStoring.Imaging;
 
 namespace Dignite.Site.Admin;
 
@@ -20,17 +21,20 @@ namespace Dignite.Site.Admin;
     typeof(SiteCommonApplicationModule),
     typeof(AbpDddApplicationModule),
     typeof(AbpMapperlyModule),
-    // Registers ImageResizeHandler (and the ImageSharp resizer/compressor it needs) - AddImageResizeHandler
-    // below only records the handler type on the container; without this module every upload to that
-    // container fails resolving it, non-image files included.
-    typeof(DigniteAbpFileStoringImagingModule)
+    // The ImageResize/ImageCompress contributors (and their localized error codes) - AddImageResizeContributor
+    // below only records the contributor type on the container; it is resolved from DI on every save.
+    typeof(AbpBlobStoringImagingModule),
+    // The imaging provider those contributors hand images to. Without one they find nothing that can
+    // process an image and store every upload unresized.
+    typeof(AbpImagingSkiaSharpModule)
     )]
 public class SiteAdminApplicationModule : AbpModule
 {
-    private static readonly string[] ImageFileTypes = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    /// <summary>Largest upload to <see cref="SiteFileContainerNames.Default"/>: 20 MB.</summary>
+    private const long DefaultContainerMaxSizeInBytes = 20 * 1024 * 1024;
 
-    private static readonly string[] DocumentFileTypes =
-        [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".zip"];
+    /// <summary>Largest upload to <see cref="SiteFileContainerNames.Images"/>: 10 MB.</summary>
+    private const long ImagesContainerMaxSizeInBytes = 10 * 1024 * 1024;
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
@@ -52,7 +56,22 @@ public class SiteAdminApplicationModule : AbpModule
     /// provider (<c>UseFileSystem</c>/<c>UseDatabase</c>/...) under the same name, which
     /// <c>Containers.Configure</c> merges onto this configuration.
     /// <para>
-    /// SVG, HTML and script types are deliberately absent from every list: reads are public (see
+    /// The upload rules are ABP BLOB pipeline contributors (<c>Dignite.Abp.BlobStoring.Pipeline</c> /
+    /// <c>.Imaging</c>), which run inside <c>IBlobContainer.SaveAsync</c> in the order added, in the order the
+    /// package prescribes: <c>MaxSize</c> (bytes; rejects a larger upload with
+    /// <c>Dignite.Abp.BlobStoring:ContentTooLarge</c>), <c>AllowedContentTypes</c> (the MIME types of
+    /// <see cref="SiteFileTypes"/>, matched against the type detected from the bytes, never the uploader's
+    /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), <c>ImageResize</c> (shrinks a picture
+    /// that exceeds the box, keeping its aspect ratio; a picture that fits is stored as uploaded, and there is
+    /// no minimum size), then <c>ImageCompress</c> (re-encodes a picture in its own format, kept only when it
+    /// comes out smaller). No GZip: the containers' stored format stays the plain file. Content that is not an
+    /// image passes the image contributors untouched. Before either image contributor decodes anything, the
+    /// Imaging package's decode guard (left at its defaults: 8192 x 8192, 50,000,000 pixels, 100 pixels per
+    /// stored byte, 10 s) rejects an oversized picture with <c>Dignite.Abp.BlobStoring.Imaging:ImageTooLarge</c>.
+    /// </para>
+    /// <para>
+    /// SVG, HTML and script types are deliberately absent from every list - <see cref="SiteFileTypes"/> lists
+    /// exact raster types, not <c>image/*</c>, which would admit <c>image/svg+xml</c>: reads are public (see
     /// <see cref="ConfigureContentPermissions"/>), so an uploaded file that a browser renders and executes
     /// would be stored XSS on the site's own origin.
     /// </para>
@@ -63,31 +82,33 @@ public class SiteAdminApplicationModule : AbpModule
         {
             options.Containers.Configure(SiteFileContainerNames.Default, container =>
             {
-                container.AddFileSizeLimitHandler(config => config.MaxFileSize = 20); // MB
-                container.AddFileTypeCheckHandler(config =>
+                container.AddMaxSizeContributor(config => config.MaxSizeInBytes = DefaultContainerMaxSizeInBytes);
+                container.AddAllowedContentTypesContributor(config =>
                 {
-                    config.AllowedFileTypeNames = [.. ImageFileTypes, .. DocumentFileTypes];
+                    config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.All);
                 });
-                container.AddImageResizeHandler(handler =>
+                container.AddImageResizeContributor(config =>
                 {
-                    handler.ImageWidth = 4096;
-                    handler.ImageHeight = 4096;
+                    config.MaxWidth = 4096;
+                    config.MaxHeight = 4096;
                 });
+                container.AddImageCompressContributor();
                 ConfigureContentPermissions(container);
             });
 
             options.Containers.Configure(SiteFileContainerNames.Images, container =>
             {
-                container.AddFileSizeLimitHandler(config => config.MaxFileSize = 10); // MB
-                container.AddFileTypeCheckHandler(config =>
+                container.AddMaxSizeContributor(config => config.MaxSizeInBytes = ImagesContainerMaxSizeInBytes);
+                container.AddAllowedContentTypesContributor(config =>
                 {
-                    config.AllowedFileTypeNames = ImageFileTypes;
+                    config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.Images);
                 });
-                container.AddImageResizeHandler(handler =>
+                container.AddImageResizeContributor(config =>
                 {
-                    handler.ImageWidth = 1920;
-                    handler.ImageHeight = 1920;
+                    config.MaxWidth = 1920;
+                    config.MaxHeight = 1920;
                 });
+                container.AddImageCompressContributor();
                 ConfigureContentPermissions(container);
             });
         });

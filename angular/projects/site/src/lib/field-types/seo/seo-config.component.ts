@@ -1,5 +1,5 @@
 import { CoreModule } from '@abp/ng.core';
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { FieldTypeConfigBase } from '@dignite/ng.flex-fields';
 import { SeoConfiguration } from './seo-configuration';
@@ -11,6 +11,7 @@ import { SeoConfiguration } from './seo-configuration';
  */
 @Component({
   selector: 'site-seo-config',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './seo-config.component.html',
   imports: [CoreModule, ReactiveFormsModule],
 })

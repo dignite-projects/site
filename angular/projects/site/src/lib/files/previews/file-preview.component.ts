@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, inject } from '@angular/core';
+import { Component, Input, OnChanges, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IMAGE_TYPE_OPTIONS } from './models';
 import { sizedFileUrl } from '../services/site-file-url';
@@ -12,6 +12,7 @@ import { SiteFileUrlService } from '../services/site-file-url.service';
  */
 @Component({
   selector: 'site-file-preview',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-preview.component.html',
   styleUrls: ['./file-preview.component.scss'],
   imports: [CommonModule],

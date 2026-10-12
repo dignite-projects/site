@@ -32,7 +32,7 @@ entry to keep in `environment.apis`. `provideSite()` also registers `SiteCKEdito
 inserted into a CKEditor field is uploaded into Site's file library. See `docs/site-files.md`.
 
 That `>= 10.0.0-rc.13` floor is load-bearing, not cosmetic. Below `rc.12` those packages were
-the adapters' `peerDependencies`, and every ABP 10.5 + Angular 21 host installs with
+the adapters' `peerDependencies`, and every ABP 10.7 + Angular 22 host installs with
 `--legacy-peer-deps` (`@abp/ng.theme.shared` pins `@swimlane/ngx-datatable@~22`, whose own Angular
 peer range stops at 20), under which npm does not install peers at all. Loosening the floor back
 below `rc.12` would silently reintroduce four unresolvable imports - discovered at the consuming
@@ -90,7 +90,12 @@ from its root stylesheet instead; the three fetched by name still need their `an
 `ng-zorro-antd` itself is declared as a direct `dependency` of `@dignite/ng.site` (not a peer), the
 same way `@angular/cdk` is: every consumer needs it unconditionally, there's no opt-out the way
 there is for the CKEditor/File Explorer field types, so there's no reason to push the install step
-onto the host. `@swimlane/ngx-datatable` is different - it's a `peerDependency` here because
+onto the host. Both stay on their 21 line on an Angular 22 host, because that is what ABP 10.7 brings:
+`@abp/ng.components` 10.7.0 depends on `ng-zorro-antd` `~21.3.1`, and `ng-zorro-antd` 21.3 depends on
+`@angular/cdk` `^21`. They are declared as `~21.3.1` and `~21.2.0` so a host that declares the same ranges
+gets one copy of each; a range the ABP copy does not satisfy (`ng-zorro-antd` 22 or `@angular/cdk` 22) is
+installed beside it, giving two module-scoped `NZ_CONFIG` / `NzConfigService` tokens.
+`@swimlane/ngx-datatable` is different - it's a `peerDependency` here because
 `@abp/ng.theme.shared` already guarantees every ABP host has it.
 
 This list only covers what `@dignite/ng.site` and `@dignite/ng.flex-fields` import as of this writing.
