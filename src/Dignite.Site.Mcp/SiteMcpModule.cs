@@ -64,9 +64,9 @@ public class SiteMcpModule : AbpModule
         {
             options.Containers
                 .Add(SiteFileContainerNames.Images,
-                    "Pictures for site content (raster images only, no SVG). Use this for any image a content field will show.")
-                .Add(SiteFileContainerNames.Default,
-                    "General attachments for site content - documents and images that are downloaded rather than shown.");
+                    "Pictures for site content (JPEG, PNG, GIF, WebP; no SVG). Use this for any image a content field will show.")
+                .Add(SiteFileContainerNames.Attachments,
+                    "Downloadable attachments for site content: PDF, Office documents, text, CSV, ZIP. Pictures are refused here - use images.");
         });
 
         // Upload bytes travel base64-encoded in the request body, so the endpoint's body limit has to make

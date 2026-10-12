@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Dignite.Site.Directories;
 using Dignite.Site.EntityFrameworkCore;
 using Shouldly;
 using Volo.Abp;
@@ -64,9 +63,9 @@ public class FileDescriptorRepository_Tests : SiteEntityFrameworkCoreTestBase
             });
 
             var result = await WithUnitOfWorkAsync(() =>
-                _fileDescriptorRepository.GetListAsync(SiteFileContainerNames.Default, maxResultCount: 2));
+                _fileDescriptorRepository.GetListAsync(SiteFileContainerNames.Attachments, maxResultCount: 2));
             var count = await WithUnitOfWorkAsync(() =>
-                _fileDescriptorRepository.GetCountAsync(SiteFileContainerNames.Default, filter: "e"));
+                _fileDescriptorRepository.GetCountAsync(SiteFileContainerNames.Attachments, filter: "e"));
 
             result.Select(f => f.Name).ShouldBe(new[] { "newer", "older" });
             count.ShouldBe(2);
@@ -76,7 +75,7 @@ public class FileDescriptorRepository_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task ClearDirectoryFromDeletedFiles_Should_Detach_Only_Soft_Deleted_Files()
     {
-        var directory = new DirectoryDescriptor(Guid.NewGuid(), SiteFileContainerNames.Default, "deleted-file-directory", null, 0, null)
+        var directory = new DirectoryDescriptor(Guid.NewGuid(), SiteFileContainerNames.Attachments, "deleted-file-directory", null, 0, null)
         {
             CreatorId = Guid.NewGuid()
         };
@@ -107,7 +106,7 @@ public class FileDescriptorRepository_Tests : SiteEntityFrameworkCoreTestBase
     private static FileDescriptor CreateFile(string name, Guid? tenantId)
     {
         return new FileDescriptor(
-            Guid.NewGuid(), SiteFileContainerNames.Default, Guid.NewGuid().ToString("N"), name, "text/plain", 1,
+            Guid.NewGuid(), SiteFileContainerNames.Attachments, Guid.NewGuid().ToString("N"), name, "text/plain", 1,
             hash: Guid.NewGuid().ToString("N"), referBlobName: null, directoryId: null, tenantId);
     }
 }

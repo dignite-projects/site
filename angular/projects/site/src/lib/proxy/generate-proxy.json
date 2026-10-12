@@ -7299,20 +7299,20 @@
             }
           }
         },
-        "Dignite.Site.Admin.Directories.DirectoryAdminController": {
+        "Dignite.Site.Admin.Files.DirectoryAdminController": {
           "controllerName": "DirectoryAdmin",
           "controllerGroupName": "DirectoryAdmin",
           "isRemoteService": true,
           "isIntegrationService": false,
           "apiVersion": null,
-          "type": "Dignite.Site.Admin.Directories.DirectoryAdminController",
+          "type": "Dignite.Site.Admin.Files.DirectoryAdminController",
           "summary": null,
           "remarks": null,
           "description": null,
           "displayName": null,
           "interfaces": [
             {
-              "type": "Dignite.Site.Admin.Directories.IDirectoryAdminAppService",
+              "type": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "name": "IDirectoryAdminAppService",
               "methods": [
                 {
@@ -7331,8 +7331,8 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                     "summary": null
                   }
                 },
@@ -7341,9 +7341,9 @@
                   "parametersOnMethod": [
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Directories.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Directories.GetDirectoriesInput",
-                      "typeSimple": "Dignite.Site.Admin.Directories.GetDirectoriesInput",
+                      "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -7352,8 +7352,8 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Directories.DirectoryDescriptorInfoDto>",
-                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Directories.DirectoryDescriptorInfoDto>",
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
                     "summary": null
                   }
                 },
@@ -7362,9 +7362,9 @@
                   "parametersOnMethod": [
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Directories.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Directories.CreateDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Directories.CreateDirectoryInput",
+                      "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -7373,8 +7373,8 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                     "summary": null
                   }
                 },
@@ -7394,9 +7394,9 @@
                     },
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Directories.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Directories.UpdateDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Directories.UpdateDirectoryInput",
+                      "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -7405,8 +7405,8 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                     "summary": null
                   }
                 },
@@ -7426,9 +7426,9 @@
                     },
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Directories.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Directories.MoveDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Directories.MoveDirectoryInput",
+                      "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -7437,8 +7437,8 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                     "summary": null
                   }
                 },
@@ -7471,7 +7471,7 @@
               "uniqueName": "GetAsyncById",
               "name": "GetAsync",
               "httpMethod": "GET",
-              "url": "api/site-admin/directories/{id}",
+              "url": "api/site-admin/files/directories/{id}",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -7506,13 +7506,13 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                 "summary": null
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Directories.IDirectoryAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -7522,14 +7522,14 @@
               "uniqueName": "GetListAsyncByInput",
               "name": "GetListAsync",
               "httpMethod": "GET",
-              "url": "api/site-admin/directories",
+              "url": "api/site-admin/files/directories",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
                   "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Directories.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Directories.GetDirectoriesInput",
-                  "typeSimple": "Dignite.Site.Admin.Directories.GetDirectoriesInput",
+                  "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -7555,13 +7555,13 @@
                 }
               ],
               "returnValue": {
-                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Directories.DirectoryDescriptorInfoDto>",
-                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Directories.DirectoryDescriptorInfoDto>",
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
                 "summary": null
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Directories.IDirectoryAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -7571,14 +7571,14 @@
               "uniqueName": "CreateAsyncByInput",
               "name": "CreateAsync",
               "httpMethod": "POST",
-              "url": "api/site-admin/directories",
+              "url": "api/site-admin/files/directories",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
                   "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Directories.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Directories.CreateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Directories.CreateDirectoryInput",
+                  "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -7591,8 +7591,8 @@
                   "nameOnMethod": "input",
                   "name": "input",
                   "jsonName": null,
-                  "type": "Dignite.Site.Admin.Directories.CreateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Directories.CreateDirectoryInput",
+                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -7604,13 +7604,13 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                 "summary": null
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Directories.IDirectoryAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -7620,7 +7620,7 @@
               "uniqueName": "UpdateAsyncByIdAndInput",
               "name": "UpdateAsync",
               "httpMethod": "PUT",
-              "url": "api/site-admin/directories/{id}",
+              "url": "api/site-admin/files/directories/{id}",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -7636,9 +7636,9 @@
                 },
                 {
                   "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Directories.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Directories.UpdateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Directories.UpdateDirectoryInput",
+                  "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -7668,8 +7668,8 @@
                   "nameOnMethod": "input",
                   "name": "input",
                   "jsonName": null,
-                  "type": "Dignite.Site.Admin.Directories.UpdateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Directories.UpdateDirectoryInput",
+                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -7681,13 +7681,13 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                 "summary": null
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Directories.IDirectoryAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -7697,7 +7697,7 @@
               "uniqueName": "MoveAsyncByIdAndInput",
               "name": "MoveAsync",
               "httpMethod": "PUT",
-              "url": "api/site-admin/directories/{id}/move",
+              "url": "api/site-admin/files/directories/{id}/move",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -7713,9 +7713,9 @@
                 },
                 {
                   "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Directories.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Directories.MoveDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Directories.MoveDirectoryInput",
+                  "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -7745,8 +7745,8 @@
                   "nameOnMethod": "input",
                   "name": "input",
                   "jsonName": null,
-                  "type": "Dignite.Site.Admin.Directories.MoveDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Directories.MoveDirectoryInput",
+                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -7758,13 +7758,13 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Directories.DirectoryDescriptorDto",
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
                 "summary": null
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Directories.IDirectoryAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -7774,7 +7774,7 @@
               "uniqueName": "DeleteAsyncById",
               "name": "DeleteAsync",
               "httpMethod": "DELETE",
-              "url": "api/site-admin/directories/{id}",
+              "url": "api/site-admin/files/directories/{id}",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -7815,7 +7815,7 @@
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Directories.IDirectoryAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -12595,7 +12595,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Admin.Directories.CreateDirectoryInput": {
+    "Dignite.Site.Admin.Files.CreateDirectoryInput": {
       "baseType": null,
       "isEnum": false,
       "enumNames": null,
@@ -12656,7 +12656,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Admin.Directories.DirectoryDescriptorDto": {
+    "Dignite.Site.Admin.Files.DirectoryDescriptorDto": {
       "baseType": "Volo.Abp.Application.Dtos.ExtensibleAuditedEntityDto<System.Guid>",
       "isEnum": false,
       "enumNames": null,
@@ -12733,7 +12733,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Admin.Directories.DirectoryDescriptorInfoDto": {
+    "Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto": {
       "baseType": "Volo.Abp.Application.Dtos.ExtensibleEntityDto<System.Guid>",
       "isEnum": false,
       "enumNames": null,
@@ -12807,8 +12807,8 @@
         {
           "name": "Children",
           "jsonName": null,
-          "type": "[Dignite.Site.Admin.Directories.DirectoryDescriptorInfoDto]",
-          "typeSimple": "[Dignite.Site.Admin.Directories.DirectoryDescriptorInfoDto]",
+          "type": "[Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto]",
+          "typeSimple": "[Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto]",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,
@@ -12826,7 +12826,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Admin.Directories.GetDirectoriesInput": {
+    "Dignite.Site.Admin.Files.GetDirectoriesInput": {
       "baseType": null,
       "isEnum": false,
       "enumNames": null,
@@ -12855,7 +12855,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Admin.Directories.MoveDirectoryInput": {
+    "Dignite.Site.Admin.Files.MoveDirectoryInput": {
       "baseType": null,
       "isEnum": false,
       "enumNames": null,
@@ -12900,7 +12900,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Admin.Directories.UpdateDirectoryInput": {
+    "Dignite.Site.Admin.Files.UpdateDirectoryInput": {
       "baseType": null,
       "isEnum": false,
       "enumNames": null,

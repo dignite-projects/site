@@ -135,7 +135,7 @@ namespace Dignite.Site.Host;
     typeof(AbpEntityFrameworkCoreSqliteModule),
 
     // The active BLOB storage provider (GitHub issue #41) - filesystem for dev, production provider
-    // still open. ConfigureBlobStoring below is what actually points SiteFileContainerNames.Default at
+    // still open. ConfigureBlobStoring below is what actually points SiteFileContainerNames.Attachments at
     // it; this DependsOn is what makes that provider resolvable at all.
     typeof(AbpBlobStoringFileSystemModule),
 

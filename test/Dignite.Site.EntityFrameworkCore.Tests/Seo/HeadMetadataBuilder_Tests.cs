@@ -360,14 +360,14 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
                 ["title"] = "Has an uploaded image",
                 [SeoFieldNames.FieldName] = new SeoFieldValue
                 {
-                    OgImage = "https://api.acme.example/api/site-public/files/site-images/share.jpg?__tenant="
+                    OgImage = "https://api.acme.example/api/site-public/files/images/share.jpg?__tenant="
                 }
             }));
 
         var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
 
         metadata.OgImageUrl.ShouldBe(
-            "https://api.acme.example/api/site-public/files/site-images/share.jpg?__tenant=&Width=1200&Height=630");
+            "https://api.acme.example/api/site-public/files/images/share.jpg?__tenant=&Width=1200&Height=630");
     }
 
     /// <summary>
@@ -387,14 +387,14 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
                 ["title"] = "Has a relative image",
                 [SeoFieldNames.FieldName] = new SeoFieldValue
                 {
-                    OgImage = "/api/site-public/files/site-images/share.jpg?__tenant="
+                    OgImage = "/api/site-public/files/images/share.jpg?__tenant="
                 }
             }));
 
         var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
 
         metadata.OgImageUrl.ShouldBe(
-            $"{BaseUrl}/api/site-public/files/site-images/share.jpg?__tenant=&Width=1200&Height=630");
+            $"{BaseUrl}/api/site-public/files/images/share.jpg?__tenant=&Width=1200&Height=630");
     }
 
     /// <summary>

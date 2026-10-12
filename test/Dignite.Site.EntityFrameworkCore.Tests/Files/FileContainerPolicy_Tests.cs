@@ -38,7 +38,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Theory]
-    [InlineData(SiteFileContainerNames.Default)]
+    [InlineData(SiteFileContainerNames.Attachments)]
     [InlineData(SiteFileContainerNames.Images)]
     public void Container_Rides_On_Contents_Permissions_And_Stays_Publicly_Readable(string containerName)
     {
@@ -60,7 +60,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Theory]
-    [InlineData(SiteFileContainerNames.Default, 20)]
+    [InlineData(SiteFileContainerNames.Attachments, 20)]
     [InlineData(SiteFileContainerNames.Images, 10)]
     public void Container_Has_A_Size_Limit(string containerName, int expectedMaxSizeInMb)
     {
@@ -72,13 +72,23 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     /// Exact raster types, never <c>image/*</c> - the wildcard would let <c>image/svg+xml</c> in.
     /// </summary>
     [Theory]
-    [InlineData(SiteFileContainerNames.Default)]
+    [InlineData(SiteFileContainerNames.Attachments)]
     [InlineData(SiteFileContainerNames.Images)]
     public void Container_Allows_Exact_Content_Types_Only(string containerName)
     {
         var allowed = _configurationProvider.Get(containerName).GetAllowedContentTypesContributorConfiguration().AllowedContentTypes;
 
-        allowed.ShouldContain("image/png");
+        if (containerName == SiteFileContainerNames.Images)
+        {
+            allowed.ShouldContain("image/png");
+            allowed.ShouldNotContain("application/pdf");
+        }
+        else
+        {
+            allowed.ShouldContain("application/pdf");
+            allowed.ShouldNotContain("image/png");
+        }
+
         allowed.ShouldNotContain("image/*");
         allowed.ShouldNotContain("image/svg+xml");
         allowed.ShouldNotContain("text/html");
@@ -98,8 +108,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     [Theory]
     [InlineData(SiteFileContainerNames.Images, "photo.jpg")]
     [InlineData(SiteFileContainerNames.Images, "photo.WEBP")]
-    [InlineData(SiteFileContainerNames.Default, "photo.png")]
-    [InlineData(SiteFileContainerNames.Default, "report.pdf")]
+    [InlineData(SiteFileContainerNames.Attachments, "report.pdf")]
     public async Task Allowed_File_Type_Is_Stored(string containerName, string fileName)
     {
         var descriptor = await UploadAsync(containerName, fileName, TestFiles.For(fileName));
@@ -110,10 +119,13 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     [Theory]
     // Rendered and executed by a browser on the site's own origin - stored XSS, since reads are public.
     [InlineData(SiteFileContainerNames.Images, "logo.svg")]
-    [InlineData(SiteFileContainerNames.Default, "logo.svg")]
-    [InlineData(SiteFileContainerNames.Default, "page.html")]
-    [InlineData(SiteFileContainerNames.Default, "script.js")]
-    // Images only: a document is fine in site-files but not here.
+    [InlineData(SiteFileContainerNames.Attachments, "logo.svg")]
+    [InlineData(SiteFileContainerNames.Attachments, "page.html")]
+    [InlineData(SiteFileContainerNames.Attachments, "script.js")]
+    // Documents only: a picture belongs in images.
+    [InlineData(SiteFileContainerNames.Attachments, "photo.png")]
+    [InlineData(SiteFileContainerNames.Attachments, "photo.jpg")]
+    // Images only: a document is fine in attachments but not here.
     [InlineData(SiteFileContainerNames.Images, "report.pdf")]
     public async Task Disallowed_File_Type_Is_Rejected(string containerName, string fileName)
     {
@@ -159,7 +171,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Empty_File_Takes_Its_Extensions_Type()
     {
-        var descriptor = await UploadAsync(SiteFileContainerNames.Default, "empty.txt", []);
+        var descriptor = await UploadAsync(SiteFileContainerNames.Attachments, "empty.txt", []);
 
         descriptor.MimeType.ShouldBe("text/plain");
         descriptor.Size.ShouldBe(0);
@@ -169,7 +181,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Compound_File_Named_Doc_Is_Accepted_As_Msword()
     {
-        var descriptor = await UploadAsync(SiteFileContainerNames.Default, "legacy.doc", TestFiles.CompoundFile());
+        var descriptor = await UploadAsync(SiteFileContainerNames.Attachments, "legacy.doc", TestFiles.CompoundFile());
 
         descriptor.MimeType.ShouldBe("application/msword");
         descriptor.BlobName.ShouldMatch(@"^[0-9a-f]{32}\.doc$");
@@ -196,7 +208,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     {
         var bytes = TestFiles.Pdf();
 
-        var descriptor = await UploadAsync(SiteFileContainerNames.Default, "report.pdf", bytes);
+        var descriptor = await UploadAsync(SiteFileContainerNames.Attachments, "report.pdf", bytes);
 
         (await ReadAsync(descriptor)).ShouldBe(bytes);
         descriptor.MimeType.ShouldBe("application/pdf");

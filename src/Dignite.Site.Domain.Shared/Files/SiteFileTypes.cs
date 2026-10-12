@@ -33,7 +33,7 @@ public static class SiteFileTypes
         new(".webp", "image/webp")
     ];
 
-    /// <summary>Documents and archives, which <see cref="SiteFileContainerNames.Default"/> takes besides <see cref="Images"/>.</summary>
+    /// <summary>Documents and archives - the whole of <see cref="SiteFileContainerNames.Attachments"/>.</summary>
     public static IReadOnlyList<SiteFileType> Documents { get; } =
     [
         new(".pdf", "application/pdf"),

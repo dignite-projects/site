@@ -27,7 +27,7 @@ public class SeoFieldValue
 
     /// <summary>
     /// Image URL for social sharing. The admin UI fills it with the relative address of a file picked from
-    /// the <c>site-images</c> file container; any absolute image URL is equally valid (see
+    /// the <c>images</c> file container; any absolute image URL is equally valid (see
     /// <c>SeoFieldType</c>'s remarks). A relative address is made absolute on the site's primary domain, and
     /// an image from the site's file library is cropped to 1200x630, when emitted as <c>og:image</c>.
     /// </summary>

@@ -88,7 +88,7 @@ const SITE_PROVIDERS: (EnvironmentProviders | Provider)[] = [
   // first use, the same failure mode SEO_FIELD_TYPE's own comment warns about.
   provideCKEditorFieldType(),
   // Inline images in a CKEditor field go into Site's file library (the field's CKEditor.ImagesContainerName,
-  // normally site-images) and are embedded by their public address. Without a provider the editor shows
+  // normally images) and are embedded by their public address. Without a provider the editor shows
   // no upload button at all.
   { provide: CKEDITOR_UPLOAD_PROVIDER, useExisting: SiteCKEditorUploadProvider },
   // Those addresses are stored relative (/api/site-public/files/...); the editor shows them from the

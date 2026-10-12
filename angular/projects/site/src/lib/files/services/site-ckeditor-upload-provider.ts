@@ -10,7 +10,7 @@ import { SiteFileUrlService } from './site-file-url.service';
  * file's public address to embed - the same `/api/site-public/files/...` address a file field stores, so
  * the image is served to visitors like any other site file. Registered as the `CKEDITOR_UPLOAD_PROVIDER`
  * by `provideSite()`; the field's `CKEditor.ImagesContainerName` names the container (normally
- * `site-images`).
+ * `images`).
  *
  * The editor gets the address on the `SiteAdmin` API's host: its model holds absolute addresses, so it can
  * show the image and read its size (`width`/`height`); `siteCKEditorConfigContributor` turns it back into

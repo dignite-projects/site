@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Dignite.Site.Admin.Directories;
+using Dignite.Site.Admin.Files;
 using ModelContextProtocol.Server;
 using Volo.Abp.DependencyInjection;
 

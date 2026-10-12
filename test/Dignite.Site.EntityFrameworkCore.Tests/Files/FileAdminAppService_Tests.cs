@@ -2,10 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Dignite.Site.Admin.Directories;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
-using Dignite.Site.Directories;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Security;
 using Microsoft.Extensions.DependencyInjection;
@@ -71,7 +69,7 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     {
         var directory = await _directoryAppService.CreateAsync(new CreateDirectoryInput
         {
-            ContainerName = SiteFileContainerNames.Default,
+            ContainerName = SiteFileContainerNames.Attachments,
             Name = "documents"
         });
 
@@ -111,10 +109,10 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     {
         var directory = await _directoryAppService.CreateAsync(new CreateDirectoryInput
         {
-            ContainerName = SiteFileContainerNames.Default,
+            ContainerName = SiteFileContainerNames.Attachments,
             Name = "reports"
         });
-        var file = await UploadAsync(SiteFileContainerNames.Default, "report.pdf", TestFiles.Pdf("rename"), directory.Id);
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "report.pdf", TestFiles.Pdf("rename"), directory.Id);
 
         var renamed = await _fileAppService.UpdateAsync(file.Id, new UpdateFileInput { Name = "annual-report.pdf" });
         renamed.Name.ShouldBe("annual-report.pdf");
@@ -128,23 +126,24 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Delete_Should_Remove_The_File()
     {
-        var file = await UploadAsync(SiteFileContainerNames.Default, "gone.pdf", TestFiles.Pdf("gone"));
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "gone.pdf", TestFiles.Pdf("gone"));
 
         await _fileAppService.DeleteAsync(file.Id);
 
-        var listed = await _fileAppService.GetListAsync(new GetFilesInput { ContainerName = SiteFileContainerNames.Default });
+        var listed = await _fileAppService.GetListAsync(new GetFilesInput { ContainerName = SiteFileContainerNames.Attachments });
         listed.Items.ShouldNotContain(f => f.Id == file.Id);
     }
 
     [Theory]
-    [InlineData(SiteFileContainerNames.Images, 10)]
-    [InlineData(SiteFileContainerNames.Default, 20)]
-    public async Task Container_Configuration_Should_Report_What_The_Pipeline_Enforces(string containerName, int maxMb)
+    [InlineData(SiteFileContainerNames.Images, 10, ".png", ".pdf")]
+    [InlineData(SiteFileContainerNames.Attachments, 20, ".pdf", ".png")]
+    public async Task Container_Configuration_Should_Report_What_The_Pipeline_Enforces(string containerName, int maxMb, string allowed, string refused)
     {
         var configuration = await _fileAppService.GetContainerConfigurationAsync(containerName);
 
         configuration.MaxBlobSize.ShouldBe(maxMb * 1024L * 1024L);
-        configuration.AllowedFileTypeNames.ShouldContain(".png");
+        configuration.AllowedFileTypeNames.ShouldContain(allowed);
+        configuration.AllowedFileTypeNames.ShouldNotContain(refused);
         configuration.AllowedFileTypeNames.ShouldNotContain(".svg");
         configuration.CreateFilePermissionName.ShouldBe(SiteAdminPermissions.Contents.Create);
         configuration.GetFilePermissionName.ShouldBeNull();
@@ -155,10 +154,10 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     {
         var directory = await _directoryAppService.CreateAsync(new CreateDirectoryInput
         {
-            ContainerName = SiteFileContainerNames.Default,
+            ContainerName = SiteFileContainerNames.Attachments,
             Name = "busy"
         });
-        await UploadAsync(SiteFileContainerNames.Default, "busy.pdf", TestFiles.Pdf("busy"), directory.Id);
+        await UploadAsync(SiteFileContainerNames.Attachments, "busy.pdf", TestFiles.Pdf("busy"), directory.Id);
 
         var exception = await Should.ThrowAsync<BusinessException>(() => _directoryAppService.DeleteAsync(directory.Id));
 

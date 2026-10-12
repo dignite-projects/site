@@ -96,7 +96,7 @@ internal static class TestFiles
         }
 
         using var image = SKImage.FromPixelCopy(info, pixels, info.RowBytes);
-        // Quality 75: noise barely compresses, so a 3000 x 1000 JPEG has to stay well inside site-images' 10 MB.
+        // Quality 75: noise barely compresses, so a 3000 x 1000 JPEG has to stay well inside images' 10 MB.
         using var data = image.Encode(format, 75);
         return data.ToArray();
     }

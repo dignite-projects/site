@@ -6,7 +6,7 @@ import { SiteCKEditorUploadProvider } from './site-ckeditor-upload-provider';
 
 describe('SiteCKEditorUploadProvider', () => {
   it('uploads the image into the given container as multipart and resolves to its address on the API host', async () => {
-    const create = vi.fn().mockReturnValue(of({ url: '/api/site-public/files/site-images/abc?__tenant=' }));
+    const create = vi.fn().mockReturnValue(of({ url: '/api/site-public/files/images/abc?__tenant=' }));
     TestBed.configureTestingModule({
       providers: [{ provide: FileAdminService, useValue: { create } }],
     });
@@ -15,12 +15,12 @@ describe('SiteCKEditorUploadProvider', () => {
     } as never);
 
     const provider = TestBed.inject(SiteCKEditorUploadProvider);
-    const url = await firstValueFrom(provider.upload(new File(['x'], 'photo.png'), 'site-images'));
+    const url = await firstValueFrom(provider.upload(new File(['x'], 'photo.png'), 'images'));
 
     // Absolute in the editor's model; siteCKEditorConfigContributor saves it relative.
-    expect(url).toBe('https://api.example/api/site-public/files/site-images/abc?__tenant=');
+    expect(url).toBe('https://api.example/api/site-public/files/images/abc?__tenant=');
     const input = create.mock.calls[0][0];
-    expect(input.containerName).toBe('site-images');
+    expect(input.containerName).toBe('images');
     expect(input.file).toBeInstanceOf(FormData);
     expect((input.file as FormData).get('file')).toBeInstanceOf(File);
   });
@@ -32,6 +32,6 @@ describe('SiteCKEditorUploadProvider', () => {
 
     const provider = TestBed.inject(SiteCKEditorUploadProvider);
 
-    await expect(firstValueFrom(provider.upload(new File(['x'], 'photo.png'), 'site-images'))).rejects.toThrow();
+    await expect(firstValueFrom(provider.upload(new File(['x'], 'photo.png'), 'images'))).rejects.toThrow();
   });
 });

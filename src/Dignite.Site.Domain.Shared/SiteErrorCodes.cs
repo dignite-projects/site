@@ -39,7 +39,7 @@ public static class SiteErrorCodes
     /// </summary>
     public const string InvalidValueFormat = "Site:060001";
 
-    // The file library's directories (Dignite.Site.Directories). A directory belongs to the user who
+    // The file library's directories (Dignite.Site.Files). A directory belongs to the user who
     // created it, so "not found" also answers for another user's or another tenant's directory.
     public const string DirectoryNameAlreadyExists = "Site:070001";
     public const string DirectoryNotFound = "Site:070002";

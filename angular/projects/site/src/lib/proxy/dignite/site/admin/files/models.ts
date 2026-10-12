@@ -1,10 +1,31 @@
 import type { IRemoteStreamContent } from '../../../../volo/abp/content/models';
-import type { CreationAuditedEntityDto, PagedAndSortedResultRequestDto } from '@abp/ng.core';
+import type { CreationAuditedEntityDto, ExtensibleAuditedEntityDto, ExtensibleEntityDto, PagedAndSortedResultRequestDto } from '@abp/ng.core';
+
+export interface CreateDirectoryInput {
+  containerName: string;
+  name: string;
+  parentId?: string | null;
+}
 
 export interface CreateFileInput {
   containerName: string;
   directoryId?: string | null;
   file: IRemoteStreamContent;
+}
+
+export interface DirectoryDescriptorDto extends ExtensibleAuditedEntityDto<string> {
+  containerName?: string;
+  name?: string;
+  parentId?: string | null;
+  order?: number;
+}
+
+export interface DirectoryDescriptorInfoDto extends ExtensibleEntityDto<string> {
+  containerName?: string;
+  name?: string;
+  parentId?: string | null;
+  order?: number;
+  children?: DirectoryDescriptorInfoDto[];
 }
 
 export interface FileContainerConfigurationDto {
@@ -28,11 +49,24 @@ export interface FileDescriptorDto extends CreationAuditedEntityDto<string> {
   tenantId?: string | null;
 }
 
+export interface GetDirectoriesInput {
+  containerName: string;
+}
+
 export interface GetFilesInput extends PagedAndSortedResultRequestDto {
   containerName: string;
   directoryId?: string | null;
   creatorId?: string | null;
   filter?: string | null;
+}
+
+export interface MoveDirectoryInput {
+  parentId?: string | null;
+  order?: number;
+}
+
+export interface UpdateDirectoryInput {
+  name: string;
 }
 
 export interface UpdateFileInput {

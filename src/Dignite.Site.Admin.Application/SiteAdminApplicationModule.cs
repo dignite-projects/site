@@ -1,6 +1,5 @@
 ﻿using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Abp.BlobStoring.Pipeline;
-using Dignite.Site.Admin.Directories;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Files;
@@ -30,8 +29,8 @@ namespace Dignite.Site.Admin;
     )]
 public class SiteAdminApplicationModule : AbpModule
 {
-    /// <summary>Largest upload to <see cref="SiteFileContainerNames.Default"/>: 20 MB.</summary>
-    private const long DefaultContainerMaxSizeInBytes = 20 * 1024 * 1024;
+    /// <summary>Largest upload to <see cref="SiteFileContainerNames.Attachments"/>: 20 MB.</summary>
+    private const long AttachmentsContainerMaxSizeInBytes = 20 * 1024 * 1024;
 
     /// <summary>Largest upload to <see cref="SiteFileContainerNames.Images"/>: 10 MB.</summary>
     private const long ImagesContainerMaxSizeInBytes = 10 * 1024 * 1024;
@@ -64,8 +63,9 @@ public class SiteAdminApplicationModule : AbpModule
     /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), <c>ImageResize</c> (shrinks a picture
     /// that exceeds the box, keeping its aspect ratio; a picture that fits is stored as uploaded, and there is
     /// no minimum size), then <c>ImageCompress</c> (re-encodes a picture in its own format, kept only when it
-    /// comes out smaller). No GZip: the containers' stored format stays the plain file. Content that is not an
-    /// image passes the image contributors untouched. Before either image contributor decodes anything, the
+    /// comes out smaller). No GZip: the containers' stored format stays the plain file. Only <see cref="SiteFileContainerNames.Images"/>
+    /// gets the image contributors: <see cref="SiteFileContainerNames.Attachments"/> takes documents only, so no picture
+    /// can enter it. Before either image contributor decodes anything, the
     /// Imaging package's decode guard (left at its defaults: 8192 x 8192, 50,000,000 pixels, 100 pixels per
     /// stored byte, 10 s) rejects an oversized picture with <c>Dignite.Abp.BlobStoring.Imaging:ImageTooLarge</c>.
     /// </para>
@@ -80,19 +80,13 @@ public class SiteAdminApplicationModule : AbpModule
     {
         Configure<AbpBlobStoringOptions>(options =>
         {
-            options.Containers.Configure(SiteFileContainerNames.Default, container =>
+            options.Containers.Configure(SiteFileContainerNames.Attachments, container =>
             {
-                container.AddMaxSizeContributor(config => config.MaxSizeInBytes = DefaultContainerMaxSizeInBytes);
+                container.AddMaxSizeContributor(config => config.MaxSizeInBytes = AttachmentsContainerMaxSizeInBytes);
                 container.AddAllowedContentTypesContributor(config =>
                 {
-                    config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.All);
+                    config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.Documents);
                 });
-                container.AddImageResizeContributor(config =>
-                {
-                    config.MaxWidth = 4096;
-                    config.MaxHeight = 4096;
-                });
-                container.AddImageCompressContributor();
                 ConfigureContentPermissions(container);
             });
 

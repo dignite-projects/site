@@ -11,10 +11,10 @@ the `Dignite.Abp.FileStoring` packages and their `IFileStorer`).
 
 | Piece | Location |
 |---|---|
-| Descriptors and directories (`FileDescriptor`, `DirectoryDescriptor`, their managers and repositories) | `Dignite.Site.Domain` - `Files/`, `Directories/` |
+| Descriptors and directories (`FileDescriptor`, `DirectoryDescriptor`, their managers and repositories) | `Dignite.Site.Domain` - `Files/` |
 | Tables | `SiteFileDescriptors`, `SiteDirectoryDescriptors` (EF Core); collections of the same names (MongoDB) |
-| Containers | `SiteFileContainerNames`: `site-images` (JPEG, PNG, GIF and WebP only, 10 MB, shrunk to fit 1920 x 1920) and `site-files` (those images plus PDF, Word, Excel, PowerPoint, text, CSV and ZIP, 20 MB, images shrunk to fit 4096 x 4096); the allowed types are one table, `SiteFileTypes` (extension and MIME type). Their upload rules are BLOB pipeline contributors set in `SiteAdminApplicationModule`; a host only picks the storage provider |
-| Admin API | `api/site-admin/files`, `api/site-admin/directories` (`IFileAdminAppService`, `IDirectoryAdminAppService`) |
+| Containers | `SiteFileContainerNames`: `images` (JPEG, PNG, GIF and WebP only, 10 MB, shrunk to fit 1920 x 1920) and `attachments` (documents only: PDF, Word, Excel, PowerPoint, text, CSV and ZIP, 20 MB; a picture is refused - it belongs in `images`); the allowed types are one table, `SiteFileTypes` (extension and MIME type). Their upload rules are BLOB pipeline contributors set in `SiteAdminApplicationModule`; a host only picks the storage provider |
+| Admin API | `api/site-admin/files`, `api/site-admin/files/directories` (`IFileAdminAppService`, `IDirectoryAdminAppService`) |
 | Public read | `GET`/`HEAD` `api/site-public/files/{containerName}/{blobName}` (`IFilePublicAppService`) |
 | MCP tools | `site_list_file_containers`, `site_list_files`, `site_get_file`, `site_upload_file`, `site_update_file`, `site_delete_file`, `site_list_directories`, `site_create_directory` |
 | File field type | `FileFieldType` in `Dignite.FlexFields.Site` (registration key `FileExplorer`), its view in `Dignite.Site.Public.Web/Views/Shared/FlexFields/` |
@@ -154,7 +154,7 @@ unchanged.
 `@dignite/ng.flex-fields-ckeditor` (from `10.0.0-rc.25`) ships no uploader; `provideSite()` registers
 `SiteCKEditorUploadProvider` as its `CKEDITOR_UPLOAD_PROVIDER`. An image inserted into a CKEditor field is
 uploaded to `api/site-admin/files` into the field's `CKEditor.ImagesContainerName` (normally
-`site-images`) and embedded by its public address - stored relative, see
+`images`) and embedded by its public address - stored relative, see
 [Addresses](#addresses) for how the editor works with it.
 
 ## MCP

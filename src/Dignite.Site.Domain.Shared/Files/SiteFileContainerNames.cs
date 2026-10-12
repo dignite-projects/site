@@ -21,23 +21,23 @@ namespace Dignite.Site.Files;
 public static class SiteFileContainerNames
 {
     /// <summary>
-    /// General-purpose, publicly readable attachments - documents plus the image types, so fields that
-    /// pointed here before <see cref="Images"/> existed keep working.
+    /// Publicly readable documents and archives for download, no pictures - a picture belongs in
+    /// <see cref="Images"/>.
     /// </summary>
-    public const string Default = "site-files";
+    public const string Attachments = "attachments";
 
     /// <summary>
     /// Publicly readable pictures only (raster formats, no SVG), with a tighter size limit - what an
     /// image-holding file field should point at.
     /// </summary>
-    public const string Images = "site-images";
+    public const string Images = "images";
 
     /// <summary>Every container Site's file library uses.</summary>
-    public static IReadOnlyList<string> All { get; } = new[] { Default, Images };
+    public static IReadOnlyList<string> All { get; } = new[] { Images, Attachments };
 
     /// <summary>
     /// Whether <paramref name="containerName"/> is one of <see cref="All"/>. Ordinal, the same as ABP's own
-    /// container lookup: <c>Site-Images</c> is not a container anyone configured.
+    /// container lookup: <c>Images</c> is not a container anyone configured.
     /// </summary>
     public static bool Contains(string? containerName)
     {

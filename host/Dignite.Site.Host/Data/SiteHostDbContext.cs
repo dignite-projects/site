@@ -44,7 +44,7 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
 
     public DbSet<Dignite.Site.Contents.ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; } = default!;
 
-    public DbSet<Dignite.Site.Directories.DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
+    public DbSet<Dignite.Site.Files.DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
 
     public DbSet<Dignite.Site.Files.FileDescriptor> FileDescriptors { get; set; } = default!;
 
@@ -78,4 +78,3 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
         builder.ConfigureSite();
     }
 }
-

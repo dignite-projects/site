@@ -1,7 +1,7 @@
 import { absoluteFileUrl, isSiteFileUrl, sizedFileUrl } from './site-file-url';
 
 describe('sizedFileUrl', () => {
-  const file = 'https://api.example/api/site-public/files/site-images/abc?__tenant=';
+  const file = 'https://api.example/api/site-public/files/images/abc?__tenant=';
 
   it('asks a Site file for the size, keeping the tenant', () => {
     expect(sizedFileUrl(file, 120, 80)).toBe(`${file}&Width=120&Height=80`);
@@ -25,7 +25,7 @@ describe('sizedFileUrl', () => {
 });
 
 describe('absoluteFileUrl', () => {
-  const relative = '/api/site-public/files/site-images/abc?__tenant=';
+  const relative = '/api/site-public/files/images/abc?__tenant=';
 
   it('puts a relative Site file address on the API host', () => {
     expect(absoluteFileUrl(relative, 'https://api.example')).toBe(`https://api.example${relative}`);
