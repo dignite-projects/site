@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: the file library's directories are folded into `Files` across all layers.** The `Directories/` folders of every project
+  (Domain, Domain.Shared, EntityFrameworkCore, MongoDB, Admin.Application(.Contracts), Admin.HttpApi(.Client) and the tests)
+  now live in the sibling `Files/` folder. Namespaces: `Dignite.Site.Directories` -> `Dignite.Site.Files` and
+  `Dignite.Site.Admin.Directories` -> `Dignite.Site.Admin.Files`. The admin route `api/site-admin/directories` is now
+  `api/site-admin/files/directories`, and the Angular proxy moved from `proxy/dignite/site/admin/directories` to
+  `proxy/dignite/site/admin/files`. `IDirectoryAdminAppService` and every type name are unchanged; a consumer (for example
+  Dignite.Cloud's SiteService) must update its `using` directives and the Angular proxy import path. Permission names,
+  localization keys, table names and error codes are unchanged.
 - **The .NET dependencies from abp-modules now use NuGet packages at `10.0.0-rc.29`.**
   `DigniteAbpModulesVersion` in `common.props` pins FlexFields, BLOB storage and the MCP server.
   The solution, PR CI and release builds no longer require a sibling `abp-modules` checkout;

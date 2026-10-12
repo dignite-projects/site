@@ -12,8 +12,8 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import * as DescriptorService from '../../../proxy/dignite/site/admin/directories';
-import { DirectoryDescriptorDto } from '../../../proxy/dignite/site/admin/directories';
+import * as DescriptorService from '../../../proxy/dignite/site/admin/files';
+import { DirectoryDescriptorDto } from '../../../proxy/dignite/site/admin/files';
 import { Confirmation, ConfirmationService, ThemeSharedModule } from '@abp/ng.theme.shared';
 import { finalize, map, of, tap } from 'rxjs';
 import { CoreModule, LocalizationService } from '@abp/ng.core';

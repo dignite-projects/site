@@ -1,6 +1,5 @@
 ﻿using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Abp.BlobStoring.Pipeline;
-using Dignite.Site.Admin.Directories;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Files;

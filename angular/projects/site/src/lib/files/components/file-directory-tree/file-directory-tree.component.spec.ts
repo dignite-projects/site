@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
 import { FileDirectoryTreeComponent, MY_FILES_NODE_KEY } from './file-directory-tree.component';
-import * as DirectoryAdminService from '../../../proxy/dignite/site/admin/directories';
+import * as DirectoryAdminService from '../../../proxy/dignite/site/admin/files';
 import { ConfirmationService } from '@abp/ng.theme.shared';
 import { LocalizationService } from '@abp/ng.core';
 import { CoreTestingModule } from '@abp/ng.core/testing';
