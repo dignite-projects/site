@@ -21,7 +21,7 @@ namespace Dignite.FlexFields.Site;
 /// </para>
 /// </summary>
 [DependsOn(
-    typeof(FlexFieldsAbstractionsModule)
+    typeof(AbpFlexFieldsAbstractionsModule)
     )]
 public class FlexFieldsSiteModule : AbpModule
 {

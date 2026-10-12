@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CoreModule } from '@abp/ng.core';
 import { AbstractControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
@@ -9,6 +9,7 @@ import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration } from './file-c
 /** Edits a file field's value: picks one or more files from Site's file library. */
 @Component({
   selector: 'site-file-control',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-control.component.html',
   imports: [CommonModule, CoreModule, ReactiveFormsModule, FilePickerComponent],
 })

@@ -1,5 +1,5 @@
 /* eslint-disable @angular-eslint/component-selector */
-import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { ObjectUrlService } from '../../services/object-url.service';
 import { FormatFileSizePipe } from '../../pipes/format-file-size.pipe';
 import { CoreModule } from '@abp/ng.core';
@@ -24,6 +24,7 @@ export interface FileUploadChangeEvent {
 
 @Component({
   selector: 'site-file-upload',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-upload.component.html',
   imports: [CoreModule, FilePreviewComponent, FormatFileSizePipe],
   providers: [FormatFileSizePipe],

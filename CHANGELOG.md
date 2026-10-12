@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The .NET dependencies from abp-modules now use NuGet packages at `10.0.0-rc.29`.**
+  `DigniteAbpModulesVersion` in `common.props` pins FlexFields, BLOB storage and the MCP server.
+  The solution, PR CI and release builds no longer require a sibling `abp-modules` checkout;
+  restore uses public nuget.org without credentials. The packed-package restore check also
+  uses nuget.org and the freshly built Site packages without a GitHub Packages read token.
+- **Breaking: ABP Framework 10.7.0 (was 10.5.0), Angular 22 and `@abp/ng.*` 10.7.0 (were Angular 21 and 10.5.0),
+  TypeScript 6, and abp-modules .NET packages `10.0.0-rc.29`.** Every `Volo.Abp.*` reference moved to 10.7.0 (with
+  `Volo.Abp.Studio.Client.AspNetCore` 3.1.4 and LeptonX Lite 5.7.0 in the dev Host, and
+  `Microsoft.Extensions.FileProviders.Embedded` 10.0.12, the version abp-modules resolves); a host must be on ABP
+  10.7.0 or later. The Angular workspace and `@dignite/ng.site` follow ABP 10.7.0's own template: `@angular/*`
+  ~22.2, `@abp/ng.*` ~10.7.0, `@abp/ng.theme.lepton-x` ~5.7.0, TypeScript ~6.0, `zone.js` ~0.16, `ng-zorro-antd`
+  ~21.3.1 (on the 21 line, like `@angular/cdk` ~21.2, so `@abp/ng.components` resolves one copy), and
+  `@dignite/ng.flex-fields(-ckeditor)` ^10.0.0-rc.28; the library's peer ranges are `@abp/ng.*` ~10.7.0 and
+  `@angular/*` ^22.0.0. Every component declares `ChangeDetectionStrategy.Eager` (Angular 22 changed the
+  default; ABP calls this a temporary compatibility measure), and the tsconfigs write out `strict: false` and
+  `strictTemplates: false`, the defaults TypeScript 6 and Angular 22 changed. CI runs Node 22.23.2 (Angular 22
+  needs `^22.22.3 || ^24.15.0 || >=26`).
+  - Site now names abp-modules' module classes with their `Abp` prefix (`AbpFlexFieldsDomainModule`,
+    `AbpBlobStoringPipelineModule`, ...), as published in the rc.29 .NET packages.
+- **Breaking: the file library stores through ABP 10.7's BLOB pipeline (`Dignite.Abp.BlobStoring.Pipeline` /
+  `.Imaging`) instead of the removed `Dignite.Abp.FileStoring` and its `IFileStorer`.** See
+  [docs/site-files.md](docs/site-files.md).
+  - The container policy in `SiteAdminApplicationModule` is now contributors, in the package's order: `MaxSize`
+    (20 MB / 10 MB), `AllowedContentTypes`, `ImageResize` (4096 / 1920, no minimum) and `ImageCompress`. The
+    allowed types are **MIME types matched against the detected content**, from the new `SiteFileTypes` table
+    in `Dignite.Site.Domain.Shared` (the same extensions as before: jpg/jpeg/png/gif/webp; pdf, doc/docx,
+    xls/xlsx, ppt/pptx, txt, csv, zip); the admin API's `FileContainerConfigurationDto.AllowedFileTypeNames`
+    still reports extensions, mapped back through that table, so the DTOs and the MCP tools are unchanged.
+  - `FileDescriptorManager` is the caller around the pipeline: it buffers the upload once (capped at the
+    container's `MaxSize`), detects the type from the bytes and reconciles it with the file name, hashes it,
+    and **dedups before writing**: an upload whose bytes a live descriptor already owns becomes a reference
+    and no blob is written. `FileDescriptor.Hash` is the SHA-256 of the *upload* (a re-upload of an original
+    that an earlier version resized will not dedup against the stored copy); `Size` is the stored length, read
+    back for images. A new blob is named with 32 hex digits plus the canonical extension of
+    its detected type (from `SiteFileTypes`, never the uploader's extension); blobs stored earlier keep their
+    extension-less names and addresses.
+  - The imaging provider is SkiaSharp (`Volo.Abp.Imaging.SkiaSharp`), referenced by `Dignite.Site.Admin.Application`
+    and `Dignite.Site.Public.Application`, so a host gets a working resizer without choosing one; nothing in
+    Site references ImageSharp any more. On Linux a host also needs `SkiaSharp.NativeAssets.Linux` (the dev
+    Host and the EF Core tests reference 3.119.0).
+  - Behaviour that changed with it: uploaded JPEG/PNG/WebP are re-compressed when that comes out smaller; the
+    decode guard admits 8192 x 8192 and 50 M pixels (was 4096 x 4096 and 16 M); the public read endpoint's
+    `?Width=&Height=` resize is provider-agnostic and serves a picture the provider cannot resize (a GIF under
+    SkiaSharp) as stored instead of failing.
+  - Error codes: `Dignite.Abp.File:0001`-`0005` and `Dignite.Abp.FileStoring.Imaging:0001`-`0006` are replaced
+    by `Dignite.Abp.BlobStoring:ContentTooLarge` / `ContentTypeMismatch` / `ContentTypeNotAllowed` and
+    `Dignite.Abp.BlobStoring.Imaging:ImageTooLarge` / `ImageTooSmall` / `ImageDecodeTimeout` /
+    `ImageProcessingFailed`. The on-request resize reports a requested size beyond its bound as `ImageTooLarge`.
+
 ## [0.1.0-preview.27] - 2026-10-10
 
 ### Changed

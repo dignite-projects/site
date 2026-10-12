@@ -10,21 +10,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Volo.Abp.Ddd.Domain" Version="10.5.0"/>
+    <PackageReference Include="Volo.Abp.Ddd.Domain" Version="10.7.0"/>
     <!-- SiteFeatureDefinitionProvider. Volo.Abp.Ddd.Domain does not pull Features in; it only arrives
          transitively at the Application layer. -->
-    <PackageReference Include="Volo.Abp.Features" Version="10.5.0"/>
+    <PackageReference Include="Volo.Abp.Features" Version="10.7.0"/>
     <!-- IBrandingProvider, replaced tenant-wide by SiteBrandingProvider (总体设计 §4.1) - core ABP
          infrastructure with no ASP.NET Core dependency, not a rendering package, so it does not break the
          "Domain stays library-agnostic" rule the sitemap/robots/feed generators already follow. -->
-    <PackageReference Include="Volo.Abp.Ui" Version="10.5.0"/>
+    <PackageReference Include="Volo.Abp.Ui" Version="10.7.0"/>
     <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Domain\Dignite.Abp.FlexFields.Domain.csproj" />
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.CKEditor\Dignite.Abp.FlexFields.CKEditor.csproj" />
-    <!-- The file library's upload pipeline: IFileStorer runs a container's handlers and stores the bytes;
-         FileDescriptorManager keeps only the descriptor rows on top of it. A library on ABP BlobStoring,
-         not a module with data of its own - the file library itself is Site's (Files/, Directories/). -->
-    <ProjectReference Include="..\..\..\abp-modules\file-storing\core\src\Dignite.Abp.FileStoring\Dignite.Abp.FileStoring.csproj" />
+    <PackageReference Include="Dignite.Abp.FlexFields.Domain" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Abp.FlexFields.CKEditor" Version="$(DigniteAbpModulesVersion)" />
+    <!-- The file library's upload rules: the BLOB pipeline contributors (size cap, content-type check) that
+         run inside IBlobContainer.SaveAsync, plus the content-based IMimeTypeDetector and the capped
+         BlobStreamBuffering that FileDescriptorManager calls itself. A library on ABP BlobStoring, not a
+         module with data of its own - the file library itself is Site's (Files/, Directories/). -->
+    <PackageReference Include="Dignite.Abp.BlobStoring.Pipeline" Version="$(DigniteAbpModulesVersion)" />
     <!-- Content/Seo/file field types (GitHub issue #49) - same bolt-on role as CKEditor above,
          just living in this repo instead of abp-modules. Matrix/Table used to live here too, until
          flex-fields shipped them as kernel built-ins at 10.0.0-rc.16. -->

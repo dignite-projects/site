@@ -1,6 +1,6 @@
 import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, Input, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FieldTypeResolver, FlexFieldsStyleLoader, NZ_SELECT_STYLE } from '@dignite/ng.flex-fields';
 import type { FieldTypeDefinition } from '@dignite/ng.flex-fields';
@@ -23,6 +23,7 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
  */
 @Component({
   selector: 'site-field-arrangement',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './field-arrangement.component.html',
   imports: [CoreModule, FormsModule, DragDropModule, NzSelectModule],
   styles: `

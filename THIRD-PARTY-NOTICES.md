@@ -2,14 +2,15 @@
 
 This project (Dignite.Site) is licensed under the [MIT License](LICENSE).
 
-It references source code from the following third-party component(s) via
-project references. These components remain under their own license and are
+It consumes the following third-party component(s) via NuGet
+package references. These components remain under their own license and are
 **not** relicensed by this project's MIT license.
 
-## Dignite abp-modules (flex-fields, file-storing)
+## Dignite abp-modules (flex-fields, blob-storing, aspnetcore-mcp)
 
 - **License:** GNU Lesser General Public License v3.0 (LGPL-3.0)
-- **Source:** `abp-modules` repository (sibling repo, referenced via `ProjectReference`)
+- **Source:** [abp-modules repository](https://github.com/dignite-projects/abp-modules)
+- **Dependency:** nuget.org packages at `10.0.0-rc.29`, referenced via `PackageReference`
 - **Full license text:** see [LGPL-3.0.txt](#lgpl-30-full-text) below, or
   https://www.gnu.org/licenses/lgpl-3.0.html
 
@@ -24,14 +25,15 @@ project references. These components remain under their own license and are
 | Dignite.Abp.FlexFields.CKEditor | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.CKEditor` |
 | Dignite.Abp.FlexFields.CKEditor.Web | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.CKEditor.Web` |
 | Dignite.Abp.FlexFields.Web | `abp-modules/flex-fields/src/Dignite.Abp.FlexFields.Web` |
-| Dignite.Abp.FileStoring | `abp-modules/file-storing/core/src/Dignite.Abp.FileStoring` |
-| Dignite.Abp.FileStoring.Imaging | `abp-modules/file-storing/core/src/Dignite.Abp.FileStoring.Imaging` |
+| Dignite.Abp.BlobStoring.Pipeline | `abp-modules/blob-storing/src/Dignite.Abp.BlobStoring.Pipeline` |
+| Dignite.Abp.BlobStoring.Imaging | `abp-modules/blob-storing/src/Dignite.Abp.BlobStoring.Imaging` |
+| Dignite.Abp.AspNetCore.Mcp | `abp-modules/aspnetcore-mcp/src/Dignite.Abp.AspNetCore.Mcp` |
 
 ### Compliance notes
 
 - These modules are consumed as **separate compiled assemblies** via
-  `ProjectReference`, not merged or statically linked into a single binary.
-  Unmodified source is used as-is.
+  `PackageReference`, not merged or statically linked into a single binary.
+  Published packages are used as-is.
 - Any modification to the source code of these modules must be released
   under LGPL-3.0 (in the `abp-modules` repository itself), independent of
   this project's MIT license.

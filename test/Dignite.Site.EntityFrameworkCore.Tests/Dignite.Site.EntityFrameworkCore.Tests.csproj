@@ -16,10 +16,15 @@
          scenario as the app services they call - no HTTP, no MCP transport. -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
     <ProjectReference Include="..\Dignite.Site.Application.Tests\Dignite.Site.Application.Tests.csproj" />
-    <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.5.0"/>
+    <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.7.0"/>
     <!-- The file library's test containers (GitHub issue #41) - same provider as the dev Host,
          pointed at a temp directory instead of App_Data. -->
-    <PackageReference Include="Volo.Abp.BlobStoring.FileSystem" Version="10.5.0" />
+    <PackageReference Include="Volo.Abp.BlobStoring.FileSystem" Version="10.7.0" />
+    <!-- The upload and on-request resize tests run images through SkiaSharp (Volo.Abp.Imaging.SkiaSharp,
+         via Admin/Public.Application), and TestFiles draws its pictures with it. That package brings the
+         Windows and macOS natives only; this one lets the tests run on the ubuntu CI runners. Same version
+         as abp-modules pins (ABP 10.7.0's SkiaSharp 3.119.0). -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />
   </ItemGroup>
 
 </Project>

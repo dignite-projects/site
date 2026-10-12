@@ -26,7 +26,7 @@
          as Dignite.Abp.FlexFields.CKEditor), never referencing the kernel's Domain/EntityFrameworkCore
          layers, let alone anything in Dignite.Site itself. Matrix/Table used to live here too (GitHub
          issue #49) until flex-fields shipped them as kernel built-ins at 10.0.0-rc.16. -->
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Abstractions\Dignite.Abp.FlexFields.Abstractions.csproj" />
+    <PackageReference Include="Dignite.Abp.FlexFields.Abstractions" Version="$(DigniteAbpModulesVersion)" />
   </ItemGroup>
 
 </Project>

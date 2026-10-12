@@ -1,6 +1,6 @@
 import { CoreModule } from '@abp/ng.core';
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { FieldTypeConfigBase } from '@dignite/ng.flex-fields';
 import { ContentTypeAdminService } from '../../proxy/dignite/site/admin/content-types/content-type-admin.service';
@@ -11,6 +11,7 @@ import { ContentConfiguration } from './content-configuration';
  * any), single- vs. multi-select, and a placeholder. */
 @Component({
   selector: 'site-content-config',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './content-config.component.html',
   imports: [CoreModule, CommonModule, ReactiveFormsModule],
 })

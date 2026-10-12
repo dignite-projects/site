@@ -13,7 +13,8 @@ namespace Dignite.Site.Files;
 
 /// <summary>
 /// The file library end to end against the filesystem container the test module configures: bytes through
-/// <c>IFileStorer</c>, rows through <see cref="FileDescriptorManager"/>, tenant-scoped by the same
+/// <c>IBlobContainer</c> and its pipeline contributors, rows through <see cref="FileDescriptorManager"/>,
+/// tenant-scoped by the same
 /// <see cref="ICurrentTenant"/> every other Site entity uses.
 /// </summary>
 public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
@@ -73,8 +74,8 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// The same bytes twice keep one blob: the second descriptor refers to the first one's, and the copy it
-    /// was stored as is deleted again.
+    /// The same bytes twice keep one blob: the second descriptor refers to the first one's, and no blob is
+    /// ever written under its own name - the dedup lookup runs before the save.
     /// </summary>
     [Fact]
     public async Task Should_Dedup_Identical_Content_Into_A_Reference()
@@ -89,9 +90,28 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
         reference.ReferBlobName.ShouldBe(owner.BlobName);
         reference.Hash.ShouldBeEmpty();
         reference.Name.ShouldBe("second.pdf");
+        reference.Size.ShouldBe(owner.Size);
 
         (await ReadAsync(reference)).ShouldBe(bytes);
         (await BlobExistsAsync(reference.BlobName)).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A picture the container shrinks still dedups: the hash is the upload's, so the same original uploaded
+    /// again finds the first row even though the stored bytes are the resized ones.
+    /// </summary>
+    [Fact]
+    public async Task Should_Dedup_A_Resized_Picture_By_Its_Upload()
+    {
+        var bytes = TestFiles.Jpeg(2400, 600, seed: 11);
+
+        var owner = await UploadAsync(SiteFileContainerNames.Images, "wide.jpg", bytes);
+        var reference = await UploadAsync(SiteFileContainerNames.Images, "wide-again.jpg", bytes);
+
+        owner.Size.ShouldBeLessThan(bytes.Length);
+        reference.IsReference().ShouldBeTrue();
+        reference.ReferBlobName.ShouldBe(owner.BlobName);
+        reference.Size.ShouldBe(owner.Size);
     }
 
     [Fact]

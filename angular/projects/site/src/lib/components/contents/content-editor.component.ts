@@ -1,6 +1,6 @@
 import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FlexFieldControlComponent } from '@dignite/ng.flex-fields';
@@ -50,6 +50,7 @@ type SlugState = 'forbidden' | 'required' | 'optional';
  */
 @Component({
   selector: 'site-content-editor',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './content-editor.component.html',
   imports: [CoreModule, ThemeSharedModule, ReactiveFormsModule, RouterLink, FlexFieldControlComponent],
 })

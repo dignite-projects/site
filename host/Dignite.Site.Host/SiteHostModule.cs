@@ -275,11 +275,11 @@ public class SiteHostModule : AbpModule
 
     /// <summary>
     /// The storage provider for each <see cref="SiteFileContainerNames"/> container (GitHub issue #41):
-    /// filesystem for dev. Only the provider - each container's policy (types, size, permissions) comes
-    /// from SiteAdminApplicationModule, and <c>Containers.Configure</c> merges this onto it. Production
-    /// provider (Azure/S3/other) is still an open decision (#41) - swapping it later only touches this
-    /// method, since IFileStorer and FileDescriptorManager address blobs by container name, never by
-    /// provider.
+    /// filesystem for dev. Only the provider - each container's policy (its BLOB pipeline contributors for
+    /// size, types and image resizing, and its permissions) comes from SiteAdminApplicationModule, and
+    /// <c>Containers.Configure</c> merges this onto it. Production provider (Azure/S3/other) is still an open
+    /// decision (#41) - swapping it later only touches this method, since FileDescriptorManager addresses
+    /// blobs through IBlobContainer by container name, never by provider.
     /// </summary>
     private void ConfigureBlobStoring(IHostEnvironment hostingEnvironment)
     {

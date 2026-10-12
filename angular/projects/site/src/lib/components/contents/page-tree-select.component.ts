@@ -9,6 +9,7 @@ import {
   Input,
   Output,
   inject,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 
@@ -25,6 +26,7 @@ type PageNode = PageDto & BaseNode;
  */
 @Component({
   selector: 'site-page-tree-select',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [CoreModule, TreeModule],
   template: `
     <div class="page-tree-select">

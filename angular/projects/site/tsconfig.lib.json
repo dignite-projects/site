@@ -11,5 +11,8 @@
     // and friends, which the runtime has had for years.
     "lib": ["dom", "es2022"]
   },
+  "angularCompilerOptions": {
+    "strictTemplates": false
+  },
   "exclude": ["src/test.ts", "**/*.spec.ts"]
 }

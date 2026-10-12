@@ -4,6 +4,8 @@
         <!-- 0.y.z: not stable yet. Pre-release (-preview.N) builds publish to GitHub Packages only;
              dropping the suffix is what promotes a build to NuGet.org - see release.yml. -->
         <Version>0.1.0-preview.27</Version>
+        <!-- Published abp-modules packages; building Site requires no sibling source checkout. -->
+        <DigniteAbpModulesVersion>10.0.0-rc.29</DigniteAbpModulesVersion>
         <NoWarn>$(NoWarn);CS1591</NoWarn>
         <NuGetAudit>false</NuGetAudit>
         <AbpProjectType>module</AbpProjectType>

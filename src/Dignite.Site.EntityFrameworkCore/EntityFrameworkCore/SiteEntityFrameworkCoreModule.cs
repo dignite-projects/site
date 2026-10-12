@@ -17,7 +17,7 @@ namespace Dignite.Site.EntityFrameworkCore;
     typeof(AbpEntityFrameworkCoreModule),
     // Brings the model-builder extensions, the typed index-row shape, and the EF Core base classes the
     // index manager, query executor and field repository derive from.
-    typeof(FlexFieldsEntityFrameworkCoreModule)
+    typeof(AbpFlexFieldsEntityFrameworkCoreModule)
 )]
 public class SiteEntityFrameworkCoreModule : AbpModule
 {

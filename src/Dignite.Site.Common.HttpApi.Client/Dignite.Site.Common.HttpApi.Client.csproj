@@ -9,9 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Volo.Abp.Http.Client" Version="10.5.0"/>
+    <PackageReference Include="Volo.Abp.Http.Client" Version="10.7.0"/>
     <ProjectReference Include="..\Dignite.Site.Common.Application.Contracts\Dignite.Site.Common.Application.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\abp-modules\flex-fields\src\Dignite.Abp.FlexFields.Abstractions\Dignite.Abp.FlexFields.Abstractions.csproj" />
+    <PackageReference Include="Dignite.Abp.FlexFields.Abstractions" Version="$(DigniteAbpModulesVersion)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -29,9 +29,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
 
-    # Both checkouts land as siblings under $GITHUB_WORKSPACE (site/, abp-modules/) rather than a
-    # bare checkout at the workspace root, so every `run:` below reads as if it starts from the
-    # repository root - same arrangement as release.yml.
+    # Keep Site under site/ to match release.yml's working directories and artifact paths.
     defaults:
       run:
         working-directory: site
@@ -50,20 +48,6 @@ jobs:
         with:
           path: site
 
-      # Several Dignite.Site .NET projects carry relative ProjectReferences into the sibling
-      # abp-modules repository for FlexFields / file-storing (see Dignite.Site.slnx's
-      # "/flex-fields/" folder). A single-repo checkout has no such directory, so restore and build
-      # would fail without this. Both repositories are public, so the default token suffices.
-      #
-      # The Angular side does NOT need this checkout: angular/package.json resolves the @dignite/*
-      # packages as installed npm packages (see angular/.npmrc), not from local file: paths into
-      # this sibling.
-      - name: Checkout abp-modules (sibling dependency for FlexFields / file-storing)
-        uses: actions/checkout@v5
-        with:
-          repository: dignite-projects/abp-modules
-          path: abp-modules
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -75,9 +59,7 @@ jobs:
       - name: Build
         run: dotnet build Dignite.Site.slnx --no-restore --configuration Release
 
-      # Enumerated rather than `dotnet test Dignite.Site.slnx`: the solution also carries
-      # abp-modules' own projects (checked out above only so they can be referenced), and running
-      # their tests here would report another repository's failures as this one's.
+      # Enumerate Site's test projects so each suite has its own CI step and diagnostics.
       - name: Run domain tests
         run: dotnet test test/Dignite.Site.Domain.Tests/Dignite.Site.Domain.Tests.csproj --no-build --configuration Release --verbosity normal
 
@@ -105,7 +87,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.14.0'
+          node-version: '22.23.2'
           cache: yarn
           cache-dependency-path: site/angular/yarn.lock
 
@@ -142,11 +124,13 @@ jobs:
       #   @abp          - CORE_OPTIONS, ConfigStateService, the environment tokens; every ABP
       #                   package in the tree peers on @abp/ng.core and would split with it.
       #   ng-zorro-antd - unscoped, so the old scope-only invocation could not see it at all, and a
-      #                   live near-miss: @abp/ng.components pins it `~21.0.0-next.1` (< 21.1.0)
-      #                   while angular/projects/site/package.json asks `^21.0.2` (any 21.x). The
-      #                   root currently resolves to 21.0.2 so nothing is nested yet; the first
-      #                   21.1 release would nest a second copy under @abp/ng.components, giving
-      #                   two NZ_CONFIG tokens and two NzConfigService instances.
+      #                   live near-miss: @abp/ng.components 10.7.0 pins it `~21.3.1` and
+      #                   angular/package.json + angular/projects/site/package.json declare the
+      #                   same range, so there is one copy. Any range the ABP copy does not
+      #                   satisfy (e.g. ng-zorro-antd 22) would nest a second copy under
+      #                   @abp/ng.components, giving two NZ_CONFIG tokens and two NzConfigService
+      #                   instances. @angular/cdk is on the same route: ng-zorro-antd 21.3 depends
+      #                   on cdk ^21, so the workspace stays on cdk ~21.2.0 even with Angular 22.
       #   @angular/*    - core/common/forms/router/cdk, enumerated rather than taken as the whole
       #                   @angular scope: those five are what angular/projects/site/package.json
       #                   declares (cdk as a dependency, the rest as peers) and what ships in a

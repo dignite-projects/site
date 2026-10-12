@@ -9,6 +9,7 @@ import {
   Input,
   Output,
   ViewChild,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import * as DescriptorService from '../../../proxy/dignite/site/admin/directories';
@@ -56,6 +57,7 @@ type TreeDropEvent = {
 
 @Component({
   selector: 'site-file-directory-tree',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-directory-tree.component.html',
   styleUrls: ['./file-directory-tree.component.scss'],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, CoreModule, ThemeSharedModule, TreeModule],

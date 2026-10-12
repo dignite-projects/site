@@ -147,7 +147,7 @@ public static class SiteDbContextModelCreatingExtensions
         });
 
         // The file library. Rows describe blobs in the SiteFileContainerNames containers; the bytes are
-        // ABP BlobStoring's, put there by IFileStorer.
+        // ABP BlobStoring's, put there by FileDescriptorManager through IBlobContainer.
         builder.Entity<DirectoryDescriptor>(b =>
         {
             b.ToTable(SiteDbProperties.DbTablePrefix + "DirectoryDescriptors", SiteDbProperties.DbSchema);

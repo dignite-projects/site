@@ -3,8 +3,9 @@
 Site has its own file library: the images and attachments content fields point at, the share image of the
 SEO field, and the images inserted into a CKEditor field. It used to be a separate module in abp-modules;
 since 0.1.0-preview.25 it is part of Site, under Site's namespaces, tables,
-permissions and routes (abp-modules keeps only the upload pipeline, `Dignite.Abp.FileStoring` - see its
-`docs/core-only-decision.md` for why).
+permissions and routes. From abp-modules it uses only the upload rules: the BLOB pipeline contributors of
+`Dignite.Abp.BlobStoring.Pipeline` and `Dignite.Abp.BlobStoring.Imaging` (until abp-modules `10.0.0-rc.27`
+the `Dignite.Abp.FileStoring` packages and their `IFileStorer`).
 
 ## Where things live
 
@@ -12,18 +13,41 @@ permissions and routes (abp-modules keeps only the upload pipeline, `Dignite.Abp
 |---|---|
 | Descriptors and directories (`FileDescriptor`, `DirectoryDescriptor`, their managers and repositories) | `Dignite.Site.Domain` - `Files/`, `Directories/` |
 | Tables | `SiteFileDescriptors`, `SiteDirectoryDescriptors` (EF Core); collections of the same names (MongoDB) |
-| Containers | `SiteFileContainerNames`: `site-images` (raster images only, 10 MB) and `site-files` (documents and images, 20 MB); their upload rules are set in `SiteAdminApplicationModule`, a host only picks the storage provider |
+| Containers | `SiteFileContainerNames`: `site-images` (JPEG, PNG, GIF and WebP only, 10 MB, shrunk to fit 1920 x 1920) and `site-files` (those images plus PDF, Word, Excel, PowerPoint, text, CSV and ZIP, 20 MB, images shrunk to fit 4096 x 4096); the allowed types are one table, `SiteFileTypes` (extension and MIME type). Their upload rules are BLOB pipeline contributors set in `SiteAdminApplicationModule`; a host only picks the storage provider |
 | Admin API | `api/site-admin/files`, `api/site-admin/directories` (`IFileAdminAppService`, `IDirectoryAdminAppService`) |
 | Public read | `GET`/`HEAD` `api/site-public/files/{containerName}/{blobName}` (`IFilePublicAppService`) |
 | MCP tools | `site_list_file_containers`, `site_list_files`, `site_get_file`, `site_upload_file`, `site_update_file`, `site_delete_file`, `site_list_directories`, `site_create_directory` |
 | File field type | `FileFieldType` in `Dignite.FlexFields.Site` (registration key `FileExplorer`), its view in `Dignite.Site.Public.Web/Views/Shared/FlexFields/` |
 | Admin UI | `@dignite/ng.site`: the file picker, the browsing modal and the file field type (`src/lib/files`, `src/lib/field-types/file`) |
 
-Bytes are stored through `IFileStorer` (abp-modules `Dignite.Abp.FileStoring`): it caps the upload while
-copying, detects the type from the content (never the uploader's claim), runs the container's handlers
-(size, allowed types, image resize) and saves under a generated name. `FileDescriptorManager` adds the
-row, and dedups by content: the same bytes uploaded twice to one container keep one blob, the second
-descriptor referring to the first one's.
+Bytes go into the container through ABP's `IBlobContainer`, whose BLOB pipeline runs the container's
+contributors (abp-modules `Dignite.Abp.BlobStoring.Pipeline` and `.Imaging`) inside `SaveAsync`, in this
+order: `MaxSize`, `AllowedContentTypes` (the type detected from the bytes, never the uploader's claim),
+`ImageResize` (a picture larger than the container's box is shrunk, keeping its aspect ratio; one that fits
+is stored as uploaded) and `ImageCompress` (re-encoded in its own format, kept only if smaller). The image
+contributors leave anything that is not an image untouched, and refuse to decode a picture beyond the
+Imaging package's decode guard (8192 x 8192, 50 million pixels). The image provider is ABP's SkiaSharp one
+(`Volo.Abp.Imaging.SkiaSharp`, depended on by the Site modules); a Linux host also references
+`SkiaSharp.NativeAssets.Linux`.
+
+`FileDescriptorManager` is the caller around that pipeline. For an upload it:
+
+1. copies it once into memory, capped at the container's size limit (`Dignite.Abp.BlobStoring:ContentTooLarge`);
+2. detects its type from the content, reconciled with the extension of the uploaded file name - a file whose
+   content contradicts its extension's kind is refused (`Dignite.Abp.BlobStoring:ContentTypeMismatch`), a
+   picture named with another picture's extension is recorded as what it is;
+3. hashes it (SHA-256);
+4. dedups by content: when the same bytes are already stored in that container (same tenant), the new
+   descriptor only refers to that blob and nothing is written;
+5. otherwise saves the blob under a new random name (32 hex digits plus the canonical extension of the detected type, e.g. `.png` for a
+   picture uploaded as `photo.jpg` - never the uploader's own extension; blobs stored earlier have no extension)
+   without overwriting - the contributors run here and may refuse it (`ContentTypeNotAllowed`, the Imaging codes) - then writes the
+   row, deleting the blob again if the row cannot be written.
+
+The row records the detected MIME type, the hash of the upload (so the same original dedups even when the
+container shrank it) and the size of what is stored. Two simultaneous uploads of the same bytes can both
+miss the dedup lookup; a unique index on (tenant, container, hash) over live rows lets only one insert win,
+and the other upload fails and can be retried, when it becomes a reference.
 
 The file field's registration key `FileExplorer` and its configuration keys
 `FileExplorer.FileContainerName` / `FileExplorer.UploadFileMultiple` keep the names they had in
@@ -54,7 +78,11 @@ the MCP tools hand out (`FileDescriptorDto.Url`) and what a field stores - relat
 site's images are for its visitors - and serves **only** `SiteFileContainerNames`: another container, a
 deleted file and a name that does not exist are all `404`. The tenant comes from `__tenant`.
 
-- `?Width=&Height=` resizes an image on the way out (both given: cropped to fill). `SiteFileUrl.Sized` in
+- `?Width=&Height=` resizes an image on the way out (both given: cropped to fill), up to 4096 pixels a side
+  and from a source of at most 4096 x 4096 and 16 million pixels (beyond that:
+  `Dignite.Abp.BlobStoring.Imaging:ImageTooLarge`). Whether a file is an image is its recorded MIME type;
+  anything else is served as stored, and so is a GIF, which the SkiaSharp provider does not resize.
+  `SiteFileUrl.Sized` in
   C# and `sizedFileUrl` in `@dignite/ng.site` build such addresses; templates call
   `SiteFileUrl.Sized(url, width, height)`.
 - `api/site-public/files/download/{containerName}/{blobName}?fileName=` serves the file as an attachment.

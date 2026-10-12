@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Dignite.Abp.FileStoring;
+using Dignite.Abp.BlobStoring.Pipeline;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Directories;
 using Dignite.Site.Files;
@@ -158,14 +158,18 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
         FileContainerNotAvailableException.ThrowIfNotSiteContainer(containerName);
 
         var configuration = BlobContainerConfigurationProvider.Get(containerName);
-        var maxFileSize = configuration.GetFileSizeLimitConfiguration().MaxFileSizeInBytes;
         var authorization = configuration.GetAuthorizationConfiguration();
 
         return Task.FromResult(new FileContainerConfigurationDto
         {
-            // What IFileStorer actually enforces: the container's limit, or core's default cap without one.
-            MaxBlobSize = maxFileSize > 0 ? maxFileSize : FileConsts.DefaultMaxFileSizeInBytes,
-            AllowedFileTypeNames = configuration.GetFileTypeCheckConfiguration().AllowedFileTypeNames ?? [],
+            // What the upload actually enforces: the container's MaxSize contributor, or the pipeline's
+            // default buffering cap without one (FileDescriptorManager buffers to the same bound).
+            MaxBlobSize = BlobStreamBuffering.GetMaxBufferedBytes(configuration),
+            // The container allows MIME types (checked against the detected content); a file input and the
+            // MCP tools want extensions, so they are mapped back through Site's own type table. Empty when the
+            // container restricts no type.
+            AllowedFileTypeNames = SiteFileTypes.GetExtensions(
+                configuration.GetAllowedContentTypesContributorConfiguration().AllowedContentTypes),
             CreateDirectoryPermissionName = authorization.CreateDirectoryPermissionName,
             CreateFilePermissionName = authorization.CreateFilePermissionName,
             UpdateFilePermissionName = authorization.UpdateFilePermissionName,

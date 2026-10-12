@@ -1,8 +1,9 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Dignite.Abp.FileStoring;
+using Dignite.Abp.BlobStoring.Pipeline;
 using Volo.Abp;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.Domain.Services;
@@ -10,11 +11,12 @@ using Volo.Abp.Domain.Services;
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// Adds files to Site's file library and removes them. The bytes go through <see cref="IFileStorer"/> -
-/// the one runner of a container's upload pipeline (capped copy, MIME detection from the content, the
-/// container's handlers, SHA-256, a generated blob name, a no-overwrite save). This class owns only what
-/// the library adds on top: the descriptor row, content dedup by <see cref="StoredFileInfo.Hash"/>, and
-/// keeping blob and row from drifting apart.
+/// Adds files to Site's file library and removes them. The upload rules themselves - size cap, allowed
+/// content types, image resize and compression - are the container's BLOB pipeline contributors
+/// (<c>Dignite.Abp.BlobStoring.Pipeline</c> / <c>.Imaging</c>, configured by <c>SiteAdminApplicationModule</c>),
+/// which run inside <c>IBlobContainer.SaveAsync</c>. This class
+/// is the caller around them: it buffers and detects the upload, hashes it, names the blob, writes the
+/// descriptor row, dedups by content, and keeps blob and row from drifting apart.
 /// </summary>
 public class FileDescriptorManager : DomainService
 {
@@ -26,32 +28,53 @@ public class FileDescriptorManager : DomainService
 
     protected IFileDescriptorRepository FileDescriptorRepository { get; }
 
-    protected IFileStorer FileStorer { get; }
-
     protected IBlobContainerFactory BlobContainerFactory { get; }
+
+    protected IBlobContainerConfigurationProvider BlobContainerConfigurationProvider { get; }
+
+    protected IMimeTypeDetector MimeTypeDetector { get; }
 
     public FileDescriptorManager(
         IFileDescriptorRepository fileDescriptorRepository,
-        IFileStorer fileStorer,
-        IBlobContainerFactory blobContainerFactory)
+        IBlobContainerFactory blobContainerFactory,
+        IBlobContainerConfigurationProvider blobContainerConfigurationProvider,
+        IMimeTypeDetector mimeTypeDetector)
     {
         FileDescriptorRepository = fileDescriptorRepository;
-        FileStorer = fileStorer;
         BlobContainerFactory = blobContainerFactory;
+        BlobContainerConfigurationProvider = blobContainerConfigurationProvider;
+        MimeTypeDetector = mimeTypeDetector;
     }
 
     /// <summary>
     /// Stores <paramref name="stream"/> in <paramref name="containerName"/> and records it.
     /// <para>
-    /// Order (file-storing invariant §4): the blob is stored first, then the row is written with
-    /// <c>autoSave</c>, and a failed write deletes the blob again. When the stored bytes already exist in
-    /// the container, the new row becomes a reference to the existing blob and the copy just stored is
-    /// deleted - but only after the row is saved, so a failure never leaves the row pointing at nothing.
+    /// Sequence: the upload is copied once into memory, capped at what the container's pipeline enforces
+    /// (its <c>MaxSize</c> contributor, else <see cref="BlobStoringPipelineConsts.DefaultMaxBufferedBytes"/>), so
+    /// an oversized upload fails with <c>Dignite.Abp.BlobStoring:ContentTooLarge</c> before anything is stored.
+    /// Its type is detected from the bytes and reconciled with the extension of <paramref name="fileName"/>
+    /// (<c>Dignite.Abp.BlobStoring:ContentTypeMismatch</c>), and it is hashed (SHA-256, upper-case hex).
     /// </para>
     /// <para>
-    /// The dedup lookup is check-then-act: two simultaneous uploads of the same bytes can both miss it.
-    /// The live-rows-only unique index on (tenant, container, hash) is the arbiter - the loser's insert
-    /// fails, its blob is deleted, and a retry finds the winner and becomes a reference.
+    /// Dedup comes before any write: when a live descriptor in the same container (and tenant) already owns
+    /// these bytes, the new descriptor becomes a <i>reference</i> to that blob and no blob is written at all.
+    /// The reference gets an address of its own, the owner's <see cref="FileDescriptor.Size"/> and no hash. A
+    /// dedup hit skips the container's contributors - the bytes passed them when the owner was stored.
+    /// </para>
+    /// <para>
+    /// Otherwise the blob is saved under a new name (32 random hex digits plus the canonical extension of the
+    /// detected type, see <see cref="CreateBlobName"/>) without overwriting (the contributors run here and may
+    /// reject the upload), then the row is written with <c>autoSave</c>, and a failed write deletes the blob
+    /// again. The lookup is check-then-act: two simultaneous uploads of the same bytes can both miss it. The
+    /// live-rows-only unique index on (tenant, container, hash) is the arbiter - the loser's insert fails, its
+    /// blob is deleted, and a retry finds the winner and becomes a reference.
+    /// </para>
+    /// <para>
+    /// What the row records: <see cref="FileDescriptor.MimeType"/> is the detected type (resizing and
+    /// compressing keep the format); <see cref="FileDescriptor.Hash"/> is the SHA-256 of the <b>upload</b>, so the
+    /// same upload dedups whether or not the container transformed it; <see cref="FileDescriptor.Size"/> is the
+    /// size of the <b>stored</b> bytes - what the public endpoint serves - read back from the container for an
+    /// image (the only content an image contributor can change) and the upload's length otherwise.
     /// </para>
     /// </summary>
     /// <param name="fileName">The uploader's file name: its extension is checked against the content, and
@@ -67,34 +90,55 @@ public class FileDescriptorManager : DomainService
         Check.NotNull(stream, nameof(stream));
         var name = NormalizeName(fileName);
 
-        var stored = await FileStorer.StoreAsync(containerName, name, stream, cancellationToken);
+        var maxBytes = BlobStreamBuffering.GetMaxBufferedBytes(BlobContainerConfigurationProvider.Get(containerName));
+        await using var content = await BlobStreamBuffering.CopyToBufferAsync(stream, maxBytes, cancellationToken);
 
-        FileDescriptor? owner = null;
+        var mimeType = await MimeTypeDetector.DetectAsync(content, name, cancellationToken);
+        var hash = await ComputeHashAsync(content, cancellationToken);
+        var blobName = CreateBlobName(mimeType);
+
+        var owner = await FileDescriptorRepository.FindByHashAsync(containerName, hash, cancellationToken);
+        if (owner != null)
+        {
+            // The bytes already have a home: nothing is stored, the new row only points at it.
+            return await FileDescriptorRepository.InsertAsync(
+                new FileDescriptor(
+                    GuidGenerator.Create(), containerName, blobName, name, mimeType, owner.Size,
+                    hash: null, referBlobName: owner.GetActualBlobName(), directoryId, CurrentTenant.Id),
+                autoSave: true,
+                cancellationToken);
+        }
+
+        // Taken before the save: the content belongs to the pipeline while it runs.
+        var uploadLength = content.Length;
+        var container = BlobContainerFactory.Create(containerName);
         try
         {
-            owner = await FileDescriptorRepository.FindByHashAsync(containerName, stored.Hash, cancellationToken);
+            await container.SaveAsync(blobName, content, overrideExisting: false, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not BlobAlreadyExistsException and not BusinessException)
+        {
+            // The provider failed after it may have written bytes. A rejection by a contributor (a
+            // BusinessException) happens before the provider writes anything, and a name collision means the
+            // blob belongs to someone else - neither is compensated.
+            await TryDeleteBlobAsync(container, blobName);
+            throw;
+        }
 
-            var file = owner == null
-                ? new FileDescriptor(
-                    GuidGenerator.Create(), containerName, stored.BlobName, name, stored.MimeType, stored.Size,
-                    hash: stored.Hash, referBlobName: null, directoryId, CurrentTenant.Id)
-                : new FileDescriptor(
-                    GuidGenerator.Create(), containerName, stored.BlobName, name, stored.MimeType, stored.Size,
-                    hash: null, referBlobName: owner.GetActualBlobName(), directoryId, CurrentTenant.Id);
+        try
+        {
+            var size = await GetStoredSizeAsync(container, blobName, mimeType, uploadLength, cancellationToken);
 
-            await FileDescriptorRepository.InsertAsync(file, autoSave: true, cancellationToken);
-
-            if (owner != null)
-            {
-                // The bytes already had a home; the copy only existed to learn its hash.
-                await TryDeleteBlobAsync(containerName, stored.BlobName);
-            }
-
-            return file;
+            return await FileDescriptorRepository.InsertAsync(
+                new FileDescriptor(
+                    GuidGenerator.Create(), containerName, blobName, name, mimeType, size,
+                    hash: hash, referBlobName: null, directoryId, CurrentTenant.Id),
+                autoSave: true,
+                cancellationToken);
         }
         catch
         {
-            await TryDeleteBlobAsync(containerName, stored.BlobName);
+            await TryDeleteBlobAsync(container, blobName);
             throw;
         }
     }
@@ -125,7 +169,7 @@ public class FileDescriptorManager : DomainService
             return;
         }
 
-        await FileStorer.DeleteAsync(file.ContainerName, blobName, cancellationToken);
+        await BlobContainerFactory.Create(file.ContainerName).DeleteAsync(blobName, cancellationToken);
     }
 
     /// <summary>
@@ -184,12 +228,82 @@ public class FileDescriptorManager : DomainService
         return name[..(maxLength - extension.Length)] + extension;
     }
 
-    protected virtual async Task TryDeleteBlobAsync(string containerName, string blobName)
+
+    /// <summary>
+    /// A new blob name: 32 hexadecimal digits of a random GUID plus the canonical extension of
+    /// <paramref name="mimeType"/> from <see cref="SiteFileTypes"/> (none when the table has no row for it).
+    /// <see cref="Guid.NewGuid"/> rather than the sequential <c>IGuidGenerator</c>: the name is the public
+    /// address of the file, so it stays fully random.
+    /// <para>
+    /// The extension is derived from the <b>detected</b> type, never copied from the uploader's file name (a PNG
+    /// named <c>.jpg</c> is stored as <c>.png</c>). That way the contributors, which only see the blob name
+    /// inside <c>SaveAsync</c> and reconcile the content with its extension, agree with the content: a compound
+    /// file named <c>.doc</c> that the signature engine cannot name is still accepted as
+    /// <c>application/msword</c>, and an empty file takes its extension's type.
+    /// </para>
+    /// <para>
+    /// Blobs stored before this change have no extension and are served as before: the read routes are
+    /// catch-all.
+    /// </para>
+    /// </summary>
+    protected virtual string CreateBlobName(string mimeType)
+    {
+        return Guid.NewGuid().ToString("N") + (SiteFileTypes.GetExtension(mimeType) ?? string.Empty);
+    }
+
+    /// <summary>
+    /// SHA-256 of the content as upper-case hex (64 characters, <see cref="FileDescriptorConsts.MaxHashLength"/>);
+    /// the stream is rewound afterwards.
+    /// </summary>
+    protected virtual async Task<string> ComputeHashAsync(Stream content, CancellationToken cancellationToken)
+    {
+        content.Position = 0;
+        var hash = await SHA256.HashDataAsync(content, cancellationToken);
+        content.Position = 0;
+        return Convert.ToHexString(hash);
+    }
+
+    /// <summary>
+    /// The size of what was stored under <paramref name="blobName"/>. The image contributors only ever touch
+    /// <c>image/*</c> content (everything else passes through them untouched), so for anything else the stored
+    /// size is the upload's <paramref name="uploadLength"/>; an image may have been resized or re-compressed, so
+    /// its size is read back from the container.
+    /// </summary>
+    protected virtual async Task<long> GetStoredSizeAsync(
+        IBlobContainer container,
+        string blobName,
+        string mimeType,
+        long uploadLength,
+        CancellationToken cancellationToken)
+    {
+        if (!mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return uploadLength;
+        }
+
+        await using var stored = await container.GetAsync(blobName, cancellationToken);
+        if (stored.CanSeek)
+        {
+            return stored.Length;
+        }
+
+        var buffer = new byte[81920];
+        long length = 0;
+        int read;
+        while ((read = await stored.ReadAsync(buffer.AsMemory(), cancellationToken)) > 0)
+        {
+            length += read;
+        }
+
+        return length;
+    }
+
+    protected virtual async Task TryDeleteBlobAsync(IBlobContainer container, string blobName)
     {
         using var compensation = new CancellationTokenSource(CompensationTimeout);
         try
         {
-            await FileStorer.DeleteAsync(containerName, blobName, compensation.Token);
+            await container.DeleteAsync(blobName, compensation.Token);
         }
         catch
         {

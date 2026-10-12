@@ -6,6 +6,7 @@ import {
   SimpleChanges,
   ViewChild,
   OnChanges,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { DatatableComponent } from '@swimlane/ngx-datatable';
 import { Confirmation, ConfirmationService, ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
@@ -43,6 +44,7 @@ interface UploadingFile extends File {
 @Component({
   // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'site-file-modal',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-modal.component.html',
   styleUrls: ['./file-modal.component.scss'],
   imports: [

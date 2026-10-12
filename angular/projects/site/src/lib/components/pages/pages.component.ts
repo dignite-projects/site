@@ -7,7 +7,7 @@ import {
 } from '@abp/ng.theme.shared';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import type { TreeStatus } from '@swimlane/ngx-datatable';
-import { Component, ElementRef, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
@@ -39,6 +39,7 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
 
 @Component({
   selector: 'site-pages',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './pages.component.html',
   imports: [
     CoreModule,

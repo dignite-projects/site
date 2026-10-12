@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { AbstractControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { FieldTypeControlBase, readStringList } from '@dignite/ng.flex-fields';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
@@ -17,6 +17,7 @@ import { ContentConfiguration } from './content-configuration';
  */
 @Component({
   selector: 'site-content-control',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './content-control.component.html',
   imports: [CommonModule, ReactiveFormsModule],
 })

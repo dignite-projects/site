@@ -2,11 +2,9 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Dignite.Abp.FileStoring;
-using Dignite.Abp.FileStoring.Imaging;
+using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Site.Files;
 using Microsoft.Extensions.Caching.Memory;
-using SixLabors.ImageSharp;
 using Volo.Abp;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Entities;
@@ -81,9 +79,20 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     }
 
     /// <summary>
-    /// Resizes an image within bounds that keep one request from costing unbounded CPU or memory: target
-    /// and source dimensions, pixel count and compression ratio are checked, and the decode is time-boxed,
-    /// before any full decode. A file that is not an image is returned as is.
+    /// Resizes an image within bounds that keep one request from costing unbounded CPU or memory: the target
+    /// dimensions, and the source dimensions, pixel count and pixels per stored byte (read from the image
+    /// header, without decoding), are checked before the imaging provider decodes anything, and the provider
+    /// runs under a timeout - which only interrupts a provider that observes its cancellation token (SkiaSharp
+    /// decodes synchronously, so for it the header checks are the protection).
+    /// <para>
+    /// Whether a file is a resizable image is decided by its recorded <see cref="FileDescriptor.MimeType"/>,
+    /// the type detected from its bytes on upload. Anything that is not one of Site's raster image types, a
+    /// picture whose header cannot be read, and a picture the provider does not handle (SkiaSharp resizes JPEG,
+    /// PNG and WebP; a GIF is served as stored) are returned as stored. Limits fail with
+    /// <see cref="BlobStoringImagingErrorCodes.ImageTooLarge"/>, a provider that throws or gives up with
+    /// <see cref="BlobStoringImagingErrorCodes.ImageProcessingFailed"/>, the timeout with
+    /// <see cref="BlobStoringImagingErrorCodes.ImageDecodeTimeout"/> - the codes the upload contributors use.
+    /// </para>
     /// </summary>
     protected virtual async Task<IRemoteStreamContent> ResizeAsync(
         FileDescriptor file,
@@ -96,9 +105,17 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
         {
             if ((input.Width ?? 0) > MaxResizeDimension || (input.Height ?? 0) > MaxResizeDimension)
             {
-                throw new BusinessException(
-                    code: FileStoringImagingErrorCodes.ImageResizeDimensionsTooLarge,
-                    message: $"Image resize dimensions cannot exceed {MaxResizeDimension} pixels.");
+                throw CreateImageTooLargeException(
+                    "Image resize dimensions cannot exceed " + MaxResizeDimension + " pixels.",
+                    input.Width,
+                    input.Height);
+            }
+
+            if (!SiteFileTypes.IsImage(file.MimeType))
+            {
+                // Not a resizable image: serve the original. The response now owns the stream.
+                disposeStream = false;
+                return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
             }
 
             if (!stream.CanSeek)
@@ -110,55 +127,51 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
                 stream = buffered;
             }
 
-            var imageInfo = await IdentifyImageAsync(stream);
-            var format = imageInfo?.Metadata.DecodedImageFormat;
-            if (imageInfo == null || format == null ||
-                !ImageFormatHelper.IsValidImage(format.DefaultMimeType, ImageFormatHelper.AllowedImageUploadFormats))
+            var dimensions = ImageDimensionReader.Read(stream);
+            if (dimensions == null)
             {
-                // Not a resizable image: serve the original. The response now owns the stream.
+                // A header that cannot be read cannot be bounded either: rather than hand an unbounded decode to
+                // the provider, serve the picture as stored.
+                stream.Position = 0;
                 disposeStream = false;
                 return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.Length, disposeStream: true);
             }
 
-            var totalPixels = (long)imageInfo.Width * imageInfo.Height;
-            if (imageInfo.Width > MaxResizeDimension ||
-                imageInfo.Height > MaxResizeDimension ||
+            var (width, height) = dimensions.Value;
+            var totalPixels = (long)width * height;
+            if (width > MaxResizeDimension ||
+                height > MaxResizeDimension ||
                 totalPixels > MaxResizePixelCount ||
                 stream.Length > 0 && totalPixels / (double)stream.Length > MaxDecompressionRatio)
             {
-                throw new BusinessException(
-                    code: FileStoringImagingErrorCodes.ImageTooLarge,
-                    message: "The image is too large to resize safely.");
+                throw CreateImageTooLargeException("The image is too large to resize safely.", width, height);
             }
 
             var cacheKey = $"{file.TenantId}:{file.ContainerName}:{file.GetActualBlobName()}:{input.Width}:{input.Height}";
             if (ResizedImageCache.TryGetValue<byte[]>(cacheKey, out var cached) && cached != null)
             {
-                return new RemoteStreamContent(new MemoryStream(cached, writable: false), file.Name, format.DefaultMimeType, cached.LongLength, disposeStream: true);
+                return new RemoteStreamContent(new MemoryStream(cached, writable: false), file.Name, file.MimeType, cached.LongLength, disposeStream: true);
             }
 
             stream.Position = 0;
-            var result = await ImageResizer.ResizeAsync(
-                stream,
-                new ImageResizeArgs(
-                    input.Width > 0 ? (uint)input.Width : null,
-                    input.Height > 0 ? (uint)input.Height : null,
-                    ImageResizeMode.Crop),
-                format.DefaultMimeType,
-                cancellationToken);
-
-            if (result.Result == null || !(result.State == ImageProcessState.Done || result.Result.CanRead))
+            var resizedStream = await ResizeWithProviderAsync(file, stream, input, cancellationToken);
+            if (resizedStream == null)
             {
-                result.Result?.Dispose();
-                throw new BusinessException(
-                    code: FileStoringImagingErrorCodes.ImageResizeFailure,
-                    message: result.State.ToString());
+                // The provider does not handle this format: serve the original. The response now owns the stream.
+                stream.Position = 0;
+                disposeStream = false;
+                return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.Length, disposeStream: true);
             }
 
             byte[] resized;
-            using (result.Result)
+            using (resizedStream)
             {
-                resized = await ReadBoundedAsync(result.Result, MaxResizePixelCount * 4, cancellationToken);
+                if (resizedStream.CanSeek)
+                {
+                    resizedStream.Position = 0;
+                }
+
+                resized = await ReadBoundedAsync(resizedStream, MaxResizePixelCount * 4, cancellationToken);
             }
 
             if (resized.Length <= MaxCachedImageBytes)
@@ -170,7 +183,8 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
                 });
             }
 
-            return new RemoteStreamContent(new MemoryStream(resized, writable: false), file.Name, format.DefaultMimeType, resized.LongLength, disposeStream: true);
+            // The providers re-encode in the source format, so the recorded type still describes the bytes.
+            return new RemoteStreamContent(new MemoryStream(resized, writable: false), file.Name, file.MimeType, resized.LongLength, disposeStream: true);
         }
         finally
         {
@@ -181,37 +195,106 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
         }
     }
 
-    protected virtual async Task<ImageInfo?> IdentifyImageAsync(Stream stream)
+    /// <summary>
+    /// Crops <paramref name="stream"/> (seekable, at position 0, an image of the file's type) to the requested
+    /// size with ABP's <see cref="IImageResizer"/>. Returns the resized image, or <c>null</c> when the provider
+    /// reports the format <see cref="ImageProcessState.Unsupported"/>. Never disposes <paramref name="stream"/>.
+    /// </summary>
+    protected virtual async Task<Stream?> ResizeWithProviderAsync(
+        FileDescriptor file,
+        Stream stream,
+        GetFileInput input,
+        CancellationToken cancellationToken)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(DecodeTimeoutSeconds));
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(DecodeTimeoutSeconds));
+
+        ImageProcessResult<Stream> result;
         try
         {
-            stream.Position = 0;
-            var info = await Image.IdentifyAsync(stream, timeout.Token);
-            stream.Position = 0;
-            return info;
+            result = await ImageResizer.ResizeAsync(
+                stream,
+                new ImageResizeArgs(
+                    input.Width > 0 ? (uint)input.Width : null,
+                    input.Height > 0 ? (uint)input.Height : null,
+                    ImageResizeMode.Crop),
+                file.MimeType,
+                timeout.Token);
         }
-        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
-            throw new BusinessException(
-                code: FileStoringImagingErrorCodes.ImageDecodeTimeout,
-                message: "Image decoding timed out.");
+            throw CreateDecodeTimeoutException();
         }
-        catch (UnknownImageFormatException)
+        catch (Exception exception) when (exception is not (OperationCanceledException or OutOfMemoryException or BusinessException))
         {
-            stream.Position = 0;
+            // ABP's resizers do not wrap provider errors (corrupt pixel data, an encoder failure); whatever the
+            // provider, that is this image failing, not the server.
+            throw CreateProcessingFailedException(exception);
+        }
+
+        if (result.State == ImageProcessState.Done && result.Result != null)
+        {
+            return result.Result;
+        }
+
+        if (result.Result != null && !ReferenceEquals(result.Result, stream))
+        {
+            await result.Result.DisposeAsync();
+        }
+
+        if (result.State == ImageProcessState.Unsupported)
+        {
             return null;
         }
-        catch (ImageFormatException exception)
+
+        cancellationToken.ThrowIfCancellationRequested();
+        if (timeout.IsCancellationRequested)
         {
-            throw new BusinessException(
-                code: FileStoringImagingErrorCodes.ImageFormatNotSupported,
-                message: "The image content is invalid.",
-                details: exception.Message);
+            throw CreateDecodeTimeoutException();
         }
+
+        throw CreateProcessingFailedException(null);
     }
 
-    protected static async Task<byte[]> ReadBoundedAsync(Stream source, long maxBytes, CancellationToken cancellationToken)
+    protected virtual BusinessException CreateImageTooLargeException(string message, int? width = null, int? height = null)
+    {
+        var exception = new BusinessException(code: BlobStoringImagingErrorCodes.ImageTooLarge, message: message)
+            .WithData("MaxWidth", MaxResizeDimension)
+            .WithData("MaxHeight", MaxResizeDimension)
+            .WithData("MaxPixels", MaxResizePixelCount)
+            .WithData("MaxDecompressionRatio", MaxDecompressionRatio);
+
+        if (width.HasValue)
+        {
+            exception.WithData("Width", width.Value);
+        }
+
+        if (height.HasValue)
+        {
+            exception.WithData("Height", height.Value);
+        }
+
+        return exception;
+    }
+
+    protected virtual BusinessException CreateDecodeTimeoutException()
+    {
+        return new BusinessException(
+                code: BlobStoringImagingErrorCodes.ImageDecodeTimeout,
+                message: "Image decoding timed out.")
+            .WithData("DecodeTimeoutSeconds", DecodeTimeoutSeconds);
+    }
+
+    protected virtual BusinessException CreateProcessingFailedException(Exception? innerException)
+    {
+        return new BusinessException(
+            code: BlobStoringImagingErrorCodes.ImageProcessingFailed,
+            message: "The image could not be resized.",
+            details: innerException?.Message,
+            innerException: innerException);
+    }
+
+    protected virtual async Task<byte[]> ReadBoundedAsync(Stream source, long maxBytes, CancellationToken cancellationToken)
     {
         using var output = new MemoryStream();
         var buffer = new byte[81920];
@@ -222,9 +305,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             total += read;
             if (total > maxBytes)
             {
-                throw new BusinessException(
-                    code: FileStoringImagingErrorCodes.ImageTooLarge,
-                    message: "The resized image is too large.");
+                throw CreateImageTooLargeException("The resized image is too large.");
             }
 
             await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);

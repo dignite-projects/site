@@ -11,7 +11,7 @@ public static class FileDescriptorConsts
     public static int MaxMimeTypeLength { get; set; } = 128;
 
     /// <summary>
-    /// SHA-256 as upper-case hex (<c>StoredFileInfo.Hash</c>) is 64 characters.
+    /// SHA-256 as upper-case hex (<c>FileDescriptorManager</c> hashes each upload) is 64 characters.
     /// </summary>
     public static int MaxHashLength { get; set; } = 64;
 }
