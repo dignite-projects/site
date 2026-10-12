@@ -43,7 +43,7 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
         FileDescriptor descriptor;
         using (_currentTenant.Change(tenantId))
         {
-            descriptor = await UploadAsync(SiteFileContainerNames.Default, "notes.pdf", bytes);
+            descriptor = await UploadAsync(SiteFileContainerNames.Attachments, "notes.pdf", bytes);
 
             descriptor.TenantId.ShouldBe(tenantId);
             descriptor.Name.ShouldBe("notes.pdf");
@@ -52,14 +52,14 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
             descriptor.Hash.Length.ShouldBe(64);
 
             (await ReadAsync(descriptor)).ShouldBe(bytes);
-            (await WithUnitOfWorkAsync(() => _fileDescriptorManager.FindAsync(SiteFileContainerNames.Default, descriptor.BlobName)))
+            (await WithUnitOfWorkAsync(() => _fileDescriptorManager.FindAsync(SiteFileContainerNames.Attachments, descriptor.BlobName)))
                 .ShouldNotBeNull();
         }
 
         // Another tenant does not see the row, however it addresses it.
         using (_currentTenant.Change(Guid.NewGuid()))
         {
-            (await WithUnitOfWorkAsync(() => _fileDescriptorManager.FindAsync(SiteFileContainerNames.Default, descriptor.BlobName)))
+            (await WithUnitOfWorkAsync(() => _fileDescriptorManager.FindAsync(SiteFileContainerNames.Attachments, descriptor.BlobName)))
                 .ShouldBeNull();
         }
     }
@@ -82,8 +82,8 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
     {
         var bytes = TestFiles.Pdf("dedup " + Guid.NewGuid());
 
-        var owner = await UploadAsync(SiteFileContainerNames.Default, "first.pdf", bytes);
-        var reference = await UploadAsync(SiteFileContainerNames.Default, "second.pdf", bytes);
+        var owner = await UploadAsync(SiteFileContainerNames.Attachments, "first.pdf", bytes);
+        var reference = await UploadAsync(SiteFileContainerNames.Attachments, "second.pdf", bytes);
 
         owner.IsReference().ShouldBeFalse();
         reference.IsReference().ShouldBeTrue();
@@ -118,8 +118,8 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Delete_Should_Keep_A_Blob_While_Another_Descriptor_Uses_It()
     {
         var bytes = TestFiles.Pdf("shared " + Guid.NewGuid());
-        var owner = await UploadAsync(SiteFileContainerNames.Default, "first.pdf", bytes);
-        var reference = await UploadAsync(SiteFileContainerNames.Default, "second.pdf", bytes);
+        var owner = await UploadAsync(SiteFileContainerNames.Attachments, "first.pdf", bytes);
+        var reference = await UploadAsync(SiteFileContainerNames.Attachments, "second.pdf", bytes);
 
         // The owner goes first: its blob stays for the reference.
         await WithUnitOfWorkAsync(() => _fileDescriptorManager.DeleteAsync(owner));
@@ -135,8 +135,8 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Delete_Of_A_Reference_Should_Keep_The_Owners_Blob()
     {
         var bytes = TestFiles.Pdf("owned " + Guid.NewGuid());
-        var owner = await UploadAsync(SiteFileContainerNames.Default, "first.pdf", bytes);
-        var reference = await UploadAsync(SiteFileContainerNames.Default, "second.pdf", bytes);
+        var owner = await UploadAsync(SiteFileContainerNames.Attachments, "first.pdf", bytes);
+        var reference = await UploadAsync(SiteFileContainerNames.Attachments, "second.pdf", bytes);
 
         await WithUnitOfWorkAsync(() => _fileDescriptorManager.DeleteAsync(reference));
 
@@ -151,10 +151,10 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Accept_The_Same_Bytes_Again_After_They_Were_Deleted()
     {
         var bytes = TestFiles.Pdf("again " + Guid.NewGuid());
-        var first = await UploadAsync(SiteFileContainerNames.Default, "first.pdf", bytes);
+        var first = await UploadAsync(SiteFileContainerNames.Attachments, "first.pdf", bytes);
         await WithUnitOfWorkAsync(() => _fileDescriptorManager.DeleteAsync(first));
 
-        var second = await UploadAsync(SiteFileContainerNames.Default, "again.pdf", bytes);
+        var second = await UploadAsync(SiteFileContainerNames.Attachments, "again.pdf", bytes);
 
         second.IsReference().ShouldBeFalse();
         second.Hash.ShouldBe(first.Hash);
@@ -210,6 +210,6 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
 
     private Task<bool> BlobExistsAsync(string blobName)
     {
-        return _blobContainerFactory.Create(SiteFileContainerNames.Default).ExistsAsync(blobName);
+        return _blobContainerFactory.Create(SiteFileContainerNames.Attachments).ExistsAsync(blobName);
     }
 }

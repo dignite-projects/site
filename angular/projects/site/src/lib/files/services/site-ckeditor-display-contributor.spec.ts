@@ -5,7 +5,7 @@ import { siteCKEditorDisplayContributor } from './site-ckeditor-display-contribu
 
 describe('siteCKEditorDisplayContributor', () => {
   const API = 'https://api.example';
-  const PATH = '/api/site-public/files/site-images/abc.png?__tenant=';
+  const PATH = '/api/site-public/files/images/abc.png?__tenant=';
   const apis = { default: { url: 'https://default.example' }, SiteAdmin: { url: `${API}/` } };
 
   function display(html: string, withApis = true): string {

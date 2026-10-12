@@ -68,7 +68,7 @@ public class SiteMcpFileContainerList : Collection<SiteMcpFileContainer>
         return this;
     }
 
-    /// <summary>Case-insensitive: a model writing <c>Site-Images</c> means <c>site-images</c>.</summary>
+    /// <summary>Case-insensitive: a model writing <c>Images</c> means <c>images</c>.</summary>
     public SiteMcpFileContainer? Find(string name)
     {
         return this.FirstOrDefault(container => string.Equals(container.Name, name, StringComparison.OrdinalIgnoreCase));

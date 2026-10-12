@@ -12,7 +12,7 @@ namespace Dignite.Site.Admin.Files;
 /// </summary>
 public class CreateFileInput
 {
-    /// <summary>One of Site's file containers (<c>site-images</c>, <c>site-files</c>).</summary>
+    /// <summary>One of Site's file containers (<c>images</c>, <c>attachments</c>).</summary>
     [Required]
     [DynamicStringLength(typeof(FileDescriptorConsts), nameof(FileDescriptorConsts.MaxContainerNameLength))]
     public string ContainerName { get; set; } = default!;

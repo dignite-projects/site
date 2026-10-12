@@ -40,11 +40,11 @@ public class MongoFileDescriptorRepository_Tests : SiteMongoDbTestBase
 
         await WithUnitOfWorkAsync(async () =>
         {
-            (await _files.BlobNameExistsAsync(SiteFileContainerNames.Default, owner.BlobName)).ShouldBeTrue();
-            (await _files.FindByBlobNameAsync(SiteFileContainerNames.Default, reference.BlobName))!.Id.ShouldBe(reference.Id);
-            (await _files.FindByHashAsync(SiteFileContainerNames.Default, owner.Hash))!.Id.ShouldBe(owner.Id);
-            (await _files.FindByHashAsync(SiteFileContainerNames.Default, string.Empty)).ShouldBeNull();
-            (await _files.ReferencingAnyAsync(SiteFileContainerNames.Default, owner.BlobName)).ShouldBeTrue();
+            (await _files.BlobNameExistsAsync(SiteFileContainerNames.Attachments, owner.BlobName)).ShouldBeTrue();
+            (await _files.FindByBlobNameAsync(SiteFileContainerNames.Attachments, reference.BlobName))!.Id.ShouldBe(reference.Id);
+            (await _files.FindByHashAsync(SiteFileContainerNames.Attachments, owner.Hash))!.Id.ShouldBe(owner.Id);
+            (await _files.FindByHashAsync(SiteFileContainerNames.Attachments, string.Empty)).ShouldBeNull();
+            (await _files.ReferencingAnyAsync(SiteFileContainerNames.Attachments, owner.BlobName)).ShouldBeTrue();
             (await _files.ReferencingAnyAsync(SiteFileContainerNames.Images, owner.BlobName)).ShouldBeFalse();
         });
     }
@@ -66,9 +66,9 @@ public class MongoFileDescriptorRepository_Tests : SiteMongoDbTestBase
 
         await WithUnitOfWorkAsync(async () =>
         {
-            (await _files.GetListAsync(SiteFileContainerNames.Default)).Select(f => f.Name).ShouldBe(new[] { "newer.pdf", "older.pdf" });
-            (await _files.GetCountAsync(SiteFileContainerNames.Default, filter: "old")).ShouldBe(1);
-            (await _files.GetListAsync(SiteFileContainerNames.Default, sorting: "Name asc")).First().Name.ShouldBe("newer.pdf");
+            (await _files.GetListAsync(SiteFileContainerNames.Attachments)).Select(f => f.Name).ShouldBe(new[] { "newer.pdf", "older.pdf" });
+            (await _files.GetCountAsync(SiteFileContainerNames.Attachments, filter: "old")).ShouldBe(1);
+            (await _files.GetListAsync(SiteFileContainerNames.Attachments, sorting: "Name asc")).First().Name.ShouldBe("newer.pdf");
         });
     }
 
@@ -76,7 +76,7 @@ public class MongoFileDescriptorRepository_Tests : SiteMongoDbTestBase
     public async Task ClearDirectoryFromDeletedFiles_Should_Detach_Only_Soft_Deleted_Files()
     {
         var ownerId = Guid.NewGuid();
-        var directory = new DirectoryDescriptor(Guid.NewGuid(), SiteFileContainerNames.Default, "dir", null, 0, null) { CreatorId = ownerId };
+        var directory = new DirectoryDescriptor(Guid.NewGuid(), SiteFileContainerNames.Attachments, "dir", null, 0, null) { CreatorId = ownerId };
         var deleted = CreateFile("deleted.pdf", hash: null);
         deleted.MoveToDirectory(directory.Id);
         var active = CreateFile("active.pdf", hash: null);
@@ -100,13 +100,13 @@ public class MongoFileDescriptorRepository_Tests : SiteMongoDbTestBase
 
         await WithUnitOfWorkAsync(async () =>
         {
-            (await _directories.GetMaxOrderAsync(ownerId, SiteFileContainerNames.Default, null)).ShouldBe(0);
-            (await _directories.NameExistsAsync(ownerId, SiteFileContainerNames.Default, "dir", null)).ShouldBeTrue();
-            (await _directories.GetAllByUserAsync(ownerId, SiteFileContainerNames.Default)).ShouldHaveSingleItem();
+            (await _directories.GetMaxOrderAsync(ownerId, SiteFileContainerNames.Attachments, null)).ShouldBe(0);
+            (await _directories.NameExistsAsync(ownerId, SiteFileContainerNames.Attachments, "dir", null)).ShouldBeTrue();
+            (await _directories.GetAllByUserAsync(ownerId, SiteFileContainerNames.Attachments)).ShouldHaveSingleItem();
         });
     }
 
-    private static FileDescriptor CreateFile(string name, string? hash, string? referBlobName = null, string containerName = SiteFileContainerNames.Default)
+    private static FileDescriptor CreateFile(string name, string? hash, string? referBlobName = null, string containerName = SiteFileContainerNames.Attachments)
     {
         return new FileDescriptor(
             Guid.NewGuid(), containerName, Guid.NewGuid().ToString("N"), name, "application/pdf", 1,

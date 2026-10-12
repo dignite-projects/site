@@ -58,7 +58,7 @@ public class SiteMcpFileModule_Tests
 
         provider.GetRequiredService<IOptions<SiteMcpFileOptions>>().Value.Containers
             .Select(container => container.Name)
-            .ShouldBe(new[] { SiteFileContainerNames.Images, SiteFileContainerNames.Default });
+            .ShouldBe(new[] { SiteFileContainerNames.Images, SiteFileContainerNames.Attachments });
     }
 
     /// <summary>

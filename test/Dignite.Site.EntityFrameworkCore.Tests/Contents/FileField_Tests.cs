@@ -51,7 +51,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
             var (name, contentTypeId) = await CreateFileFieldAndContentTypeAsync();
 
             using var stream = new MemoryStream(TestFiles.Pdf("issue #42 attachment"));
-            var file = await _fileDescriptorManager.CreateAsync(SiteFileContainerNames.Default, "notes.pdf", stream);
+            var file = await _fileDescriptorManager.CreateAsync(SiteFileContainerNames.Attachments, "notes.pdf", stream);
 
             var value = new List<FileReference> { FileReference.From(file) };
 
@@ -69,7 +69,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
 
         reread.ShouldNotBeNull();
         var readBack = reread!.GetField<List<FileReference>>(fieldName).Single();
-        readBack.ContainerName.ShouldBe(SiteFileContainerNames.Default);
+        readBack.ContainerName.ShouldBe(SiteFileContainerNames.Attachments);
         readBack.Name.ShouldBe("notes.pdf");
     }
 
@@ -94,7 +94,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
         // lived in Dignite.Abp.FlexFields.
         field.FieldTypeName.ShouldBe(FileFieldType.ControlName);
         field.FieldTypeName.ShouldBe("FileExplorer");
-        field.Configuration[FileFieldConfigurationNames.FileContainerName].ShouldBe(SiteFileContainerNames.Default);
+        field.Configuration[FileFieldConfigurationNames.FileContainerName].ShouldBe(SiteFileContainerNames.Attachments);
         field.Configuration.ShouldContainKey("FileExplorer.FileContainerName");
     }
 
@@ -103,7 +103,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
         var token = Guid.NewGuid().ToString("N");
         var fieldName = $"attachment-{token}";
 
-        var configuration = new FileFieldConfiguration { FileContainerName = SiteFileContainerNames.Default };
+        var configuration = new FileFieldConfiguration { FileContainerName = SiteFileContainerNames.Attachments };
 
         var field = await _fieldRepository.InsertAsync(
             new Field(Guid.NewGuid(), fieldName, "Attachment", FileFieldType.ControlName, configuration: configuration.ConfigurationDictionary),

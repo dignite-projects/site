@@ -15,31 +15,31 @@ public class SiteFileUrl_Tests
         var tenantId = Guid.Parse("8c6f0e64-6b8f-4c1b-9d5e-1f7d8c4f5a10");
 
         SiteFileUrl.Build(SiteFileContainerNames.Images, "abc", tenantId)
-            .ShouldBe($"/api/site-public/files/site-images/abc?__tenant={tenantId}");
+            .ShouldBe($"/api/site-public/files/images/abc?__tenant={tenantId}");
         // The host has no tenant; __tenant is still there, empty, so the address always names its tenant.
-        SiteFileUrl.Build(SiteFileContainerNames.Default, "abc", null)
-            .ShouldBe("/api/site-public/files/site-files/abc?__tenant=");
+        SiteFileUrl.Build(SiteFileContainerNames.Attachments, "abc", null)
+            .ShouldBe("/api/site-public/files/attachments/abc?__tenant=");
     }
 
     [Fact]
     public void Sizes_A_Relative_Address()
     {
-        SiteFileUrl.Sized("/api/site-public/files/site-images/a.jpg?__tenant=", 1200, 630)
-            .ShouldBe("/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200&Height=630");
+        SiteFileUrl.Sized("/api/site-public/files/images/a.jpg?__tenant=", 1200, 630)
+            .ShouldBe("/api/site-public/files/images/a.jpg?__tenant=&Width=1200&Height=630");
     }
 
     [Fact]
     public void Absolutize_Puts_A_Relative_Address_On_The_Base_Url()
     {
-        const string relative = "/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200";
+        const string relative = "/api/site-public/files/images/a.jpg?__tenant=&Width=1200";
 
         SiteFileUrl.Absolutize(relative, "https://acme.example")
-            .ShouldBe("https://acme.example/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200");
+            .ShouldBe("https://acme.example/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
         SiteFileUrl.Absolutize(relative, "https://acme.example/")
-            .ShouldBe("https://acme.example/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200");
+            .ShouldBe("https://acme.example/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
         // A site hosted under a path keeps it, as SiteUrlContext.BuildAbsolute does.
         SiteFileUrl.Absolutize(relative, "https://acme.example/site")
-            .ShouldBe("https://acme.example/site/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200");
+            .ShouldBe("https://acme.example/site/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
         SiteFileUrl.Absolutize("images/a.jpg", "https://acme.example").ShouldBe("https://acme.example/images/a.jpg");
     }
 
@@ -79,10 +79,10 @@ public class SiteFileUrl_Tests
     [Fact]
     public void Keeps_The_Other_Query_Parameters()
     {
-        SiteFileUrl.Sized("https://x/api/site-public/files/site-images/a.jpg?__tenant=42", 1200, 630)
-            .ShouldBe("https://x/api/site-public/files/site-images/a.jpg?__tenant=42&Width=1200&Height=630");
-        SiteFileUrl.Sized("https://x/api/site-public/files/site-images/a.jpg?__tenant=&Width=80", 1200)
-            .ShouldBe("https://x/api/site-public/files/site-images/a.jpg?__tenant=&Width=1200");
+        SiteFileUrl.Sized("https://x/api/site-public/files/images/a.jpg?__tenant=42", 1200, 630)
+            .ShouldBe("https://x/api/site-public/files/images/a.jpg?__tenant=42&Width=1200&Height=630");
+        SiteFileUrl.Sized("https://x/api/site-public/files/images/a.jpg?__tenant=&Width=80", 1200)
+            .ShouldBe("https://x/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ public class SiteFileUrl_Tests
     [Fact]
     public void Still_Sizes_A_Pre_Migration_Address()
     {
-        const string legacy = "https://x/api/file-explorer/files/site-images/a.jpg?__tenant=";
+        const string legacy = "https://x/api/file-explorer/files/images/a.jpg?__tenant=";
 
         SiteFileUrl.IsSiteFile(legacy).ShouldBeTrue();
         SiteFileUrl.Sized(legacy, 1200, 630).ShouldBe(legacy + "&Width=1200&Height=630");

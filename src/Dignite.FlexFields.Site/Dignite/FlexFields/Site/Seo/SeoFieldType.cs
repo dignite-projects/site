@@ -34,7 +34,7 @@ namespace Dignite.FlexFields.Site.Seo;
 /// </para>
 /// <para>
 /// <b>The share image stays a URL string</b> (GitHub issue #72). The admin UI picks or uploads it from
-/// the <c>site-images</c> file container and stores the file's address, but the stored value is
+/// the <c>images</c> file container and stores the file's address, but the stored value is
 /// still just that address - not a file descriptor - so an MCP client writes it the same way
 /// it always has, and an external image address remains a valid value.
 /// </para>

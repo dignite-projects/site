@@ -6,7 +6,7 @@ import { siteCKEditorConfigContributor } from './site-ckeditor-config-contributo
 
 describe('siteCKEditorConfigContributor', () => {
   const API = 'https://api.example';
-  const RELATIVE = '/api/site-public/files/site-images/abc.png?__tenant=';
+  const RELATIVE = '/api/site-public/files/images/abc.png?__tenant=';
 
   function contribute(apis: object | undefined, config: EditorConfig): EditorConfig | void {
     if (apis) {

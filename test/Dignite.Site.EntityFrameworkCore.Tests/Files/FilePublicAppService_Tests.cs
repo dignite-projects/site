@@ -30,7 +30,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Serve_A_Stored_File_As_Stored()
     {
         var bytes = TestFiles.Pdf("served");
-        var file = await UploadAsync(SiteFileContainerNames.Default, "served.pdf", bytes);
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "served.pdf", bytes);
 
         using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput());
 
@@ -95,7 +95,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Serve_A_Non_Image_As_Is_When_A_Size_Is_Asked()
     {
         var bytes = TestFiles.Pdf("not resizable");
-        var file = await UploadAsync(SiteFileContainerNames.Default, "doc.pdf", bytes);
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "doc.pdf", bytes);
 
         using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Width = 100 });
 
@@ -105,7 +105,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Not_Serve_A_Deleted_File()
     {
-        var file = await UploadAsync(SiteFileContainerNames.Default, "deleted.pdf", TestFiles.Pdf("deleted"));
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "deleted.pdf", TestFiles.Pdf("deleted"));
         await WithUnitOfWorkAsync(() => _fileDescriptorManager.DeleteAsync(file));
 
         await Should.ThrowAsync<EntityNotFoundException>(() =>
@@ -119,14 +119,14 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Not_Serve_Outside_Sites_Containers()
     {
-        var file = await UploadAsync(SiteFileContainerNames.Default, "mine.pdf", TestFiles.Pdf("mine"));
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "mine.pdf", TestFiles.Pdf("mine"));
 
         await Should.ThrowAsync<EntityNotFoundException>(() =>
             _filePublicAppService.GetAsync("invoices", file.BlobName, new GetFileInput()));
         await Should.ThrowAsync<EntityNotFoundException>(() =>
             _filePublicAppService.GetAsync(SiteFileContainerNames.Images, file.BlobName, new GetFileInput()));
         await Should.ThrowAsync<EntityNotFoundException>(() =>
-            _filePublicAppService.GetAsync(SiteFileContainerNames.Default, "does-not-exist", new GetFileInput()));
+            _filePublicAppService.GetAsync(SiteFileContainerNames.Attachments, "does-not-exist", new GetFileInput()));
     }
 
     private Task<FileDescriptor> UploadAsync(string containerName, string fileName, byte[] bytes)

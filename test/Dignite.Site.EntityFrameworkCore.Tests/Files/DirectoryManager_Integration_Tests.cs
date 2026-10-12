@@ -36,11 +36,11 @@ public class DirectoryManager_Integration_Tests : SiteEntityFrameworkCoreTestBas
     public async Task Delete_Should_Succeed_When_Only_Soft_Deleted_Files_Remain()
     {
         var directory = await WithUnitOfWorkAsync(() =>
-            _directoryManager.CreateAsync(OwnerId, SiteFileContainerNames.Default, "to-delete-" + Guid.NewGuid().ToString("N")));
+            _directoryManager.CreateAsync(OwnerId, SiteFileContainerNames.Attachments, "to-delete-" + Guid.NewGuid().ToString("N")));
         var file = await WithUnitOfWorkAsync(async () =>
         {
             using var stream = new MemoryStream(TestFiles.Pdf("in a directory " + Guid.NewGuid()));
-            return await _fileDescriptorManager.CreateAsync(SiteFileContainerNames.Default, "a.pdf", stream, directory.Id);
+            return await _fileDescriptorManager.CreateAsync(SiteFileContainerNames.Attachments, "a.pdf", stream, directory.Id);
         });
         await WithUnitOfWorkAsync(() => _fileDescriptorManager.DeleteAsync(file));
 

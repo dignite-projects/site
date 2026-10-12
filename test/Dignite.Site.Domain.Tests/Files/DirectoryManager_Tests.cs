@@ -52,7 +52,7 @@ public class DirectoryManager_Tests
     public async Task MoveAsync_Should_Reject_A_Parent_In_Another_Container()
     {
         var directory = CreateDirectory(null);
-        var parent = CreateDirectory(null, SiteFileContainerNames.Default);
+        var parent = CreateDirectory(null, SiteFileContainerNames.Attachments);
         _directories.GetAsync(parent.Id).Returns(parent);
 
         var exception = await Should.ThrowAsync<BusinessException>(() => CreateManager().MoveAsync(directory, parent.Id, 0));
@@ -88,7 +88,7 @@ public class DirectoryManager_Tests
     [Fact]
     public async Task CreateAsync_Should_Reject_A_Parent_Of_Another_Owner_Or_Container()
     {
-        var parent = new DirectoryDescriptor(Guid.NewGuid(), SiteFileContainerNames.Default, "parent", null, 0, null)
+        var parent = new DirectoryDescriptor(Guid.NewGuid(), SiteFileContainerNames.Attachments, "parent", null, 0, null)
         {
             CreatorId = Guid.NewGuid()
         };

@@ -28,7 +28,7 @@ import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-
  * `Validators.required` to the parts would enforce something the server does not.
  *
  * **The share image is picked, not typed** (GitHub issue #72): the file library's modal, fixed to the
- * `site-images` container, uploads or selects one file and its `url` is what `ogImage` stores - still a
+ * `images` container, uploads or selects one file and its `url` is what `ogImage` stores - still a
  * plain string, so a value an MCP client wrote (an external address included) shows and can be replaced
  * or removed the same way.
  */

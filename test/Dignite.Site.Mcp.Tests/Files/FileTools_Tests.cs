@@ -17,7 +17,7 @@ namespace Dignite.Site.Mcp.Files;
 
 public class FileTools_Tests
 {
-    private const string Container = "site-images";
+    private const string Container = "images";
 
     private readonly IFileAdminAppService _fileAppService = Substitute.For<IFileAdminAppService>();
     private readonly SiteMcpFileOptions _options = new();
@@ -78,7 +78,7 @@ public class FileTools_Tests
     [Fact]
     public async Task Should_Use_The_Container_Name_As_Configured()
     {
-        await _tools.UploadFileAsync("SITE-IMAGES", "cover.png", Base64("hello"));
+        await _tools.UploadFileAsync("IMAGES", "cover.png", Base64("hello"));
 
         _created!.ContainerName.ShouldBe(Container);
     }
@@ -89,7 +89,7 @@ public class FileTools_Tests
         var exception = await Should.ThrowAsync<McpFileNotFoundException>(() =>
             _tools.UploadFileAsync("private-documents", "a.txt", Base64("hello")));
 
-        exception.Message.ShouldContain("'site-images'");
+        exception.Message.ShouldContain("'images'");
         await _fileAppService.DidNotReceiveWithAnyArgs().CreateAsync(default!);
     }
 

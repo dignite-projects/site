@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: the file containers are renamed and `attachments` no longer takes pictures.** `site-images` is now
+  `images` (`SiteFileContainerNames.Images`, otherwise unchanged) and `site-files` is now `attachments`
+  (`SiteFileContainerNames.Default` is now `SiteFileContainerNames.Attachments`; `All` is `{ Images, Attachments }`).
+  `attachments` accepts documents only - PDF, Word, Excel, PowerPoint, text, CSV and ZIP (`SiteFileTypes.Documents`),
+  20 MB - and refuses a picture with `Dignite.Abp.BlobStoring:ContentTypeNotAllowed`; its image resize and
+  compress contributors are gone, as no image can enter. Pictures already stored there stay in `attachments`
+  and are still served. The public address keeps its prefix, `/api/site-public/files/{container}/{blob}`; only the
+  container segment changes. The Angular constants `SITE_FILE_CONTAINER_NAMES`, `SITE_IMAGES_CONTAINER_NAME` and
+  `OG_IMAGE_CONTAINER_NAME` changed value, and the MCP file tools list the new container names. A consumer such
+  as Dignite.Cloud's SiteService must take the new names: its `SiteMcpFileOptions` container list and comment, and
+  its database blob provider's `AbpBlobContainers` rows. See "Migrate" below.
 - **Breaking: the file library's directories are folded into `Files` across all layers.** The `Directories/` folders of every project
   (Domain, Domain.Shared, EntityFrameworkCore, MongoDB, Admin.Application(.Contracts), Admin.HttpApi(.Client) and the tests)
   now live in the sibling `Files/` folder. Namespaces: `Dignite.Site.Directories` -> `Dignite.Site.Files` and
@@ -65,6 +76,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     by `Dignite.Abp.BlobStoring:ContentTooLarge` / `ContentTypeMismatch` / `ContentTypeNotAllowed` and
     `Dignite.Abp.BlobStoring.Imaging:ImageTooLarge` / `ImageTooSmall` / `ImageDecodeTimeout` /
     `ImageProcessingFailed`. The on-request resize reports a requested size beyond its bound as `ImageTooLarge`.
+
+### Fixed
+
+- **The ABP 10.7 upgrade added `AbpBackgroundJobs.CompletionTime` (and changed its index) without a Host migration.**
+  The dev Host's new migration `Site_AbpBackgroundJobsCompletionTime` adds the column.
+
+### Migrate
+
+- **Container names in stored data.** The dev Host's EF Core migration `Site_RenameFileContainers` renames the
+  containers in `SiteFileDescriptors` and `SiteDirectoryDescriptors`, in every stored address
+  (`SiteContents.FlexFields`, plain and JSON-escaped, and the `Site.Branding.*` settings) and in the field
+  definitions (`SiteFields.Configuration`: a file field's `FileContainerName`, a CKEditor field's
+  `ImagesContainerName`). Any other database runs the SQL Server equivalent below, in the database holding Site's
+  tables (the `AbpSettings` statements in the database holding settings):
+
+```sql
+-- Repeat the block for each pair: (N'site-images', N'images') and (N'site-files', N'attachments').
+DECLARE @old nvarchar(64) = N'site-images', @new nvarchar(64) = N'images';
+DECLARE @oldPath nvarchar(200) = N'/api/site-public/files/' + @old + N'/',
+        @newPath nvarchar(200) = N'/api/site-public/files/' + @new + N'/';
+DECLARE @oldEscaped nvarchar(400) = REPLACE(@oldPath, N'/', N'\/'),
+        @newEscaped nvarchar(400) = REPLACE(@newPath, N'/', N'\/');
+
+UPDATE [SiteFileDescriptors] SET [ContainerName] = @new WHERE [ContainerName] = @old;
+UPDATE [SiteDirectoryDescriptors] SET [ContainerName] = @new WHERE [ContainerName] = @old;
+
+UPDATE [SiteContents] SET [FlexFields] = REPLACE([FlexFields], @oldPath, @newPath)
+    WHERE CHARINDEX(@oldPath, [FlexFields]) > 0;
+UPDATE [SiteContents] SET [FlexFields] = REPLACE([FlexFields], @oldEscaped, @newEscaped)
+    WHERE CHARINDEX(@oldEscaped, [FlexFields]) > 0;
+UPDATE [AbpSettings] SET [Value] = REPLACE([Value], @oldPath, @newPath)
+    WHERE [Name] LIKE N'Site.Branding.%' AND CHARINDEX(@oldPath, [Value]) > 0;
+UPDATE [AbpSettings] SET [Value] = REPLACE([Value], @oldEscaped, @newEscaped)
+    WHERE [Name] LIKE N'Site.Branding.%' AND CHARINDEX(@oldEscaped, [Value]) > 0;
+
+-- Field definitions: with the double quotes, so a longer name that contains the old one cannot match.
+UPDATE [SiteFields] SET [Configuration] = REPLACE([Configuration], N'"' + @old + N'"', N'"' + @new + N'"')
+    WHERE CHARINDEX(N'"' + @old + N'"', [Configuration]) > 0;
+```
+
+- **Blob store.** The blobs are not moved by the migration; rename their containers to match.
+  - Filesystem provider: rename the two folders under `{BasePath}/host/` and under every
+    `{BasePath}/tenants/{tenantId}/`: `site-images` to `images`, `site-files` to `attachments`.
+  - Database provider (for example Dignite.Cloud's SiteService):
+    `UPDATE [AbpBlobContainers] SET [Name] = N'images' WHERE [Name] = N'site-images';` and
+    `UPDATE [AbpBlobContainers] SET [Name] = N'attachments' WHERE [Name] = N'site-files';`.
+  - Pictures that were already in `site-files` stay readable in `attachments`; only new picture uploads are
+    refused there. Move such a picture to `images` by uploading it again.
 
 ## [0.1.0-preview.27] - 2026-10-10
 

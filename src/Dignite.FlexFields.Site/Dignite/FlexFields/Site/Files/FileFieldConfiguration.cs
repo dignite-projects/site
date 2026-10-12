@@ -5,8 +5,8 @@ namespace Dignite.FlexFields.Site.Files;
 public class FileFieldConfiguration : FieldConfigurationBase
 {
     /// <summary>
-    /// The file container the picker browses and uploads to - one of Site's (<c>site-images</c>,
-    /// <c>site-files</c>). No default: an unset value is left for the config editor to reject rather than
+    /// The file container the picker browses and uploads to - one of Site's (<c>images</c>,
+    /// <c>attachments</c>). No default: an unset value is left for the config editor to reject rather than
     /// silently substituted, see <see cref="FileFieldType"/>.
     /// </summary>
     public string? FileContainerName {

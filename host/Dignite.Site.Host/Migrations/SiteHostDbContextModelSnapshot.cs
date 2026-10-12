@@ -18,7 +18,7 @@ namespace Dignite.Site.Host.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("_Abp_DatabaseProvider", EfCoreDatabaseProvider.Sqlite)
-                .HasAnnotation("ProductVersion", "10.0.9");
+                .HasAnnotation("ProductVersion", "10.0.11");
 
             modelBuilder.Entity("Dignite.Site.ContentTypes.ContentType", b =>
                 {
@@ -251,68 +251,6 @@ namespace Dignite.Site.Host.Migrations
                     b.ToTable("SiteContentFlexFieldIndexes", (string)null);
                 });
 
-            modelBuilder.Entity("Dignite.Site.Directories.DirectoryDescriptor", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("ConcurrencyStamp");
-
-                    b.Property<string>("ContainerName")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("CreationTime");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("CreatorId");
-
-                    b.Property<string>("ExtraProperties")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("ExtraProperties");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("LastModificationTime");
-
-                    b.Property<Guid?>("LastModifierId")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("LastModifierId");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid?>("ParentId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("TenantId")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("TenantId");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentId");
-
-                    b.HasIndex("TenantId", "ContainerName", "CreatorId", "ParentId");
-
-                    b.ToTable("SiteDirectoryDescriptors", (string)null);
-                });
-
             modelBuilder.Entity("Dignite.Site.Fields.Field", b =>
                 {
                     b.Property<Guid>("Id")
@@ -403,6 +341,68 @@ namespace Dignite.Site.Host.Migrations
                         .IsUnique();
 
                     b.ToTable("SiteFields", (string)null);
+                });
+
+            modelBuilder.Entity("Dignite.Site.Files.DirectoryDescriptor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<string>("ContainerName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("TenantId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("TenantId", "ContainerName", "CreatorId", "ParentId");
+
+                    b.ToTable("SiteDirectoryDescriptors", (string)null);
                 });
 
             modelBuilder.Entity("Dignite.Site.Files.FileDescriptor", b =>
@@ -904,6 +904,9 @@ namespace Dignite.Site.Host.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("CompletionTime")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -953,7 +956,7 @@ namespace Dignite.Site.Host.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsAbandoned", "NextTryTime");
+                    b.HasIndex("ApplicationName", "CompletionTime", "IsAbandoned", "NextTryTime");
 
                     b.ToTable("AbpBackgroundJobs", (string)null);
                 });
@@ -2601,9 +2604,9 @@ namespace Dignite.Site.Host.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Dignite.Site.Directories.DirectoryDescriptor", b =>
+            modelBuilder.Entity("Dignite.Site.Files.DirectoryDescriptor", b =>
                 {
-                    b.HasOne("Dignite.Site.Directories.DirectoryDescriptor", null)
+                    b.HasOne("Dignite.Site.Files.DirectoryDescriptor", null)
                         .WithMany()
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -2611,7 +2614,7 @@ namespace Dignite.Site.Host.Migrations
 
             modelBuilder.Entity("Dignite.Site.Files.FileDescriptor", b =>
                 {
-                    b.HasOne("Dignite.Site.Directories.DirectoryDescriptor", null)
+                    b.HasOne("Dignite.Site.Files.DirectoryDescriptor", null)
                         .WithMany()
                         .HasForeignKey("DirectoryId")
                         .OnDelete(DeleteBehavior.Restrict);
