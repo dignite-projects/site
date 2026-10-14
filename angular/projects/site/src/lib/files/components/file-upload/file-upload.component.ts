@@ -1,5 +1,5 @@
 /* eslint-disable @angular-eslint/component-selector */
-import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ObjectUrlService } from '../../services/object-url.service';
 import { FormatFileSizePipe } from '../../pipes/format-file-size.pipe';
 import { CoreModule } from '@abp/ng.core';
@@ -49,7 +49,7 @@ export class FileUploadComponent implements OnDestroy {
     // default of 1MB below.
     this.fileAdminService.getContainerConfiguration(v).subscribe(res => {
       if (res?.maxBlobSize > 0) {
-        this.sizeLimit = res.maxBlobSize;
+        this.sizeLimit.set(res.maxBlobSize);
       }
     });
   }
@@ -70,10 +70,15 @@ export class FileUploadComponent implements OnDestroy {
 
   @Output() fileDataChange = new EventEmitter<FileUploadChangeEvent>();
 
-  sizeLimit = 1048576;
+  /**
+   * A signal, not a plain field: the container's real limit arrives in an HTTP callback, and a plain-field
+   * write there never marks a host's OnPush ancestors for check, so the "exceeds the maximum size" hint
+   * would keep showing the pre-fetch 1MB default until an unrelated event.
+   */
+  readonly sizeLimit = signal(1048576);
   @Input()
   set limit(v: number) {
-    this.sizeLimit = v;
+    this.sizeLimit.set(v);
   }
 
   filesTableData: UploadTableItem[] = [];
@@ -113,7 +118,7 @@ export class FileUploadComponent implements OnDestroy {
 
   private emitChange(): void {
     const theFilesToBeUploaded = this.filesTableData.filter(item => !item.id);
-    const isSubmit = !this.filesTableData.some(item => item.size > this.sizeLimit);
+    const isSubmit = !this.filesTableData.some(item => item.size > this.sizeLimit());
     this.fileDataChange.emit({
       theFilesToBeUploaded,
       deleteTheUploadedFiles: this.deletedUploadedFiles,

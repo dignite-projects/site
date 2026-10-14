@@ -11,7 +11,7 @@
           [attr.data-flex-field-name]="fieldValue.field.name"
           [formControlName]="fieldValue.field.name"
         >
-          <option *ngFor="let item of options" [value]="item.id">{{ item.slug }}</option>
+          <option *ngFor="let item of options()" [value]="item.id">{{ item.slug }}</option>
         </select>
       } @else {
         <select
@@ -20,7 +20,7 @@
           [formControlName]="fieldValue.field.name"
         >
           <option value="">{{ placeholder }}</option>
-          <option *ngFor="let item of options" [value]="item.id">{{ item.slug }}</option>
+          <option *ngFor="let item of options()" [value]="item.id">{{ item.slug }}</option>
         </select>
       }
       <small class="form-text text-muted d-block" *ngIf="fieldValue.field.description">

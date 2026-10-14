@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { AbstractControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { FieldTypeControlBase, readStringList } from '@dignite/ng.flex-fields';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
@@ -24,7 +24,12 @@ import { ContentConfiguration } from './content-configuration';
 export class ContentControlComponent extends FieldTypeControlBase implements OnInit {
   private readonly contentAdminService = inject(ContentAdminService);
 
-  options: ContentDto[] = [];
+  /**
+   * A signal, not a plain field: it is filled by an HTTP callback, and this control renders in the content
+   * editor's page flow, under the host layout's OnPush ancestors - a plain-field write there never marks
+   * them for check, so the options (and a stored selection) would stay blank until an unrelated event.
+   */
+  readonly options = signal<ContentDto[]>([]);
 
   get multiple(): boolean {
     return !!this.fieldValue?.field.configuration['Content.Multiple'];
@@ -57,7 +62,7 @@ export class ContentControlComponent extends FieldTypeControlBase implements OnI
     this.contentAdminService
       .getList({ contentTypeId: contentTypeId || null, skipCount: 0, maxResultCount: 100 })
       .subscribe(result => {
-        this.options = result.items ?? [];
+        this.options.set(result.items ?? []);
       });
   }
 }

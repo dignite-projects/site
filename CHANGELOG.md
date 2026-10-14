@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Angular admin's lists and editor no longer stay empty until an unrelated click (e.g. Search).**
+  Pages, Fields, Contents, Content types and the content editor fetched their data on open, but the screen only
+  showed it after something else triggered a refresh. Angular 22 made `OnPush` the default, so the host layout's
+  wrappers (`abp-router-outlet`, the LeptonX layouts) are `OnPush`, and a plain-field write in an HTTP callback
+  never marks them for check. The state these components load asynchronously - the list data, the dialogs'
+  open/busy flags, and the editor's content types, languages, fields and "page's own address taken" flag - now
+  lives in signals, and the five components are `OnPush`. The same fix covers the file picker's rename and move
+  dialogs (they now close once the save succeeds), the options of the "Content reference" field and its list
+  cell, and the upload size hint. No API or configuration change.
+
 ## [0.1.0-preview.29] - 2026-10-14
 
 ### Changed

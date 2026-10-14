@@ -1,12 +1,12 @@
-@if (!isLoading && form) {
+@if (!isLoading() && form) {
   <form [formGroup]="form" (submit)="save()">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
         <h5 class="mb-0">
           {{ (isEdit ? 'Site::EditContent' : 'Site::NewContent') | abpLocalization }}
         </h5>
-        @if (page) {
-          <small class="text-muted">{{ page.displayName }}</small>
+        @if (page(); as currentPage) {
+          <small class="text-muted">{{ currentPage.displayName }}</small>
         }
       </div>
       <div>
@@ -17,8 +17,8 @@
              so `(click)` binds to an EventEmitter instead of the DOM event, and it takes `buttonType`
              rather than `type`. Both make it easy to end up with a button that quietly never submits.
              Inside a form on a page, the native element says what it does. -->
-        <button type="submit" class="btn btn-primary" [disabled]="!form.valid || isBusy">
-          @if (isBusy) {
+        <button type="submit" class="btn btn-primary" [disabled]="!form.valid || isBusy()">
+          @if (isBusy()) {
             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
           } @else {
             <i class="fa fa-check me-1"></i>
@@ -43,7 +43,7 @@
                   formControlName="contentTypeId"
                   (change)="onContentTypeChange()"
                 >
-                  @for (contentType of contentTypes; track contentType.id) {
+                  @for (contentType of contentTypes(); track contentType.id) {
                     <option [value]="contentType.id">{{ contentType.displayName }}</option>
                   }
                 </select>
@@ -53,8 +53,8 @@
               </div>
             }
 
-            @if (fields.length > 0) {
-              @for (fieldValue of fields; track fieldValue.field.name) {
+            @if (fields().length > 0) {
+              @for (fieldValue of fields(); track fieldValue.field.name) {
                 <ff-flex-field-control
                   [fields]="fieldValue"
                   [entity]="form"
@@ -76,12 +76,12 @@
       <div class="col-lg-4">
         <div class="card">
           <div class="card-body">
-            @if (!hasMultipleContentTypes && contentTypes.length === 1) {
+            @if (!hasMultipleContentTypes && contentTypes().length === 1) {
               <div class="mb-3">
                 <label class="form-label">
                   {{ 'Site::DisplayName:Content.ContentType' | abpLocalization }}
                 </label>
-                <input type="text" class="form-control" [value]="contentTypes[0].displayName" disabled />
+                <input type="text" class="form-control" [value]="contentTypes()[0].displayName" disabled />
               </div>
             }
 
@@ -90,7 +90,7 @@
                 {{ 'Site::DisplayName:Content.CultureName' | abpLocalization }}
               </label>
               <select class="form-select" formControlName="cultureName" (change)="onCultureNameChange()">
-                @for (language of languages; track language) {
+                @for (language of languages(); track language) {
                   <option [value]="language">{{ language }}</option>
                 }
               </select>
@@ -102,7 +102,7 @@
               <div class="mb-3">
                 <label class="form-label">{{ 'Site::DisplayName:Content.Slug' | abpLocalization }}</label>
 
-                @if (slugState === 'optional' && !emptySlotTaken) {
+                @if (slugState === 'optional' && !emptySlotTaken()) {
                   <div class="form-check mb-2">
                     <input
                       type="checkbox"
@@ -124,7 +124,7 @@
                   </small>
                 }
 
-                @if (slugState === 'optional' && emptySlotTaken) {
+                @if (slugState === 'optional' && emptySlotTaken()) {
                   <small class="form-text text-muted d-block mt-1">
                     {{ 'Site::SlugSlotTaken' | abpLocalization }}
                   </small>

@@ -5,7 +5,14 @@ import {
   ThemeSharedModule,
   ToasterService,
 } from '@abp/ng.theme.shared';
-import { Component, ElementRef, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -31,7 +38,7 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 /** The content types of one page. Reached from the Pages list; there is no menu entry. */
 @Component({
   selector: 'site-content-types',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './content-types.component.html',
   imports: [
     CoreModule,
@@ -55,13 +62,16 @@ export class ContentTypesComponent {
 
   readonly pageId: string = this.route.snapshot.paramMap.get('pageId') ?? '';
 
-  page?: PageDto;
-  contentTypes: ContentTypeDto[] = [];
-  fieldsById = new Map<string, FieldDto>();
-  indexableByFieldType = new Map<string, boolean>();
+  // State that changes in an HTTP callback is a signal, not a plain field: the host layout's ancestors
+  // (`abp-router-outlet`, the LeptonX layouts) are OnPush, and a plain-field write in a response
+  // callback never marks them for check, so the page would stay empty until some unrelated event did.
+  readonly page = signal<PageDto | undefined>(undefined);
+  readonly contentTypes = signal<ContentTypeDto[]>([]);
+  readonly fieldsById = signal(new Map<string, FieldDto>());
+  readonly indexableByFieldType = signal(new Map<string, boolean>());
 
-  isModalOpen = false;
-  isModalBusy = false;
+  readonly isModalOpen = signal(false);
+  readonly isModalBusy = signal(false);
   editingContentType?: ContentTypeDto;
   form?: FormGroup;
 
@@ -75,14 +85,14 @@ export class ContentTypesComponent {
   @ViewChild('submitButton') submitButton?: ElementRef<HTMLButtonElement>;
 
   constructor() {
-    this.pageService.get(this.pageId).subscribe(page => (this.page = page));
+    this.pageService.get(this.pageId).subscribe(page => this.page.set(page));
 
     forkJoin({
       fields: this.referenceData.getFieldsById(),
       indexable: this.referenceData.getIndexableByFieldType(),
     }).subscribe(({ fields, indexable }) => {
-      this.fieldsById = fields;
-      this.indexableByFieldType = indexable;
+      this.fieldsById.set(fields);
+      this.indexableByFieldType.set(indexable);
     });
 
     this.load(true);
@@ -96,14 +106,15 @@ export class ContentTypesComponent {
    */
   load(autoOpenIfSingle = false): void {
     this.contentTypeService.getListByPage(this.pageId).subscribe(result => {
-      this.contentTypes = result.items ?? [];
+      const contentTypes = result.items ?? [];
+      this.contentTypes.set(contentTypes);
 
       if (
         autoOpenIfSingle &&
-        this.contentTypes.length === 1 &&
+        contentTypes.length === 1 &&
         this.permission.getGrantedPolicy(this.policies.ContentTypesUpdate)
       ) {
-        this.openEdit(this.contentTypes[0]);
+        this.openEdit(contentTypes[0]);
       }
     });
   }
@@ -116,7 +127,7 @@ export class ContentTypesComponent {
     this.editingContentType = undefined;
     this.arrangement = [];
     this.form = this.buildForm();
-    this.isModalOpen = true;
+    this.isModalOpen.set(true);
   }
 
   openEdit(contentType: ContentTypeDto): void {
@@ -126,22 +137,22 @@ export class ContentTypesComponent {
       .map(entry => ({ ...entry }))
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     this.form = this.buildForm(contentType);
-    this.isModalOpen = true;
+    this.isModalOpen.set(true);
   }
 
   closeModal(): void {
-    this.isModalOpen = false;
+    this.isModalOpen.set(false);
     this.form = undefined;
     this.editingContentType = undefined;
     this.arrangement = [];
   }
 
   save(): void {
-    if (!this.form || this.form.invalid || this.isModalBusy) {
+    if (!this.form || this.form.invalid || this.isModalBusy()) {
       return;
     }
 
-    this.isModalBusy = true;
+    this.isModalBusy.set(true);
     const value = this.form.getRawValue();
 
     const request$ = this.editingContentType
@@ -161,13 +172,13 @@ export class ContentTypesComponent {
 
     request$.subscribe({
       next: () => {
-        this.isModalBusy = false;
+        this.isModalBusy.set(false);
         this.closeModal();
         this.load();
         this.referenceData.invalidateContentTypes();
         this.toaster.success('AbpUi::SavedSuccessfully');
       },
-      error: () => (this.isModalBusy = false),
+      error: () => this.isModalBusy.set(false),
     });
   }
 

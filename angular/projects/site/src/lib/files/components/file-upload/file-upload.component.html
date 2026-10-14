@@ -19,10 +19,10 @@
               <div class="d-flex">
                 <div class="flex-grow-1">
                   {{item.name}}
-                  @if (item.size > sizeLimit) {
+                  @if (item.size > sizeLimit()) {
                     <div class="form-text text-danger">
                       {{'Site::Files:ExceedsMaximumSize' |
-                    abpLocalization:(sizeLimit|formatFileSize)}}</div>
+                    abpLocalization:(sizeLimit()|formatFileSize)}}</div>
                   }
                 </div>
                 <div class="" [attr.title]="item.name">

@@ -186,13 +186,13 @@
     </ng-template>
   </abp-modal>
 
-  <abp-modal [(visible)]="moveModalOpen" [busy]="moveModalBusy"
+  <abp-modal [(visible)]="moveModalOpen" [busy]="moveModalBusy()"
     (visibleChange)="onMoveModalVisibleChange($event)">
     <ng-template #abpHeader>
       <h3>{{'Site::Files:Move' | abpLocalization}}</h3>
     </ng-template>
       <ng-template #abpBody>
-      @if (moveModalOpen) {
+      @if (moveModalOpen()) {
         <div class="move-directory-tree">
           <site-file-directory-tree [theSelectedTreeNode]="moveTargetDirectoryNode"
             (nodeClick)="onMoveTargetDirectoryChange($event)" [fileContainerName]="fileContainerName">
@@ -204,9 +204,9 @@
       <button type="button" class="btn btn-secondary" abpClose>
         {{'AbpUi::Cancel' | abpLocalization}}
       </button>
-      <button type="button" class="btn btn-primary" [disabled]="moveModalBusy || !moveTargetDirectoryNode"
+      <button type="button" class="btn btn-primary" [disabled]="moveModalBusy() || !moveTargetDirectoryNode"
         (click)="moveSelectedFiles()">
-        @if (moveModalBusy) {
+        @if (moveModalBusy()) {
           <i class="fa-spin fa fa-spinner me-1" aria-hidden="true"></i>
         }
         {{'AbpUi::Save' | abpLocalization}}
