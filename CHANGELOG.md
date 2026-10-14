@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.29] - 2026-10-14
+
+### Changed
+
+- **The `SiteAdmin.*` permissions now require the `Site.Enable` feature, so the admin menu goes away when it is off.**
+  Every permission in the group (children included) carries `RequireFeatures(SiteFeatures.Enable)`: with the
+  feature off they read as not granted, `application-configuration` stops listing them in `grantedPolicies`, and
+  the Angular routes' `requiredPolicy` hides the Site menu. Before, only the Admin application services were
+  gated, so the menu stayed visible and every click ended in an authorization error. Stored grants are kept and
+  work again when the feature comes back on. `Dignite.Site.Admin.Application.Contracts` now references
+  `Volo.Abp.Features`. The Public services are unchanged - they stay up with the feature off.
+
 ## [0.1.0-preview.28] - 2026-10-12
 
 ### Changed
@@ -1572,4 +1584,4 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.28...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.29...HEAD

@@ -1,5 +1,7 @@
-﻿using Dignite.Site.Localization;
+﻿using Dignite.Site.Features;
+using Dignite.Site.Localization;
 using Volo.Abp.Authorization.Permissions;
+using Volo.Abp.Features;
 using Volo.Abp.Localization;
 
 namespace Dignite.Site.Admin.Permissions;
@@ -31,6 +33,16 @@ public class SiteAdminPermissionDefinitionProvider : PermissionDefinitionProvide
         contents.AddChild(SiteAdminPermissions.Contents.Create, L("Permission:Create"));
         contents.AddChild(SiteAdminPermissions.Contents.Update, L("Permission:Update"));
         contents.AddChild(SiteAdminPermissions.Contents.Delete, L("Permission:Delete"));
+
+        // With Site.Enable off these permissions read as not granted, which is what takes the admin menu
+        // away: the Angular routes hide on requiredPolicy, and application-configuration reports what the
+        // checker says. Every permission needs it, children included - ABP checks each one on its own, a
+        // parent's state checker is not inherited. Done over the whole group so a permission added later is
+        // covered without having to remember it.
+        foreach (var permission in myGroup.GetPermissionsWithChildren())
+        {
+            permission.RequireFeatures(SiteFeatures.Enable);
+        }
     }
 
     private static LocalizableString L(string name)

@@ -7,7 +7,8 @@ public static class SiteFeatures
     /// <summary>
     /// Whether a tenant may use Site's <b>management surface</b> - the Admin application services, and with
     /// them the MCP tools, which are thin callers of those services. A host such as Dignite.Cloud turns this
-    /// off for tenants whose edition does not include Site.
+    /// off for tenants whose edition does not include Site. The <c>SiteAdmin.*</c> permissions require it
+    /// too, so with it off they read as not granted and the admin menu goes away.
     /// <para>
     /// <b>On by default</b> (see <c>SiteFeatureDefinitionProvider</c>): a host that does not run the Feature
     /// Management module has nowhere to switch it on, and would otherwise lose the whole admin surface. A

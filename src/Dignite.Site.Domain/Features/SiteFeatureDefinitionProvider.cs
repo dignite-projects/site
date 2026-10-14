@@ -19,8 +19,10 @@ public class SiteFeatureDefinitionProvider : FeatureDefinitionProvider
             displayName: L("Feature:Site.Enable"),
             description: L("Feature:Site.Enable:Description"),
             valueType: new ToggleStringValueType(),
-            // Visible to clients so the Angular admin can hide its menu from application-configuration -
-            // a convenience only, the Admin application services are what actually enforce it.
+            // Sent to clients in application-configuration so the Angular admin can read it (to say why the
+            // menu is gone, say). It is not what hides the menu: the SiteAdmin.* permissions require this
+            // feature, so they read as not granted and the routes' requiredPolicy hides the entries. The
+            // Admin application services are what actually enforce it.
             isVisibleToClients: true);
     }
 

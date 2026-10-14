@@ -1,10 +1,15 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Pages;
+using Dignite.Site.Admin.Permissions;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Public.Pages;
 using Shouldly;
 using Volo.Abp.Authorization;
+using Volo.Abp.Authorization.Permissions;
+using Volo.Abp.SimpleStateChecking;
 using Xunit;
 
 namespace Dignite.Site.Features;
@@ -19,9 +24,13 @@ public class SiteAdminAppServiceFeature_Tests : SiteEntityFrameworkCoreTestBase
     private readonly IPagePublicAppService _pagePublicAppService;
     private readonly PageTools _pageTools;
     private readonly TestFeatureValueProvider _testFeatures;
+    private readonly IPermissionDefinitionManager _permissionDefinitionManager;
+    private readonly ISimpleStateCheckerManager<PermissionDefinition> _permissionStateChecker;
 
     public SiteAdminAppServiceFeature_Tests()
     {
+        _permissionDefinitionManager = GetRequiredService<IPermissionDefinitionManager>();
+        _permissionStateChecker = GetRequiredService<ISimpleStateCheckerManager<PermissionDefinition>>();
         _pageAdminAppService = GetRequiredService<IPageAdminAppService>();
         _pagePublicAppService = GetRequiredService<IPagePublicAppService>();
         _pageTools = GetRequiredService<PageTools>();
@@ -56,6 +65,41 @@ public class SiteAdminAppServiceFeature_Tests : SiteEntityFrameworkCoreTestBase
 
         _testFeatures.Clear();
         (await _pageAdminAppService.FindByNameAsync("blog")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Should_Report_Every_SiteAdmin_Permission_As_Enabled_While_Site_Is_Enabled()
+    {
+        var permissions = await GetSiteAdminPermissionsAsync();
+
+        foreach (var permission in permissions)
+        {
+            (await _permissionStateChecker.IsEnabledAsync(permission)).ShouldBeTrue(permission.Name);
+        }
+    }
+
+    [Fact]
+    public async Task Should_Disable_Every_SiteAdmin_Permission_When_Site_Is_Disabled()
+    {
+        // This is what takes the Angular menu away: a disabled permission is never granted, so the routes'
+        // requiredPolicy fails. Children are checked one by one because ABP does not inherit a parent's state.
+        _testFeatures.Set(SiteFeatures.Enable, "false");
+
+        var permissions = await GetSiteAdminPermissionsAsync();
+
+        permissions.ShouldContain(permission => permission.Name == SiteAdminPermissions.Pages.Default);
+        permissions.ShouldContain(permission => permission.Name == SiteAdminPermissions.Contents.Delete);
+        foreach (var permission in permissions)
+        {
+            (await _permissionStateChecker.IsEnabledAsync(permission)).ShouldBeFalse(permission.Name);
+        }
+    }
+
+    private async Task<List<PermissionDefinition>> GetSiteAdminPermissionsAsync()
+    {
+        var all = await _permissionDefinitionManager.GetPermissionsAsync();
+
+        return all.Where(permission => permission.Name.StartsWith(SiteAdminPermissions.GroupName + ".")).ToList();
     }
 
     [Fact]
