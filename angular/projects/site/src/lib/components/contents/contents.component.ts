@@ -12,7 +12,7 @@ import {
   ThemeSharedModule,
   ToasterService,
 } from '@abp/ng.theme.shared';
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FlexFieldSearchComponent, FlexFieldViewComponent } from '@dignite/ng.flex-fields';
@@ -39,7 +39,7 @@ import { PageTreeSelectComponent } from './page-tree-select.component';
 
 @Component({
   selector: 'site-contents',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './contents.component.html',
   imports: [
     CoreModule,
@@ -69,19 +69,23 @@ export class ContentsComponent {
   readonly ContentStatus = ContentStatus;
   readonly statuses = [ContentStatus.Draft, ContentStatus.Published, ContentStatus.Archived];
 
-  data: PagedResultDto<ContentDto> = { items: [], totalCount: 0 };
+  // Everything the template reads that changes in an HTTP callback is a signal, not a plain field: the
+  // host layout's ancestors (`abp-router-outlet`, the LeptonX layouts) are OnPush, and a plain-field
+  // write in a response callback never marks them for check, so the list would stay empty until some
+  // unrelated event happened to.
+  readonly data = signal<PagedResultDto<ContentDto>>({ items: [], totalCount: 0 });
   filters = {} as GetContentListInput;
 
-  pages: PageDto[] = [];
-  languages: string[] = [];
-  contentTypes: ContentTypeDto[] = [];
+  readonly pages = signal<PageDto[]>([]);
+  readonly languages = signal<string[]>([]);
+  readonly contentTypes = signal<ContentTypeDto[]>([]);
 
   /**
    * Every content type across every page, for resolving a row's display name. Deliberately separate
    * from {@link contentTypes}, which is scoped to the selected page and drives the filter dropdown and
    * field arrangements - a row's own page is not necessarily the one currently filtered on.
    */
-  private contentTypesById = new Map<string, ContentTypeDto>();
+  private readonly contentTypesById = signal(new Map<string, ContentTypeDto>());
 
   private fieldsById = new Map<string, FieldDto>();
 
@@ -89,10 +93,10 @@ export class ContentsComponent {
   private arrangementByContentType = new Map<string, ArrangedField[]>();
 
   /** Union of `showInList` fields across the page's content types, deduped by field. */
-  columns: FieldColumn[] = [];
+  readonly columns = signal<FieldColumn[]>([]);
 
   /** Union of searchable fields, deduped by field. */
-  searchFields: ArrangedField[] = [];
+  readonly searchFields = signal<ArrangedField[]>([]);
 
   // --- stable-reference caches --------------------------------------------------------------------
   //
@@ -104,10 +108,10 @@ export class ContentsComponent {
   // hold stable references, rebuilt only when the underlying data actually changes.
 
   /** Per field definition, for the search bar. Keyed by field name. */
-  private definitionValues = new Map<string, FlexFieldValue>();
+  private readonly definitionValues = signal(new Map<string, FlexFieldValue>());
 
   /** Per row then field name, for the list cells. */
-  private rowValues = new Map<string, RowFieldValues>();
+  private readonly rowValues = signal(new Map<string, RowFieldValues>());
 
   readonly searchForm = this.fb.group({ flexFieldSearch: this.fb.group({}) });
   private appliedConditions: FlexFieldQueryCondition[] = [];
@@ -128,7 +132,7 @@ export class ContentsComponent {
     }
 
     this.pageService.getList({}).subscribe(result => {
-      this.pages = result.items ?? [];
+      this.pages.set(result.items ?? []);
     });
 
     // Restores the content-type dropdown, columns and search fields for a restored `pageId` - a no-op
@@ -142,10 +146,11 @@ export class ContentsComponent {
     }).subscribe(({ schema, fields, contentTypes }) => {
       // The schema projection is name-keyed, so it is used only for the site-level settings; field
       // resolution goes through the Guid-keyed library below.
-      this.languages = schema.enabledLanguages ?? [];
-      this.filters.cultureName ??= schema.defaultLanguage ?? this.languages[0] ?? null;
+      const languages = schema.enabledLanguages ?? [];
+      this.languages.set(languages);
+      this.filters.cultureName ??= schema.defaultLanguage ?? languages[0] ?? null;
       this.fieldsById = fields;
-      this.contentTypesById = contentTypes;
+      this.contentTypesById.set(contentTypes);
       this.rebuildArrangements();
     });
 
@@ -169,7 +174,7 @@ export class ContentsComponent {
       });
     };
     const setData = (result: PagedResultDto<ContentDto>) => {
-      this.data = result;
+      this.data.set(result);
       this.rebuildRowValues();
     };
 
@@ -211,7 +216,7 @@ export class ContentsComponent {
     const cultureName = this.filters.cultureName;
     this.filters = { cultureName } as GetContentListInput;
     this.clearSearch();
-    this.contentTypes = [];
+    this.contentTypes.set([]);
     this.rebuildArrangements();
     this.applyFilters();
   }
@@ -223,14 +228,14 @@ export class ContentsComponent {
   /** Loads `contentTypes` for the current `filters.pageId` and rebuilds the derived arrangements. */
   private fetchContentTypes(): Observable<void> {
     if (!this.filters.pageId) {
-      this.contentTypes = [];
+      this.contentTypes.set([]);
       this.rebuildArrangements();
       return of<void>(undefined);
     }
 
     return this.contentTypeService.getListByPage(this.filters.pageId).pipe(
       map(result => {
-        this.contentTypes = result.items ?? [];
+        this.contentTypes.set(result.items ?? []);
         this.rebuildArrangements();
       }),
     );
@@ -245,7 +250,7 @@ export class ContentsComponent {
    */
   private rebuildArrangements(): void {
     this.arrangementByContentType = new Map(
-      this.contentTypes.map(contentType => [
+      this.contentTypes().map(contentType => [
         contentType.id!,
         (contentType.fields ?? [])
           .map(entry => this.toArrangedField(entry.fieldId, entry))
@@ -322,7 +327,7 @@ export class ContentsComponent {
       }
     }
 
-    this.columns = [...columns.values()];
+    this.columns.set([...columns.values()]);
   }
 
   /**
@@ -346,42 +351,47 @@ export class ContentsComponent {
       }
     }
 
-    this.searchFields = [...fields.values()];
-    this.definitionValues = new Map(
-      this.searchFields.map(field => [
-        field.name,
-        { field: field.fieldData, required: field.required, searchable: true, value: undefined },
-      ]),
+    const searchFields = [...fields.values()];
+    this.searchFields.set(searchFields);
+    this.definitionValues.set(
+      new Map(
+        searchFields.map(field => [
+          field.name,
+          { field: field.fieldData, required: field.required, searchable: true, value: undefined },
+        ]),
+      ),
     );
   }
 
   private rebuildRowValues(): void {
-    this.rowValues = new Map(
-      (this.data.items ?? []).map(content => [
-        content.id!,
-        new Map(
-          (this.arrangementByContentType.get(content.contentTypeId ?? '') ?? []).map(field => [
-            field.name,
-            {
-              field: field.fieldData,
-              required: field.required,
-              searchable: field.searchable,
-              value: content.fieldValues?.[field.name],
-            } as FlexFieldValue,
-          ]),
-        ),
-      ]),
+    this.rowValues.set(
+      new Map(
+        (this.data().items ?? []).map(content => [
+          content.id!,
+          new Map(
+            (this.arrangementByContentType.get(content.contentTypeId ?? '') ?? []).map(field => [
+              field.name,
+              {
+                field: field.fieldData,
+                required: field.required,
+                searchable: field.searchable,
+                value: content.fieldValues?.[field.name],
+              } as FlexFieldValue,
+            ]),
+          ),
+        ]),
+      ),
     );
   }
 
   /** The stable value for one cell, or `undefined` when this row's type does not use the field. */
   rowValueOf(content: ContentDto, column: FieldColumn): FlexFieldValue | undefined {
-    return this.rowValues.get(content.id!)?.get(column.name);
+    return this.rowValues().get(content.id!)?.get(column.name);
   }
 
   /** The stable value for one search widget. See {@link definitionValues}. */
   definitionValueOf(field: ArrangedField): FlexFieldValue | undefined {
-    return this.definitionValues.get(field.name);
+    return this.definitionValues().get(field.name);
   }
 
   /** What one search widget should redisplay on restore - see {@link ContentListStateService}. */
@@ -397,7 +407,7 @@ export class ContentsComponent {
    */
   private buildConditions(): FlexFieldQueryCondition[] {
     const raw = (this.searchForm.get('flexFieldSearch')?.value ?? {}) as Record<string, unknown>;
-    return this.searchFields.flatMap(field => this.toConditions(field, raw[field.name]));
+    return this.searchFields().flatMap(field => this.toConditions(field, raw[field.name]));
   }
 
   private toConditions(field: ArrangedField, value: unknown): FlexFieldQueryCondition[] {
@@ -484,11 +494,11 @@ export class ContentsComponent {
   }
 
   contentTypeNameOf(contentTypeId?: string): string {
-    return (contentTypeId ? this.contentTypesById.get(contentTypeId)?.displayName : undefined) ?? '---';
+    return (contentTypeId ? this.contentTypesById().get(contentTypeId)?.displayName : undefined) ?? '---';
   }
 
   pageNameOf(pageId?: string): string {
-    return this.pages.find(page => page.id === pageId)?.displayName ?? '---';
+    return this.pages().find(page => page.id === pageId)?.displayName ?? '---';
   }
 
   // --- create / edit -------------------------------------------------------------------------------
@@ -498,7 +508,7 @@ export class ContentsComponent {
 
   /** Creating needs a page picked, since a content type belongs to one. */
   get canCreate(): boolean {
-    return !!this.filters.pageId && this.contentTypes.length > 0;
+    return !!this.filters.pageId && this.contentTypes().length > 0;
   }
 
   delete(content: ContentDto): void {

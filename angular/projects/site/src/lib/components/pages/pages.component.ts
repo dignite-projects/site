@@ -7,7 +7,14 @@ import {
 } from '@abp/ng.theme.shared';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import type { TreeStatus } from '@swimlane/ngx-datatable';
-import { Component, ElementRef, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
@@ -39,7 +46,7 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
 
 @Component({
   selector: 'site-pages',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pages.component.html',
   imports: [
     CoreModule,
@@ -159,12 +166,19 @@ export class PagesComponent {
 
   readonly policies = eSitePolicyNames;
 
-  /** The whole (filtered) result set, unpaged - the datatable paginates it client-side. */
-  data: ListResultDto<PageRow> = { items: [] };
+  /**
+   * The whole (filtered) result set, unpaged - the datatable paginates it client-side.
+   *
+   * State that changes in an HTTP callback (this, and the modal flags below) is a signal, not a plain
+   * field: the host layout's ancestors (`abp-router-outlet`, the LeptonX layouts) are OnPush, and a
+   * plain-field write in a response callback never marks them for check, so the list would stay empty
+   * until some unrelated event happened to.
+   */
+  readonly data = signal<ListResultDto<PageRow>>({ items: [] });
   filters = {} as GetPageListInput;
 
-  isModalOpen = false;
-  isModalBusy = false;
+  readonly isModalOpen = signal(false);
+  readonly isModalBusy = signal(false);
   editingPage?: PageDto;
   form?: FormGroup;
 
@@ -176,7 +190,7 @@ export class PagesComponent {
 
   /** Whether the tree-toggle template should render a toggle for this row at all. */
   hasChildren(row: PageRow): boolean {
-    return this.data.items.some(page => page.parentId === row.id);
+    return this.data().items.some(page => page.parentId === row.id);
   }
 
   applyFilters(): void {
@@ -184,17 +198,17 @@ export class PagesComponent {
       // A page's parentId can point at a page the current filter excludes (isActive/filter are
       // backend params, so a match can survive while its parent does not). Rather than let such a
       // row vanish from the tree, it renders at the root - normalized here once so every reader of
-      // `data.items` (the datatable's tree grouping, the tree-select's candidate list) sees a
+      // `data().items` (the datatable's tree grouping, the tree-select's candidate list) sees a
       // consistent, dangling-free parentId.
       const ids = new Set(result.items.map(page => page.id));
 
-      this.data = {
+      this.data.set({
         items: result.items.map(page => ({
           ...page,
           parentId: page.parentId && ids.has(page.parentId) ? page.parentId : null,
           treeStatus: 'expanded' as TreeStatus,
         })),
-      };
+      });
     });
   }
 
@@ -206,33 +220,33 @@ export class PagesComponent {
   /** Toggles one row's branch. `ngx-datatable` reads `treeStatus` off the row it is given back. */
   onTreeAction(event: { row: PageRow }): void {
     event.row.treeStatus = event.row.treeStatus === 'collapsed' ? 'expanded' : 'collapsed';
-    this.data = { items: [...this.data.items] };
+    this.data.set({ items: [...this.data().items] });
   }
 
   openCreate(): void {
     this.editingPage = undefined;
     this.form = this.buildForm();
-    this.isModalOpen = true;
+    this.isModalOpen.set(true);
   }
 
   openEdit(page: PageDto): void {
     this.editingPage = page;
     this.form = this.buildForm(page);
-    this.isModalOpen = true;
+    this.isModalOpen.set(true);
   }
 
   closeModal(): void {
-    this.isModalOpen = false;
+    this.isModalOpen.set(false);
     this.form = undefined;
     this.editingPage = undefined;
   }
 
   save(): void {
-    if (!this.form || this.form.invalid || this.isModalBusy) {
+    if (!this.form || this.form.invalid || this.isModalBusy()) {
       return;
     }
 
-    this.isModalBusy = true;
+    this.isModalBusy.set(true);
     const value = this.form.getRawValue();
     const isCreating = !this.editingPage;
 
@@ -242,7 +256,7 @@ export class PagesComponent {
 
     request$.subscribe({
       next: page => {
-        this.isModalBusy = false;
+        this.isModalBusy.set(false);
         this.closeModal();
         this.toaster.success('AbpUi::SavedSuccessfully');
 
@@ -256,7 +270,7 @@ export class PagesComponent {
 
         this.applyFilters();
       },
-      error: () => (this.isModalBusy = false),
+      error: () => this.isModalBusy.set(false),
     });
   }
 
@@ -293,14 +307,15 @@ export class PagesComponent {
    */
   get parentTreeNodes(): NzTreeNodeOptions[] {
     const editingId = this.editingPage?.id;
+    const items = this.data().items;
 
     if (
-      this.parentTreeNodesCache?.items !== this.data.items ||
+      this.parentTreeNodesCache?.items !== items ||
       this.parentTreeNodesCache?.editingId !== editingId
     ) {
       const excluded = editingId ? this.subtreeIds(editingId) : new Set<string>();
       this.parentTreeNodesCache = {
-        items: this.data.items,
+        items,
         editingId,
         nodes: this.buildTreeNodes(null, excluded),
       };
@@ -315,7 +330,7 @@ export class PagesComponent {
 
     for (let grew = true; grew; ) {
       grew = false;
-      for (const page of this.data.items) {
+      for (const page of this.data().items) {
         if (page.parentId && ids.has(page.parentId) && !ids.has(page.id!)) {
           ids.add(page.id!);
           grew = true;
@@ -327,13 +342,15 @@ export class PagesComponent {
   }
 
   private buildTreeNodes(parentId: string | null, excluded: Set<string>): NzTreeNodeOptions[] {
-    return this.data.items
+    const items = this.data().items;
+
+    return items
       .filter(page => (page.parentId ?? null) === parentId && !excluded.has(page.id!))
       .map(page => ({
         key: page.id!,
         title: page.displayName || page.name || '',
         children: this.buildTreeNodes(page.id!, excluded),
-        isLeaf: !this.data.items.some(child => child.parentId === page.id),
+        isLeaf: !items.some(child => child.parentId === page.id),
       }));
   }
 

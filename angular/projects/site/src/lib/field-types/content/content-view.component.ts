@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, OnChanges, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { readStringList } from '@dignite/ng.flex-fields';
 import { forkJoin, of } from 'rxjs';
@@ -30,23 +30,29 @@ export class ContentViewComponent implements OnChanges {
 
   @Input() value: unknown = '';
 
-  resolved: ContentDto[] = [];
+  /**
+   * A signal, not a plain field: it is filled by an HTTP callback, and this view renders in the content
+   * list's page flow, under the host layout's OnPush ancestors - a plain-field write there never marks
+   * them for check, so the cell would stay at `-` until an unrelated event.
+   */
+  readonly resolved = signal<ContentDto[]>([]);
 
   get summaryText(): string {
-    return this.resolved.length === 0 ? '-' : this.resolved.map(item => item.slug).join(', ');
+    const resolved = this.resolved();
+    return resolved.length === 0 ? '-' : resolved.map(item => item.slug).join(', ');
   }
 
   ngOnChanges(): void {
     const ids = readStringList(this.value).filter(id => id !== '');
 
     if (ids.length === 0) {
-      this.resolved = [];
+      this.resolved.set([]);
       return;
     }
 
     forkJoin(ids.map(id => this.contentAdminService.get(id).pipe(catchError(() => of(null))))).subscribe(
       results => {
-        this.resolved = results.filter((item): item is ContentDto => item !== null);
+        this.resolved.set(results.filter((item): item is ContentDto => item !== null));
       },
     );
   }

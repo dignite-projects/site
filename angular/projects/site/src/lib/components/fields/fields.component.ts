@@ -5,7 +5,15 @@ import {
   ThemeSharedModule,
   ToasterService,
 } from '@abp/ng.theme.shared';
-import { Component, ElementRef, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NzAutocompleteModule } from 'ng-zorro-antd/auto-complete';
 import { Observable, forkJoin, map, switchMap } from 'rxjs';
@@ -30,7 +38,7 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
 /**
  * localStorage key for per-group collapse state the user has explicitly chosen, keyed by group name
- * (`''` for Ungrouped - a real group name is never empty after {@link FieldsComponent.rebuildSections}
+ * (`''` for Ungrouped - a real group name is never empty after {@link FieldsComponent.sections}
  * trims it). Groups absent here fall back to the built-in default.
  */
 const GROUP_COLLAPSE_STATE_STORAGE_KEY = 'Dignite.Site.Fields.GroupCollapseState';
@@ -56,7 +64,7 @@ interface FieldGroupSection {
  */
 @Component({
   selector: 'site-fields',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './fields.component.html',
   imports: [
     CoreModule,
@@ -78,15 +86,52 @@ export class FieldsComponent {
   readonly policies = eSitePolicyNames;
   readonly fieldTypes: readonly FieldTypeDefinition[] = this.fieldTypeResolver.getAll();
 
-  /** The whole field library, unpaged - grouped display has no notion of "current page". */
-  data: ListResultDto<FieldDto> = { items: [] };
+  /**
+   * The whole field library, unpaged - grouped display has no notion of "current page".
+   *
+   * State that changes in an HTTP callback (this, `knownGroupNames` and the modal flags below) is a
+   * signal, not a plain field: the host layout's ancestors (`abp-router-outlet`, the LeptonX layouts)
+   * are OnPush, and a plain-field write in a response callback never marks them for check, so the list
+   * would stay empty until some unrelated event happened to.
+   */
+  readonly data = signal<ListResultDto<FieldDto>>({ items: [] });
   filters = {} as GetFieldListInput;
 
-  /** The whole field library, bucketed by group for rendering. */
-  sections: FieldGroupSection[] = [];
+  /**
+   * The whole field library, bucketed by group for rendering. Ungrouped goes last: it is the catch-all,
+   * and leading with it would bury the named groups under whatever has not been filed yet.
+   */
+  readonly sections = computed<FieldGroupSection[]>(() => {
+    const buckets = new Map<string, FieldDto[]>();
+    const ungrouped: FieldDto[] = [];
+
+    for (const field of this.data().items ?? []) {
+      const groupName = field.groupName?.trim();
+      if (!groupName) {
+        ungrouped.push(field);
+        continue;
+      }
+      const bucket = buckets.get(groupName);
+      if (bucket) {
+        bucket.push(field);
+      } else {
+        buckets.set(groupName, [field]);
+      }
+    }
+
+    const sections: FieldGroupSection[] = [...buckets.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([groupName, fields]) => ({ groupName, fields }));
+
+    if (ungrouped.length > 0) {
+      sections.push({ groupName: null, fields: ungrouped });
+    }
+
+    return sections;
+  });
 
   /** Every group name in use, for the editor's suggestion list. */
-  knownGroupNames: string[] = [];
+  readonly knownGroupNames = signal<string[]>([]);
 
   /**
    * Per-group collapse state the user has explicitly toggled, keyed by group name (`''` for
@@ -103,22 +148,23 @@ export class FieldsComponent {
    */
   get filteredGroupNames(): string[] {
     const term = ((this.form?.get('groupName')?.value as string) ?? '').trim().toLowerCase();
-    return term ? this.knownGroupNames.filter(name => name.toLowerCase().includes(term)) : this.knownGroupNames;
+    const names = this.knownGroupNames();
+    return term ? names.filter(name => name.toLowerCase().includes(term)) : names;
   }
 
-  isModalOpen = false;
-  isModalBusy = false;
+  readonly isModalOpen = signal(false);
+  readonly isModalBusy = signal(false);
   editingField?: FieldDto;
   form?: FormGroup;
   selectedFieldData?: FlexFieldData;
 
-  isRenameModalOpen = false;
-  isRenameModalBusy = false;
+  readonly isRenameModalOpen = signal(false);
+  readonly isRenameModalBusy = signal(false);
   renamingField?: FieldDto;
   renameForm?: FormGroup;
 
-  isGroupModalOpen = false;
-  isGroupModalBusy = false;
+  readonly isGroupModalOpen = signal(false);
+  readonly isGroupModalBusy = signal(false);
   renamingGroupName?: string;
   groupForm?: FormGroup;
 
@@ -131,43 +177,11 @@ export class FieldsComponent {
     this.loadKnownGroupNames();
   }
 
-  /** Reloads the whole (unpaged) field library and re-buckets it by group. */
+  /** Reloads the whole (unpaged) field library; {@link sections} re-buckets it by group. */
   search(): void {
     this.fieldService.getList({ filter: this.filters.filter }).subscribe(result => {
-      this.data = result;
-      this.rebuildSections();
+      this.data.set(result);
     });
-  }
-
-  /**
-   * Buckets the page's fields by group. Ungrouped goes last: it is the catch-all, and leading with it
-   * would bury the named groups under whatever has not been filed yet.
-   */
-  private rebuildSections(): void {
-    const buckets = new Map<string, FieldDto[]>();
-    const ungrouped: FieldDto[] = [];
-
-    for (const field of this.data.items ?? []) {
-      const groupName = field.groupName?.trim();
-      if (!groupName) {
-        ungrouped.push(field);
-        continue;
-      }
-      const bucket = buckets.get(groupName);
-      if (bucket) {
-        bucket.push(field);
-      } else {
-        buckets.set(groupName, [field]);
-      }
-    }
-
-    this.sections = [...buckets.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([groupName, fields]) => ({ groupName, fields }));
-
-    if (ungrouped.length > 0) {
-      this.sections.push({ groupName: null, fields: ungrouped });
-    }
   }
 
   toggleGroup(groupName: string | null): void {
@@ -196,18 +210,20 @@ export class FieldsComponent {
   }
 
   /**
-   * Drawn from the shared reference cache rather than `data.items` directly, so it stays in sync with
+   * Drawn from the shared reference cache rather than `data().items` directly, so it stays in sync with
    * whatever else on the page (or another component) last invalidated it.
    */
   private loadKnownGroupNames(): void {
     this.referenceData.getFieldsById().subscribe(fields => {
-      this.knownGroupNames = [
-        ...new Set(
-          [...fields.values()]
-            .map(field => field.groupName?.trim())
-            .filter((name): name is string => !!name),
-        ),
-      ].sort((a, b) => a.localeCompare(b));
+      this.knownGroupNames.set(
+        [
+          ...new Set(
+            [...fields.values()]
+              .map(field => field.groupName?.trim())
+              .filter((name): name is string => !!name),
+          ),
+        ].sort((a, b) => a.localeCompare(b)),
+      );
     });
   }
 
@@ -229,27 +245,27 @@ export class FieldsComponent {
   openCreate(): void {
     this.editingField = undefined;
     this.form = this.buildForm();
-    this.isModalOpen = true;
+    this.isModalOpen.set(true);
   }
 
   openEdit(field: FieldDto): void {
     this.editingField = field;
     this.form = this.buildForm(field);
-    this.isModalOpen = true;
+    this.isModalOpen.set(true);
   }
 
   closeModal(): void {
-    this.isModalOpen = false;
+    this.isModalOpen.set(false);
     this.form = undefined;
     this.editingField = undefined;
   }
 
   save(): void {
-    if (!this.form || this.form.invalid || this.isModalBusy) {
+    if (!this.form || this.form.invalid || this.isModalBusy()) {
       return;
     }
 
-    this.isModalBusy = true;
+    this.isModalBusy.set(true);
     const value = this.form.getRawValue();
     const configuration = this.form.get('configuration')?.value ?? {};
     const groupName = (value.groupName as string)?.trim() || null;
@@ -273,12 +289,12 @@ export class FieldsComponent {
 
     request$.subscribe({
       next: () => {
-        this.isModalBusy = false;
+        this.isModalBusy.set(false);
         this.closeModal();
         this.refreshLibrary();
         this.toaster.success('AbpUi::SavedSuccessfully');
       },
-      error: () => (this.isModalBusy = false),
+      error: () => this.isModalBusy.set(false),
     });
   }
 
@@ -312,30 +328,30 @@ export class FieldsComponent {
         [Validators.required, Validators.maxLength(MAX_FIELD_NAME_LENGTH), Validators.pattern(NAME_PATTERN)],
       ],
     });
-    this.isRenameModalOpen = true;
+    this.isRenameModalOpen.set(true);
   }
 
   closeRenameModal(): void {
-    this.isRenameModalOpen = false;
+    this.isRenameModalOpen.set(false);
     this.renameForm = undefined;
     this.renamingField = undefined;
   }
 
   saveRename(): void {
-    if (!this.renameForm || this.renameForm.invalid || this.isRenameModalBusy) {
+    if (!this.renameForm || this.renameForm.invalid || this.isRenameModalBusy()) {
       return;
     }
 
-    this.isRenameModalBusy = true;
+    this.isRenameModalBusy.set(true);
 
     this.fieldService.rename(this.renamingField!.id!, this.renameForm.getRawValue()).subscribe({
       next: () => {
-        this.isRenameModalBusy = false;
+        this.isRenameModalBusy.set(false);
         this.closeRenameModal();
         this.refreshLibrary();
         this.toaster.success('AbpUi::SavedSuccessfully');
       },
-      error: () => (this.isRenameModalBusy = false),
+      error: () => this.isRenameModalBusy.set(false),
     });
   }
 
@@ -343,24 +359,24 @@ export class FieldsComponent {
    * Group is a label, not an entity ({@link FieldGroupSection}), so "editing" one is a bulk rename of
    * `groupName` across every field that carries it - scoped to the whole library via a fresh fetch in
    * `fieldsInGroup`, not just `section.fields` (which reflects whatever the search box currently
-   * filters `data.items` to).
+   * filters `data().items` to).
    */
   openEditGroup(groupName: string): void {
     this.renamingGroupName = groupName;
     this.groupForm = this.fb.group({
       groupName: [groupName, [Validators.required, Validators.maxLength(MAX_GROUP_NAME_LENGTH)]],
     });
-    this.isGroupModalOpen = true;
+    this.isGroupModalOpen.set(true);
   }
 
   closeGroupModal(): void {
-    this.isGroupModalOpen = false;
+    this.isGroupModalOpen.set(false);
     this.groupForm = undefined;
     this.renamingGroupName = undefined;
   }
 
   saveGroupRename(): void {
-    if (!this.groupForm || this.groupForm.invalid || this.isGroupModalBusy || !this.renamingGroupName) {
+    if (!this.groupForm || this.groupForm.invalid || this.isGroupModalBusy() || !this.renamingGroupName) {
       return;
     }
 
@@ -372,19 +388,19 @@ export class FieldsComponent {
       return;
     }
 
-    this.isGroupModalBusy = true;
+    this.isGroupModalBusy.set(true);
     this.fieldsInGroup(oldGroupName)
       .pipe(
         switchMap(fields => forkJoin(fields.map(field => this.updateFieldGroupName(field, newGroupName)))),
       )
       .subscribe({
         next: () => {
-          this.isGroupModalBusy = false;
+          this.isGroupModalBusy.set(false);
           this.closeGroupModal();
           this.refreshLibrary();
           this.toaster.success('AbpUi::SavedSuccessfully');
         },
-        error: () => (this.isGroupModalBusy = false),
+        error: () => this.isGroupModalBusy.set(false),
       });
   }
 
@@ -408,7 +424,7 @@ export class FieldsComponent {
 
   /**
    * The group's full membership, library-wide - a fresh, unfiltered fetch so a rename/ungroup is never
-   * scoped down by whatever the search box currently filters `data.items` to.
+   * scoped down by whatever the search box currently filters `data().items` to.
    */
   private fieldsInGroup(groupName: string): Observable<FieldDto[]> {
     return this.fieldService

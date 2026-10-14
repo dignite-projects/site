@@ -1,9 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SimpleChange } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, SimpleChange } from '@angular/core';
+import { By } from '@angular/platform-browser';
+import { ConfirmationService, ModalComponent, ToasterService } from '@abp/ng.theme.shared';
+import { Subject } from 'rxjs';
 
 import { FileModalComponent } from './file-modal.component';
 import { CoreTestingModule } from '@abp/ng.core/testing';
 import { NgxValidateCoreModule } from '@ngx-validate/core';
+import { FileAdminService } from '../../../proxy/dignite/site/admin/files';
+import type { FileDescriptorDto } from '../../../proxy/dignite/site/admin/files';
 
 describe('FileModalComponent', () => {
   let component: FileModalComponent;
@@ -81,5 +86,68 @@ describe('FileModalComponent', () => {
       sortAscending: 'datatable-icon-down',
       sortDescending: 'datatable-icon-up',
     });
+  });
+});
+
+/**
+ * The secondary dialogs' `<abp-modal [(visible)]>` sit in this component's own view, under the layout's
+ * OnPush ancestors (`abp-router-outlet`, ...). The close that follows a successful rename happens in an
+ * HTTP callback; a plain-field write there never marked those for check, so the dialog stayed open until
+ * an unrelated event did. See `content-types.component.spec.ts`.
+ */
+@Component({
+  selector: 'site-test-on-push-ancestor',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FileModalComponent],
+  template: '<site-file-modal />',
+})
+class OnPushAncestorComponent {}
+
+@Component({
+  selector: 'site-test-root',
+  imports: [OnPushAncestorComponent],
+  template: '<site-test-on-push-ancestor />',
+})
+class RootComponent {}
+
+describe('FileModalComponent under an OnPush ancestor', () => {
+  const update$ = new Subject<unknown>();
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [CoreTestingModule.withConfig(), NgxValidateCoreModule.forRoot()],
+      providers: [
+        {
+          provide: FileAdminService,
+          useValue: { update: () => update$, getContainerConfiguration: () => update$ },
+        },
+        { provide: ToasterService, useValue: { success: () => undefined, error: () => undefined } },
+        { provide: ConfirmationService, useValue: {} },
+      ],
+    });
+  });
+
+  it('closes the rename dialog once the rename succeeds, with no event to mark the ancestors', () => {
+    const fixture = TestBed.createComponent(RootComponent);
+    fixture.detectChanges();
+
+    const modalElement = fixture.debugElement.query(By.directive(FileModalComponent));
+    const modal = modalElement.componentInstance as FileModalComponent;
+    // The three `abp-modal`s in template order: the picker itself, rename, move.
+    const renameDialog = () =>
+      fixture.debugElement.queryAll(By.directive(ModalComponent))[1].componentInstance as ModalComponent;
+
+    // Opening comes from a click on a row's edit button, which marks the view for check - stand in for it.
+    modal.onEditFileName({ id: 'file-1', name: 'old.png' } as FileDescriptorDto);
+    modalElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    expect(renameDialog().visible()).toBe(true);
+
+    // Closing happens in the HTTP callback: nothing marks the view for check.
+    modal.onSubmitFileName();
+    update$.next({});
+    fixture.detectChanges();
+
+    expect(renameDialog().visible()).toBe(false);
   });
 });

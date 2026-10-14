@@ -1,6 +1,6 @@
 import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FlexFieldControlComponent } from '@dignite/ng.flex-fields';
@@ -50,7 +50,7 @@ type SlugState = 'forbidden' | 'required' | 'optional';
  */
 @Component({
   selector: 'site-content-editor',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './content-editor.component.html',
   imports: [CoreModule, ThemeSharedModule, ReactiveFormsModule, RouterLink, FlexFieldControlComponent],
 })
@@ -71,9 +71,13 @@ export class ContentEditorComponent {
   readonly contentId: string | null = this.route.snapshot.paramMap.get('id');
   readonly isEdit = !!this.contentId;
 
-  page?: PageDto;
-  contentTypes: ContentTypeDto[] = [];
-  languages: string[] = [];
+  // State that changes in an HTTP callback is a signal, not a plain field: the host layout's ancestors
+  // (`abp-router-outlet`, the LeptonX layouts) are OnPush, and a plain-field write in a response
+  // callback never marks them for check, so the form would stay blank (or go stale) until some
+  // unrelated event happened to.
+  readonly page = signal<PageDto | undefined>(undefined);
+  readonly contentTypes = signal<ContentTypeDto[]>([]);
+  readonly languages = signal<string[]>([]);
   defaultLanguage = '';
   content?: ContentDto;
 
@@ -83,7 +87,7 @@ export class ContentEditorComponent {
    * `'optional'`. Read by the template to decide whether the "use the page's own address" checkbox is
    * offered at all.
    */
-  emptySlotTaken = false;
+  readonly emptySlotTaken = signal(false);
 
   private fieldsById = new Map<string, FieldDto>();
   private arrangementByContentType = new Map<string, ArrangedField[]>();
@@ -94,11 +98,11 @@ export class ContentEditorComponent {
    * allocated array on every change-detection pass would make it tear down and recreate its dynamic
    * child forever (`NG0103`).
    */
-  fields: FlexFieldValue[] = [];
+  readonly fields = signal<FlexFieldValue[]>([]);
 
   form?: FormGroup;
-  isBusy = false;
-  isLoading = true;
+  readonly isBusy = signal(false);
+  readonly isLoading = signal(true);
 
   constructor() {
     const pageId = this.route.snapshot.queryParamMap.get('pageId');
@@ -110,8 +114,9 @@ export class ContentEditorComponent {
     })
       .pipe(
         switchMap(loaded => {
-          this.languages = loaded.schema.enabledLanguages ?? [];
-          this.defaultLanguage = loaded.schema.defaultLanguage ?? this.languages[0] ?? '';
+          const languages = loaded.schema.enabledLanguages ?? [];
+          this.languages.set(languages);
+          this.defaultLanguage = loaded.schema.defaultLanguage ?? languages[0] ?? '';
           this.fieldsById = loaded.fieldsById;
           this.content = loaded.content;
 
@@ -126,18 +131,18 @@ export class ContentEditorComponent {
         }),
       )
       .subscribe(({ page, contentTypes }) => {
-        this.page = page;
-        this.contentTypes = contentTypes.items ?? [];
+        this.page.set(page);
+        this.contentTypes.set(contentTypes.items ?? []);
         this.rebuildArrangements();
         this.form = this.buildForm();
         this.rebuildFields();
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.refreshEmptySlotAvailability();
       });
   }
 
   get hasMultipleContentTypes(): boolean {
-    return this.contentTypes.length > 1;
+    return this.contentTypes().length > 1;
   }
 
   /**
@@ -148,7 +153,7 @@ export class ContentEditorComponent {
    * {@link emptySlotTaken}.
    */
   get slugState(): SlugState {
-    const route = this.page?.route ?? '';
+    const route = this.page()?.route ?? '';
     if (route.includes(OPTIONAL_SLUG_TOKEN)) {
       return 'optional';
     }
@@ -190,7 +195,7 @@ export class ContentEditorComponent {
    * below.
    */
   get slugPreview(): string {
-    const route = this.page?.route;
+    const route = this.page()?.route;
     if (!route) {
       return '';
     }
@@ -214,7 +219,7 @@ export class ContentEditorComponent {
 
   private rebuildArrangements(): void {
     this.arrangementByContentType = new Map(
-      this.contentTypes.map(contentType => [
+      this.contentTypes().map(contentType => [
         contentType.id!,
         (contentType.fields ?? [])
           .map(entry => {
@@ -256,12 +261,14 @@ export class ContentEditorComponent {
     const arranged = this.arrangementByContentType.get(contentTypeId ?? '') ?? [];
     const values = this.content?.fieldValues ?? {};
 
-    this.fields = arranged.map(field => ({
-      field: field.fieldData,
-      required: field.required,
-      searchable: field.searchable,
-      value: values[field.name],
-    }));
+    this.fields.set(
+      arranged.map(field => ({
+        field: field.fieldData,
+        required: field.required,
+        searchable: field.searchable,
+        value: values[field.name],
+      })),
+    );
   }
 
   onContentTypeChange(): void {
@@ -284,11 +291,11 @@ export class ContentEditorComponent {
   }
 
   save(): void {
-    if (!this.form || this.form.invalid || this.isBusy) {
+    if (!this.form || this.form.invalid || this.isBusy()) {
       return;
     }
 
-    this.isBusy = true;
+    this.isBusy.set(true);
     const value = this.form.getRawValue();
     const fieldValues = (this.form.get('flexFields')?.getRawValue() ?? {}) as Record<string, object>;
     const slug = value.slug ?? '';
@@ -312,11 +319,11 @@ export class ContentEditorComponent {
 
     request$.subscribe({
       next: () => {
-        this.isBusy = false;
+        this.isBusy.set(false);
         this.toaster.success('AbpUi::SavedSuccessfully');
         this.backToList();
       },
-      error: () => (this.isBusy = false),
+      error: () => this.isBusy.set(false),
     });
   }
 
@@ -329,7 +336,7 @@ export class ContentEditorComponent {
 
     const form = this.fb.group({
       contentTypeId: [
-        content?.contentTypeId ?? this.contentTypes[0]?.id ?? '',
+        content?.contentTypeId ?? this.contentTypes()[0]?.id ?? '',
         Validators.required,
       ],
       cultureName: [
@@ -337,7 +344,7 @@ export class ContentEditorComponent {
           value:
             content?.cultureName ??
             this.route.snapshot.queryParamMap.get('cultureName') ??
-            this.languages[0] ??
+            this.languages()[0] ??
             '',
           // Fixed after creation: the language is half the natural key that groups a content's
           // translations, so changing it would silently move the content to another translation set.
@@ -408,8 +415,9 @@ export class ContentEditorComponent {
    * null-vs-empty distinction.
    */
   private refreshEmptySlotAvailability(): void {
-    if (this.slugState !== 'optional' || !this.page?.id) {
-      this.emptySlotTaken = false;
+    const pageId = this.page()?.id;
+    if (this.slugState !== 'optional' || !pageId) {
+      this.emptySlotTaken.set(false);
       return;
     }
 
@@ -419,15 +427,16 @@ export class ContentEditorComponent {
     }
 
     this.contentService
-      .getList({ pageId: this.page.id, cultureName, maxResultCount: 1000 })
+      .getList({ pageId, cultureName, maxResultCount: 1000 })
       .pipe(catchError(() => of({ items: [] as ContentDto[], totalCount: 0 })))
       .subscribe(result => {
         const existing = (result.items ?? []).find(item => item.slug === '');
-        this.emptySlotTaken = !!existing && existing.id !== this.content?.id;
+        const taken = !!existing && existing.id !== this.content?.id;
+        this.emptySlotTaken.set(taken);
 
         // The slot this checkbox promised is gone (e.g. the language was switched to one where it is
         // already taken) - un-tick it rather than leave a checked box the next save would reject.
-        if (this.emptySlotTaken && this.usePageOwnAddress) {
+        if (taken && this.usePageOwnAddress) {
           this.form?.get('usePageOwnAddress')?.setValue(false);
           this.applySlugAvailability();
         }

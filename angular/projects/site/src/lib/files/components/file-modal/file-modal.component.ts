@@ -6,6 +6,7 @@ import {
   SimpleChanges,
   ViewChild,
   OnChanges,
+  signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { DatatableComponent } from '@swimlane/ngx-datatable';
@@ -126,10 +127,19 @@ export class FileModalComponent implements OnChanges {
 
   modalOpen = false;
 
-  fileNameModalOpen = false;
+  /**
+   * The two secondary dialogs' open/busy flags are signals, not plain fields: they are written after an
+   * HTTP call returns (rename, move), and bound on `<abp-modal>` elements that sit in this component's own
+   * view - under the host layout's OnPush ancestors (`abp-router-outlet`, the LeptonX layouts), where a
+   * plain-field write in a response callback never marks the view for check, so the dialog would stay open
+   * until some unrelated event happened to. What renders *inside* a dialog (header/body/footer) is attached
+   * to the application root by `NgbModal` and refreshed on every tick, so the plain fields it reads
+   * (`data`, `uploadingFiles`, `isRenaming`, ...) are not affected.
+   */
+  readonly fileNameModalOpen = signal(false);
 
   onFileNameModalVisibleChange(visible: boolean): void {
-    this.fileNameModalOpen = visible;
+    this.fileNameModalOpen.set(visible);
     if (!visible) {
       this.fileNameForm = undefined;
       this.editingFileRow = undefined;
@@ -377,15 +387,15 @@ export class FileModalComponent implements OnChanges {
     };
   }
 
-  moveModalOpen = false;
-  moveModalBusy = false;
+  readonly moveModalOpen = signal(false);
+  readonly moveModalBusy = signal(false);
   moveTargetDirectoryNode: DirectoryTreeNode | undefined;
 
   openMoveModal(): void {
     if (this.selectedFiles.length === 0 || !this.createDirectoryPermissionName) return;
 
     this.moveTargetDirectoryNode = undefined;
-    this.moveModalOpen = true;
+    this.moveModalOpen.set(true);
   }
 
   onMoveTargetDirectoryChange(node: DirectoryTreeNode): void {
@@ -393,20 +403,20 @@ export class FileModalComponent implements OnChanges {
   }
 
   onMoveModalVisibleChange(visible: boolean): void {
-    this.moveModalOpen = visible;
+    this.moveModalOpen.set(visible);
     if (!visible) {
-      this.moveModalBusy = false;
+      this.moveModalBusy.set(false);
       this.moveTargetDirectoryNode = undefined;
     }
   }
 
   async moveSelectedFiles(): Promise<void> {
     const targetNode = this.moveTargetDirectoryNode;
-    if (!targetNode?.key || this.selectedFiles.length === 0 || this.moveModalBusy) return;
+    if (!targetNode?.key || this.selectedFiles.length === 0 || this.moveModalBusy()) return;
 
     const targetDirectoryId = isMyFilesNode(targetNode) ? null : targetNode.key;
 
-    this.moveModalBusy = true;
+    this.moveModalBusy.set(true);
     const results = await Promise.allSettled(
       this.selectedFiles.map(
         file =>
@@ -417,7 +427,7 @@ export class FileModalComponent implements OnChanges {
           }),
       ),
     );
-    this.moveModalBusy = false;
+    this.moveModalBusy.set(false);
 
     const failedCount = results.filter(result => result.status === 'rejected').length;
     if (failedCount > 0) {
@@ -429,7 +439,7 @@ export class FileModalComponent implements OnChanges {
     this.selectedFiles = [];
     this.isAllSelected = false;
     this.list.get();
-    this.moveModalOpen = false;
+    this.moveModalOpen.set(false);
   }
 
   closeFileStatusModal(): void {
@@ -513,7 +523,7 @@ export class FileModalComponent implements OnChanges {
 
         this.fileNameForm = undefined;
         this.editingFileRow = undefined;
-        this.fileNameModalOpen = false;
+        this.fileNameModalOpen.set(false);
         this.toaster.success(this.localizationService.instant('Site::Files:SavedSuccessfully'));
       });
   }
@@ -524,11 +534,11 @@ export class FileModalComponent implements OnChanges {
       id: new FormControl(row.id, [Validators.required]),
     });
     this.editingFileRow = row;
-    this.fileNameModalOpen = true;
+    this.fileNameModalOpen.set(true);
   }
 
   onCancelFileNameEdit(): void {
-    this.fileNameModalOpen = false;
+    this.fileNameModalOpen.set(false);
     this.editingFileRow = undefined;
     this.fileNameForm = undefined;
   }

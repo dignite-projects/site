@@ -35,7 +35,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (section of sections; track section.groupName) {
+          @for (section of sections(); track section.groupName) {
             <tr class="table-light">
               <th colspan="4" class="fw-semibold">
                 <div class="d-flex justify-content-between align-items-center">
@@ -135,7 +135,7 @@
 
 <abp-modal
   [(visible)]="isModalOpen"
-  [busy]="isModalBusy"
+  [busy]="isModalBusy()"
   [options]="{ size: 'xl' }"
   (disappear)="closeModal()"
 >
@@ -219,7 +219,7 @@
     <abp-button
       iconClass="fa fa-check"
       [disabled]="!form?.valid"
-      [loading]="isModalBusy"
+      [loading]="isModalBusy()"
       (click)="submitButton?.nativeElement?.click()"
     >
       {{ 'AbpUi::Save' | abpLocalization }}
@@ -229,7 +229,7 @@
 
 <abp-modal
   [(visible)]="isRenameModalOpen"
-  [busy]="isRenameModalBusy"
+  [busy]="isRenameModalBusy()"
   (disappear)="closeRenameModal()"
 >
   <ng-template #abpHeader>
@@ -261,7 +261,7 @@
     <abp-button
       iconClass="fa fa-check"
       [disabled]="!renameForm?.valid"
-      [loading]="isRenameModalBusy"
+      [loading]="isRenameModalBusy()"
       (click)="renameSubmitButton?.nativeElement?.click()"
     >
       {{ 'AbpUi::Save' | abpLocalization }}
@@ -271,7 +271,7 @@
 
 <abp-modal
   [(visible)]="isGroupModalOpen"
-  [busy]="isGroupModalBusy"
+  [busy]="isGroupModalBusy()"
   (disappear)="closeGroupModal()"
 >
   <ng-template #abpHeader>
@@ -296,7 +296,7 @@
     <abp-button
       iconClass="fa fa-check"
       [disabled]="!groupForm?.valid"
-      [loading]="isGroupModalBusy"
+      [loading]="isGroupModalBusy()"
       (click)="groupSubmitButton?.nativeElement?.click()"
     >
       {{ 'AbpUi::Save' | abpLocalization }}

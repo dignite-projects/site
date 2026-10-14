@@ -47,7 +47,7 @@
 
     <ngx-datatable
       class="material"
-      [rows]="data.items"
+      [rows]="data().items"
       columnMode="flex"
       [headerHeight]="42"
       [footerHeight]="42"
@@ -133,7 +133,7 @@
   </div>
 </div>
 
-<abp-modal [(visible)]="isModalOpen" [busy]="isModalBusy" (disappear)="closeModal()">
+<abp-modal [(visible)]="isModalOpen" [busy]="isModalBusy()" (disappear)="closeModal()">
   <ng-template #abpHeader>
     <h3>{{ (editingPage ? 'Site::EditPage' : 'Site::NewPage') | abpLocalization }}</h3>
   </ng-template>
@@ -204,7 +204,7 @@
     <abp-button
       iconClass="fa fa-check"
       [disabled]="!form?.valid"
-      [loading]="isModalBusy"
+      [loading]="isModalBusy()"
       (click)="submitButton?.nativeElement?.click()"
     >
       {{ 'AbpUi::Save' | abpLocalization }}

@@ -4,7 +4,7 @@
       <div class="col-md-3">
         <label class="form-label">{{ 'Site::Menu:Pages' | abpLocalization }}</label>
         <site-page-tree-select
-          [pages]="pages"
+          [pages]="pages()"
           [value]="filters.pageId"
           (valueChange)="onPageChange($event)"
         ></site-page-tree-select>
@@ -18,7 +18,7 @@
           [disabled]="!filters.pageId"
         >
           <option [ngValue]="null">--</option>
-          @for (contentType of contentTypes; track contentType.id) {
+          @for (contentType of contentTypes(); track contentType.id) {
             <option [ngValue]="contentType.id">{{ contentType.displayName }}</option>
           }
         </select>
@@ -26,7 +26,7 @@
       <div class="col-md-2">
         <label class="form-label">{{ 'Site::DisplayName:Content.CultureName' | abpLocalization }}</label>
         <select class="form-select" [(ngModel)]="filters.cultureName" (change)="applyFilters()">
-          @for (language of languages; track language) {
+          @for (language of languages(); track language) {
             <option [ngValue]="language">{{ language }}</option>
           }
         </select>
@@ -52,12 +52,12 @@
       </div>
     </div>
 
-    @if (searchFields.length > 0) {
+    @if (searchFields().length > 0) {
       <hr />
       <h6>{{ 'Site::FilterByFieldValue' | abpLocalization }}</h6>
       <form [formGroup]="searchForm">
         <div class="row g-2">
-          @for (field of searchFields; track field.fieldId) {
+          @for (field of searchFields(); track field.fieldId) {
             <!-- No label here: each search widget renders the field's own label. -->
             <div class="col-md-3">
               <ff-flex-field-search
@@ -109,7 +109,7 @@
             <th>{{ 'Site::DisplayName:Content.Slug' | abpLocalization }}</th>
             <th>{{ 'Site::DisplayName:Content.ContentType' | abpLocalization }}</th>
             <th>{{ 'Site::DisplayName:Content.Status' | abpLocalization }}</th>
-            @for (column of columns; track column.fieldId) {
+            @for (column of columns(); track column.fieldId) {
               <th>{{ column.displayName }}</th>
             }
             <th>{{ 'Site::DisplayName:Content.PublishTime' | abpLocalization }}</th>
@@ -117,12 +117,12 @@
           </tr>
         </thead>
         <tbody>
-          @for (content of data.items; track content.id) {
+          @for (content of data().items; track content.id) {
             <tr>
               <td>{{ content.slug || ('Site::SlugIsPageOwnAddress' | abpLocalization) }}</td>
               <td>{{ contentTypeNameOf(content.contentTypeId) }}</td>
               <td>{{ statusKeyOf(content.status) | abpLocalization }}</td>
-              @for (column of columns; track column.fieldId) {
+              @for (column of columns(); track column.fieldId) {
                 <td>
                   <!-- Columns are the union across the page's content types, so a row whose type does
                        not use this field has nothing to show here. -->
@@ -161,7 +161,7 @@
             </tr>
           } @empty {
             <tr>
-              <td [attr.colspan]="6 + columns.length" class="text-muted">
+              <td [attr.colspan]="6 + columns().length" class="text-muted">
                 {{ 'AbpUi::NoDataAvailableInDatatable' | abpLocalization }}
               </td>
             </tr>
@@ -171,7 +171,7 @@
     </div>
 
     <div class="mt-2 text-muted">
-      <small>{{ data.totalCount }}</small>
+      <small>{{ data().totalCount }}</small>
     </div>
   </div>
 </div>
