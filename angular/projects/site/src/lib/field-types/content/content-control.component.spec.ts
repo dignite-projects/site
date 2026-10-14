@@ -14,7 +14,7 @@ import { ContentControlComponent } from './content-control.component';
  * `content-types.component.spec.ts`.
  */
 @Component({
-  selector: 'site-test-on-push-ancestor',
+  selector: 'lib-test-on-push-ancestor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ContentControlComponent],
   template: `<site-content-control [fields]="fieldValue" [entity]="form" parentFieldName="flexFields" />`,
@@ -37,9 +37,9 @@ class OnPushAncestorComponent {
 }
 
 @Component({
-  selector: 'site-test-root',
+  selector: 'lib-test-root',
   imports: [OnPushAncestorComponent],
-  template: '<site-test-on-push-ancestor />',
+  template: '<lib-test-on-push-ancestor />',
 })
 class RootComponent {}
 

@@ -18,7 +18,7 @@ import { ContentEditorComponent } from './content-editor.component';
  * on its blank loading state until an unrelated event did. See `content-types.component.spec.ts`.
  */
 @Component({
-  selector: 'site-test-on-push-ancestor',
+  selector: 'lib-test-on-push-ancestor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ContentEditorComponent],
   template: '<site-content-editor />',
@@ -26,9 +26,9 @@ import { ContentEditorComponent } from './content-editor.component';
 class OnPushAncestorComponent {}
 
 @Component({
-  selector: 'site-test-root',
+  selector: 'lib-test-root',
   imports: [OnPushAncestorComponent],
-  template: '<site-test-on-push-ancestor />',
+  template: '<lib-test-on-push-ancestor />',
 })
 class RootComponent {}
 

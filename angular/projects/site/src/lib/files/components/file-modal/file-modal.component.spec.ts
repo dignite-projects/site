@@ -96,7 +96,7 @@ describe('FileModalComponent', () => {
  * an unrelated event did. See `content-types.component.spec.ts`.
  */
 @Component({
-  selector: 'site-test-on-push-ancestor',
+  selector: 'lib-test-on-push-ancestor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FileModalComponent],
   template: '<site-file-modal />',
@@ -104,9 +104,9 @@ describe('FileModalComponent', () => {
 class OnPushAncestorComponent {}
 
 @Component({
-  selector: 'site-test-root',
+  selector: 'lib-test-root',
   imports: [OnPushAncestorComponent],
-  template: '<site-test-on-push-ancestor />',
+  template: '<lib-test-on-push-ancestor />',
 })
 class RootComponent {}
 

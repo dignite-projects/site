@@ -18,7 +18,7 @@ import { ContentTypesComponent } from './content-types.component';
  * (e.g. clicking Search) did. State held in signals marks its ancestors itself.
  */
 @Component({
-  selector: 'site-test-on-push-ancestor',
+  selector: 'lib-test-on-push-ancestor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ContentTypesComponent],
   template: '<site-content-types />',
@@ -26,15 +26,15 @@ import { ContentTypesComponent } from './content-types.component';
 class OnPushAncestorComponent {}
 
 @Component({
-  selector: 'site-test-root',
+  selector: 'lib-test-root',
   imports: [OnPushAncestorComponent],
-  template: '<site-test-on-push-ancestor />',
+  template: '<lib-test-on-push-ancestor />',
 })
 class RootComponent {}
 
 /** The pre-fix shape: async data in a plain field, under the same kind of ancestor. */
 @Component({
-  selector: 'site-test-plain-field',
+  selector: 'lib-test-plain-field',
   changeDetection: ChangeDetectionStrategy.Eager,
   template: '{{ label }}',
 })
@@ -43,17 +43,17 @@ class PlainFieldComponent {
 }
 
 @Component({
-  selector: 'site-test-plain-field-ancestor',
+  selector: 'lib-test-plain-field-ancestor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [PlainFieldComponent],
-  template: '<site-test-plain-field />',
+  template: '<lib-test-plain-field />',
 })
 class PlainFieldAncestorComponent {}
 
 @Component({
-  selector: 'site-test-plain-field-root',
+  selector: 'lib-test-plain-field-root',
   imports: [PlainFieldAncestorComponent],
-  template: '<site-test-plain-field-ancestor />',
+  template: '<lib-test-plain-field-ancestor />',
 })
 class PlainFieldRootComponent {}
 

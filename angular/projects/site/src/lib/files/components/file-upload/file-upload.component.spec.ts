@@ -45,7 +45,7 @@ describe('FileUploadComponent', () => {
  * `content-types.component.spec.ts`.
  */
 @Component({
-  selector: 'site-test-on-push-ancestor',
+  selector: 'lib-test-on-push-ancestor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FileUploadComponent],
   template: '<site-file-upload fileContainerName="images" [fileData]="files" />',
@@ -56,9 +56,9 @@ class OnPushAncestorComponent {
 }
 
 @Component({
-  selector: 'site-test-root',
+  selector: 'lib-test-root',
   imports: [OnPushAncestorComponent],
-  template: '<site-test-on-push-ancestor />',
+  template: '<lib-test-on-push-ancestor />',
 })
 class RootComponent {}
 

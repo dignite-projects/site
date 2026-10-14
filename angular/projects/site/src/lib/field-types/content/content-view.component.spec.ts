@@ -11,7 +11,7 @@ import { ContentViewComponent } from './content-view.component';
  * for check, so the cell stayed at `-` until an unrelated event did. See `content-types.component.spec.ts`.
  */
 @Component({
-  selector: 'site-test-on-push-ancestor',
+  selector: 'lib-test-on-push-ancestor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ContentViewComponent],
   template: '<site-content-view [showInList]="true" [value]="ids" />',
@@ -21,9 +21,9 @@ class OnPushAncestorComponent {
 }
 
 @Component({
-  selector: 'site-test-root',
+  selector: 'lib-test-root',
   imports: [OnPushAncestorComponent],
-  template: '<site-test-on-push-ancestor />',
+  template: '<lib-test-on-push-ancestor />',
 })
 class RootComponent {}
 
