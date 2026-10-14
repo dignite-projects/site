@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lives in signals, and the five components are `OnPush`. The same fix covers the file picker's rename and move
   dialogs (they now close once the save succeeds), the options of the "Content reference" field and its list
   cell, and the upload size hint. No API or configuration change.
+- **The Angular admin's content list now pages; before, only its first 10 contents were ever reachable.** The
+  list asked the server for one page (`ListService`'s default 10) but rendered a plain table with no pager, so
+  anything past the tenth content could not be opened from the list at all. It is now an `ngx-datatable` driven
+  by ABP's `[list]` directive, like the other admin lists: a pager, the localized total, and a loading spinner.
+  The page number survives the trip to the editor and back, along with the filters. Columns stay unsortable, so
+  the server's `PublishTime desc, Id desc` order keeps pages from overlapping.
+- **The content list's first load on a fresh visit no longer shows every language.** That query could go out
+  before the site's default language had loaded, with no `cultureName` filter, while the language dropdown
+  already showed the default. It now waits for the site schema.
 
 ## [0.1.0-preview.29] - 2026-10-14
 

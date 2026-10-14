@@ -102,76 +102,89 @@
       <p class="text-muted">{{ 'Site::PageFilterRequiredForFieldColumns' | abpLocalization }}</p>
     }
 
-    <div class="table-responsive">
-      <table class="table align-middle mb-0">
-        <thead>
-          <tr>
-            <th>{{ 'Site::DisplayName:Content.Slug' | abpLocalization }}</th>
-            <th>{{ 'Site::DisplayName:Content.ContentType' | abpLocalization }}</th>
-            <th>{{ 'Site::DisplayName:Content.Status' | abpLocalization }}</th>
-            @for (column of columns(); track column.fieldId) {
-              <th>{{ column.displayName }}</th>
+    <!-- `[list]` drives paging through `ListService` (server-side: `skipCount`/`maxResultCount`) and
+         renders the localized total, loading spinner and empty message; `default` is ABP's stock
+         table look, including the horizontal scrollbar a wide field-column union needs. Every column
+         is unsortable, keeping the server's default `PublishTime desc, Id desc` - a deterministic
+         order, so pages never overlap or skip rows. Field columns could not sort anyway: `sorting`
+         is a dynamic-LINQ order over entity properties, and field values live in JSON. -->
+    <ngx-datatable default [rows]="data().items" [count]="data().totalCount" [list]="list">
+      <ngx-datatable-column
+        [name]="'Site::DisplayName:Content.Slug' | abpLocalization"
+        [sortable]="false"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          {{ row.slug || ('Site::SlugIsPageOwnAddress' | abpLocalization) }}
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column
+        [name]="'Site::DisplayName:Content.ContentType' | abpLocalization"
+        [sortable]="false"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          {{ contentTypeNameOf(row.contentTypeId) }}
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column
+        [name]="'Site::DisplayName:Content.Status' | abpLocalization"
+        [sortable]="false"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          {{ statusKeyOf(row.status) | abpLocalization }}
+        </ng-template>
+      </ngx-datatable-column>
+      @for (column of columns(); track column.fieldId) {
+        <ngx-datatable-column [name]="column.displayName" [sortable]="false">
+          <ng-template let-row="row" ngx-datatable-cell-template>
+            <!-- Columns are the union across the page's content types, so a row whose type does not
+                 use this field has nothing to show here. -->
+            @if (rowValueOf(row, column); as fieldValue) {
+              <ff-flex-field-view
+                [showInList]="true"
+                [type]="column.fieldTypeName"
+                [fields]="fieldValue"
+                [value]="fieldValue.value"
+              ></ff-flex-field-view>
+            } @else {
+              ---
             }
-            <th>{{ 'Site::DisplayName:Content.PublishTime' | abpLocalization }}</th>
-            <th>{{ 'AbpUi::Actions' | abpLocalization }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (content of data().items; track content.id) {
-            <tr>
-              <td>{{ content.slug || ('Site::SlugIsPageOwnAddress' | abpLocalization) }}</td>
-              <td>{{ contentTypeNameOf(content.contentTypeId) }}</td>
-              <td>{{ statusKeyOf(content.status) | abpLocalization }}</td>
-              @for (column of columns(); track column.fieldId) {
-                <td>
-                  <!-- Columns are the union across the page's content types, so a row whose type does
-                       not use this field has nothing to show here. -->
-                  @if (rowValueOf(content, column); as fieldValue) {
-                    <ff-flex-field-view
-                      [showInList]="true"
-                      [type]="column.fieldTypeName"
-                      [fields]="fieldValue"
-                      [value]="fieldValue.value"
-                    ></ff-flex-field-view>
-                  } @else {
-                    ---
-                  }
-                </td>
-              }
-              <td>{{ content.publishTime | shortDateTime }}</td>
-              <td>
-                <a
-                  *abpPermission="policies.ContentsUpdate"
-                  class="btn btn-sm btn-light me-1"
-                  [routerLink]="['/site/contents', content.id, 'edit']"
-                  [title]="'AbpUi::Edit' | abpLocalization"
-                >
-                  <i class="fa fa-pencil"></i>
-                </a>
-                <button
-                  *abpPermission="policies.ContentsDelete"
-                  type="button"
-                  class="btn btn-sm btn-light"
-                  (click)="delete(content)"
-                  [title]="'AbpUi::Delete' | abpLocalization"
-                >
-                  <i class="fa fa-trash text-danger"></i>
-                </button>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td [attr.colspan]="6 + columns().length" class="text-muted">
-                {{ 'AbpUi::NoDataAvailableInDatatable' | abpLocalization }}
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <div class="mt-2 text-muted">
-      <small>{{ data().totalCount }}</small>
-    </div>
+          </ng-template>
+        </ngx-datatable-column>
+      }
+      <ngx-datatable-column
+        [name]="'Site::DisplayName:Content.PublishTime' | abpLocalization"
+        [sortable]="false"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          {{ row.publishTime | shortDateTime }}
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column
+        [name]="'AbpUi::Actions' | abpLocalization"
+        [sortable]="false"
+        [width]="130"
+        [maxWidth]="130"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <a
+            *abpPermission="policies.ContentsUpdate"
+            class="btn btn-sm btn-light me-1"
+            [routerLink]="['/site/contents', row.id, 'edit']"
+            [title]="'AbpUi::Edit' | abpLocalization"
+          >
+            <i class="fa fa-pencil"></i>
+          </a>
+          <button
+            *abpPermission="policies.ContentsDelete"
+            type="button"
+            class="btn btn-sm btn-light"
+            (click)="delete(row)"
+            [title]="'AbpUi::Delete' | abpLocalization"
+          >
+            <i class="fa fa-trash text-danger"></i>
+          </button>
+        </ng-template>
+      </ngx-datatable-column>
+    </ngx-datatable>
   </div>
 </div>
