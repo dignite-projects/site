@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Ddd.Application.Contracts" Version="10.7.0" />
     <PackageReference Include="Volo.Abp.Authorization" Version="10.7.0" />
+    <PackageReference Include="Volo.Abp.Features" Version="10.7.0" />
     <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application.Contracts\Dignite.Site.Common.Application.Contracts.csproj" />
     <!-- FlexFieldQueryCondition (Content list filtering by field value) - a DDD-free, DTO-facing type
