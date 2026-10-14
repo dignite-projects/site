@@ -17,7 +17,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FlexFieldSearchComponent, FlexFieldViewComponent } from '@dignite/ng.flex-fields';
 import type { FlexFieldData, FlexFieldValue } from '@dignite/ng.flex-fields';
-import { Observable, forkJoin, map, of } from 'rxjs';
+import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
 import { ContentTypeAdminService } from '../../proxy/dignite/site/admin/content-types/content-type-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
@@ -146,33 +146,40 @@ export class ContentsComponent {
     }).subscribe(({ schema, fields, contentTypes }) => {
       // The schema projection is name-keyed, so it is used only for the site-level settings; field
       // resolution goes through the Guid-keyed library below.
-      const languages = schema.enabledLanguages ?? [];
-      this.languages.set(languages);
-      this.filters.cultureName ??= schema.defaultLanguage ?? languages[0] ?? null;
+      this.languages.set(schema.enabledLanguages ?? []);
       this.fieldsById = fields;
       this.contentTypesById.set(contentTypes);
       this.rebuildArrangements();
     });
 
-    const getData = (query: ABP.PageQueryParams) => {
-      // Snapshot on every real query, not just on `applyFilters()` - this is the one point every
-      // filter, search and (future) paging change already funnels through.
-      this.listState.save({
-        filters: this.filters,
-        appliedConditions: this.appliedConditions,
-        searchValues: this.searchForm.get('flexFieldSearch')?.value ?? {},
-        page: this.list.page,
-        sortKey: this.list.sortKey,
-        sortOrder: this.list.sortOrder,
-        maxResultCount: this.list.maxResultCount,
-      });
+    // Waits for the schema before querying: on a first visit the reference data is uncached and
+    // routinely outlasts `ListService`'s 300ms debounce, so the first query would otherwise go out
+    // with no `cultureName` and list every language under a dropdown already showing one.
+    const getData = (query: ABP.PageQueryParams) =>
+      this.referenceData.getSchema().pipe(
+        switchMap(schema => {
+          this.filters.cultureName ??=
+            schema.defaultLanguage ?? schema.enabledLanguages?.[0] ?? null;
 
-      return this.contentQuery.getList({
-        ...query,
-        ...this.filters,
-        flexFieldConditions: this.appliedConditions,
-      });
-    };
+          // Snapshot on every real query, not just on `applyFilters()` - this is the one point
+          // every filter, search and paging change already funnels through.
+          this.listState.save({
+            filters: this.filters,
+            appliedConditions: this.appliedConditions,
+            searchValues: this.searchForm.get('flexFieldSearch')?.value ?? {},
+            page: this.list.page,
+            sortKey: this.list.sortKey,
+            sortOrder: this.list.sortOrder,
+            maxResultCount: this.list.maxResultCount,
+          });
+
+          return this.contentQuery.getList({
+            ...query,
+            ...this.filters,
+            flexFieldConditions: this.appliedConditions,
+          });
+        }),
+      );
     const setData = (result: PagedResultDto<ContentDto>) => {
       this.data.set(result);
       this.rebuildRowValues();

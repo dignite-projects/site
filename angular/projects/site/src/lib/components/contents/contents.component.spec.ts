@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ListService } from '@abp/ng.core';
+import type { ABP } from '@abp/ng.core';
 import { ConfirmationService, ToasterService } from '@abp/ng.theme.shared';
-import { of } from 'rxjs';
+import { EMPTY, Observable, Subject, of } from 'rxjs';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
 import { ContentTypeAdminService } from '../../proxy/dignite/site/admin/content-types/content-type-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
@@ -159,5 +160,59 @@ describe('ContentsComponent.toConditions', () => {
 
   it('contributes nothing for a field type with no search mapping, e.g. DateTime', () => {
     expect(toConditions('DateTime', 'anything')).toEqual([]);
+  });
+});
+
+describe('ContentsComponent list query', () => {
+  /**
+   * On a first visit the reference data is uncached and routinely outlasts `ListService`'s 300ms
+   * debounce. The first query used to go out regardless, with no `cultureName`, listing every language
+   * under a dropdown that already showed the default one.
+   */
+  it('holds the first query until the schema supplies the default language', () => {
+    const schema$ = new Subject<{ defaultLanguage?: string; enabledLanguages?: string[] }>();
+    const contentQuery = { getList: vi.fn(() => of({ items: [], totalCount: 0 })) };
+    let getData!: (query: ABP.PageQueryParams) => Observable<unknown>;
+    const list = {
+      hookToQuery: vi.fn((callback: typeof getData) => {
+        getData = callback;
+        return EMPTY;
+      }),
+      page: 0,
+      maxResultCount: 10,
+      sortKey: '',
+      sortOrder: '',
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        ContentsComponent,
+        { provide: ContentAdminService, useValue: {} },
+        { provide: ContentTypeAdminService, useValue: {} },
+        { provide: PageAdminService, useValue: { getList: vi.fn(() => of({ items: [] })) } },
+        {
+          provide: SiteReferenceDataService,
+          useValue: {
+            getSchema: () => schema$,
+            getFieldsById: () => of(new Map()),
+            getContentTypesById: () => of(new Map()),
+          },
+        },
+        { provide: ContentQueryService, useValue: contentQuery },
+        { provide: ContentListStateService, useValue: { restore: () => undefined, save: vi.fn() } },
+        { provide: ConfirmationService, useValue: {} },
+        { provide: ToasterService, useValue: {} },
+        { provide: ListService, useValue: list },
+      ],
+    });
+    TestBed.inject(ContentsComponent);
+
+    getData({ maxResultCount: 10, skipCount: 0 }).subscribe();
+    expect(contentQuery.getList).not.toHaveBeenCalled();
+
+    schema$.next({ defaultLanguage: 'zh-Hans', enabledLanguages: ['en', 'zh-Hans'] });
+    expect(contentQuery.getList).toHaveBeenCalledWith(
+      expect.objectContaining({ cultureName: 'zh-Hans', maxResultCount: 10, skipCount: 0 }),
+    );
   });
 });
