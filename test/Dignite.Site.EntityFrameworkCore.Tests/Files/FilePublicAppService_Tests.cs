@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Dignite.Abp.BlobStoring.Imaging;
@@ -51,6 +52,26 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         info.Height.ShouldBe(63);
         info.Format.ShouldBe(SKEncodedImageFormat.Jpeg);
         content.ContentType.ShouldBe("image/jpeg");
+    }
+
+    /// <summary>
+    /// A downscale averages the pixels it drops (SitePublicApplicationModule's SkiaSharpResizerOptions) rather
+    /// than ABP's nearest-neighbour default, which keeps one source pixel per target pixel: one-pixel black and
+    /// white stripes shrunk 4x come out grey, where the default turns them all black or all white.
+    /// </summary>
+    [Fact]
+    public async Task Should_Average_Pixels_When_Shrinking()
+    {
+        var file = await UploadAsync(SiteFileContainerNames.Images, "stripes.png", Stripes(400, 300));
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Width = 100 });
+
+        using var resized = SKBitmap.Decode(await ReadAllAsync(content.GetStream()));
+        resized.Width.ShouldBe(100);
+        for (var x = 10; x < 90; x += 7)
+        {
+            resized.GetPixel(x, 40).Red.ShouldBeInRange((byte)96, (byte)160);
+        }
     }
 
     /// <summary>
@@ -136,6 +157,26 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
             using var stream = new MemoryStream(bytes);
             return await _fileDescriptorManager.CreateAsync(containerName, fileName, stream);
         });
+    }
+
+    /// <summary>
+    /// A PNG of alternating one-pixel dark and light columns. The noise in each shade keeps PNG from compressing
+    /// it below the upload decode guard's 100 pixels per stored byte.
+    /// </summary>
+    private static byte[] Stripes(int width, int height)
+    {
+        var random = new Random(42);
+        using var bitmap = new SKBitmap(width, height);
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < width; x++)
+        {
+            var v = (byte)(x % 2 == 0 ? random.Next(0, 24) : random.Next(232, 256));
+            bitmap.SetPixel(x, y, new SKColor(v, v, v));
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)
