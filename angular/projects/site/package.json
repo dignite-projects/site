@@ -1,6 +1,16 @@
 {
   "name": "@dignite/ng.site",
   "version": "1.0.0",
+  "homepage": "https://github.com/dignite-projects/site",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dignite-projects/site.git",
+    "directory": "angular/projects/site"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@abp/ng.components": "~10.7.0",
     "@angular/cdk": "~21.2.0",

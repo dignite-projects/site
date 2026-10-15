@@ -4,7 +4,9 @@
 #
 # Routing by channel, derived from the SemVer pre-release suffix in <Version>:
 #   - Pre-release (e.g. 0.1.0-preview.1) -> NuGet + npm packages pushed to GitHub Packages only.
-#   - Stable      (e.g. 0.1.0)           -> NuGet to NuGet.org, npm to npmjs (@dignite/ng.site).
+#   - Stable      (e.g. 0.1.0)           -> NuGet to NuGet.org, npm to npmjs (@dignite/ng.site), on a
+#                                           v* tag only, through Trusted Publishing (OIDC) - see the
+#                                           publish steps at the end for what each registry needs.
 #
 # GitHub Packages' npm registry requires the package scope to equal the owning org login, so the
 # npm package publishes under @dignite-projects/ng.site there - not the public @dignite/ng.site name,
@@ -37,6 +39,7 @@ jobs:
     permissions:
       contents: write # Required by softprops/action-gh-release to create a draft Release
       packages: write # Required to push pre-release NuGet/npm packages to GitHub Packages
+      id-token: write # NuGet.org and npm Trusted Publishing (OIDC) for stable releases
 
     # No job-level package credential: every @dignite/* dependency resolves from public npmjs, so
     # the install below authenticates against nothing. The steps that genuinely need a token supply
@@ -150,22 +153,6 @@ jobs:
           dotnet nuget push artifacts/*.nupkg \
             --api-key "${{ secrets.GITHUB_TOKEN }}" \
             --source https://nuget.pkg.github.com/dignite-projects/index.json \
-            --skip-duplicate
-
-      # Stable builds go to the public NuGet.org. Secrets cannot be referenced directly in if:
-      # expressions, so inject through env and check in the shell; skip the push when not configured.
-      - name: Push to NuGet.org (stable)
-        if: steps.channel.outputs.channel == 'stable'
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "::notice::NUGET_API_KEY secret is not configured; skipping NuGet.org push (packages were uploaded as workflow artifacts)."
-            exit 0
-          fi
-          dotnet nuget push artifacts/*.nupkg \
-            --api-key "$NUGET_API_KEY" \
-            --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
       # registry-url is deliberately NOT set here, and moved onto a second setup-node call further
@@ -382,20 +369,62 @@ jobs:
         if: steps.channel.outputs.channel == 'preview'
         run: bash .github/scripts/verify-packed-npm-install.sh published '${{ steps.channel.outputs.version }}' '${{ secrets.GITHUB_TOKEN }}'
 
-      # Stable builds go to the public npmjs, under the real @dignite/ng.site name. Same
-      # skip-when-not-configured pattern as the NuGet.org push above.
-      - name: Publish to npm (stable)
-        if: steps.channel.outputs.channel == 'stable'
+      # Stable releases publish through Trusted Publishing (GitHub OIDC) on both registries, as
+      # abp-modules' release.yml does - no long-lived NUGET_API_KEY / NPM_TOKEN secret. Only on a
+      # v* tag, so every public release also gets its draft GitHub Release. Placed after both packed
+      # gates (NuGet restore, npm install/bundle), so neither registry sees a version the other gate
+      # rejected.
+      #
+      # NuGet.org needs a Trusted Publishing policy for repository dignite-projects/site and workflow
+      # release.yml, and the repository variable NUGET_USER set to that policy owner's NuGet profile
+      # name (not an email address).
+      - name: Validate NuGet Trusted Publishing identity
+        if: steps.channel.outputs.channel == 'stable' && startsWith(github.ref, 'refs/tags/v')
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NUGET_USER: ${{ vars.NUGET_USER }}
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::notice::NPM_TOKEN secret is not configured; skipping npm publish (package was uploaded as a workflow artifact)."
+          if [ -z "$NUGET_USER" ]; then
+            echo "::error::The NUGET_USER repository variable is required for NuGet.org Trusted Publishing."
+            exit 1
+          fi
+
+      - name: Sign in to NuGet.org with Trusted Publishing
+        if: steps.channel.outputs.channel == 'stable' && startsWith(github.ref, 'refs/tags/v')
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to NuGet.org (stable)
+        if: steps.channel.outputs.channel == 'stable' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          dotnet nuget push artifacts/*.nupkg \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      # npm Trusted Publishing needs npm >= 11.5.1; Node 22 bundles npm 10. Installed only here, after
+      # the last yarn command, like the registry-url step above.
+      - name: Upgrade npm for Trusted Publishing
+        if: steps.channel.outputs.channel == 'stable' && startsWith(github.ref, 'refs/tags/v')
+        run: npm install -g npm@^11.5.1
+
+      # A Trusted Publisher is configured per package on npmjs.com, and only for a package that
+      # already exists - so the very first version of @dignite/ng.site cannot come from here. When
+      # the package is not on npmjs yet this step leaves the tarball to be published by hand (it is
+      # attached to the draft Release below) and warns instead of failing, so the NuGet half of the
+      # release still gets its draft Release. abp-modules bootstrapped its packages the same way.
+      - name: Publish to npm (stable)
+        if: steps.channel.outputs.channel == 'stable' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          if ! npm view @dignite/ng.site name > /dev/null 2>&1; then
+            echo "::warning::@dignite/ng.site is not on npmjs yet, so it has no Trusted Publisher. Publish this first version by hand (npm publish <tarball from the draft Release> --access public), then add a Trusted Publisher on npmjs.com for dignite-projects/site, workflow release.yml."
             exit 0
           fi
           npm publish artifacts/npm/site/*.tgz \
             --access public \
-            --tag '${{ steps.channel.outputs.npm-tag }}'
+            --tag '${{ steps.channel.outputs.npm-tag }}' \
+            --provenance
 
       # Extract this version's section from CHANGELOG.md as the draft release body. The heading
       # line is dropped (the release title already carries the version). Missing section is a
