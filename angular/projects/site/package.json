@@ -1,11 +1,21 @@
 {
   "name": "@dignite/ng.site",
-  "version": "0.1.0-preview.29",
+  "version": "1.0.0",
+  "homepage": "https://github.com/dignite-projects/site",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dignite-projects/site.git",
+    "directory": "angular/projects/site"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@abp/ng.components": "~10.7.0",
     "@angular/cdk": "~21.2.0",
-    "@dignite/ng.flex-fields": "^10.0.0-rc.28",
-    "@dignite/ng.flex-fields-ckeditor": "^10.0.0-rc.28",
+    "@dignite/ng.flex-fields": "^10.7.0",
+    "@dignite/ng.flex-fields-ckeditor": "^10.7.0",
     "ng-zorro-antd": "~21.3.1",
     "tslib": "^2.1.0"
   },
