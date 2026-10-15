@@ -7,8 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-15
+
+The first stable release, and the first published to nuget.org (`Dignite.Site.*`) and npmjs
+(`@dignite/ng.site`); every earlier version was a pre-release on GitHub Packages only. From here on the
+version follows Semantic Versioning on its own numbers, not ABP's - the rules and the ABP / abp-modules
+compatibility table are in the README's "Versioning" section.
+
+### Changed
+
+- **abp-modules is now the stable `10.7.0`** (was `10.0.0-rc.29`), for both the NuGet packages
+  (`DigniteAbpModulesVersion`) and `@dignite/ng.flex-fields` / `@dignite/ng.flex-fields-ckeditor`.
+- **CKEditor moves to `ckeditor5` 49 and `@ckeditor/ckeditor5-angular` 12**, the versions
+  `@dignite/ng.flex-fields-ckeditor` 10.7.0 depends on. A host app that lists `ckeditor5` itself must take
+  the same major, or it installs a second copy of the editor next to the adapter's.
+
 ### Fixed
 
+- **Resized and compressed images are no longer jagged.** ABP's SkiaSharp provider samples nearest-neighbour
+  by default, so every upload resize and `?Width=` downscale kept one source pixel per target pixel. It now uses
+  linear sampling with linear mipmaps, and encodes at quality 85 instead of 75, since an image can be encoded
+  twice (compress on upload, resize on read). Images stored before this release keep their old pixels.
 - **The Angular admin's lists and editor no longer stay empty until an unrelated click (e.g. Search).**
   Pages, Fields, Contents, Content types and the content editor fetched their data on open, but the screen only
   showed it after something else triggered a refresh. Angular 22 made `OnPush` the default, so the host layout's
@@ -1605,4 +1624,5 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v0.1.0-preview.29...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/dignite-projects/site/releases/tag/v1.0.0

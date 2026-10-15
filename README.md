@@ -39,11 +39,32 @@ dotnet build Dignite.Site.slnx --no-restore --configuration Release
 
 The .NET dependencies from [abp-modules](https://github.com/dignite-projects/abp-modules)
 (FlexFields, BLOB storage and the MCP server) are NuGet packages from nuget.org, pinned to
-`10.0.0-rc.29` by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
+`10.7.0` by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
 checkout or package registry credentials are needed. Local builds, PR CI and release builds
 use the same package references. See [angular/README.md](angular/README.md) for the admin UI setup.
 
 This is an [ABP Framework](https://abp.io) solution. See the [ABP documentation](https://docs.abp.io) for general setup, and `host/Dignite.Site.Host/migrate-database.ps1` for database migration.
+
+## Versioning
+
+Dignite Site follows [Semantic Versioning](https://semver.org) with its own numbers: unlike
+[abp-modules](https://github.com/dignite-projects/abp-modules), it does not track ABP's version.
+The NuGet packages (`Dignite.Site.*`) and the npm package (`@dignite/ng.site`) always share one version.
+
+| Dignite Site | ABP | abp-modules | Angular |
+|---|---|---|---|
+| 1.x | 10.7+ | 10.7+ | 22.x |
+
+- **Major** - anything that makes an upgrade more than a package bump: a removed or changed public
+  .NET API, `@dignite/ng.site` export or component input/output; an HTTP API or DTO field removed or
+  changed in meaning; an incompatible MCP tool parameter; a database migration that needs manual data
+  work; or a higher minimum ABP major version.
+- **Minor** - backward-compatible features: new field types, MCP tools and APIs, additive database
+  migrations, or a higher minimum ABP minor version.
+- **Patch** - bug fixes only. A patch release never carries a database migration.
+
+Pre-releases are `x.y.z-preview.N` and are published to GitHub Packages only; stable versions go to
+nuget.org and npmjs. See [CHANGELOG.md](CHANGELOG.md) for each release.
 
 ## License
 
