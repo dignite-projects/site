@@ -63,7 +63,7 @@ describe('siteCKEditorConfigContributor', () => {
       const element = document.createElement('div');
       document.body.appendChild(element);
       editor = await ckeditor5.ClassicEditor.create(element, config);
-    });
+    }, 60_000); // The first run imports all of ckeditor5; on a cold cache that alone outran the default 10s hook timeout.
 
     afterEach(async () => {
       await editor?.destroy();
