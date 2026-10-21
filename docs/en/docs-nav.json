@@ -5,6 +5,27 @@
       "path": "index.md"
     },
     {
+      "text": "Content Model",
+      "items": [
+        {
+          "text": "Pages and Routing",
+          "path": "pages-and-routing.md"
+        },
+        {
+          "text": "Content Types and Fields",
+          "path": "content-types-and-fields.md"
+        },
+        {
+          "text": "Contents",
+          "path": "contents.md"
+        },
+        {
+          "text": "Field Types",
+          "path": "field-types.md"
+        }
+      ]
+    },
+    {
       "text": "Files",
       "path": "files.md"
     },
