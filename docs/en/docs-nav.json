@@ -1,0 +1,98 @@
+{
+  "items": [
+    {
+      "text": "Overview",
+      "path": "index.md"
+    },
+    {
+      "text": "Getting Started",
+      "path": "getting-started.md"
+    },
+    {
+      "text": "Content Model",
+      "items": [
+        {
+          "text": "Pages and Routing",
+          "path": "pages-and-routing.md"
+        },
+        {
+          "text": "Content Types and Fields",
+          "path": "content-types-and-fields.md"
+        },
+        {
+          "text": "Contents",
+          "path": "contents.md"
+        },
+        {
+          "text": "Field Types",
+          "path": "field-types.md"
+        }
+      ]
+    },
+    {
+      "text": "Files",
+      "path": "files.md"
+    },
+    {
+      "text": "Settings, Features and Permissions",
+      "path": "settings.md"
+    },
+    {
+      "text": "Rendering",
+      "items": [
+        {
+          "text": "Templates",
+          "path": "rendering/templates.md"
+        },
+        {
+          "text": "Multilingual Sites",
+          "path": "rendering/languages.md"
+        },
+        {
+          "text": "Localizing Template Texts",
+          "path": "rendering/template-localization.md"
+        }
+      ]
+    },
+    {
+      "text": "SEO",
+      "items": [
+        {
+          "text": "Overview",
+          "path": "seo/index.md",
+          "isIndex": true
+        },
+        {
+          "text": "Sitemap and Feeds",
+          "path": "seo/sitemap-and-feeds.md"
+        },
+        {
+          "text": "robots.txt and llms.txt",
+          "path": "seo/robots-and-llms-txt.md"
+        }
+      ]
+    },
+    {
+      "text": "MCP Server",
+      "items": [
+        {
+          "text": "Overview",
+          "path": "mcp/index.md",
+          "isIndex": true
+        },
+        {
+          "text": "Connecting AI Clients",
+          "path": "mcp/connecting-clients.md"
+        },
+        {
+          "text": "Tools",
+          "path": "mcp/tools.md"
+        }
+      ]
+    },
+    {
+      "text": "Admin UI",
+      "path": "admin-ui.md"
+    }
+  ]
+}

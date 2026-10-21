@@ -11,7 +11,7 @@ npm install @dignite/ng.site
 ```
 
 (Pre-release builds are published to GitHub Packages as `@dignite-projects/ng.site`; see the root
-[README](../../README.md) / `angular/.npmrc` for the registry setup, and alias the dependency:
+[README](https://github.com/dignite-projects/site/blob/main/README.md) / `angular/.npmrc` for the registry setup, and alias the dependency:
 `"@dignite/ng.site": "npm:@dignite-projects/ng.site@<version>"`.)
 
 ### CKEditor dependency and the file library
@@ -29,7 +29,7 @@ are this package's own (`src/lib/files`, `src/lib/field-types/file`) and talk to
 (`apiName: 'SiteAdmin'`) - there is no separate file-picker package to install any more, and no extra
 entry to keep in `environment.apis`. `provideSite()` also registers `SiteCKEditorUploadProvider` as the
 `CKEDITOR_UPLOAD_PROVIDER` (which needs `@dignite/ng.flex-fields-ckeditor >= 10.0.0-rc.25`), so an image
-inserted into a CKEditor field is uploaded into Site's file library. See `docs/site-files.md`.
+inserted into a CKEditor field is uploaded into Site's file library. See [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).
 
 That `>= 10.0.0-rc.13` floor is load-bearing, not cosmetic. Below `rc.12` those packages were
 the adapters' `peerDependencies`, and every ABP 10.7 + Angular 22 host installs with
