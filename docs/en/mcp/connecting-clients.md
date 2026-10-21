@@ -28,7 +28,7 @@ context.Services.AddAbpMcpAuthenticationDiscovery(metadata =>
 });
 ````
 
-It serves `/.well-known/oauth-protected-resource`, and makes an unauthenticated request to `/mcp` answer `401` with a `WWW-Authenticate` header that points there, instead of the redirect to the login page that an MVC application answers with. `Resource` is the application's own address; `ScopesSupported` is the scope of your API.
+It serves the metadata at `/.well-known/oauth-protected-resource`, and at `/.well-known/oauth-protected-resource/mcp` for the endpoint itself, and makes an unauthenticated request to `/mcp` answer `401` with a `WWW-Authenticate` header that points at the latter, instead of the redirect to the login page that an MVC application answers with. `Resource` is the application's own address; `ScopesSupported` is the scope of your API.
 
 ### The Resource
 

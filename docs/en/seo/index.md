@@ -64,7 +64,7 @@ A page itself, such as a list, has an alternate in the default language and in e
 
 A request for a page with [filter values](../pages-and-routing.md#resolving-a-request) is one of two kinds:
 
-* **A declared view** is an address the route spells out, such as `/news/tutorials` for `/news/{category?:^(news|tutorials)$}`. It is a real landing page: canonical at itself, indexable, with alternates at the same filtered path in other languages. Its title is the page's title followed by the filter values, such as "News - tutorials"; a template can compose a localized one, as [Category and Month Archive Titles](../rendering/template-localization.md#category-and-month-archive-titles) shows.
+* **A declared view** is an address the route spells out, such as `/news/tutorials` for `/news/{category?:^(news|tutorials)$}`. It is a real landing page: canonical at itself, indexable, with alternates at the same filtered path in other languages. Its title is the page's title followed by the filter values, such as "News - tutorials" or "News - 2026 / 08"; a template can compose a localized one, as [Category and Month Archive Titles](../rendering/template-localization.md#category-and-month-archive-titles) shows.
 * **A truncated view** is a deeper route read with its last placeholders left out, such as `/blog/2026-08` for `/blog/{publishTime:yyyy-MM}/{slug}`. No route declares that address, so it is `noindex`, with the canonical URL of the unfiltered page.
 
 A declared view whose date values do not form a whole period, such as a month without a year, lists the unfiltered page and is treated as a truncated view.
