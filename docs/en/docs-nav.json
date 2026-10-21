@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "text": "Overview",
+      "path": "index.md"
+    },
+    {
+      "text": "Files",
+      "path": "files.md"
+    },
+    {
+      "text": "Rendering",
+      "items": [
+        {
+          "text": "Multilingual Sites",
+          "path": "rendering/languages.md"
+        },
+        {
+          "text": "Localizing Template Texts",
+          "path": "rendering/template-localization.md"
+        }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The user documentation is now `docs/`, in the [ABP Docs module](https://abp.io/docs/latest/modules/docs)
+  format, and the design documents are in `dev-docs/`.** `docs/en/` starts with an overview, Files, Multilingual
+  Sites and Localizing Template Texts, and is versioned by the release tags; the overall design, the file
+  library's internals and the local MCP setup for Codex moved to `dev-docs/`. The README's links are absolute
+  now, since it is packed into every NuGet package and nuget.org does not resolve relative links.
+
 ## [1.0.0] - 2026-10-15
 
 The first stable release, and the first published to nuget.org (`Dignite.Site.*`) and npmjs
@@ -103,7 +111,7 @@ compatibility table are in the README's "Versioning" section.
     `AbpBlobStoringPipelineModule`, ...), as published in the rc.29 .NET packages.
 - **Breaking: the file library stores through ABP 10.7's BLOB pipeline (`Dignite.Abp.BlobStoring.Pipeline` /
   `.Imaging`) instead of the removed `Dignite.Abp.FileStoring` and its `IFileStorer`.** See
-  [docs/site-files.md](docs/site-files.md).
+  [dev-docs/site-files.md](dev-docs/site-files.md#the-upload-pipeline).
   - The container policy in `SiteAdminApplicationModule` is now contributors, in the package's order: `MaxSize`
     (20 MB / 10 MB), `AllowedContentTypes`, `ImageResize` (4096 / 1920, no minimum) and `ImageCompress`. The
     allowed types are **MIME types matched against the detected content**, from the new `SiteFileTypes` table
@@ -200,7 +208,7 @@ UPDATE [SiteFields] SET [Configuration] = REPLACE([Configuration], N'"' + @old +
   a branding logo store - is now `/api/site-public/files/{container}/{blob}?__tenant=`, without the scheme
   and host of the request it came in on, the way CmsKit hands out `/api/cms-kit/media/{id}`. Moving the
   public site, the API or a gateway to another host no longer leaves stored addresses pointing at the old
-  one. See [docs/site-files.md](docs/site-files.md#addresses).
+  one. See [docs/en/files.md](docs/en/files.md#addresses).
   - `SiteFileUrl.Build(containerName, blobName, tenantId)` lost its `baseUrl` parameter; the new
     `SiteFileUrl.Absolutize(url, baseUrl)` puts a relative address on a base URL and returns an absolute one
     as is.
@@ -313,7 +321,7 @@ SELECT COUNT(*) FROM [SiteContents] WHERE [FlexFields] IS NOT NULL AND ISJSON([F
 - **Breaking: the file library is Site's own; Dignite.FileExplorer is gone.** abp-modules `10.0.0-rc.25`
   keeps only the upload pipeline (`Dignite.Abp.FileStoring`, `IFileStorer`); the file browser, its data
   and its API moved here, under Site's namespaces, tables, permissions and routes (see
-  [docs/site-files.md](docs/site-files.md)):
+  [dev-docs/site-files.md](dev-docs/site-files.md)):
   - Domain: `Dignite.Site.Files.FileDescriptor` / `FileDescriptorManager` / `IFileDescriptorRepository`
     and `Dignite.Site.Directories.DirectoryDescriptor` / `DirectoryManager` /
     `IDirectoryDescriptorRepository`, in `Dignite.Site.Domain`, with EF Core and (new) MongoDB
@@ -524,7 +532,7 @@ Then:
     Site pages.
 
   Nothing goes into the host's pipeline: two global MVC filters load the languages after tenant
-  resolution. Usage: [docs/site-languages.md](docs/site-languages.md).
+  resolution. Usage: [docs/en/rendering/languages.md](docs/en/rendering/languages.md).
 - `HreflangAlternateDto.Path`: each alternate's site-relative path, for linking within the host the
   visitor is on.
 - `RouteMatchDto.EnabledCultureNames`: every language the site serves, in configured order, on every
@@ -566,7 +574,7 @@ Then:
   `GetOrDefault(key, fallback)` helper returns the template's own fallback, such as the option's Text, when
   a text is missing. Files are read through ABP's virtual file system: in development a saved file is
   picked up without a restart; embedded files need a redeploy, like the templates. A file that does not
-  parse is logged and skipped. Usage: [docs/template-localization.md](docs/template-localization.md).
+  parse is logged and skipped. Usage: [docs/en/rendering/template-localization.md](docs/en/rendering/template-localization.md).
 - `HeadMetadataDto.BaseMetaTitle`: the title before a filtered view's raw filter values were appended
   ("Blog" where `MetaTitle` is "Blog - engineering"), so a template can compose a localized title. The
   raw-value `MetaTitle` is unchanged and stays the fallback.

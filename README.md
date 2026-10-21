@@ -10,13 +10,15 @@ Dignite Site is the AI-native next generation of [Dignite.Cms](https://github.co
 - **AI works through MCP, the platform doesn't ship its own assistant.** You describe what you want ("create a page at `/blog`", "publish a news post") in your own AI client; it calls MCP tools, the platform validates against field definitions and persists it.
 - **Schema is the contract.** Field definitions are both the validation gate for writes and the target shape handed to AI.
 
-See [docs/00-总体设计.md](docs/00-总体设计.md) for the full design (in Chinese).
+**[Read the documentation](https://github.com/dignite-projects/site/blob/main/docs/en/index.md)**
 
-A site's own template texts (option names, labels, archive titles) are localized per tenant, with JSON files next to the templates. See [docs/template-localization.md](docs/template-localization.md).
+A site's own template texts (option names, labels, archive titles) are localized per tenant, with JSON files next to the templates. See [Localizing Template Texts](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/template-localization.md).
 
-For a multilingual site, templates and the host's layout get the site's language rules: in-site links in the page's language, a language switcher, and an optional redirect of `/` to the visitor's language. See [docs/site-languages.md](docs/site-languages.md).
+For a multilingual site, templates and the host's layout get the site's language rules: in-site links in the page's language, a language switcher, and an optional redirect of `/` to the visitor's language. See [Multilingual Sites](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/languages.md).
 
-Site has its own file library - the images and attachments content fields use, uploaded from the admin UI, over MCP or from a CKEditor field, and served to visitors from `/api/site-public/files/`. Permissions ride on the Contents permissions. See [docs/site-files.md](docs/site-files.md).
+Site has its own file library - the images and attachments content fields use, uploaded from the admin UI, over MCP or from a CKEditor field, and served to visitors from `/api/site-public/files/`. Permissions ride on the Contents permissions. See [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).
+
+The design documents for contributors are in [`dev-docs/`](https://github.com/dignite-projects/site/tree/main/dev-docs); the overall design, [`00-总体设计.md`](https://github.com/dignite-projects/site/blob/main/dev-docs/00-总体设计.md), is in Chinese.
 
 ## Project structure
 
@@ -26,7 +28,8 @@ Site has its own file library - the images and attachments content fields use, u
 | `host/` | ASP.NET Core host application |
 | `angular/` | Angular-based admin UI |
 | `test/` | Unit and integration tests |
-| `docs/` | Design documentation |
+| `docs/` | User documentation, in the [ABP Docs module](https://abp.io/docs/latest/modules/docs) format |
+| `dev-docs/` | Design documents for contributors (not published) |
 
 ## Getting started
 
@@ -41,7 +44,7 @@ The .NET dependencies from [abp-modules](https://github.com/dignite-projects/abp
 (FlexFields, BLOB storage and the MCP server) are NuGet packages from nuget.org, pinned to
 `10.7.0` by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
 checkout or package registry credentials are needed. Local builds, PR CI and release builds
-use the same package references. See [angular/README.md](angular/README.md) for the admin UI setup.
+use the same package references. See [angular/README.md](https://github.com/dignite-projects/site/blob/main/angular/README.md) for the admin UI setup.
 
 This is an [ABP Framework](https://abp.io) solution. See the [ABP documentation](https://docs.abp.io) for general setup, and `host/Dignite.Site.Host/migrate-database.ps1` for database migration.
 
@@ -64,8 +67,8 @@ The NuGet packages (`Dignite.Site.*`) and the npm package (`@dignite/ng.site`) a
 - **Patch** - bug fixes only. A patch release never carries a database migration.
 
 Pre-releases are `x.y.z-preview.N` and are published to GitHub Packages only; stable versions go to
-nuget.org and npmjs. See [CHANGELOG.md](CHANGELOG.md) for each release.
+nuget.org and npmjs. See [CHANGELOG.md](https://github.com/dignite-projects/site/blob/main/CHANGELOG.md) for each release.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/dignite-projects/site/blob/main/LICENSE)
