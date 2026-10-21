@@ -52,9 +52,9 @@ When the setting is empty, an application with `Dignite.Site.Public.Web` uses th
 
 Site does not map host names to tenants. Resolve the tenant of a request with ABP's [domain tenant resolver](https://abp.io/docs/latest/framework/architecture/multi-tenancy), or with your own resolver for custom domains.
 
-## The Site.Enable Feature
+## The Site Feature
 
-`Site.Enable`, on by default, switches the administration side of Site for a tenant or an edition. While it is off:
+The `Site.Enable` feature, on by default, switches the administration side of Site for a tenant or an edition. While it is off:
 
 * The `SiteAdmin.*` permissions read as not granted, so the Site menu of the admin UI disappears and the administration API and the MCP tools refuse every call.
 * Stored permission grants are kept, and work again when the feature is turned back on.
