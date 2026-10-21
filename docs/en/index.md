@@ -19,15 +19,17 @@ Site is the AI-native successor of [Dignite.Cms](https://github.com/dignite-proj
 
 ## Features
 
-* **Pages and routing**: A page owns a route template, such as `/blog/{slug}` or `/news/{publishTime:yyyy}/{slug}`. A request is resolved to a page and, where the route has one, to a content.
-* **Content types and fields**: A tenant defines its fields once, in a field library, and arranges them into the content types of each page. Fields are [FlexFields](https://github.com/dignite-projects/abp-modules) field types, from text, numbers and dates to Matrix, Table and CKEditor rich text, plus Site's own content reference, file and SEO types.
-* **Contents**: A content belongs to a page and a content type, has a slug and a language, and is either a draft or published. A published content with a future publish time goes live at that time.
-* **SEO and discoverability**: Head metadata, canonical URLs and hreflang alternates for every page, a sharded sitemap, RSS and Atom feeds, `robots.txt` with switches for search indexing, AI training and AI search crawlers, and an optional `llms.txt`.
+* **[Pages and routing](pages-and-routing.md)**: A page owns a route template, such as `/blog/{slug}` or `/news/{publishTime:yyyy}/{slug}`. A request is resolved to a page and, where the route has one, to a content.
+* **[Content types and fields](content-types-and-fields.md)**: A tenant defines its fields once, in a field library, and arranges them into the content types of each page. Fields are [FlexFields](https://github.com/dignite-projects/abp-modules) field types, from text, numbers and dates to Matrix, Table and CKEditor rich text, plus Site's own [content reference, file and SEO types](field-types.md).
+* **[Contents](contents.md)**: A content belongs to a page and a content type, has a slug and a language, and is either a draft or published. A published content with a future publish time goes live at that time.
+* **[SEO and discoverability](seo/index.md)**: Head metadata, canonical URLs and hreflang alternates for every page, a sharded sitemap, RSS, Atom and JSON feeds, `robots.txt` with switches for search indexing, AI training and AI search crawlers, and an optional `llms.txt`.
 * **[Multilingual sites](rendering/languages.md)**: The site's languages, with the default one at the root and the others under a language prefix, and helpers for links, a language switcher and [template texts](rendering/template-localization.md).
 * **[Files](files.md)**: A file library for the images and attachments of contents, with upload rules, relative addresses and on-the-fly image resizing.
-* **Rendering**: `Dignite.Site.Public.Web` renders a site in an ASP.NET Core MVC application, from Razor templates under `/Sites/`, which a tenant can override under `/Sites/{tenantName}/`.
-* **MCP server**: Tools to read the site's schema and to manage its pages, content types, fields, contents and files, authorized by the same permissions as the administration API.
-* **Angular admin UI**: `@dignite/ng.site` manages the same things in an ABP Angular application.
+* **[Rendering](rendering/templates.md)**: `Dignite.Site.Public.Web` renders a site in an ASP.NET Core MVC application, from the application's Razor templates; each tenant can have templates of its own under `/Sites/{tenantName}/`.
+* **[MCP server](mcp/index.md)**: Tools to read the site's schema and to manage its pages, content types, fields, contents and files, authorized by the same permissions as the administration API.
+* **[Angular admin UI](admin-ui.md)**: `@dignite/ng.site` manages the same things in an ABP Angular application.
+
+[Getting Started](getting-started.md) installs Site into an ABP application and builds a first page from an AI client.
 
 ## Packages
 

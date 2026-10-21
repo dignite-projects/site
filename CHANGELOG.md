@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **The user documentation is now `docs/`, in the [ABP Docs module](https://abp.io/docs/latest/modules/docs)
-  format, and the design documents are in `dev-docs/`.** `docs/en/` starts with an overview, Files, Multilingual
-  Sites and Localizing Template Texts, and is versioned by the release tags; the overall design, the file
-  library's internals and the local MCP setup for Codex moved to `dev-docs/`. The README's links are absolute
-  now, since it is packed into every NuGet package and nuget.org does not resolve relative links.
+  format, and the design documents are in `dev-docs/`.** `docs/en/` covers getting started, the content model
+  (pages and routing, content types and fields, contents, field types), files, settings, rendering (templates,
+  multilingual sites, template texts), SEO (head metadata, sitemap and feeds, robots.txt and llms.txt), the MCP
+  server (connecting AI clients, the tools) and the admin UI, and is versioned by the release tags. The overall
+  design and the file library's internals moved to `dev-docs/`; the Codex setup for the local host became the
+  general "Connecting AI Clients" page. The README's links are absolute now, since it is packed into every
+  NuGet package and nuget.org does not resolve relative links.
 
 ## [1.0.0] - 2026-10-15
 
