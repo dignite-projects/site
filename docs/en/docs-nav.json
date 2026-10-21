@@ -41,12 +41,34 @@
       "text": "Rendering",
       "items": [
         {
+          "text": "Templates",
+          "path": "rendering/templates.md"
+        },
+        {
           "text": "Multilingual Sites",
           "path": "rendering/languages.md"
         },
         {
           "text": "Localizing Template Texts",
           "path": "rendering/template-localization.md"
+        }
+      ]
+    },
+    {
+      "text": "SEO",
+      "items": [
+        {
+          "text": "Overview",
+          "path": "seo/index.md",
+          "isIndex": true
+        },
+        {
+          "text": "Sitemap and Feeds",
+          "path": "seo/sitemap-and-feeds.md"
+        },
+        {
+          "text": "robots.txt and llms.txt",
+          "path": "seo/robots-and-llms-txt.md"
         }
       ]
     }
