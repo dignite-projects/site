@@ -5,6 +5,10 @@
       "path": "index.md"
     },
     {
+      "text": "Getting Started",
+      "path": "getting-started.md"
+    },
+    {
       "text": "Content Model",
       "items": [
         {
@@ -28,6 +32,10 @@
     {
       "text": "Files",
       "path": "files.md"
+    },
+    {
+      "text": "Settings, Features and Permissions",
+      "path": "settings.md"
     },
     {
       "text": "Rendering",
