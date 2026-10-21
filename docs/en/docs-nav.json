@@ -71,6 +71,28 @@
           "path": "seo/robots-and-llms-txt.md"
         }
       ]
+    },
+    {
+      "text": "MCP Server",
+      "items": [
+        {
+          "text": "Overview",
+          "path": "mcp/index.md",
+          "isIndex": true
+        },
+        {
+          "text": "Connecting AI Clients",
+          "path": "mcp/connecting-clients.md"
+        },
+        {
+          "text": "Tools",
+          "path": "mcp/tools.md"
+        }
+      ]
+    },
+    {
+      "text": "Admin UI",
+      "path": "admin-ui.md"
     }
   ]
 }
