@@ -24,6 +24,13 @@ everything *it* needs (`@ckeditor/ckeditor5-angular`, `ckeditor5`, `marked`) as 
 rather than peers. `npm install @dignite/ng.site` (see "Installing" above) is the whole install; there's
 nothing to add by hand.
 
+Because `provideSite()` has to run at application-config level (`FieldTypeResolver` reads its registry
+once, when it is first injected, so registering from the lazy-loaded `/site` routes would come too late),
+everything it registers is in the host's **initial bundle**, CKEditor included: it is downloaded on first
+paint, whether or not the host's content types use a rich-text field and whether or not anyone ever opens
+`/site`. Registering Site adds roughly 950 KB (about 170 KB gzipped) to a production build of an ABP
+admin app, so a host that enforces a bundle budget in `angular.json` may need to raise it.
+
 The file picker, the file field type (registration key `FileExplorer`) and the SEO share-image picker
 are this package's own (`src/lib/files`, `src/lib/field-types/file`) and talk to Site's admin API
 (`apiName: 'SiteAdmin'`) - there is no separate file-picker package to install any more, and no extra

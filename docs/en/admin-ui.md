@@ -54,6 +54,8 @@ apis: {
 
 `provideSite()` registers the menu, the field types and the CKEditor integration, and has to be in the application's configuration rather than in a lazy route: the field types must be registered before anything resolves one.
 
+Because of that, everything `provideSite()` registers is part of the application's initial bundle, CKEditor included: it is downloaded on first paint, whether or not any content type has a rich-text field and whether or not the user opens the Site screens. Measured on a production build of an ABP admin application, registering Site added roughly 950 KB, about 170 KB gzipped. If the application enforces a bundle budget in `angular.json`, it may need to be raised.
+
 ## Screens
 
 The **Site** menu has three entries; each is shown to users with its permission:

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The Admin UI documentation and the `@dignite/ng.site` README now say what `provideSite()` costs a host's initial
+  bundle.** It has to run at application-config level, so everything it registers - CKEditor included - is downloaded
+  on first paint, whether or not any content type has a rich-text field and whether or not the Site screens are ever
+  opened. Registering Site added roughly 950 KB (about 170 KB gzipped) to the initial bundle of an ABP admin
+  application, so a host that enforces a bundle budget may need to raise it. See [Admin UI](docs/en/admin-ui.md). The
+  behavior itself is unchanged.
+
 ### Fixed
 
 - **The `zh-Hans` admin UI no longer falls back to English for the Site settings and three error messages.** The
