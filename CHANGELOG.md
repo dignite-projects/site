@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **abp-modules is now `10.7.1`** (was `10.7.0`), for the NuGet packages and for the `@dignite/ng.flex-fields` resolution. `Dignite.Abp.AspNetCore.Mcp` 10.7.1 adds the scope to the MCP endpoint's `401` challenge (`WWW-Authenticate: Bearer resource_metadata="…", scope="…"`, from `ScopesSupported`, which Site already sets) and moves the MCP SDK to `ModelContextProtocol.AspNetCore` 2.3.0. A client that found no scope in the challenge could fall back to every scope the authorization server lists and be refused; now it is told. Nothing to configure.
 - **The user documentation is now `docs/`, in the [ABP Docs module](https://abp.io/docs/latest/modules/docs)
   format, and the design documents are in `dev-docs/`.** `docs/en/` covers getting started, the content model
   (pages and routing, content types and fields, contents, field types), files, settings, rendering (templates,
