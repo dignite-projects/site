@@ -42,7 +42,7 @@ dotnet build Dignite.Site.slnx --no-restore --configuration Release
 
 The .NET dependencies from [abp-modules](https://github.com/dignite-projects/abp-modules)
 (FlexFields, BLOB storage and the MCP server) are NuGet packages from nuget.org, pinned to
-`10.7.0` by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
+`10.7.1` by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
 checkout or package registry credentials are needed. Local builds, PR CI and release builds
 use the same package references. See [angular/README.md](https://github.com/dignite-projects/site/blob/main/angular/README.md) for the admin UI setup.
 

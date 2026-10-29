@@ -28,8 +28,8 @@
     "@abp/ng.feature-management": "~10.7.0",
     "@abp/ng.theme.lepton-x": "~5.7.0",
     "@volo/abp.commercial.ng.ui": "~10.7.0",
-    "@dignite/ng.flex-fields": "^10.7.0",
-    "@dignite/ng.flex-fields-ckeditor": "^10.7.0",
+    "@dignite/ng.flex-fields": "^10.7.1",
+    "@dignite/ng.flex-fields-ckeditor": "^10.7.1",
     "@ckeditor/ckeditor5-angular": "^12.0.0",
     "ckeditor5": "^49.0.0",
     "marked": "^18.0.0",
@@ -52,7 +52,7 @@
     "zone.js": "~0.16.2"
   },
   "resolutions": {
-    "@dignite/ng.flex-fields": "10.7.0"
+    "@dignite/ng.flex-fields": "10.7.1"
   },
   "devDependencies": {
     "@abp/ng.schematics": "~10.7.0",
