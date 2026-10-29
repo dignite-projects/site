@@ -72,7 +72,7 @@ Run your application's data seeder (the `DbMigrator` of a layered solution) afte
 
 ### MongoDB
 
-On MongoDB, install `Dignite.Site.MongoDB` into the `MongoDB` layer and depend on `SiteMongoDbModule` instead. Its `SiteMongoDbContext` uses the `Site` connection string, and the `Default` one when there is none.
+Pages, content types, fields and contents are stored through Entity Framework Core only. `Dignite.Site.MongoDB` holds the repositories of the [file library](files.md) and nothing else, so Site needs an Entity Framework Core database.
 
 ## File Storage
 

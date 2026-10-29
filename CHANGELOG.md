@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   switches, the site name and the two logos), the default site name, and the errors for deleting or renaming the
   platform preset field (`Site:030002`, `Site:030003`) and for a missing primary domain (`Site:050001`) had no
   `zh-Hans` text. Nothing to configure.
+- **The documentation no longer says Site can run on MongoDB.** `Dignite.Site.MongoDB` holds the repositories of the file
+  library only; pages, content types, fields and contents have an Entity Framework Core implementation and no other, so
+  Site needs an Entity Framework Core database. Getting Started and the package table in the overview said otherwise.
+  No code changed.
 
 ## [1.0.1] - 2026-10-29
 
