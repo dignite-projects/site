@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The `zh-Hans` admin UI no longer falls back to English for the Site settings and three error messages.** The
+  labels and descriptions of the nine Site settings (enabled languages, primary domain, `llms.txt`, the three robots
+  switches, the site name and the two logos), the default site name, and the errors for deleting or renaming the
+  platform preset field (`Site:030002`, `Site:030003`) and for a missing primary domain (`Site:050001`) had no
+  `zh-Hans` text. Nothing to configure.
+
 ## [1.0.1] - 2026-10-29
 
 ### Changed
