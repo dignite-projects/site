@@ -119,6 +119,8 @@
     "FieldArrangement": "Fields",
     "AddField": "Add field",
     "NoFieldsArranged": "No fields yet. Add one from the field library.",
+    "DeletedField": "Deleted field",
+    "DeletedFieldHint": "It is no longer in the field library and has no effect. Remove this row to tidy up.",
     "ContentTypeSwitchHint": "Switching the content type replaces the fields below with that type's. Anything typed into a field the new type does not have is discarded.",
     "DisplayName:ContentTypeField.Required": "Required",
     "DisplayName:ContentTypeField.Searchable": "Searchable",

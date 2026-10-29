@@ -119,6 +119,8 @@
     "FieldArrangement": "フィールド",
     "AddField": "フィールドを追加",
     "NoFieldsArranged": "フィールドがまだありません。フィールドライブラリから追加してください。",
+    "DeletedField": "削除済みのフィールド",
+    "DeletedFieldHint": "フィールドライブラリにはもう存在せず、何の効果もありません。この行を削除して整理できます。",
     "ContentTypeSwitchHint": "コンテンツタイプを切り替えると、下のフィールドがそのタイプのものに置き換わります。新しいタイプに存在しないフィールドに入力した内容は破棄されます。",
     "DisplayName:ContentTypeField.Required": "必須",
     "DisplayName:ContentTypeField.Searchable": "検索可能",
