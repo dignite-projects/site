@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   library only; pages, content types, fields and contents have an Entity Framework Core implementation and no other, so
   Site needs an Entity Framework Core database. Getting Started and the package table in the overview said otherwise.
   No code changed.
+- **A content type's field arrangement no longer shows a blank row for a field that was deleted.** Deleting a field
+  leaves its usage in the content types that arranged it (it is skipped when contents are read, as documented), and
+  the editor had nothing to show for it: a row with no name and no type, but live toggles. The row now says "Deleted
+  field" and that it has no effect, and its toggles are off; the remove button was already there. Nothing is cleaned up
+  for you: remove the row and save the content type. The content type API still returns such usages.
 
 ## [1.0.1] - 2026-10-29
 

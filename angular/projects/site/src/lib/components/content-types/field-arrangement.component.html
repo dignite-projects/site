@@ -54,7 +54,12 @@
             </td>
             <td>
               <div>{{ labelOf(entry) }}</div>
-              <small class="text-muted">{{ fieldOf(entry)?.name }}</small>
+              @if (isDeleted(entry)) {
+                <small class="text-danger">{{ 'Site::DeletedField' | abpLocalization }}</small>
+                <small class="d-block text-muted">{{ 'Site::DeletedFieldHint' | abpLocalization }}</small>
+              } @else {
+                <small class="text-muted">{{ fieldOf(entry)?.name }}</small>
+              }
             </td>
             <td>{{ displayNameKeyOf(fieldOf(entry)?.fieldTypeName) | abpLocalization }}</td>
             <td class="text-center">
@@ -63,6 +68,7 @@
                 class="form-check-input"
                 [(ngModel)]="entry.required"
                 [ngModelOptions]="{ standalone: true }"
+                [disabled]="isDeleted(entry)"
               />
             </td>
             <td class="text-center">
@@ -71,7 +77,7 @@
                 class="form-check-input"
                 [(ngModel)]="entry.searchable"
                 [ngModelOptions]="{ standalone: true }"
-                [disabled]="!isSearchableSupported(entry)"
+                [disabled]="isDeleted(entry) || !isSearchableSupported(entry)"
                 (ngModelChange)="onSearchableChange(entry)"
               />
               @if (!isSearchableSupported(entry)) {
@@ -86,6 +92,7 @@
                 class="form-check-input"
                 [(ngModel)]="entry.showInList"
                 [ngModelOptions]="{ standalone: true }"
+                [disabled]="isDeleted(entry)"
               />
             </td>
             <td>
@@ -95,6 +102,7 @@
                 [(ngModel)]="entry.displayName"
                 [ngModelOptions]="{ standalone: true }"
                 [placeholder]="fieldOf(entry)?.displayName ?? ''"
+                [disabled]="isDeleted(entry)"
               />
             </td>
             <td>

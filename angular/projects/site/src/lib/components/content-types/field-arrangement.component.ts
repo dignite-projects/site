@@ -19,7 +19,9 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
  * parent sends all of it. Never send a delta.
  *
  * `ContentTypeFieldDto` carries only `fieldId`; names, types and descriptions come from
- * {@link fieldsById}, joined here.
+ * {@link fieldsById}, joined here. A usage with nothing to join to is a field that was deleted from the
+ * library - the content type keeps the usage and it is skipped from then on - and is shown as that
+ * ({@link isDeleted}) rather than as a blank row.
  */
 @Component({
   selector: 'site-field-arrangement',
@@ -124,6 +126,12 @@ export class FieldArrangementComponent implements OnInit {
   /** The whole field library, keyed by id. */
   @Input() fieldsById = new Map<string, FieldDto>();
 
+  /**
+   * Whether {@link fieldsById} has finished loading. Until it has, an empty map says nothing about any
+   * field, so no usage is called deleted yet.
+   */
+  @Input() fieldsLoaded = false;
+
   /** Whether a field type has a query index at all, keyed by field type name. */
   @Input() indexableByFieldType = new Map<string, boolean>();
 
@@ -136,6 +144,15 @@ export class FieldArrangementComponent implements OnInit {
 
   labelOf(entry: ContentTypeFieldDto): string {
     return entry.displayName || this.fieldOf(entry)?.displayName || this.fieldOf(entry)?.name || '';
+  }
+
+  /**
+   * A usage whose field is no longer in the library. Deleting a field does not touch the content types
+   * that arrange it, so the usage stays behind with no definition to join to. Only once the library has
+   * loaded: before that every usage would look deleted.
+   */
+  isDeleted(entry: ContentTypeFieldDto): boolean {
+    return this.fieldsLoaded && !this.fieldOf(entry);
   }
 
   /** Localization key for a field type's display name, for use with `| abpLocalization`. */

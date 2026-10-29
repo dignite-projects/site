@@ -68,6 +68,7 @@ export class ContentTypesComponent {
   readonly page = signal<PageDto | undefined>(undefined);
   readonly contentTypes = signal<ContentTypeDto[]>([]);
   readonly fieldsById = signal(new Map<string, FieldDto>());
+  readonly fieldsLoaded = signal(false);
   readonly indexableByFieldType = signal(new Map<string, boolean>());
 
   readonly isModalOpen = signal(false);
@@ -92,6 +93,7 @@ export class ContentTypesComponent {
       indexable: this.referenceData.getIndexableByFieldType(),
     }).subscribe(({ fields, indexable }) => {
       this.fieldsById.set(fields);
+      this.fieldsLoaded.set(true);
       this.indexableByFieldType.set(indexable);
     });
 

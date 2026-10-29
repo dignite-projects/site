@@ -119,6 +119,8 @@
     "FieldArrangement": "字段",
     "AddField": "添加字段",
     "NoFieldsArranged": "还没有字段。从字段库中添加一个。",
+    "DeletedField": "已删除的字段",
+    "DeletedFieldHint": "它已不在字段库中，不起任何作用。可移除此行来清理。",
     "ContentTypeSwitchHint": "切换内容类型会把下方字段换成该类型定义的那组。已填入但新类型没有的字段会被丢弃。",
     "DisplayName:ContentTypeField.Required": "必填",
     "DisplayName:ContentTypeField.Searchable": "可搜索",
