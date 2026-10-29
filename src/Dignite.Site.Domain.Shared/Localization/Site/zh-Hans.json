@@ -13,6 +13,8 @@
     "Site:020002": "该内容类型重复引用了字段 '{FieldId}'。",
 
     "Site:030001": "已存在名为 '{Name}' 的字段。",
+    "Site:030002": "字段 '{Name}' 是平台预设字段，不能删除。请改为在内容类型中把它移除，而不是删除字段定义。",
+    "Site:030003": "字段 '{Name}' 是平台预设字段，不能重命名，但仍可以修改它的显示名称。",
     "Site:030004": "字段 '{Name}' 的复合类型（矩阵、表格）嵌套超过了 {MaxDepth} 层。复合字段的列或子字段不能再是复合类型。",
 
     "Site:040001": "该页面下已存在 slug 为 '{Slug}' 的 '{CultureName}' 内容。",
@@ -22,6 +24,8 @@
     "Site:040005": "该页面的路由（'{Route}'）要求每条内容都必须有别名，此处不允许别名为空。",
     "Site:040006": "别名 '{Slug}' 不符合该页面路由（'{Route}'）中的正则，任何请求都访问不到它。",
     "Site:040007": "'{CultureName}' 不是可识别的语言标记。请使用 BCP 47 标记，例如 'en'、'zh-Hans' 或 'en-GB'。",
+
+    "Site:050001": "该站点尚未配置主域名，因此无法生成绝对 URL。请设置「主域名」。",
 
     "Site:060001": "'{PropertyName}' 的值 '{Value}' 格式不合法。",
 
@@ -34,6 +38,35 @@
     "Site:070007": "目录归属于用户，此操作需要已登录的用户，不能使用客户端凭据。",
     "Site:080001": "'{ContainerName}' 不是本站点的文件容器。",
     "Site:080002": "不支持请求的排序方式。",
+
+    "DisplayName:Site.EnabledLanguages": "启用的语言",
+    "Description:Site.EnabledLanguages": "本站点提供的语言，填写语言标记（culture 名称）并以英文逗号分隔，例如 \"en,fr,zh-Hans\"。第一个是默认语言：其 URL 不带语言前缀，其余语言的 URL 位于 \"/{culture}/\" 之下。",
+
+    "DisplayName:Site.PrimaryDomain": "主域名",
+    "Description:Site.PrimaryDomain": "站点的主地址（绝对地址），例如 \"https://example.com\"。站点地图、robots.txt、订阅源和规范 URL（canonical）都以它为基础生成，这样自定义域名与平台子域名就不会作为重复内容相互竞争。留空则使用每个请求到达时所用的地址。",
+
+    "DisplayName:Site.EnableLlmsTxt": "提供 llms.txt",
+    "Description:Site.EnableLlmsTxt": "发布本站点页面的 /llms.txt 索引。可选，默认关闭：目前采用率约为 10%，且 Google 已表示不支持，因此它不是排名机制。",
+
+    "DisplayName:Site.Robots.AllowIndexing": "允许搜索引擎索引",
+    "Description:Site.Robots.AllowIndexing": "是否允许搜索引擎索引本站点。",
+
+    "DisplayName:Site.Robots.AllowAiTraining": "允许 AI 训练爬虫",
+    "Description:Site.Robots.AllowAiTraining": "允许用于训练 AI 模型的爬虫（GPTBot、Google-Extended、ClaudeBot、CCBot）。",
+
+    "DisplayName:Site.Robots.AllowAiSearch": "允许 AI 搜索爬虫",
+    "Description:Site.Robots.AllowAiSearch": "允许为 AI 搜索 / RAG 回答提供支持的爬虫（OAI-SearchBot、PerplexityBot、Claude-SearchBot）。",
+
+    "DisplayName:Site.Branding.AppName": "站点名称",
+    "Description:Site.Branding.AppName": "站点的显示名称。留空则使用平台默认值。",
+
+    "DisplayName:Site.Branding.LogoUrl": "Logo（浅色背景）",
+    "Description:Site.Branding.LogoUrl": "显示在浅色背景上的 Logo。留空则使用平台默认值。",
+
+    "DisplayName:Site.Branding.LogoReverseUrl": "Logo（深色背景）",
+    "Description:Site.Branding.LogoReverseUrl": "显示在深色背景上的 Logo。留空则使用平台默认值。",
+
+    "Branding:DefaultAppName": "Site",
 
     "Feature:Site": "Site",
     "Feature:Site.Enable": "启用 Site",
