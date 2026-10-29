@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opened. Registering Site added roughly 950 KB (about 170 KB gzipped) to the initial bundle of an ABP admin
   application, so a host that enforces a bundle budget may need to raise it. See [Admin UI](docs/en/admin-ui.md). The
   behavior itself is unchanged.
+- **The admin UI now says what deleting a page or a field takes with it.** Both asked the generic "Are you sure you
+  want to delete 'x'?". Deleting a page also deletes every content type defined on it and every content of those
+  types, in every language; deleting a field removes its value from every content across the site. Neither can be
+  undone from the admin UI, and the MCP tools already said so in their descriptions. The texts are in the `en`,
+  `zh-Hans` and `ja` localization files; other cultures fall back to English.
 
 ### Fixed
 
