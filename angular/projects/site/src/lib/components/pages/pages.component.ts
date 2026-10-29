@@ -275,8 +275,10 @@ export class PagesComponent {
   }
 
   delete(page: PageDto): void {
+    // Not the generic AbpUi::ItemWillBeDeletedMessage: deleting a page also deletes its content types and
+    // every content of those types, and this confirmation is the only place a person is told.
     this.confirmation
-      .warn('AbpUi::ItemWillBeDeletedMessage', 'AbpUi::AreYouSure', {
+      .warn('Site::DeletePageConfirmMessage', 'AbpUi::AreYouSure', {
         messageLocalizationParams: [page.displayName ?? ''],
       })
       .subscribe((status: Confirmation.Status) => {

@@ -299,8 +299,10 @@ export class FieldsComponent {
   }
 
   delete(field: FieldDto): void {
+    // Not the generic AbpUi::ItemWillBeDeletedMessage: deleting a field removes its value from every
+    // content, and this confirmation is the only place a person is told.
     this.confirmation
-      .warn('AbpUi::ItemWillBeDeletedMessage', 'AbpUi::AreYouSure', {
+      .warn('Site::DeleteFieldConfirmMessage', 'AbpUi::AreYouSure', {
         messageLocalizationParams: [field.displayName ?? ''],
       })
       .subscribe((status: Confirmation.Status) => {

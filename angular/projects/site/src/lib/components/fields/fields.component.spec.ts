@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ConfirmationService, ToasterService } from '@abp/ng.theme.shared';
+import { Confirmation, ConfirmationService, ToasterService } from '@abp/ng.theme.shared';
 import { FieldTypeResolver } from '@dignite/ng.flex-fields';
 import { of } from 'rxjs';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
@@ -11,18 +11,24 @@ describe('FieldsComponent', () => {
   const field = (name: string, groupName?: string | null) =>
     ({ id: name, name, displayName: name, groupName }) as FieldDto;
 
-  function create(items: FieldDto[]) {
+  function create(
+    items: FieldDto[],
+    overrides: { confirmation?: object; toaster?: object; fieldService?: object } = {},
+  ) {
     TestBed.configureTestingModule({
       providers: [
         FieldsComponent,
-        { provide: FieldAdminService, useValue: { getList: vi.fn(() => of({ items })) } },
+        {
+          provide: FieldAdminService,
+          useValue: { getList: vi.fn(() => of({ items })), ...overrides.fieldService },
+        },
         {
           provide: SiteReferenceDataService,
           useValue: { getFieldsById: vi.fn(() => of(new Map())), invalidateFields: vi.fn() },
         },
         { provide: FieldTypeResolver, useValue: { getAll: () => [] } },
-        { provide: ConfirmationService, useValue: {} },
-        { provide: ToasterService, useValue: {} },
+        { provide: ConfirmationService, useValue: overrides.confirmation ?? {} },
+        { provide: ToasterService, useValue: overrides.toaster ?? {} },
       ],
     });
 
@@ -60,5 +66,36 @@ describe('FieldsComponent', () => {
 
   it('has no sections for an empty library', () => {
     expect(create([]).sections()).toEqual([]);
+  });
+
+  describe('delete', () => {
+    it('asks with the message that says its value goes from every content, and names the field', () => {
+      const warn = vi.fn(() => of(Confirmation.Status.dismiss));
+      const remove = vi.fn(() => of(undefined));
+      const component = create([field('title')], { confirmation: { warn }, fieldService: { delete: remove } });
+
+      component.delete(field('title'));
+
+      expect(warn).toHaveBeenCalledWith('Site::DeleteFieldConfirmMessage', 'AbpUi::AreYouSure', {
+        messageLocalizationParams: ['title'],
+      });
+      expect(remove).not.toHaveBeenCalled();
+    });
+
+    it('deletes the field once the user confirms', () => {
+      const warn = vi.fn(() => of(Confirmation.Status.confirm));
+      const remove = vi.fn(() => of(undefined));
+      const success = vi.fn();
+      const component = create([field('title')], {
+        confirmation: { warn },
+        toaster: { success },
+        fieldService: { delete: remove },
+      });
+
+      component.delete(field('title'));
+
+      expect(remove).toHaveBeenCalledWith('title');
+      expect(success).toHaveBeenCalledWith('AbpUi::SuccessfullyDeleted');
+    });
   });
 });
