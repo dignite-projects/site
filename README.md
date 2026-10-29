@@ -2,7 +2,7 @@
 
 Multi-tenant CMS on [ABP](https://abp.io) — build pages and publish content by talking to your AI client via MCP, no admin backend forms.
 
-Dignite Site is the AI-native next generation of [Dignite.Cms](https://github.com/dignite-projects/cms): it keeps the same proven core (field definitions, multi-tenancy, multi-language, versioning) but replaces the content authoring interface — from a backend form to an **MCP** server your own AI client talks to — and adds the site-level capabilities Cms never had (SEO, sitemap, feed, custom domains).
+Dignite Site is the AI-native next generation of [Dignite.Cms](https://github.com/dignite-projects/cms): it keeps the same proven core (field definitions, multi-tenancy, multi-language, versioning) but replaces the content authoring interface — from a backend form to an **MCP** server your own AI client talks to — and adds the site-level capabilities Cms never had (SEO metadata, sitemaps, feeds, `robots.txt` and `llms.txt`, a primary domain for canonical URLs).
 
 ## Core ideas
 
@@ -10,13 +10,16 @@ Dignite Site is the AI-native next generation of [Dignite.Cms](https://github.co
 - **AI works through MCP, the platform doesn't ship its own assistant.** You describe what you want ("create a page at `/blog`", "publish a news post") in your own AI client; it calls MCP tools, the platform validates against field definitions and persists it.
 - **Schema is the contract.** Field definitions are both the validation gate for writes and the target shape handed to AI.
 
-**[Read the documentation](https://github.com/dignite-projects/site/blob/main/docs/en/index.md)**
+## Documentation
 
-A site's own template texts (option names, labels, archive titles) are localized per tenant, with JSON files next to the templates. See [Localizing Template Texts](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/template-localization.md).
+**[Read the documentation](https://github.com/dignite-projects/site/blob/main/docs/en/index.md)**, or go straight to a topic:
 
-For a multilingual site, templates and the host's layout get the site's language rules: in-site links in the page's language, a language switcher, and an optional redirect of `/` to the visitor's language. See [Multilingual Sites](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/languages.md).
-
-Site has its own file library - the images and attachments content fields use, uploaded from the admin UI, over MCP or from a CKEditor field, and served to visitors from `/api/site-public/files/`. Permissions ride on the Contents permissions. See [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).
+- [Getting Started](https://github.com/dignite-projects/site/blob/main/docs/en/getting-started.md) - install Site into an ABP application and build a first page from an AI client
+- [Pages and Routing](https://github.com/dignite-projects/site/blob/main/docs/en/pages-and-routing.md), [Content Types and Fields](https://github.com/dignite-projects/site/blob/main/docs/en/content-types-and-fields.md), [Contents](https://github.com/dignite-projects/site/blob/main/docs/en/contents.md) - the content model
+- [Templates](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/templates.md), [Multilingual Sites](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/languages.md), [Localizing Template Texts](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/template-localization.md) - rendering a site
+- [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md) - the file library for images and attachments
+- [SEO](https://github.com/dignite-projects/site/blob/main/docs/en/seo/index.md) - head metadata, sitemap, feeds, `robots.txt` and `llms.txt`
+- [MCP Server](https://github.com/dignite-projects/site/blob/main/docs/en/mcp/index.md) - the tools an AI client works with, and [how to connect one](https://github.com/dignite-projects/site/blob/main/docs/en/mcp/connecting-clients.md)
 
 The design documents for contributors are in [`dev-docs/`](https://github.com/dignite-projects/site/tree/main/dev-docs); the overall design, [`00-总体设计.md`](https://github.com/dignite-projects/site/blob/main/dev-docs/00-总体设计.md), is in Chinese.
 
@@ -32,6 +35,8 @@ The design documents for contributors are in [`dev-docs/`](https://github.com/di
 | `dev-docs/` | Design documents for contributors (not published) |
 
 ## Getting started
+
+To use Dignite Site in your own ABP application, follow [Getting Started](https://github.com/dignite-projects/site/blob/main/docs/en/getting-started.md) in the documentation. The rest of this section is for building this repository.
 
 Install the .NET 10 SDK, then restore and build from the repository root:
 
@@ -58,13 +63,8 @@ The NuGet packages (`Dignite.Site.*`) and the npm package (`@dignite/ng.site`) a
 |---|---|---|---|
 | 1.x | 10.7+ | 10.7+ | 22.x |
 
-- **Major** - anything that makes an upgrade more than a package bump: a removed or changed public
-  .NET API, `@dignite/ng.site` export or component input/output; an HTTP API or DTO field removed or
-  changed in meaning; an incompatible MCP tool parameter; a database migration that needs manual data
-  work; or a higher minimum ABP major version.
-- **Minor** - backward-compatible features: new field types, MCP tools and APIs, additive database
-  migrations, or a higher minimum ABP minor version.
-- **Patch** - bug fixes only. A patch release never carries a database migration.
+What counts as a major, minor or patch change is spelled out in
+[Versioning](https://github.com/dignite-projects/site/blob/main/docs/en/index.md#versioning). A patch release never carries a database migration.
 
 Pre-releases are `x.y.z-preview.N` and are published to GitHub Packages only; stable versions go to
 nuget.org and npmjs. See [CHANGELOG.md](https://github.com/dignite-projects/site/blob/main/CHANGELOG.md) for each release.
