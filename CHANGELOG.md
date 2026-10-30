@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-30
+
 ### Added
 
 - **A tenant or an AI client can now write the templates of a site in Scriban.** A page renders through the published
@@ -1729,5 +1731,7 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/dignite-projects/site/compare/v1.0.1...v2.0.0
+[1.0.1]: https://github.com/dignite-projects/site/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/dignite-projects/site/releases/tag/v1.0.0
