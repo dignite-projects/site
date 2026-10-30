@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
+using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
+using Dignite.Site.Public.Templates;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -42,10 +47,14 @@ public class SiteRenderController_Tests
         Page = new PageDto { Name = "about", Template = "Default" }
     };
 
-    private static Task<IActionResult> RenderAsync(SiteLanguageTestHost host, RouteMatchDto match)
+    private static Task<IActionResult> RenderAsync(
+        SiteLanguageTestHost host,
+        RouteMatchDto match,
+        FakeTemplateAppService? templateAppService = null)
     {
         var controller = new SiteRenderController(
-            new FakeRoutingAppService(match), new FakeFieldAppService(), new FakeHeadMetadataAppService(HeadMetadata))
+            new FakeRoutingAppService(match), new FakeFieldAppService(), new FakeHeadMetadataAppService(HeadMetadata),
+            templateAppService ?? new FakeTemplateAppService(new SiteTemplateRenderSetDto()))
         {
             ControllerContext = new ControllerContext { HttpContext = host.HttpContext },
             TempData = new TempDataDictionary(host.HttpContext, new NullTempDataProvider()),
@@ -102,6 +111,84 @@ public class SiteRenderController_Tests
 
         result.ShouldBeOfType<NotFoundResult>();
         host.LanguageContext.HeadMetadata.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// A page whose template the tenant has published in Scriban renders through it - in the page's language -
+    /// instead of the Razor view of the same name.
+    /// </summary>
+    [Fact]
+    public async Task A_Published_Template_Should_Render_With_Scriban()
+    {
+        var scriban = new ScribanTestRenderer("en,ja", "/ja/about");
+        var templates = new FakeTemplateAppService(ScribanTestRenderer.RenderSet(
+            "<h1>{{ page.name }}</h1>",
+            "<html lang=\"{{ culture }}\"><head>{{ site_head }}</head><body>{{ body }}</body></html>"));
+
+        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), templates);
+
+        templates.RequestedNames.ShouldBe(new[] { "Default" });
+        var scoped = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>();
+        scoped.CultureName.ShouldBe("ja");
+        scoped.Inner.ShouldBeOfType<ScribanPageResult>().TemplateName.ShouldBe("Default");
+
+        scriban.Host.HttpContext.RequestServices = new ServiceCollection()
+            .AddSingleton(scriban.Renderer)
+            .BuildServiceProvider();
+        var body = new MemoryStream();
+        scriban.Host.HttpContext.Response.Body = body;
+
+        await result.ExecuteResultAsync(scriban.ActionContext);
+
+        scriban.Host.HttpContext.Response.ContentType.ShouldBe("text/html; charset=utf-8");
+        var html = Encoding.UTF8.GetString(body.ToArray());
+        html.ShouldStartWith("<html lang=\"ja\"><head><link href=\"https://acme.example/ja/about\" rel=\"canonical\">");
+        html.ShouldEndWith("<body><h1>about</h1></body></html>");
+    }
+
+    /// <summary>No published template of that name: the Razor view, exactly as before.</summary>
+    [Fact]
+    public async Task No_Published_Template_Should_Keep_The_Razor_View()
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        var templates = new FakeTemplateAppService(new SiteTemplateRenderSetDto
+        {
+            // A published layout alone does not switch a page over - only its own template does.
+            Layout = ScribanTestRenderer.Version("{{ site_head }}{{ body }}")
+        });
+        var match = PageMatch("en", "ja");
+        match.Page!.Template = "Default.cshtml";
+
+        var result = await RenderAsync(host, match, templates);
+
+        templates.RequestedNames.ShouldBe(new[] { "Default" });
+        var view = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
+        view.ViewName.ShouldBe("Default");
+        view.Model.ShouldBeOfType<SiteRenderViewModel>().Page.Name.ShouldBe("about");
+    }
+
+    /// <summary>A 404 never asks for templates.</summary>
+    [Fact]
+    public async Task An_Unmatched_Path_Should_Not_Look_Up_A_Template()
+    {
+        var host = new SiteLanguageTestHost("en", "/missing");
+        var templates = new FakeTemplateAppService(new SiteTemplateRenderSetDto());
+
+        var result = await RenderAsync(host, new RouteMatchDto { Matched = false }, templates);
+
+        result.ShouldBeOfType<NotFoundResult>();
+        templates.RequestedNames.ShouldBeEmpty();
+    }
+
+    private class FakeTemplateAppService(SiteTemplateRenderSetDto renderSet) : ISiteTemplatePublicAppService
+    {
+        public List<string> RequestedNames { get; } = new();
+
+        public Task<SiteTemplateRenderSetDto> GetRenderSetAsync(string name)
+        {
+            RequestedNames.Add(name);
+            return Task.FromResult(renderSet);
+        }
     }
 
     private class FakeRoutingAppService(RouteMatchDto match) : IRoutingPublicAppService

@@ -46,6 +46,8 @@ public class MyProjectDbContext : AbpDbContext<MyProjectDbContext>, ISiteDbConte
     public DbSet<ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; }
     public DbSet<DirectoryDescriptor> DirectoryDescriptors { get; set; }
     public DbSet<FileDescriptor> FileDescriptors { get; set; }
+    public DbSet<SiteTemplate> SiteTemplates { get; set; }
+    public DbSet<SiteTemplateVersion> SiteTemplateVersions { get; set; }
 
     // ...
 

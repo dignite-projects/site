@@ -6,6 +6,7 @@ using Dignite.Site.EntityFrameworkCore.ValueComparers;
 using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Templates;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp;
 using Volo.Abp.EntityFrameworkCore.Modeling;
@@ -199,6 +200,39 @@ public static class SiteDbContextModelCreatingExtensions
             b.HasIndex(f => new { f.TenantId, f.ContainerName, f.CreationTime, f.CreatorId, f.DirectoryId });
 
             b.HasOne<DirectoryDescriptor>().WithMany().HasForeignKey(f => f.DirectoryId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Tenant-authored Scriban templates: a header row and its immutable versions.
+        builder.Entity<SiteTemplate>(b =>
+        {
+            b.ToTable(SiteDbProperties.DbTablePrefix + "Templates", SiteDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(t => t.Name).IsRequired().HasMaxLength(SiteTemplateConsts.MaxNameLength);
+
+            // Unique per tenant: the name is what Page.Template finds a template by, so a duplicate would
+            // make "which template renders this page" ambiguous. Live rows only - a template is soft-deleted,
+            // and a deleted one must not stop its name from being created again.
+            b.HasIndex(t => new { t.TenantId, t.Name })
+                .IsUnique()
+                .HasFilter($"{nameof(SiteTemplate.IsDeleted)} = 0");
+
+            b.HasMany(t => t.Versions).WithOne().HasForeignKey(v => v.TemplateId)
+                .IsRequired().OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SiteTemplateVersion>(b =>
+        {
+            b.ToTable(SiteDbProperties.DbTablePrefix + "TemplateVersions", SiteDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            // No maximum length: the source of a template is a large text column, capped by
+            // SiteTemplateConsts.MaxBodyLength in the entity rather than by the database type.
+            b.Property(v => v.Body).IsRequired();
+            b.Property(v => v.Comment).HasMaxLength(SiteTemplateConsts.MaxCommentLength);
+
+            // A version number is never reused within its template.
+            b.HasIndex(v => new { v.TemplateId, v.Number }).IsUnique();
         });
     }
 }

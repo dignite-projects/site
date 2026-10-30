@@ -1,10 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using Dignite.Site.Public.Seo;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Razor.TagHelpers;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace Dignite.Site.Public.TagHelpers;
 
@@ -51,64 +47,7 @@ public class SiteHeadMetadataTagHelper : TagHelper
     {
         output.TagName = null;
 
-        var description = !string.IsNullOrWhiteSpace(Metadata?.MetaDescription)
-            ? Metadata!.MetaDescription
-            : FallbackDescription;
-
-        var tags = new List<TagBuilder>();
-
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            tags.Add(Meta("name", "description", description));
-        }
-
-        if (Metadata != null)
-        {
-            var canonicalUrl = Paged(Metadata.CanonicalUrl);
-
-            tags.Add(Link("canonical", canonicalUrl));
-
-            if (!string.IsNullOrWhiteSpace(Metadata.RobotsContent))
-            {
-                tags.Add(Meta("name", "robots", Metadata.RobotsContent));
-            }
-
-            tags.Add(Meta("property", "og:title", string.IsNullOrWhiteSpace(Title) ? Metadata.MetaTitle : Title));
-
-            if (!string.IsNullOrWhiteSpace(description))
-            {
-                tags.Add(Meta("property", "og:description", description));
-            }
-
-            tags.Add(Meta("property", "og:url", canonicalUrl));
-
-            if (!string.IsNullOrWhiteSpace(Metadata.OgType))
-            {
-                tags.Add(Meta("property", "og:type", Metadata.OgType));
-            }
-
-            if (!string.IsNullOrWhiteSpace(Metadata.OgImageUrl))
-            {
-                tags.Add(Meta("property", "og:image", Metadata.OgImageUrl));
-            }
-
-            if (!string.IsNullOrWhiteSpace(Metadata.TwitterCardType))
-            {
-                tags.Add(Meta("name", "twitter:card", Metadata.TwitterCardType));
-            }
-
-            foreach (var alternate in Metadata.HreflangAlternates)
-            {
-                tags.Add(Alternate(alternate.CultureName, Paged(alternate.Url)));
-            }
-
-            if (!string.IsNullOrWhiteSpace(Metadata.XDefaultUrl))
-            {
-                tags.Add(Alternate("x-default", Paged(Metadata.XDefaultUrl)));
-            }
-        }
-
-        foreach (var tag in tags)
+        foreach (var tag in SiteHeadMetadataHtml.BuildTags(Metadata, Title, FallbackDescription, Paged))
         {
             output.Content.AppendHtml(tag).AppendHtml(Environment.NewLine);
         }
@@ -116,31 +55,6 @@ public class SiteHeadMetadataTagHelper : TagHelper
 
     protected virtual string Paged(string url)
     {
-        return CurrentPage > 1
-            ? QueryHelpers.AddQueryString(url, PageQueryKey, CurrentPage.ToString(CultureInfo.InvariantCulture))
-            : url;
-    }
-
-    private static TagBuilder Meta(string keyAttribute, string key, string content)
-    {
-        var tag = new TagBuilder("meta") { TagRenderMode = TagRenderMode.StartTag };
-        tag.Attributes[keyAttribute] = key;
-        tag.Attributes["content"] = content;
-        return tag;
-    }
-
-    private static TagBuilder Link(string rel, string href)
-    {
-        var tag = new TagBuilder("link") { TagRenderMode = TagRenderMode.StartTag };
-        tag.Attributes["rel"] = rel;
-        tag.Attributes["href"] = href;
-        return tag;
-    }
-
-    private static TagBuilder Alternate(string hreflang, string href)
-    {
-        var tag = Link("alternate", href);
-        tag.Attributes["hreflang"] = hreflang;
-        return tag;
+        return SiteHeadMetadataHtml.Paged(url, CurrentPage, PageQueryKey);
     }
 }

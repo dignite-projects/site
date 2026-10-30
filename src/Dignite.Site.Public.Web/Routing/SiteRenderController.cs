@@ -2,7 +2,9 @@ using Asp.Versioning;
 using Dignite.Site.Fields;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
+using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
+using Dignite.Site.Public.Templates;
 using Dignite.Site.Seo;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -15,9 +17,12 @@ using Volo.Abp.AspNetCore.Mvc;
 namespace Dignite.Site.Public.Routing;
 
 /// <summary>
-/// Renders whatever <see cref="IRoutingPublicAppService"/> resolves, via classic MVC <c>View()</c> -
-/// Scriban is out of scope for this first version (总体设计 §10 leaves the rendering-engine question open;
-/// v1 sidesteps it by only having one engine).
+/// Renders whatever <see cref="IRoutingPublicAppService"/> resolves, with one of two engines, chosen per page by
+/// <c>Page.Template</c>: when the tenant has published a Scriban template of that name
+/// (<see cref="ISiteTemplatePublicAppService"/>), with it - wrapped in the tenant's published <c>layout</c>, if
+/// any - through <see cref="ScribanPageResult"/>; otherwise, exactly as before, the Razor view of that name via
+/// classic MVC <c>View()</c>. A tenant thus moves to its own templates page by page, and a site that has none
+/// renders as it always did.
 /// <para>
 /// Deliberately Contracts-only: this whole project is meant to be portable to a different host someday,
 /// so every dependency here is an interface from <c>Dignite.Site.Public.Application.Contracts</c> - never
@@ -42,15 +47,18 @@ public class SiteRenderController : AbpController
     protected IRoutingPublicAppService RoutingAppService { get; }
     protected IFieldPublicAppService FieldAppService { get; }
     protected IHeadMetadataPublicAppService HeadMetadataAppService { get; }
+    protected ISiteTemplatePublicAppService TemplateAppService { get; }
 
     public SiteRenderController(
         IRoutingPublicAppService routingAppService,
         IFieldPublicAppService fieldAppService,
-        IHeadMetadataPublicAppService headMetadataAppService)
+        IHeadMetadataPublicAppService headMetadataAppService,
+        ISiteTemplatePublicAppService templateAppService)
     {
         RoutingAppService = routingAppService;
         FieldAppService = fieldAppService;
         HeadMetadataAppService = headMetadataAppService;
+        TemplateAppService = templateAppService;
     }
 
     [AcceptVerbs("GET", "HEAD", Route = "/{**path}", Order = 1)]
@@ -100,16 +108,24 @@ public class SiteRenderController : AbpController
 
         languageContext.HeadMetadata = headMetadata;
 
-        // One required view for every RouteMatchKindDto - the view itself branches on whether
-        // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). A
-        // missing or misconfigured Page.Template throws (standard ASP.NET Core view-not-found) rather than
-        // silently degrading - issue #53.
+        // One required template for every RouteMatchKindDto - the template itself branches on whether
+        // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). The
+        // tenant's published Scriban template of that name wins; without one, a missing or misconfigured
+        // Page.Template throws (standard ASP.NET Core view-not-found) rather than silently degrading - issue
+        // #53. Looked up last, after the other reads, for the same one-DbContext reason as above.
         var templateName = ResolveTemplateName(match.Page.Template);
-        return new CultureScopedViewResult(View(templateName, viewModel), match.CultureName);
+        var renderSet = await TemplateAppService.GetRenderSetAsync(templateName);
+
+        IActionResult result = renderSet.Template != null
+            ? new ScribanPageResult(templateName, renderSet, viewModel)
+            : View(templateName, viewModel);
+
+        return new CultureScopedResult(result, match.CultureName);
     }
 
     /// <summary>
-    /// Renders the wrapped <see cref="ViewResult"/> with <see cref="CultureInfo.CurrentCulture"/>/
+    /// Executes the wrapped result - a Razor <see cref="ViewResult"/> or a <see cref="ScribanPageResult"/> - with
+    /// <see cref="CultureInfo.CurrentCulture"/>/
     /// <see cref="CultureInfo.CurrentUICulture"/> set to the resolved content culture, so the view's own
     /// culture-sensitive formatting (<c>ToString("d")</c> in a field template, <c>IStringLocalizer</c>)
     /// follows the URL's language rather than whatever <c>UseAbpRequestLocalization()</c> picked from the
@@ -128,16 +144,21 @@ public class SiteRenderController : AbpController
     /// side owns.
     /// </para>
     /// </summary>
-    protected class CultureScopedViewResult : IActionResult
+    public class CultureScopedResult : IActionResult
     {
-        private readonly ViewResult _inner;
+        private readonly IActionResult _inner;
         private readonly string _cultureName;
 
-        public CultureScopedViewResult(ViewResult inner, string cultureName)
+        public CultureScopedResult(IActionResult inner, string cultureName)
         {
             _inner = inner;
             _cultureName = cultureName;
         }
+
+        /// <summary>The result rendered inside the culture scope.</summary>
+        public IActionResult Inner => _inner;
+
+        public string CultureName => _cultureName;
 
         public async Task ExecuteResultAsync(ActionContext context)
         {

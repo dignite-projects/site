@@ -1,0 +1,241 @@
+using System;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
+using Dignite.Site.Admin.Permissions;
+using Dignite.Site.Admin.Templates;
+using Dignite.Site.Mcp.Naming;
+using Dignite.Site.Templates;
+using Microsoft.AspNetCore.Authorization;
+using ModelContextProtocol.Server;
+using Volo.Abp.DependencyInjection;
+
+namespace Dignite.Site.Mcp.Templates;
+
+/// <summary>
+/// Templates a tenant (or an AI) writes in Scriban, stored in the database as numbered immutable versions
+/// with a published pointer. A template is addressed by its name - the same string a page's
+/// <c>Page.Template</c> holds - so no tool takes an id.
+/// <para>
+/// Templates are not part of <c>site_get_schema</c> / <c>site://schema</c>: they are rendering, not site
+/// structure, and a model that is not touching rendering should not pay for them in every schema read.
+/// <c>site_list_templates</c> is how their names are found.
+/// </para>
+/// </summary>
+[McpServerToolType]
+public class SiteTemplateTools : ITransientDependency
+{
+    protected ISiteTemplateAdminAppService TemplateAppService { get; }
+
+    protected SiteMcpNameResolver NameResolver { get; }
+
+    public SiteTemplateTools(ISiteTemplateAdminAppService templateAppService, SiteMcpNameResolver nameResolver)
+    {
+        TemplateAppService = templateAppService;
+        NameResolver = nameResolver;
+    }
+
+    [McpServerTool(Name = "site_list_templates", Title = "List templates", ReadOnly = true)]
+    [Description(
+        "Lists the templates written for this site (Scriban syntax), with which version of each is " +
+        "published. A page renders through the published template whose name equals its 'template' value " +
+        "(see site_create_page); a page whose template name has no published template here is rendered by " +
+        "the Razor view of that name instead. The template named 'layout' is special: it wraps every page. " +
+        "A null publishedVersionNumber means the template is a draft that nothing renders.")]
+    [Authorize(SiteAdminPermissions.Templates.Default)]
+    public virtual async Task<SiteTemplateSummary[]> ListTemplatesAsync(
+        [Description("Free-text filter over the template name. Omit for all.")]
+        string? filter = null)
+    {
+        var templates = await TemplateAppService.GetListAsync(new GetSiteTemplateListInput { Filter = filter });
+
+        return templates.Items.Select(SiteTemplateSummary.From).ToArray();
+    }
+
+    [McpServerTool(Name = "site_get_template", Title = "Get a template", ReadOnly = true)]
+    [Description(
+        "Reads one template's source (Scriban syntax). Returns the published version's body by default; " +
+        "pass 'version' to read another one, for instance the one you staged with publish=false or an " +
+        "older one before rolling back. A template that has never been published returns its latest " +
+        "version instead, with isPublished false. 'versions' lists every saved version (without bodies), " +
+        "newest first. Read the current body before changing a template: site_save_template replaces it " +
+        "with exactly what you send.")]
+    [Authorize(SiteAdminPermissions.Templates.Default)]
+    public virtual async Task<SiteTemplateDetail> GetTemplateAsync(
+        [Description("The template's name, e.g. 'layout' or 'Blog/Article', from site_list_templates.")]
+        string template,
+        [Description("The version number to read. Omit for the published version (or the latest, if none is published).")]
+        int? version = null)
+    {
+        var current = await NameResolver.GetTemplateAsync(template);
+
+        var versionNumber = version ?? current.PublishedVersionNumber ?? current.LatestVersionNumber;
+
+        var body = await TemplateAppService.GetVersionAsync(current.Id, versionNumber);
+        var versions = await TemplateAppService.GetVersionsAsync(current.Id);
+
+        return new SiteTemplateDetail
+        {
+            Name = current.Name,
+            PublishedVersionNumber = current.PublishedVersionNumber,
+            LatestVersionNumber = current.LatestVersionNumber,
+            LastModificationTime = current.LastModificationTime,
+            Version = body.Number,
+            IsPublished = current.PublishedVersionNumber == body.Number,
+            Comment = body.Comment,
+            Body = body.Body,
+            Versions = versions.Items
+                .Select(item => new SiteTemplateVersionSummary
+                {
+                    Number = item.Number,
+                    Comment = item.Comment,
+                    CreationTime = item.CreationTime,
+                    IsPublished = current.PublishedVersionNumber == item.Number
+                })
+                .ToArray()
+        };
+    }
+
+    [McpServerTool(Name = "site_save_template", Title = "Save a template", Idempotent = false)]
+    [Description(
+        "Creates the template, or - when one of that name exists - saves 'body' as its next version. " +
+        "Versions are never edited, so every save is kept and can be rolled back with site_publish_template. " +
+        "The body is Scriban syntax (https://github.com/scriban/scriban): '{{ }}' for output, '{{ if }}', " +
+        "'{{ for }}' for logic. A page uses a template when the page's 'template' value equals the " +
+        "template's name; the template named 'layout' wraps every page, places the page's rendered " +
+        "content with '{{ body }}', and MUST call '{{ site_head }}' inside <head> or it is rejected. " +
+        "The body is parsed before it is stored: a syntax error is returned with its line and column, " +
+        "and nothing is saved - fix the reported lines and send the whole body again. By default the new " +
+        "version goes live at once, so the site changes as soon as this returns; pass publish=false to " +
+        "stage it and publish it later with site_publish_template. Needs both the Create and the Update " +
+        "template permission, since the same call can do either.")]
+    [Authorize(SiteAdminPermissions.Templates.Create)]
+    [Authorize(SiteAdminPermissions.Templates.Update)]
+    public virtual async Task<SiteTemplateSummary> SaveTemplateAsync(
+        [Description("The template's name, e.g. 'layout', 'Default' or 'Blog/Article'. Unique across the site.")]
+        string template,
+        [Description("The full Scriban source of the template. Replaces the previous body entirely.")]
+        string body,
+        [Description("A short note on what this version changes. Shown in the version list.")]
+        string? comment = null,
+        [Description("Whether this version goes live now. False saves it without changing what the site renders.")]
+        bool publish = true)
+    {
+        var existing = await TemplateAppService.FindByNameAsync(template);
+
+        var saved = existing == null
+            ? await TemplateAppService.CreateAsync(new CreateSiteTemplateDto
+            {
+                Name = template,
+                Body = body,
+                Comment = comment,
+                Publish = publish
+            })
+            : await TemplateAppService.UpdateAsync(existing.Id, new UpdateSiteTemplateDto
+            {
+                Body = body,
+                Comment = comment,
+                Publish = publish
+            });
+
+        return SiteTemplateSummary.From(saved);
+    }
+
+    [McpServerTool(Name = "site_publish_template", Title = "Publish a template version", Idempotent = true)]
+    [Description(
+        "Makes an existing version of a template the one the site renders. Publishing a version older than " +
+        "the current one is the rollback: do that when a published change broke a page. Takes effect at once.")]
+    [Authorize(SiteAdminPermissions.Templates.Update)]
+    public virtual async Task<SiteTemplateSummary> PublishTemplateAsync(
+        [Description("The template's name, from site_list_templates.")]
+        string template,
+        [Description("The version number to publish, from site_get_template's 'versions'.")]
+        int version)
+    {
+        var current = await NameResolver.GetTemplateAsync(template);
+
+        return SiteTemplateSummary.From(await TemplateAppService.PublishAsync(current.Id, version));
+    }
+
+    [McpServerTool(Name = "site_delete_template", Title = "Delete a template", Destructive = true)]
+    [Description(
+        "Deletes a template with all of its versions. Pages that used it are not deleted: a page whose " +
+        "'template' value names it falls back to the Razor view of that name (or fails to render if the " +
+        "site has none). Deleting 'layout' removes the layout that wrapped every page. If you only want to " +
+        "undo a change, publish an older version instead (site_publish_template). Confirm with the user first.")]
+    [Authorize(SiteAdminPermissions.Templates.Delete)]
+    public virtual async Task<string> DeleteTemplateAsync(
+        [Description("The template's name, from site_list_templates.")]
+        string template)
+    {
+        var current = await NameResolver.GetTemplateAsync(template);
+
+        await TemplateAppService.DeleteAsync(current.Id);
+
+        return $"Deleted template '{current.Name}' with all its versions. Pages using that name now render " +
+               "through the Razor view of the same name.";
+    }
+}
+
+/// <summary>A template's header as a model reads it - the audit columns of <see cref="SiteTemplateDto"/> are noise there.</summary>
+public class SiteTemplateSummary
+{
+    public string Name { get; set; } = default!;
+
+    /// <summary>The version the site renders, or null when the template is a draft.</summary>
+    public int? PublishedVersionNumber { get; set; }
+
+    public int LatestVersionNumber { get; set; }
+
+    public DateTime? LastModificationTime { get; set; }
+
+    public static SiteTemplateSummary From(SiteTemplateDto dto)
+    {
+        return new SiteTemplateSummary
+        {
+            Name = dto.Name,
+            PublishedVersionNumber = dto.PublishedVersionNumber,
+            LatestVersionNumber = dto.LatestVersionNumber,
+            LastModificationTime = dto.LastModificationTime
+        };
+    }
+}
+
+/// <summary>One template with the body of one of its versions - see <c>site_get_template</c>.</summary>
+public class SiteTemplateDetail
+{
+    public string Name { get; set; } = default!;
+
+    public int? PublishedVersionNumber { get; set; }
+
+    public int LatestVersionNumber { get; set; }
+
+    public DateTime? LastModificationTime { get; set; }
+
+    /// <summary>The number of the version whose <see cref="Body"/> this is.</summary>
+    public int Version { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="Version"/> is the one the site renders. False for a staged or an older version,
+    /// and for a template that was never published (then the latest version is returned).
+    /// </summary>
+    public bool IsPublished { get; set; }
+
+    public string? Comment { get; set; }
+
+    public string Body { get; set; } = default!;
+
+    /// <summary>Every saved version, newest first, without bodies.</summary>
+    public SiteTemplateVersionSummary[] Versions { get; set; } = Array.Empty<SiteTemplateVersionSummary>();
+}
+
+public class SiteTemplateVersionSummary
+{
+    public int Number { get; set; }
+
+    public string? Comment { get; set; }
+
+    public DateTime CreationTime { get; set; }
+
+    public bool IsPublished { get; set; }
+}

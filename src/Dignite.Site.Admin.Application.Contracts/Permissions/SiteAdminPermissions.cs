@@ -41,6 +41,16 @@ public class SiteAdminPermissions
         public const string Delete = Default + ".Delete";
     }
 
+    public static class Templates
+    {
+        public const string Default = GroupName + ".Templates";
+        public const string Create = Default + ".Create";
+
+        /// <summary>Also covers publishing a version (and so rolling back).</summary>
+        public const string Update = Default + ".Update";
+        public const string Delete = Default + ".Delete";
+    }
+
     public static string[] GetAll()
     {
         return ReflectionHelper.GetPublicConstantsRecursively(typeof(SiteAdminPermissions));

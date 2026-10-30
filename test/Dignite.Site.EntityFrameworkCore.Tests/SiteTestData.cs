@@ -24,6 +24,13 @@ public static class SiteTestData
     public static readonly Guid PostGalleryTypeId = Guid.Parse("33333333-0000-0000-0000-000000000004");
     public static readonly Guid NewsItemTypeId = Guid.Parse("33333333-0000-0000-0000-000000000005");
 
+    public static readonly Guid PublishedTemplateId = Guid.Parse("44444444-0000-0000-0000-000000000001");
+    public static readonly Guid DraftTemplateId = Guid.Parse("44444444-0000-0000-0000-000000000002");
+
+    public static readonly Guid PublishedTemplateVersion1Id = Guid.Parse("45555555-0000-0000-0000-000000000001");
+    public static readonly Guid PublishedTemplateVersion2Id = Guid.Parse("45555555-0000-0000-0000-000000000002");
+    public static readonly Guid DraftTemplateVersion1Id = Guid.Parse("45555555-0000-0000-0000-000000000003");
+
     // A query condition carries both the field's id and its name: the id is what the relational index
     // rows key on, and the name is the bag key a document provider would address instead. Neither
     // substitutes for the other, so both are pinned here.
@@ -43,4 +50,10 @@ public static class SiteTestData
     public const string DraftSlug = "draft-post";
     public const string GallerySlug = "summer-photos";
     public const string NewsSlug = "launch";
+
+    /// <summary>Two versions, the second one published. Deliberately not named layout or Default, which carry rules of their own.</summary>
+    public const string PublishedTemplateName = "Seeded/Published";
+
+    /// <summary>One version, never published.</summary>
+    public const string DraftTemplateName = "Seeded/Draft";
 }

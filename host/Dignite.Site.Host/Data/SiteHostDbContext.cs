@@ -48,6 +48,10 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
 
     public DbSet<Dignite.Site.Files.FileDescriptor> FileDescriptors { get; set; } = default!;
 
+    public DbSet<Dignite.Site.Templates.SiteTemplate> SiteTemplates { get; set; } = default!;
+
+    public DbSet<Dignite.Site.Templates.SiteTemplateVersion> SiteTemplateVersions { get; set; } = default!;
+
 
     public const string DbTablePrefix = "App";
     public const string DbSchema = null;

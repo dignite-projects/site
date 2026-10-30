@@ -55,4 +55,12 @@ public static class SiteErrorCodes
     // by those packages; the public read endpoint's on-request resize reuses the Imaging codes.
     public const string FileContainerNotAvailable = "Site:080001";
     public const string FileSortingNotSupported = "Site:080002";
+
+    // Tenant-authored Scriban templates (Dignite.Site.Templates). The last one is raised by the renderer,
+    // which cannot reference Domain, as a plain BusinessException carrying this code.
+    public const string SiteTemplateNameAlreadyExists = "Site:090001";
+    public const string SiteTemplateSyntaxError = "Site:090002";
+    public const string SiteTemplateVersionNotFound = "Site:090003";
+    public const string SiteTemplateMissingSiteHead = "Site:090004";
+    public const string SiteTemplateDidNotRenderSiteHead = "Site:090005";
 }

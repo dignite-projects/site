@@ -25,6 +25,13 @@
     <PackageReference Include="Slugify.Core" Version="5.1.1" />
   </ItemGroup>
 
+  <!-- Scriban, for tenant-authored page templates (SiteTemplate). Here, not in Public.Web, because the
+       syntax check at save time (ScribanTemplateSyntax) and the renderer must share one parser, and
+       Public.Web may only reference Domain.Shared. -->
+  <ItemGroup>
+    <PackageReference Include="Scriban" Version="7.2.1" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Localization\Site\*.json" />
     <Content Remove="Localization\Site\*.json" />

@@ -2317,6 +2317,102 @@
               "displayName": null
             }
           }
+        },
+        "Dignite.Site.Public.Templates.SiteTemplatePublicController": {
+          "controllerName": "SiteTemplatePublic",
+          "controllerGroupName": "SiteTemplatePublic",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Public.Templates.SiteTemplatePublicController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Public.Templates.ISiteTemplatePublicAppService",
+              "name": "ISiteTemplatePublicAppService",
+              "methods": [
+                {
+                  "name": "GetRenderSetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "name",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
+                    "typeSimple": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetRenderSetAsyncByName": {
+              "uniqueName": "GetRenderSetAsyncByName",
+              "name": "GetRenderSetAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/templates/render-set",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "name",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "name",
+                  "name": "name",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
+                "typeSimple": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Templates.ISiteTemplatePublicAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
         }
       }
     }

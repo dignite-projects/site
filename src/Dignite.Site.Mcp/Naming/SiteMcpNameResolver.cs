@@ -6,11 +6,13 @@ using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Contents;
 using Dignite.Site.Admin.Fields;
 using Dignite.Site.Admin.Pages;
+using Dignite.Site.Admin.Templates;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Mcp.Errors;
 using Dignite.Site.Pages;
+using Dignite.Site.Templates;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Validation;
 
@@ -40,22 +42,39 @@ public class SiteMcpNameResolver : ITransientDependency
 
     protected IContentAdminAppService ContentAppService { get; }
 
+    protected ISiteTemplateAdminAppService TemplateAppService { get; }
+
     public SiteMcpNameResolver(
         IPageAdminAppService pageAppService,
         IContentTypeAdminAppService contentTypeAppService,
         IFieldAdminAppService fieldAppService,
-        IContentAdminAppService contentAppService)
+        IContentAdminAppService contentAppService,
+        ISiteTemplateAdminAppService templateAppService)
     {
         PageAppService = pageAppService;
         ContentTypeAppService = contentTypeAppService;
         FieldAppService = fieldAppService;
         ContentAppService = contentAppService;
+        TemplateAppService = templateAppService;
     }
 
     public virtual async Task<PageDto> GetPageAsync(string page)
     {
         return await PageAppService.FindByNameAsync(page)
                ?? throw new McpEntityNotFoundException("page", page);
+    }
+
+    /// <summary>
+    /// Templates are not in the schema, so the not-found message points at <c>site_list_templates</c> for
+    /// their names rather than leaving only the exception's schema hint to send a model the wrong way.
+    /// </summary>
+    public virtual async Task<SiteTemplateDto> GetTemplateAsync(string template)
+    {
+        return await TemplateAppService.FindByNameAsync(template)
+               ?? throw new McpEntityNotFoundException(
+                   "template",
+                   template,
+                   hint: "Call site_list_templates for the names this site actually has.");
     }
 
     public virtual async Task<ContentTypeDto> GetContentTypeAsync(string page, string contentType)

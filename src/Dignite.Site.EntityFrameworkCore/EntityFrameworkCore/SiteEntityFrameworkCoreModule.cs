@@ -5,6 +5,7 @@ using Dignite.Site.Contents;
 using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Templates;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.Modularity;
@@ -32,6 +33,7 @@ public class SiteEntityFrameworkCoreModule : AbpModule
             options.AddRepository<Content, EfCoreContentRepository>();
             options.AddRepository<FileDescriptor, EfCoreFileDescriptorRepository>();
             options.AddRepository<DirectoryDescriptor, EfCoreDirectoryDescriptorRepository>();
+            options.AddRepository<SiteTemplate, EfCoreSiteTemplateRepository>();
         });
 
         // ABP's conventional registrar exposes a class as any interface whose name, minus the leading

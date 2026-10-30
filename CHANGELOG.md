@@ -7,8 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A tenant or an AI client can now write the templates of a site in Scriban.** A page renders through the published
+  Scriban template named like its `Template`, stored in the database per tenant, and through the Razor view of that
+  name when there is none, so Razor sites keep working unchanged and deleting a template returns its name to Razor.
+  Templates are saved as numbered, immutable versions with a published pointer, so publishing an older version is the
+  rollback. Saving parses the body and refuses a syntax error with its line and column, and the template named
+  `layout`, which wraps every page, must call `site_head`. Templates run in a sandbox: they see data and a fixed set
+  of functions, with limits on loops, recursion, regular expressions, output size and render time. They are managed
+  over `api/site-admin/templates`, with the `SiteAdmin.Templates` permissions, and over MCP with
+  `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and
+  `site_delete_template`. Template output is HTML-encoded by default, like Razor: `site_head`, `render_field` and
+  `body` are emitted raw, and `html_raw` marks a trusted value. There is no preview of a staged version yet. See
+  [Scriban Templates](docs/en/rendering/scriban-templates.md). **A host whose `DbContext` implements
+  `ISiteDbContext` must add `DbSet<SiteTemplate> SiteTemplates` and `DbSet<SiteTemplateVersion> SiteTemplateVersions`
+  and add a migration for the two new tables.**
+
 ### Changed
 
+- **`Dignite.Site.Public.Web` API changes a host that subclasses or constructs these types must follow.**
+  `SiteRenderController` takes a fourth constructor parameter, `ISiteTemplatePublicAppService`. `ContentListTagHelper`
+  now takes `(IRazorPartialRenderer, ContentListQuery)`, and its query logic moved to the new `ContentListQuery`
+  service. `SiteRenderController.CultureScopedViewResult` was renamed `CultureScopedResult` and wraps any
+  `IActionResult`.
 - **The Admin UI documentation and the `@dignite/ng.site` README now say what `provideSite()` costs a host's initial
   bundle.** It has to run at application-config level, so everything it registers - CKEditor included - is downloaded
   on first paint, whether or not any content type has a rich-text field and whether or not the Site screens are ever

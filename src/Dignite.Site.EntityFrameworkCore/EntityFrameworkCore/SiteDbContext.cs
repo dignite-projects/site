@@ -3,6 +3,7 @@ using Dignite.Site.Contents;
 using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Templates;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
@@ -26,6 +27,10 @@ public class SiteDbContext : AbpDbContext<SiteDbContext>, ISiteDbContext
     public DbSet<DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
 
     public DbSet<FileDescriptor> FileDescriptors { get; set; } = default!;
+
+    public DbSet<SiteTemplate> SiteTemplates { get; set; } = default!;
+
+    public DbSet<SiteTemplateVersion> SiteTemplateVersions { get; set; } = default!;
 
     public SiteDbContext(DbContextOptions<SiteDbContext> options)
         : base(options)

@@ -7,6 +7,7 @@ using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Fields;
 using Dignite.Site.Admin.Pages;
+using Dignite.Site.Admin.Templates;
 using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Mcp.Contents;
@@ -15,6 +16,7 @@ using Dignite.Site.Mcp.Fields;
 using Dignite.Site.Mcp.Files;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
+using Dignite.Site.Mcp.Templates;
 using Dignite.Site.Public.Routing;
 
 namespace Dignite.Site.Mcp;
@@ -229,6 +231,29 @@ public static class McpToolContracts
             Translated("ContainerName", typeof(string), "containerName"),
             Direct("Name", typeof(string), "name"),
             Direct("ParentId", typeof(Guid?), "parentId"),
+        ]),
+
+        // site_save_template is one tool over two DTOs - it creates the template when the name is new and
+        // appends a version when it exists - so it has one row per DTO. The contract test looks the method up
+        // by name and checks each row's properties against that same parameter list.
+        new(typeof(SiteTemplateTools), nameof(SiteTemplateTools.SaveTemplateAsync), typeof(CreateSiteTemplateDto),
+        [
+            Translated("Name", typeof(string), "template"),
+            Direct("Body", typeof(string), "body"),
+            Direct("Comment", typeof(string), "comment"),
+            Direct("Publish", typeof(bool), "publish"),
+        ]),
+
+        new(typeof(SiteTemplateTools), nameof(SiteTemplateTools.SaveTemplateAsync), typeof(UpdateSiteTemplateDto),
+        [
+            Direct("Body", typeof(string), "body"),
+            Direct("Comment", typeof(string), "comment"),
+            Direct("Publish", typeof(bool), "publish"),
+        ]),
+
+        new(typeof(SiteTemplateTools), nameof(SiteTemplateTools.ListTemplatesAsync), typeof(GetSiteTemplateListInput),
+        [
+            Direct("Filter", typeof(string), "filter"),
         ]),
     };
 }
