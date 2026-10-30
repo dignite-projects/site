@@ -66,7 +66,7 @@ A preview fails with one of these errors:
 * `Site:090006` when no page answers the path.
 * `Site:090007` when the application does not have `Dignite.Site.Public.Web`: a preview renders the page the way the site does, so it needs the rendering in the same application as the administration API.
 
-A render that fails, through a run-time error, the `site_head` rule or a limit, fails the preview with the error the live page would give, naming the template, the line and the column.
+A render that fails, through a run-time error or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
 
 You can preview in three ways:
 

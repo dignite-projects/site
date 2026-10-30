@@ -45,6 +45,7 @@
     "Site:090005": "Rendering '{Name}' never called site_head, so the page would have shipped without its SEO head tags.",
     "Site:090006": "No page of the site answers the path '{Path}', so there is nothing to preview the template on.",
     "Site:090007": "Previewing a template needs Dignite.Site.Public.Web in the same application as the administration API.",
+    "Site:090008": "Rendering '{Name}' for the preview failed: {Message}",
 
     "DisplayName:Site.EnabledLanguages": "Enabled languages",
     "Description:Site.EnabledLanguages": "Comma-separated culture names (e.g. \"en,fr,zh-Hans\") this site serves. The first one is the default language: its URLs carry no language prefix, while the others are served under \"/{culture}/\".",
@@ -149,6 +150,9 @@
     "TemplateSaved": "Saved as version {0}.",
     "TemplatePublished": "Version {0} is now published.",
     "DeleteTemplateConfirmMessage": "Delete the template '{0}' with all of its versions? Pages whose template is '{0}' render through the Razor view of that name again.",
+    "LastModificationTime": "Last modified",
+    "CreationTime": "Created",
+    "PreviewPageTemplateNote": "This page normally renders with the template '{0}'.",
 
     "ContentTypes": "Content types",
     "ContentTypesOfPage": "Content types of '{0}'",

@@ -69,4 +69,9 @@ public static class SiteErrorCodes
     // registered - an administration API hosted without Dignite.Site.Public.Web.
     public const string SiteTemplatePreviewPathNotFound = "Site:090006";
     public const string SiteTemplatePreviewUnavailable = "Site:090007";
+
+    // A preview whose template failed at run time or ran out of time, raised by the same renderer. The
+    // engine's own exception would reach an HTTP or MCP caller as "an internal error occurred"; this code
+    // carries its message - template, line and column - as Data["Message"].
+    public const string SiteTemplatePreviewRenderFailed = "Site:090008";
 }

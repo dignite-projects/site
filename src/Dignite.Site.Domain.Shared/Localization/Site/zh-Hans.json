@@ -45,6 +45,7 @@
     "Site:090005": "渲染 '{Name}' 时从未调用 site_head，页面会在缺少 SEO 头部标签的情况下发出。",
     "Site:090006": "站点中没有页面响应路径 '{Path}'，因此无处预览该模板。",
     "Site:090007": "预览模板需要 Dignite.Site.Public.Web 与管理 API 部署在同一个应用中。",
+    "Site:090008": "为预览渲染 '{Name}' 失败：{Message}",
 
     "DisplayName:Site.EnabledLanguages": "启用的语言",
     "Description:Site.EnabledLanguages": "本站点提供的语言，填写语言标记（culture 名称）并以英文逗号分隔，例如 \"en,fr,zh-Hans\"。第一个是默认语言：其 URL 不带语言前缀，其余语言的 URL 位于 \"/{culture}/\" 之下。",
@@ -149,6 +150,9 @@
     "TemplateSaved": "已保存为第 {0} 版。",
     "TemplatePublished": "第 {0} 版已发布。",
     "DeleteTemplateConfirmMessage": "确定要删除模板“{0}”及其全部版本吗？模板为“{0}”的页面将重新使用同名的 Razor 视图渲染。",
+    "LastModificationTime": "最后修改",
+    "CreationTime": "创建时间",
+    "PreviewPageTemplateNote": "该页面平时使用模板“{0}”渲染。",
 
     "ContentTypes": "内容类型",
     "ContentTypesOfPage": "'{0}' 的内容类型",

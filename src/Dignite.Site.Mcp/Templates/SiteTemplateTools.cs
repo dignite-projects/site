@@ -6,7 +6,6 @@ using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Admin.Templates;
 using Dignite.Site.Mcp.Naming;
 using Dignite.Site.Templates;
-using global::Scriban.Syntax;
 using Microsoft.AspNetCore.Authorization;
 using ModelContextProtocol.Server;
 using Volo.Abp.DependencyInjection;
@@ -178,7 +177,7 @@ public class SiteTemplateTools : ITransientDependency
         "the published 'layout' around it; previewing 'layout' wraps the page's published template. It renders " +
         "a SAVED version only: to check a change, save it first with site_save_template and publish=false, " +
         "preview that version, then publish it with site_publish_template. A template that fails at render " +
-        "time comes back in 'error', naming the template, line and column - fix the body, save again, preview " +
+        "time is returned as an error naming the template, line and column - fix the body, save again, preview " +
         "again. 'pageTemplate' is the template the path's page normally renders through: when it is not the " +
         "previewed template (and that is not 'layout'), the live page would not use what you are previewing. " +
         "HTML longer than " + MaxPreviewHtmlLengthText + " characters is cut off: 'isTruncated' is then true " +
@@ -197,39 +196,24 @@ public class SiteTemplateTools : ITransientDependency
 
         var versionNumber = version ?? current.PublishedVersionNumber ?? current.LatestVersionNumber;
 
-        var result = new SiteTemplatePreview
+        // A render failure is a business exception (Site:090008, carrying the template, line and column), which
+        // the server's error envelope reports in full - nothing to catch here.
+        var preview = await TemplateAppService.PreviewAsync(current.Id, versionNumber, path);
+        var isTruncated = preview.Html.Length > MaxPreviewHtmlLength;
+
+        return new SiteTemplatePreview
         {
             Name = current.Name,
             Version = versionNumber,
             IsPublished = current.PublishedVersionNumber == versionNumber,
-            Path = path
+            Path = preview.Path,
+            PageName = preview.PageName,
+            CultureName = preview.CultureName,
+            PageTemplate = preview.PageTemplate,
+            Html = isTruncated ? preview.Html[..MaxPreviewHtmlLength] : preview.Html,
+            IsTruncated = isTruncated,
+            HtmlLength = preview.Html.Length
         };
-
-        SiteTemplatePreviewDto preview;
-        try
-        {
-            preview = await TemplateAppService.PreviewAsync(current.Id, versionNumber, path);
-        }
-        // The template's own failures, caught here because the server's error envelope would not carry them:
-        // it passes on only business and user-friendly exceptions' messages, and replaces these with "an
-        // internal error occurred" - the line and column the model needs to fix the body would be lost. A
-        // business exception (no page at that path, site_head never called) is already reported in full and
-        // propagates.
-        catch (Exception exception) when (exception is ScriptRuntimeException or TimeoutException)
-        {
-            result.Error = exception.Message;
-            return result;
-        }
-
-        result.Path = preview.Path;
-        result.PageName = preview.PageName;
-        result.CultureName = preview.CultureName;
-        result.PageTemplate = preview.PageTemplate;
-        result.HtmlLength = preview.Html.Length;
-        result.IsTruncated = preview.Html.Length > MaxPreviewHtmlLength;
-        result.Html = result.IsTruncated ? preview.Html[..MaxPreviewHtmlLength] : preview.Html;
-
-        return result;
     }
 
     [McpServerTool(Name = "site_delete_template", Title = "Delete a template", Destructive = true)]
@@ -319,35 +303,26 @@ public class SiteTemplatePreview
     /// <summary>The path that was rendered.</summary>
     public string Path { get; set; } = default!;
 
-    /// <summary>The page the path resolved to. Null when the render failed (<see cref="Error"/>).</summary>
-    public string? PageName { get; set; }
+    /// <summary>The page the path resolved to.</summary>
+    public string PageName { get; set; } = default!;
 
-    /// <summary>The language the page was rendered in. Null when the render failed.</summary>
-    public string? CultureName { get; set; }
+    /// <summary>The language the page was rendered in.</summary>
+    public string CultureName { get; set; } = default!;
 
     /// <summary>
     /// The page's own template value. When it differs from <see cref="Name"/> (and <see cref="Name"/> is not
-    /// <c>layout</c>), the live page does not render through what was previewed. Null when the render failed.
+    /// <c>layout</c>), the live page does not render through what was previewed.
     /// </summary>
-    public string? PageTemplate { get; set; }
+    public string PageTemplate { get; set; } = default!;
 
-    /// <summary>
-    /// The page's HTML, cut to <see cref="SiteTemplateTools.MaxPreviewHtmlLength"/> characters. Null when the
-    /// render failed.
-    /// </summary>
-    public string? Html { get; set; }
+    /// <summary>The page's HTML, cut to <see cref="SiteTemplateTools.MaxPreviewHtmlLength"/> characters.</summary>
+    public string Html { get; set; } = default!;
 
     /// <summary>Whether <see cref="Html"/> was cut off.</summary>
     public bool IsTruncated { get; set; }
 
     /// <summary>The length of the whole HTML, in characters, before any cut.</summary>
     public int HtmlLength { get; set; }
-
-    /// <summary>
-    /// Why the template failed to render - a runtime error naming the template, line and column, or the time
-    /// limit - or null when it rendered.
-    /// </summary>
-    public string? Error { get; set; }
 }
 
 public class SiteTemplateVersionSummary

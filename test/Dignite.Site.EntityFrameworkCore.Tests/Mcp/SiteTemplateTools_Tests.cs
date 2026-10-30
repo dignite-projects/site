@@ -40,8 +40,7 @@ public class SiteTemplateTools_Tests : SiteEntityFrameworkCoreTestBase
         preview.PageTemplate.ShouldBe("Default");
         preview.Html.ShouldBe("<html data-template=\"Seeded/Published\" data-version=\"2\">v2 {{ page.name }}</html>");
         preview.IsTruncated.ShouldBeFalse();
-        preview.HtmlLength.ShouldBe(preview.Html!.Length);
-        preview.Error.ShouldBeNull();
+        preview.HtmlLength.ShouldBe(preview.Html.Length);
 
         _previewRenderer.Requests.ShouldHaveSingleItem().Version.Number.ShouldBe(2);
     }
@@ -55,7 +54,7 @@ public class SiteTemplateTools_Tests : SiteEntityFrameworkCoreTestBase
 
         preview.Version.ShouldBe(3);
         preview.IsPublished.ShouldBeFalse();
-        preview.Html!.ShouldContain("v3 {{ page.name }}");
+        preview.Html.ShouldContain("v3 {{ page.name }}");
     }
 
     [Fact]
@@ -69,23 +68,25 @@ public class SiteTemplateTools_Tests : SiteEntityFrameworkCoreTestBase
         var fullLength = "<html data-template=\"Seeded/Published\" data-version=\"3\"></html>".Length + body.Length;
         preview.IsTruncated.ShouldBeTrue();
         preview.HtmlLength.ShouldBe(fullLength);
-        preview.Html!.Length.ShouldBe(SiteTemplateTools.MaxPreviewHtmlLength);
+        preview.Html.Length.ShouldBe(SiteTemplateTools.MaxPreviewHtmlLength);
     }
 
     /// <summary>
-    /// A render failure the server's error envelope would reduce to "an internal error" comes back in the
-    /// result, message intact.
+    /// A render failure arrives as the renderer's business exception, which the server's error envelope reports
+    /// with its message - the template, line and column - so the tool lets it through.
     /// </summary>
     [Fact]
-    public async Task Should_Return_A_Render_Failure_In_Error()
+    public async Task Should_Let_A_Render_Failure_Propagate()
     {
-        _previewRenderer.Failure = new TimeoutException("Rendering the Scriban template 'Seeded/Published' took too long.");
+        _previewRenderer.Failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed)
+            .WithData("Name", SiteTestData.PublishedTemplateName)
+            .WithData("Message", "Seeded/Published(1,4) : error : The variable or function `typo` was not found");
 
-        var preview = await _templateTools.PreviewTemplateAsync(SiteTestData.PublishedTemplateName, "/about");
+        var exception = await Should.ThrowAsync<BusinessException>(
+            () => _templateTools.PreviewTemplateAsync(SiteTestData.PublishedTemplateName, "/about"));
 
-        preview.Error.ShouldBe("Rendering the Scriban template 'Seeded/Published' took too long.");
-        preview.Html.ShouldBeNull();
-        preview.Version.ShouldBe(2);
+        exception.Code.ShouldBe(SiteErrorCodes.SiteTemplatePreviewRenderFailed);
+        exception.Data["Name"].ShouldBe(SiteTestData.PublishedTemplateName);
     }
 
     /// <summary>A business exception - no page at that path - is reported in full by the server, so it propagates.</summary>

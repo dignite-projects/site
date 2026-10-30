@@ -8,6 +8,7 @@ using Dignite.Site.Public.Routing;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.Templates;
 using Dignite.Site.Templates;
+using global::Scriban.Syntax;
 using Microsoft.AspNetCore.Http;
 using Shouldly;
 using Volo.Abp;
@@ -47,9 +48,9 @@ public class ScribanTemplatePreviewRenderer_Tests
 
     private sealed class Fixture
     {
-        public Fixture(RouteMatchDto match, SiteTemplateRenderSetDto published)
+        public Fixture(RouteMatchDto match, SiteTemplateRenderSetDto published, SiteScribanOptions? options = null)
         {
-            Scriban = new ScribanTestRenderer("en,ja", "/api/site-admin/templates/preview");
+            Scriban = new ScribanTestRenderer("en,ja", "/api/site-admin/templates/preview", options);
             Routing = new FakeRoutingAppService(match);
             HeadMetadata = new FakeHeadMetadataAppService(ScribanTestRenderer.HeadMetadata);
             Templates = new FakeTemplateAppService(published);
@@ -198,6 +199,54 @@ public class ScribanTemplatePreviewRenderer_Tests
         await fixture.RenderAsync("Default", Version("{{ site_head }}"));
 
         fixture.Scriban.Host.LanguageContext.HeadMetadata.ShouldBeNull();
+        fixture.Scriban.Host.LanguageContext.RenderedPath.ShouldBeNull();
+    }
+
+    /// <summary>The output bound is not a Scriban exception; a preview still reports it as the template's failure.</summary>
+    [Fact]
+    public async Task Output_Beyond_The_Limit_Should_Fail_With_Render_Failed()
+    {
+        var fixture = new Fixture(PageMatch(), new SiteTemplateRenderSetDto(), new SiteScribanOptions { MaxOutputLength = 100 });
+
+        var exception = await Should.ThrowAsync<BusinessException>(
+            () => fixture.RenderAsync("Default", Version("{{ site_head }}{{ for i in 1..50 }}xxxxxxxxxx{{ end }}")));
+
+        exception.Code.ShouldBe(SiteErrorCodes.SiteTemplatePreviewRenderFailed);
+        exception.Data["Message"].ShouldBeOfType<string>().ShouldContain("100");
+    }
+
+    /// <summary>
+    /// The engine's own exception would reach an HTTP or MCP caller as "an internal error"; the preview hands on
+    /// its message under a business code instead.
+    /// </summary>
+    [Fact]
+    public async Task A_Template_That_Fails_At_Run_Time_Should_Fail_With_Render_Failed()
+    {
+        var fixture = new Fixture(PageMatch(), new SiteTemplateRenderSetDto());
+
+        var exception = await Should.ThrowAsync<BusinessException>(
+            () => fixture.RenderAsync("Default", Version("{{ site_head }}\n{{ typo_var }}")));
+
+        exception.Code.ShouldBe(SiteErrorCodes.SiteTemplatePreviewRenderFailed);
+        exception.Data["Name"].ShouldBe("Default");
+        exception.Data["Message"].ShouldBeOfType<string>().ShouldContain("typo_var");
+        exception.InnerException.ShouldBeAssignableTo<ScriptRuntimeException>();
+
+        fixture.Scriban.Host.LanguageContext.RenderedPath.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The request is the admin API's, but the page is <c>/ja/about</c>: its links are in Japanese, as on the
+    /// live page.
+    /// </summary>
+    [Fact]
+    public async Task Url_Should_Follow_The_Previewed_Pages_Language()
+    {
+        var fixture = new Fixture(PageMatch(), new SiteTemplateRenderSetDto());
+
+        var preview = await fixture.RenderAsync("Default", Version("{{ site_head }}[{{ url \"~/contact\" }}]"), "/ja/about");
+
+        preview.Html.ShouldEndWith("[/ja/contact]");
     }
 
     private class FakeTemplateAppService(SiteTemplateRenderSetDto renderSet) : ISiteTemplatePublicAppService

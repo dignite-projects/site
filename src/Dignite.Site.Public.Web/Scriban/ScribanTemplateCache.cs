@@ -10,10 +10,11 @@ namespace Dignite.Site.Public.Scriban;
 /// <summary>
 /// Parsed templates, so a page view does not re-parse its template and layout every time.
 /// <para>
-/// Keyed by the version's own id: a published version never changes (publishing another one changes which
-/// id the render set returns), so an entry never has to be invalidated, and the id is globally unique - no
-/// tenant in the key, and a template deleted and re-created under the same name, whose version numbers start
-/// over, can never be served the old one's tree.
+/// Keyed by the version's own id. Versions of any state pass through it - the published ones pages render, and
+/// drafts and older versions a template preview renders - which is safe because no version ever changes once
+/// saved (publishing another one only changes which id the render set returns), so an entry never has to be
+/// invalidated. The id is globally unique - no tenant in the key, and a template deleted and re-created under
+/// the same name, whose version numbers start over, can never be served the old one's tree.
 /// </para>
 /// <para>
 /// A private <see cref="MemoryCache"/> rather than the application's <see cref="IMemoryCache"/>: a size limit

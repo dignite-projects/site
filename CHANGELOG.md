@@ -35,8 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Save draft** and **Save and publish**, lists the syntax errors a save is refused with beside the editor (clicking
   one moves the cursor to its line and column), publishes or loads any version, and renders the selected version in
   a preview frame. A preview needs `Dignite.Site.Public.Web` in the same application as the administration API;
-  without it, and for a path that no page answers, it fails with the new errors `Site:090007` and `Site:090006`. The
-  code editor is loaded with the screen, not in the application's initial bundle, and `@dignite/ng.site` gains four
+  without it, for a path that no page answers and for a render that fails, it fails with the new errors
+  `Site:090007`, `Site:090006` and `Site:090008`. The code editor is loaded with the screen, not in the application's initial bundle, and `@dignite/ng.site` gains four
   dependencies: `codemirror`, `@codemirror/lang-html`, `@codemirror/state` and `@codemirror/view`. See
   [Scriban Templates](docs/en/rendering/scriban-templates.md) and [Admin UI](docs/en/admin-ui.md). **A host that
   implements `ISiteTemplateAdminAppService` itself must add `PreviewAsync`.**

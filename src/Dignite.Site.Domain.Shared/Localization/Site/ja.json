@@ -45,6 +45,7 @@
     "Site:090005": "'{Name}' の描画中に site_head が一度も呼び出されなかったため、ページは SEO 用の head タグなしで配信されるところでした。",
     "Site:090006": "パス '{Path}' に応答するページがサイトにないため、テンプレートをプレビューできません。",
     "Site:090007": "テンプレートのプレビューには、管理 API と同じアプリケーションに Dignite.Site.Public.Web が必要です。",
+    "Site:090008": "プレビュー用の '{Name}' の描画に失敗しました: {Message}",
 
     "DisplayName:Site.EnabledLanguages": "有効な言語",
     "Description:Site.EnabledLanguages": "このサイトが提供するカルチャ名をカンマ区切りで指定します（例: \"en,fr,zh-Hans\"）。先頭が既定の言語で、その URL には言語プレフィックスが付きません。それ以外は \"/{culture}/\" の下で提供されます。",
@@ -149,6 +150,9 @@
     "TemplateSaved": "バージョン {0} として保存しました。",
     "TemplatePublished": "バージョン {0} を公開しました。",
     "DeleteTemplateConfirmMessage": "テンプレート「{0}」をすべてのバージョンとともに削除してもよろしいですか？テンプレートが「{0}」のページは、同じ名前の Razor ビューで再び描画されます。",
+    "LastModificationTime": "最終更新",
+    "CreationTime": "作成日時",
+    "PreviewPageTemplateNote": "このページは通常、テンプレート「{0}」で描画されます。",
 
     "ContentTypes": "コンテンツタイプ",
     "ContentTypesOfPage": "'{0}' のコンテンツタイプ",

@@ -8,6 +8,7 @@ using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.Templates;
 using Dignite.Site.Seo;
 using Dignite.Site.Templates;
+using global::Scriban.Syntax;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -31,9 +32,18 @@ namespace Dignite.Site.Public.Scriban;
 /// Razor (a Razor view cannot be rendered into a Scriban layout).
 /// </para>
 /// <para>
-/// Render failures - a template error (<c>ScriptRuntimeException</c>, naming template, line and column), the
-/// time budget (<see cref="TimeoutException"/>), a render that never called <c>site_head</c> - propagate as
-/// they are; the caller shows them.
+/// A template that fails at run time (<see cref="ScriptRuntimeException"/>, whose message names template, line
+/// and column) or runs out of time (<see cref="TimeoutException"/>) fails the preview with
+/// <see cref="SiteErrorCodes.SiteTemplatePreviewRenderFailed"/>, carrying that message: as a business exception
+/// it reaches every caller intact - the admin UI over HTTP, a client proxy, an MCP client - where ABP would
+/// replace the original exception with "an internal error occurred". A render that never called
+/// <c>site_head</c> already is a business exception and propagates as it is, and so does a request the client
+/// aborted.
+/// </para>
+/// <para>
+/// The page is rendered as the site path, not as the administration request it is rendered from:
+/// <see cref="SiteLanguageContext.RenderedPath"/> is set for the render, so <c>url</c> and the language
+/// switcher see the page's language.
 /// </para>
 /// <para>
 /// Exposed explicitly: ABP's naming convention only exposes an interface whose name the class name ends with,
@@ -120,7 +130,9 @@ public class ScribanTemplatePreviewRenderer : ISiteTemplatePreviewRenderer, ITra
 
         var languages = await LanguageContext.GetLanguagesAsync();
         var previousHeadMetadata = LanguageContext.HeadMetadata;
+        var previousRenderedPath = LanguageContext.RenderedPath;
         LanguageContext.HeadMetadata = headMetadata;
+        LanguageContext.RenderedPath = path;
 
         string html;
         try
@@ -134,10 +146,23 @@ public class ScribanTemplatePreviewRenderer : ISiteTemplatePreviewRenderer, ITra
                 html = await PageRenderer.RenderAsync(templateName, renderSet, viewModel, actionContext);
             }
         }
+        // ScriptAbortException is a ScriptRuntimeException too, and a cancellation Scriban met in an awaited call
+        // may come wrapped in one: when the client went away, it is not the template's failure. An
+        // InvalidOperationException is what BoundedScriptOutput raises past MaxOutputLength and what the cache
+        // raises for a version that no longer parses - both are the template's failure too.
+        catch (Exception exception) when (exception is TimeoutException or InvalidOperationException
+                                          || (exception is ScriptRuntimeException
+                                              && !httpContext.RequestAborted.IsCancellationRequested))
+        {
+            throw new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed, innerException: exception)
+                .WithData("Name", templateName)
+                .WithData("Message", exception.Message);
+        }
         finally
         {
             // The API request that asked for the preview is not the page; leave it as it was.
             LanguageContext.HeadMetadata = previousHeadMetadata;
+            LanguageContext.RenderedPath = previousRenderedPath;
         }
 
         return new SiteTemplatePreviewDto
