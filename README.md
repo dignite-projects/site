@@ -61,6 +61,7 @@ The NuGet packages (`Dignite.Site.*`) and the npm package (`@dignite/ng.site`) a
 
 | Dignite Site | ABP | abp-modules | Angular |
 |---|---|---|---|
+| 2.x | 10.7+ | 10.7+ | 22.x |
 | 1.x | 10.7+ | 10.7+ | 22.x |
 
 What counts as a major, minor or patch change is spelled out in

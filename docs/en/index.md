@@ -62,6 +62,7 @@ Dignite Site follows [Semantic Versioning](https://semver.org) with its own numb
 
 | Dignite Site | ABP Framework | Dignite ABP Modules | Angular |
 |---|---|---|---|
+| 2.x | 10.7+ | 10.7+ | 22.x |
 | 1.x | 10.7+ | 10.7+ | 22.x |
 
 * **Major**: Anything that makes an upgrade more than a package bump: a removed or changed public .NET API, `@dignite/ng.site` export or component input or output; an HTTP API or DTO field removed or changed in meaning; an incompatible MCP tool parameter; a database migration that needs manual data work; or a higher minimum ABP major version.
