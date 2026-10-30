@@ -271,6 +271,9 @@ public class ScribanTemplatePreviewRenderer_Tests
             RequestedNames.Add(name);
             return Task.FromResult(renderSet);
         }
+
+        /// <summary>The asset endpoint's lookup; a preview never makes it.</summary>
+        public Task<SiteTemplateVersionDto?> FindPublishedAsync(string name) => throw new NotSupportedException();
     }
 
     private class FakeRoutingAppService(RouteMatchDto match) : IRoutingPublicAppService
