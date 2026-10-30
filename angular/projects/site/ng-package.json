@@ -7,8 +7,12 @@
   "allowedNonPeerDependencies": [
     "@abp/ng.components",
     "@angular/cdk",
+    "@codemirror/lang-html",
+    "@codemirror/state",
+    "@codemirror/view",
     "@dignite/ng.flex-fields",
     "@dignite/ng.flex-fields-ckeditor",
+    "codemirror",
     "ng-zorro-antd"
   ]
 }

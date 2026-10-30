@@ -72,6 +72,20 @@ public class SiteLanguageContext_Tests
         (await host.LanguageContext.GetCurrentCultureNameAsync()).ShouldBe("ja");
     }
 
+    /// <summary>A page rendered from another request - a template preview - is in the language of its own path.</summary>
+    [Fact]
+    public async Task A_Rendered_Path_Should_Win_Over_The_Request_Path()
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/api/site-admin/templates/preview");
+        host.LanguageContext.RenderedPath = "/ja/x";
+
+        (await host.LanguageContext.GetCurrentCultureNameAsync()).ShouldBe("ja");
+
+        host.LanguageContext.RenderedPath = null;
+
+        (await host.LanguageContext.GetCurrentCultureNameAsync()).ShouldBe("en");
+    }
+
     [Fact]
     public async Task Should_Read_The_Setting_Once_Per_Request()
     {

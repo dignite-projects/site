@@ -256,5 +256,8 @@ public static class McpToolContracts
             Direct("Filter", typeof(string), "filter"),
             Direct("Prefix", typeof(string), "prefix"),
         ]),
+
+        // site_preview_template has no row: it builds no DTO, passing its scalars (the version number and the
+        // path) straight to ISiteTemplateAdminAppService.PreviewAsync, so there is no DTO shape to drift from.
     };
 }

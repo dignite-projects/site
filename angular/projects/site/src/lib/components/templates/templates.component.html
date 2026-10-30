@@ -1,0 +1,102 @@
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row align-items-end g-2">
+      <div class="col-md-8">
+        <label class="form-label">{{ 'AbpUi::Search' | abpLocalization }}</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="filter"
+          (keyup.enter)="load()"
+          [placeholder]="'AbpUi::Search' | abpLocalization"
+        />
+      </div>
+      <div class="col-md-4">
+        <button type="button" class="btn btn-primary me-2" (click)="load()">
+          <i class="fa fa-search me-1"></i>{{ 'AbpUi::Search' | abpLocalization }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilter()">
+          {{ 'AbpUi::Clear' | abpLocalization }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">{{ 'Site::Templates' | abpLocalization }}</h5>
+      <a
+        *abpPermission="policies.TemplatesCreate"
+        class="btn btn-primary"
+        [routerLink]="['/site/templates/create']"
+      >
+        <i class="fa fa-plus me-1"></i>{{ 'Site::NewTemplate' | abpLocalization }}
+      </a>
+    </div>
+
+    <ngx-datatable
+      class="material"
+      [rows]="rows()"
+      [loadingIndicator]="isLoading()"
+      columnMode="flex"
+      [headerHeight]="42"
+      [footerHeight]="42"
+      rowHeight="auto"
+    >
+      <ngx-datatable-column
+        prop="name"
+        [flexGrow]="3"
+        [name]="'Site::TemplateName' | abpLocalization"
+      ></ngx-datatable-column>
+      <ngx-datatable-column
+        [flexGrow]="2"
+        [sortable]="false"
+        [name]="'Site::PublishedVersion' | abpLocalization"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          @if (row.publishedVersionNumber) {
+            {{ row.publishedVersionNumber }}
+          } @else {
+            <span class="badge text-bg-secondary">{{ 'Site::NotPublished' | abpLocalization }}</span>
+          }
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column
+        prop="latestVersionNumber"
+        [flexGrow]="2"
+        [name]="'Site::LatestVersion' | abpLocalization"
+      ></ngx-datatable-column>
+      <ngx-datatable-column
+        [flexGrow]="3"
+        [sortable]="false"
+        [name]="'Site::LastModificationTime' | abpLocalization"
+      >
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          {{ row.lastModificationTime || row.creationTime | shortDateTime }}
+        </ng-template>
+      </ngx-datatable-column>
+      <ngx-datatable-column [flexGrow]="2" [sortable]="false" [name]="'AbpUi::Actions' | abpLocalization">
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <a
+            class="btn btn-sm btn-light me-1"
+            [routerLink]="['/site/templates', row.id, 'edit']"
+            [title]="'AbpUi::Edit' | abpLocalization"
+          >
+            <i class="fa fa-pencil"></i>
+          </a>
+          <button
+            *abpPermission="policies.TemplatesDelete"
+            type="button"
+            class="btn btn-sm btn-light"
+            (click)="delete(row)"
+            [title]="'AbpUi::Delete' | abpLocalization"
+          >
+            <i class="fa fa-trash text-danger"></i>
+          </button>
+        </ng-template>
+      </ngx-datatable-column>
+    </ngx-datatable>
+  </div>
+</div>

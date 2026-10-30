@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Write the templates of a Dignite Site in Scriban, stored in the database per tenant: the layout and site_head, partials, CSS and JavaScript assets, versions and rollback, the data and functions a template can use, the sandbox limits, and the admin API and MCP tools that manage them."
+    "Description": "Write the templates of a Dignite Site in Scriban, stored in the database per tenant: the layout and site_head, partials, CSS and JavaScript assets, versions, preview and rollback, the data and functions a template can use, the sandbox limits, and the admin API and MCP tools that manage them."
 }
 ```
 
@@ -46,11 +46,35 @@ A template is a name with a list of numbered versions. A version is never edited
 * **Publish** any existing version to make it the live one. Publishing an older version is the rollback; publishing the staged one is the release.
 * **Delete** a template to remove it with all of its versions.
 
-Every version can carry a short comment, and the body of every version can be read back. There is no preview of a staged version yet: a version is seen by publishing it, and undone by publishing the previous one.
+Every version can carry a short comment, and the body of every version can be read back. A version can be seen before it is published; see [Previewing a Version](#previewing-a-version).
 
 Saving parses the body. A body with a syntax error is rejected, and nothing is stored; the error lists each problem on a line of its own, as `(line,column): message`.
 
 By default a body can be at most 256 KiB, and a comment 256 characters.
+
+## Previewing a Version
+
+Any saved version of a template, whether a staged draft, the published one or an older one, can be rendered on a path of the site without publishing it. The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The page or content at that path is rendered with the chosen version in place of the published template of the same name, inside the published `layout` if there is one. Everything else is the live site's: the other templates, the data, the functions and the limits.
+
+Two cases are different when the previewed template is the `layout`:
+
+* The layout is rendered around the published Scriban template of the page at the path.
+* When that page is still rendered by a Razor view, the layout is rendered around an empty `body`.
+
+A preview renders a saved version, so to see an edit, save it as a draft (`publish` off) and preview that version. The site keeps rendering the published version meanwhile; publish the draft when the preview is right, and publish an older version to go back.
+
+A preview fails with one of these errors:
+
+* `Site:090006` when no page answers the path.
+* `Site:090007` when the application does not have `Dignite.Site.Public.Web`: a preview renders the page the way the site does, so it needs the rendering in the same application as the administration API.
+
+A render that fails, through a run-time error or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
+
+You can preview in three ways:
+
+* In the [admin UI](../admin-ui.md#screens), the **Templates** screen renders the selected version in a frame, for the path you type.
+* Over the [admin API](#managing-templates), which returns the HTML with the page it was rendered for.
+* Over MCP, with `site_preview_template`, so that an AI client can check its own draft before it publishes; see [MCP Tools](#mcp-tools).
 
 ## What a Template Sees
 
@@ -229,13 +253,15 @@ The admin API manages templates under `api/site-admin/templates`:
 | `POST /{id}/publish/{versionNumber}` | `SiteAdmin.Templates.Update` | Publishes a version, newer or older. |
 | `GET /{id}/versions` | `SiteAdmin.Templates` | Lists the versions, newest first, without their bodies. |
 | `GET /{id}/versions/{versionNumber}` | `SiteAdmin.Templates` | Reads one version with its body. |
+| `GET /{id}/versions/{versionNumber}/preview?path=...` | `SiteAdmin.Templates` | Renders the version at the path; see [Previewing a Version](#previewing-a-version). Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` (the page's own template, which tells when the previewed template is not the one the page normally uses) and `versionNumber`. |
+| `GET /{id}/versions/{versionNumber}/preview.html?path=...` | `SiteAdmin.Templates` | The same, as a `text/html` document, for a browser authenticated with a cookie. It is not part of the API definition, so it has no generated proxy. |
 | `DELETE /{id}` | `SiteAdmin.Templates.Delete` | Deletes the template with all of its versions. |
 
 A syntax error, a `layout` without `site_head` and a name that is already taken are answered as business errors, with the lines and columns in the message.
 
 ### MCP Tools
 
-The MCP server offers the same operations, addressed by template name: `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and `site_delete_template`. They cover [partials](#partials) and [assets](#assets) unchanged, since those are templates by name; `site_list_templates` takes an optional `prefix` to list only one kind. Saving needs both the create and the update permission, since the same call creates a template or adds a version. See [Tools](../mcp/tools.md#templates).
+The MCP server offers the same operations, addressed by template name: `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and `site_delete_template`, and `site_preview_template`, which renders a version at a path. They cover [partials](#partials) and [assets](#assets) unchanged, since those are templates by name; `site_list_templates` takes an optional `prefix` to list only one kind. Saving needs both the create and the update permission, since the same call creates a template or adds a version. The recommended flow is to save as a draft (`publish` false), preview it, and then publish it; publishing an older version is the rollback. See [Tools](../mcp/tools.md#templates).
 
 ## Example
 

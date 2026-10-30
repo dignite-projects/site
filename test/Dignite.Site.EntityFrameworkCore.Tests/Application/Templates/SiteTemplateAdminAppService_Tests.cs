@@ -12,10 +12,45 @@ namespace Dignite.Site.Admin.Templates;
 public class SiteTemplateAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly ISiteTemplateAdminAppService _templateAppService;
+    private readonly FakeSiteTemplatePreviewRenderer _previewRenderer;
 
     public SiteTemplateAdminAppService_Tests()
     {
         _templateAppService = GetRequiredService<ISiteTemplateAdminAppService>();
+        _previewRenderer = GetRequiredService<FakeSiteTemplatePreviewRenderer>();
+    }
+
+    [Fact]
+    public async Task Should_Preview_A_Staged_Version_Through_The_Renderer()
+    {
+        var staged = await _templateAppService.UpdateAsync(
+            SiteTestData.PublishedTemplateId,
+            new UpdateSiteTemplateDto { Body = "v3 {{ page.name }}", Publish = false });
+
+        var preview = await _templateAppService.PreviewAsync(SiteTestData.PublishedTemplateId, staged.LatestVersionNumber, "/about");
+
+        var request = _previewRenderer.Requests.ShouldHaveSingleItem();
+        request.TemplateName.ShouldBe(SiteTestData.PublishedTemplateName);
+        request.Version.Number.ShouldBe(3);
+        request.Version.Body.ShouldBe("v3 {{ page.name }}");
+        request.Path.ShouldBe("/about");
+
+        preview.Html.ShouldBe("<html data-template=\"Seeded/Published\" data-version=\"3\">v3 {{ page.name }}</html>");
+        preview.VersionNumber.ShouldBe(3);
+        preview.Path.ShouldBe("/about");
+        preview.PageName.ShouldBe("about");
+
+        // A preview publishes nothing.
+        (await _templateAppService.GetAsync(SiteTestData.PublishedTemplateId)).PublishedVersionNumber.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Should_Throw_Not_Found_When_Previewing_A_Missing_Version()
+    {
+        await Should.ThrowAsync<EntityNotFoundException>(
+            () => _templateAppService.PreviewAsync(SiteTestData.PublishedTemplateId, 9, "/about"));
+
+        _previewRenderer.Requests.ShouldBeEmpty();
     }
 
     [Fact]

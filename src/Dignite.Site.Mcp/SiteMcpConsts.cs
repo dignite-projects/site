@@ -37,6 +37,9 @@ public static class SiteMcpConsts
         "every page and must call `site_head`. Saving parses the body and rejects a syntax error with its " +
         "line and column; fix the reported lines and save again. A save publishes at once unless " +
         "`publish` is false, which stages the version for `site_publish_template` (also the rollback). " +
+        "To change a live template safely, save with `publish` false, call `site_preview_template` on a " +
+        "path that template renders and read the HTML, then `site_publish_template`; publishing an older " +
+        "version rolls back.\n\n" +
         "Two reserved prefixes: a template named `partials/...` is a fragment that other templates pull in " +
         "with `{{ include \"partials/name\" }}` and never renders a page itself; a template named `assets/...` " +
         "is a CSS or JS file served verbatim at `/site-assets/`, not parsed as Scriban, and addressed from " +

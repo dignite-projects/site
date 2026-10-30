@@ -1,0 +1,244 @@
+@if (!isLoading()) {
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h5 class="mb-0">
+        {{ (isEdit ? 'Site::EditTemplate' : 'Site::NewTemplate') | abpLocalization }}
+      </h5>
+      @if (template(); as current) {
+        <small class="text-muted">{{ current.name }}</small>
+      }
+    </div>
+    <a class="btn btn-secondary" [routerLink]="['/site/templates']">
+      {{ 'AbpUi::Cancel' | abpLocalization }}
+    </a>
+  </div>
+
+  <div class="row g-3">
+    <!-- Left: the source, its comment and the version history. -->
+    <div [class]="isEdit ? 'col-lg-7' : 'col-12'">
+      <div class="card mb-3">
+        <div class="card-body">
+          <form [formGroup]="form" (ngSubmit)="save(false)">
+            @if (!isEdit) {
+              <div class="mb-3">
+                <label class="form-label" for="site-template-name">
+                  {{ 'Site::TemplateName' | abpLocalization }}
+                </label>
+                <input
+                  id="site-template-name"
+                  type="text"
+                  class="form-control"
+                  formControlName="name"
+                  autocomplete="off"
+                />
+                <small class="form-text text-muted">
+                  {{ 'Site::TemplateNameHint' | abpLocalization }}
+                </small>
+              </div>
+            }
+
+            <div class="mb-3">
+              <label class="form-label">{{ 'Site::TemplateBody' | abpLocalization }}</label>
+              <site-code-editor
+                [value]="body()"
+                [readonly]="!canSave"
+                (valueChange)="body.set($event)"
+              ></site-code-editor>
+            </div>
+
+            @if (syntaxErrors().length > 0) {
+              <div class="alert alert-danger" role="alert">
+                <strong class="d-block mb-1">{{ 'Site::TemplateSyntaxErrors' | abpLocalization }}</strong>
+                <ul class="list-unstyled mb-0">
+                  @for (error of syntaxErrors(); track $index) {
+                    <li>
+                      <!-- A button, not a link: it moves the editor's cursor, it does not navigate. -->
+                      <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="goToError(error)">
+                        {{ error.line }}:{{ error.column }}
+                      </button>
+                      {{ error.message }}
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (saveError(); as message) {
+              <div class="alert alert-danger" role="alert" style="white-space: pre-line">{{ message }}</div>
+            }
+
+            <div class="mb-3">
+              <label class="form-label" for="site-template-comment">
+                {{ 'Site::TemplateComment' | abpLocalization }}
+              </label>
+              <input
+                id="site-template-comment"
+                type="text"
+                class="form-control"
+                formControlName="comment"
+                autocomplete="off"
+                [placeholder]="'Site::TemplateCommentPlaceholder' | abpLocalization"
+              />
+            </div>
+
+            @if (canSave) {
+              <div class="d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-secondary" [disabled]="form.invalid || isBusy()">
+                  @if (isBusy()) {
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                  } @else {
+                    <i class="fa fa-save me-1"></i>
+                  }
+                  {{ 'Site::SaveDraft' | abpLocalization }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  [disabled]="form.invalid || isBusy()"
+                  (click)="save(true)"
+                >
+                  <i class="fa fa-check me-1"></i>{{ 'Site::SaveAndPublish' | abpLocalization }}
+                </button>
+              </div>
+            }
+          </form>
+        </div>
+      </div>
+
+      @if (isEdit) {
+        <div class="card">
+          <div class="card-body">
+            <h6 class="mb-3">{{ 'Site::Versions' | abpLocalization }}</h6>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>{{ 'Site::Version' | abpLocalization }}</th>
+                    <th>{{ 'Site::TemplateComment' | abpLocalization }}</th>
+                    <th>{{ 'Site::CreationTime' | abpLocalization }}</th>
+                    <th class="text-end">{{ 'AbpUi::Actions' | abpLocalization }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (version of versions(); track version.id) {
+                    <tr [class.table-active]="version.number === loadedVersion()">
+                      <td class="text-nowrap">
+                        <button
+                          type="button"
+                          class="btn btn-link p-0 align-baseline"
+                          (click)="loadVersion(version.number)"
+                        >
+                          {{ version.number }}
+                        </button>
+                        @if (version.number === template()?.publishedVersionNumber) {
+                          <span class="badge text-bg-success ms-1">{{ 'Site::Published' | abpLocalization }}</span>
+                        }
+                      </td>
+                      <td>{{ version.comment }}</td>
+                      <td class="text-nowrap">{{ version.creationTime | shortDateTime }}</td>
+                      <td class="text-end text-nowrap">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary me-1"
+                          (click)="previewVersion(version.number)"
+                        >
+                          {{ 'Site::Preview' | abpLocalization }}
+                        </button>
+                        @if (canSave && version.number !== template()?.publishedVersionNumber) {
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            [disabled]="isBusy()"
+                            (click)="publishVersion(version.number)"
+                          >
+                            {{ 'Site::PublishVersion' | abpLocalization }}
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Right: the preview. Only an existing template has saved versions to render. -->
+    @if (isEdit) {
+      <div class="col-lg-5">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="mb-3">{{ 'Site::Preview' | abpLocalization }}</h6>
+
+            <div class="mb-2">
+              <label class="form-label" for="site-template-preview-path">
+                {{ 'Site::PreviewPath' | abpLocalization }}
+              </label>
+              <div class="input-group">
+                <input
+                  id="site-template-preview-path"
+                  type="text"
+                  class="form-control"
+                  autocomplete="off"
+                  [ngModel]="previewPath()"
+                  (ngModelChange)="previewPath.set($event)"
+                  (keyup.enter)="renderPreview()"
+                />
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  [disabled]="isPreviewing() || selectedVersion() === undefined"
+                  (click)="renderPreview()"
+                >
+                  @if (isPreviewing()) {
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                  }
+                  {{ 'Site::RunPreview' | abpLocalization }}
+                </button>
+              </div>
+              <small class="form-text text-muted">{{ 'Site::PreviewPathHint' | abpLocalization }}</small>
+            </div>
+
+            <div class="mb-1">
+              {{ 'Site::PreviewVersion' | abpLocalization }}
+              <strong>{{ selectedVersion() }}</strong>
+              @if (isSelectedVersionPublished()) {
+                <span class="badge text-bg-success ms-1">{{ 'Site::Published' | abpLocalization }}</span>
+              } @else {
+                <span class="badge text-bg-secondary ms-1">{{ 'Site::Draft' | abpLocalization }}</span>
+              }
+            </div>
+            <small class="form-text text-muted d-block mb-3">
+              {{ 'Site::PreviewUnsavedHint' | abpLocalization }}
+            </small>
+
+            @if (preview(); as result) {
+              <div class="small text-muted mb-1">
+                {{ result.pageName }} &middot; {{ result.cultureName }}
+              </div>
+              @if (pageTemplateNote(); as pageTemplate) {
+                <div class="small text-muted mb-2">
+                  {{ 'Site::PreviewPageTemplateNote' | abpLocalization: pageTemplate }}
+                </div>
+              }
+            }
+
+            @if (previewError(); as message) {
+              <div class="alert alert-warning mb-0" role="alert" style="white-space: pre-line">{{ message }}</div>
+            } @else if (previewSrcdoc()) {
+              <!-- allow-same-origin only: no allow-scripts, so nothing a template renders can run. -->
+              <iframe
+                class="w-100 border rounded bg-white"
+                style="height: 60vh"
+                sandbox="allow-same-origin"
+                [srcdoc]="previewDocument()"
+              ></iframe>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}

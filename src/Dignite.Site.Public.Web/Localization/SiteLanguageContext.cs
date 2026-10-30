@@ -63,6 +63,14 @@ public class SiteLanguageContext : IScopedDependency
     /// </summary>
     public HeadMetadataDto? HeadMetadata { get; set; }
 
+    /// <summary>
+    /// The site path being rendered when it is not the request's own path - a template preview, rendered from
+    /// an administration request for <c>/ja/about</c>. <see cref="GetCurrentCultureName"/> reads the language
+    /// off it before anything else, so the page's links and language switcher are in the page's language rather
+    /// than the default one. Null otherwise; whoever sets it restores it once the render is over.
+    /// </summary>
+    public virtual string? RenderedPath { get; set; }
+
     /// <summary>The current site's languages, read once per request (and tenant).</summary>
     public virtual async Task<SiteLanguages> GetLanguagesAsync()
     {
@@ -113,13 +121,15 @@ public class SiteLanguageContext : IScopedDependency
     /// culture is whatever request localization picked - typically the admin side's culture cookie - which
     /// says nothing about the language the visitor is reading the site in. When an error page is rendered by
     /// re-executing the request (<c>UseStatusCodePagesWithReExecute</c>, <c>UseExceptionHandler</c>), it is
-    /// the original path that counts, so <c>/ja/missing</c>'s 404 page is still in Japanese.
+    /// the original path that counts, so <c>/ja/missing</c>'s 404 page is still in Japanese. A
+    /// <see cref="RenderedPath"/>, when set, comes before all of these.
     /// </para>
     /// </summary>
     public virtual string GetCurrentCultureName(SiteLanguages languages)
     {
         var httpContext = HttpContextAccessor.HttpContext;
-        var path = httpContext?.Features.Get<IStatusCodeReExecuteFeature>()?.OriginalPath
+        var path = RenderedPath
+                   ?? httpContext?.Features.Get<IStatusCodeReExecuteFeature>()?.OriginalPath
                    ?? httpContext?.Features.Get<IExceptionHandlerPathFeature>()?.Path
                    ?? httpContext?.Request.Path.Value;
 

@@ -59,6 +59,27 @@ export const SITE_ROUTES: Routes = [
           import('./components/fields/fields.component').then(c => c.FieldsComponent),
         data: { requiredPolicy: eSitePolicyNames.Fields },
       },
+      {
+        path: 'templates',
+        loadComponent: () =>
+          import('./components/templates/templates.component').then(c => c.TemplatesComponent),
+        data: { requiredPolicy: eSitePolicyNames.Templates },
+      },
+      {
+        // Like a content, a template is edited on a page of its own: the source is a code editor next to a
+        // live preview, which a dialog could not hold.
+        path: 'templates/create',
+        loadComponent: () =>
+          import('./components/templates/template-editor.component').then(c => c.TemplateEditorComponent),
+        data: { requiredPolicy: eSitePolicyNames.TemplatesCreate },
+      },
+      {
+        // Viewing and previewing need only the base policy; the editor gates its save and publish buttons itself.
+        path: 'templates/:id/edit',
+        loadComponent: () =>
+          import('./components/templates/template-editor.component').then(c => c.TemplateEditorComponent),
+        data: { requiredPolicy: eSitePolicyNames.Templates },
+      },
     ],
   },
 ];

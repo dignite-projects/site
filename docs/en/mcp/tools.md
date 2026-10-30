@@ -119,6 +119,7 @@ It sees only what is published, so a match means something is live at that addre
 | `site_list_templates` | `SiteAdmin.Templates` | Lists the [Scriban templates](../rendering/scriban-templates.md), each with its published and latest version numbers. Takes an optional `filter` over the name and an optional `prefix`. |
 | `site_get_template` | `SiteAdmin.Templates` | Reads a template: its summary, the body of one version, and the list of its versions. |
 | `site_save_template` | `SiteAdmin.Templates.Create` and `SiteAdmin.Templates.Update` | Creates the template, or adds a version to it. A syntax error is refused with its lines and columns. |
+| `site_preview_template` | `SiteAdmin.Templates` | Renders a version of a template at a path of the site without publishing it, and returns the HTML. See [Previewing a Version](../rendering/scriban-templates.md#previewing-a-version). |
 | `site_publish_template` | `SiteAdmin.Templates.Update` | Makes a version the live one; an older version is the rollback. |
 | `site_delete_template` | `SiteAdmin.Templates.Delete` | Deletes a template with all of its versions; the pages that used its name render through the Razor view of that name again. Destructive. |
 
@@ -126,7 +127,7 @@ Templates are not part of the schema: a template is addressed by its name, and `
 
 Two name prefixes are reserved. A template under `partials/` is a [partial](../rendering/scriban-templates.md#partials), pulled into other templates with `include`, and never renders a page. A template under `assets/` is a text [asset](../rendering/scriban-templates.md#assets), such as CSS or JavaScript: it is not parsed and is served at `/site-assets/`. The tools above save, read, publish and delete both unchanged, and `prefix` limits `site_list_templates` to one kind, as in `partials/`.
 
-`site_get_template` takes `template` and an optional `version`, and returns the published version's body when `version` is left out (the latest, with `isPublished` false, when nothing is published). `site_save_template` takes `template`, `body`, an optional `comment` and `publish`, true by default; with `publish` false the version is staged and the site keeps rendering the published one. `site_publish_template` takes `template` and `version`; `site_delete_template` takes `template`.
+`site_get_template` takes `template` and an optional `version`, and returns the published version's body when `version` is left out (the latest, with `isPublished` false, when nothing is published). `site_save_template` takes `template`, `body`, an optional `comment` and `publish`, true by default; with `publish` false the version is staged and the site keeps rendering the published one. `site_preview_template` takes `template`, `path` and an optional `version`, the published one by default (the latest when nothing is published), and returns the rendered HTML with `pageName`, `cultureName`, `pageTemplate` (the page's own template), `version` and `isPublished`. The HTML is cut at 32 KiB: then `isTruncated` is true and `htmlLength` is the full length. Save as a draft (`publish` false), preview the version, and publish it with `site_publish_template` when it is right; publishing an older version is the rollback. `site_publish_template` takes `template` and `version`; `site_delete_template` takes `template`.
 
 ## Files
 

@@ -46,6 +46,21 @@ public interface ISiteTemplateAdminAppService : IApplicationService
     Task<SiteTemplateVersionDto> GetVersionAsync(Guid id, int versionNumber);
 
     /// <summary>
+    /// Renders the site page at <paramref name="path"/> (<c>/about</c>, <c>/ja/blog/hello</c>) with version
+    /// <paramref name="versionNumber"/> in place of the template's published version, and returns its HTML.
+    /// The published <c>layout</c> still wraps a previewed page template; previewing <c>layout</c> itself wraps
+    /// the page's published template (or an empty body, when the page is still rendered by Razor). Nothing is
+    /// published or cached for visitors, so a draft can be checked before it goes live.
+    /// <para>
+    /// Needs <c>Dignite.Site.Public.Web</c> in the same application - it is what renders pages - and fails
+    /// with <c>Site:090007</c> without it; a path no page answers fails with <c>Site:090006</c>, a missing
+    /// version with <c>EntityNotFoundException</c>. A template that fails to render fails the call with the
+    /// renderer's error. Covered by the Default permission, like reading a version.
+    /// </para>
+    /// </summary>
+    Task<SiteTemplatePreviewDto> PreviewAsync(Guid id, int versionNumber, string path);
+
+    /// <summary>
     /// Deletes the template with all its versions; a <c>Page.Template</c> of that name falls back to the
     /// Razor view of the same name.
     /// </summary>

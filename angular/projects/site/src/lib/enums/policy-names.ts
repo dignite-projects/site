@@ -33,4 +33,10 @@ export enum eSitePolicyNames {
   ContentsCreate = 'SiteAdmin.Contents.Create',
   ContentsUpdate = 'SiteAdmin.Contents.Update',
   ContentsDelete = 'SiteAdmin.Contents.Delete',
+
+  Templates = 'SiteAdmin.Templates',
+  TemplatesCreate = 'SiteAdmin.Templates.Create',
+  /** Also gates publishing a version: it is the same decision as writing one. */
+  TemplatesUpdate = 'SiteAdmin.Templates.Update',
+  TemplatesDelete = 'SiteAdmin.Templates.Delete',
 }

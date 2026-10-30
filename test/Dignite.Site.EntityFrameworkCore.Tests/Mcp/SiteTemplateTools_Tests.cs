@@ -1,10 +1,16 @@
+using System;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using Dignite.Site.Admin.Templates;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Mcp.Errors;
 using Dignite.Site.Mcp.Templates;
 using Dignite.Site.Templates;
 using Shouldly;
+using Volo.Abp;
 using Xunit;
 
 namespace Dignite.Site.Mcp;
@@ -12,10 +18,104 @@ namespace Dignite.Site.Mcp;
 public class SiteTemplateTools_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly SiteTemplateTools _templateTools;
+    private readonly FakeSiteTemplatePreviewRenderer _previewRenderer;
 
     public SiteTemplateTools_Tests()
     {
         _templateTools = GetRequiredService<SiteTemplateTools>();
+        _previewRenderer = GetRequiredService<FakeSiteTemplatePreviewRenderer>();
+    }
+
+    [Fact]
+    public async Task Should_Preview_The_Published_Version_By_Default()
+    {
+        var preview = await _templateTools.PreviewTemplateAsync(SiteTestData.PublishedTemplateName, "/about");
+
+        preview.Name.ShouldBe(SiteTestData.PublishedTemplateName);
+        preview.Version.ShouldBe(2);
+        preview.IsPublished.ShouldBeTrue();
+        preview.Path.ShouldBe("/about");
+        preview.PageName.ShouldBe("about");
+        preview.CultureName.ShouldBe("en");
+        preview.PageTemplate.ShouldBe("Default");
+        preview.Html.ShouldBe("<html data-template=\"Seeded/Published\" data-version=\"2\">v2 {{ page.name }}</html>");
+        preview.IsTruncated.ShouldBeFalse();
+        preview.HtmlLength.ShouldBe(preview.Html.Length);
+
+        _previewRenderer.Requests.ShouldHaveSingleItem().Version.Number.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Should_Preview_A_Staged_Version()
+    {
+        await _templateTools.SaveTemplateAsync(SiteTestData.PublishedTemplateName, "v3 {{ page.name }}", publish: false);
+
+        var preview = await _templateTools.PreviewTemplateAsync(SiteTestData.PublishedTemplateName, "/about", version: 3);
+
+        preview.Version.ShouldBe(3);
+        preview.IsPublished.ShouldBeFalse();
+        preview.Html.ShouldContain("v3 {{ page.name }}");
+    }
+
+    [Fact]
+    public async Task Should_Truncate_A_Long_Preview_And_Report_Its_Full_Length()
+    {
+        var body = new string('x', SiteTemplateTools.MaxPreviewHtmlLength + 100);
+        await _templateTools.SaveTemplateAsync(SiteTestData.PublishedTemplateName, body, publish: false);
+
+        var preview = await _templateTools.PreviewTemplateAsync(SiteTestData.PublishedTemplateName, "/about", version: 3);
+
+        var fullLength = "<html data-template=\"Seeded/Published\" data-version=\"3\"></html>".Length + body.Length;
+        preview.IsTruncated.ShouldBeTrue();
+        preview.HtmlLength.ShouldBe(fullLength);
+        preview.Html.Length.ShouldBe(SiteTemplateTools.MaxPreviewHtmlLength);
+    }
+
+    /// <summary>
+    /// A render failure arrives as the renderer's business exception, which the server's error envelope reports
+    /// with its message - the template, line and column - so the tool lets it through.
+    /// </summary>
+    [Fact]
+    public async Task Should_Let_A_Render_Failure_Propagate()
+    {
+        _previewRenderer.Failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed)
+            .WithData("Name", SiteTestData.PublishedTemplateName)
+            .WithData("Message", "Seeded/Published(1,4) : error : The variable or function `typo` was not found");
+
+        var exception = await Should.ThrowAsync<BusinessException>(
+            () => _templateTools.PreviewTemplateAsync(SiteTestData.PublishedTemplateName, "/about"));
+
+        exception.Code.ShouldBe(SiteErrorCodes.SiteTemplatePreviewRenderFailed);
+        exception.Data["Name"].ShouldBe(SiteTestData.PublishedTemplateName);
+    }
+
+    /// <summary>A business exception - no page at that path - is reported in full by the server, so it propagates.</summary>
+    [Fact]
+    public async Task Should_Let_A_Business_Exception_Propagate()
+    {
+        _previewRenderer.Failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewPathNotFound).WithData("Path", "/nowhere");
+
+        var exception = await Should.ThrowAsync<BusinessException>(
+            () => _templateTools.PreviewTemplateAsync(SiteTestData.PublishedTemplateName, "/nowhere"));
+
+        exception.Code.ShouldBe(SiteErrorCodes.SiteTemplatePreviewPathNotFound);
+    }
+
+    [Fact]
+    public async Task Should_Throw_Not_Found_When_Previewing_An_Unknown_Template()
+    {
+        await Should.ThrowAsync<McpEntityNotFoundException>(() => _templateTools.PreviewTemplateAsync("does/not-exist", "/about"));
+    }
+
+    /// <summary>The description states the cut-off as a literal, which has to follow the constant.</summary>
+    [Fact]
+    public void The_Preview_Description_Should_State_The_Truncation_Length()
+    {
+        typeof(SiteTemplateTools)
+            .GetMethod(nameof(SiteTemplateTools.PreviewTemplateAsync))!
+            .GetCustomAttribute<DescriptionAttribute>()!
+            .Description
+            .ShouldContain(SiteTemplateTools.MaxPreviewHtmlLength.ToString(CultureInfo.InvariantCulture));
     }
 
     [Fact]

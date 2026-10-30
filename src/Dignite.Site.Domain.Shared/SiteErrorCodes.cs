@@ -63,4 +63,15 @@ public static class SiteErrorCodes
     public const string SiteTemplateVersionNotFound = "Site:090003";
     public const string SiteTemplateMissingSiteHead = "Site:090004";
     public const string SiteTemplateDidNotRenderSiteHead = "Site:090005";
+
+    // Previewing a saved version on a page of the site. The first is raised by the renderer in
+    // Dignite.Site.Public.Web (no Domain there either), the second by the admin service when no renderer is
+    // registered - an administration API hosted without Dignite.Site.Public.Web.
+    public const string SiteTemplatePreviewPathNotFound = "Site:090006";
+    public const string SiteTemplatePreviewUnavailable = "Site:090007";
+
+    // A preview whose template failed at run time or ran out of time, raised by the same renderer. The
+    // engine's own exception would reach an HTTP or MCP caller as "an internal error occurred"; this code
+    // carries its message - template, line and column - as Data["Message"].
+    public const string SiteTemplatePreviewRenderFailed = "Site:090008";
 }

@@ -52,6 +52,13 @@ the published package.json to the same alias form used for `@dignite/ng.site` it
 step never covered `peerDependencies`, which is exactly why the old manual alias instruction lived
 here.
 
+### Code editor dependency (CodeMirror)
+
+The Templates screen edits Scriban templates in CodeMirror 6 (`codemirror`, `@codemirror/lang-html`,
+`@codemirror/state`, `@codemirror/view` - all MIT, all declared as this package's own `dependencies`, so
+`npm install @dignite/ng.site` brings them). The screen is lazy-loaded with the `/site` routes, so the editor stays
+out of the host's initial bundle. It needs no stylesheet from the host.
+
 ### Required global styles (ng-zorro-antd)
 
 `@dignite/ng.site` builds several fields on `ng-zorro-antd` (`nz-tree`, `nz-tree-select`, `nz-select`,
