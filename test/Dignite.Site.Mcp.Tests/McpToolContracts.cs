@@ -254,6 +254,7 @@ public static class McpToolContracts
         new(typeof(SiteTemplateTools), nameof(SiteTemplateTools.ListTemplatesAsync), typeof(GetSiteTemplateListInput),
         [
             Direct("Filter", typeof(string), "filter"),
+            Direct("Prefix", typeof(string), "prefix"),
         ]),
 
         // site_preview_template has no row: it builds no DTO, passing its scalars (the version number and the

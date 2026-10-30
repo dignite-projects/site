@@ -189,14 +189,18 @@ public class ScribanTemplatePreviewRenderer : ISiteTemplatePreviewRenderer, ITra
             return new SiteTemplateRenderSetDto
             {
                 Template = published.Template ?? CreateEmptyPageTemplate(),
-                Layout = request.Version
+                Layout = request.Version,
+                Partials = published.Partials,
+                Assets = published.Assets
             };
         }
 
         return new SiteTemplateRenderSetDto
         {
             Template = request.Version,
-            Layout = published.Layout
+            Layout = published.Layout,
+            Partials = published.Partials,
+            Assets = published.Assets
         };
     }
 

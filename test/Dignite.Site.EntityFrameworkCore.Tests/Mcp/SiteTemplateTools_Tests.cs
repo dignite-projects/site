@@ -217,6 +217,17 @@ public class SiteTemplateTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Should_List_Only_Names_Under_The_Given_Prefix()
+    {
+        await _templateTools.SaveTemplateAsync("partials/mcp-card", "<b>card</b>");
+        await _templateTools.SaveTemplateAsync("partials/mcp-footer", "<footer></footer>");
+
+        var list = await _templateTools.ListTemplatesAsync(prefix: "partials/");
+
+        list.Select(t => t.Name).ShouldBe(new[] { "partials/mcp-card", "partials/mcp-footer" });
+    }
+
+    [Fact]
     public async Task Should_Throw_Not_Found_For_An_Unknown_Template_Name()
     {
         await Should.ThrowAsync<McpEntityNotFoundException>(() => _templateTools.GetTemplateAsync("does/not-exist"));

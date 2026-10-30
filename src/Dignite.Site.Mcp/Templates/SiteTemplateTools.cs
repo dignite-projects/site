@@ -54,13 +54,17 @@ public class SiteTemplateTools : ITransientDependency
         "published. A page renders through the published template whose name equals its 'template' value " +
         "(see site_create_page); a page whose template name has no published template here is rendered by " +
         "the Razor view of that name instead. The template named 'layout' is special: it wraps every page. " +
-        "A null publishedVersionNumber means the template is a draft that nothing renders.")]
+        "A null publishedVersionNumber means the template is a draft that nothing renders. " +
+        "Names under 'partials/' are fragments for '{{ include }}', names under 'assets/' are CSS/JS files " +
+        "served at /site-assets/; see site_save_template.")]
     [Authorize(SiteAdminPermissions.Templates.Default)]
     public virtual async Task<SiteTemplateSummary[]> ListTemplatesAsync(
         [Description("Free-text filter over the template name. Omit for all.")]
-        string? filter = null)
+        string? filter = null,
+        [Description("Only templates whose name starts with this, e.g. 'partials/' or 'assets/'. Omit for all.")]
+        string? prefix = null)
     {
-        var templates = await TemplateAppService.GetListAsync(new GetSiteTemplateListInput { Filter = filter });
+        var templates = await TemplateAppService.GetListAsync(new GetSiteTemplateListInput { Filter = filter, Prefix = prefix });
 
         return templates.Items.Select(SiteTemplateSummary.From).ToArray();
     }
@@ -121,13 +125,21 @@ public class SiteTemplateTools : ITransientDependency
         "and nothing is saved - fix the reported lines and send the whole body again. By default the new " +
         "version goes live at once, so the site changes as soon as this returns; pass publish=false to " +
         "stage it and publish it later with site_publish_template. Needs both the Create and the Update " +
-        "template permission, since the same call can do either.")]
+        "template permission, since the same call can do either. " +
+        "Two reserved prefixes: a name under 'partials/' (e.g. 'partials/post-card') is a fragment that a " +
+        "page template or the layout pulls in with '{{ include \"partials/post-card\" }}' - only partials can " +
+        "be included, they share the including template's variables, and they never render a page on their " +
+        "own. A name under 'assets/' (e.g. 'assets/site.css', 'assets/site.js') is a plain text file: its " +
+        "body is stored as it is, is NOT parsed as Scriban, and is served at '/site-assets/<name without " +
+        "the prefix>' with a Content-Type from its extension; a template gets its versioned URL with " +
+        "'{{ asset_url \"assets/site.css\" }}', so publishing a new version changes the URL and busts " +
+        "caches. Binary files (images, fonts) are not templates: upload them with site_upload_file.")]
     [Authorize(SiteAdminPermissions.Templates.Create)]
     [Authorize(SiteAdminPermissions.Templates.Update)]
     public virtual async Task<SiteTemplateSummary> SaveTemplateAsync(
-        [Description("The template's name, e.g. 'layout', 'Default' or 'Blog/Article'. Unique across the site.")]
+        [Description("The template's name, e.g. 'layout', 'Default' or 'Blog/Article'; 'partials/...' for a fragment, 'assets/...' for a CSS/JS file. Unique across the site.")]
         string template,
-        [Description("The full Scriban source of the template. Replaces the previous body entirely.")]
+        [Description("The full Scriban source of the template (the file's text for an 'assets/' name). Replaces the previous body entirely.")]
         string body,
         [Description("A short note on what this version changes. Shown in the version list.")]
         string? comment = null,

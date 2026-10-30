@@ -23,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [Scriban Templates](docs/en/rendering/scriban-templates.md). **A host whose `DbContext` implements
   `ISiteDbContext` must add `DbSet<SiteTemplate> SiteTemplates` and `DbSet<SiteTemplateVersion> SiteTemplateVersions`
   and add a migration for the two new tables.**
+- **Scriban templates can now share fragments and ship CSS and JavaScript.** A template named under `partials/` is a
+  partial that other templates pull in with `{{ include "partials/post-card" }}`. It renders in the context of the
+  including template, takes positional (`$1`) and named arguments, and only a published partial of the request's own
+  tenant can be included; partials nest at most 10 deep (`SiteScribanOptions.MaxIncludeDepth`), a cycle fails with the
+  chain, and the existing limits apply to the whole render. A template named under `assets/` is a text asset: its body
+  is not parsed as Scriban and is served, unrendered, at `/site-assets/{path}` with its content type, an `ETag` and
+  `nosniff`, and the new template function `asset_url` writes its versioned address, `/site-assets/site.css?v=` followed by the id of the
+  published version, which is cached for a year, so publishing a new version busts the caches. A page whose `Template` starts with `partials/`
+  or `assets/` is never rendered by Scriban. `site_list_templates` and `GET api/site-admin/templates` take an optional
+  `prefix`; `GET api/site-public/templates/published?name=...` returns the published version of any template, and
+  `render-set` now also returns `partials` and `assets`. See
+  [Scriban Templates](docs/en/rendering/scriban-templates.md).
 - **A template version can be previewed before it is published, and the admin UI has a Templates screen with a code
   editor.** Any saved version, a staged draft, the published one or an older one, is rendered on a path of the site
   with the chosen version in place of the published template of that name, inside the published `layout`; previewing
@@ -47,7 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SiteRenderController` takes a fourth constructor parameter, `ISiteTemplatePublicAppService`. `ContentListTagHelper`
   now takes `(IRazorPartialRenderer, ContentListQuery)`, and its query logic moved to the new `ContentListQuery`
   service. `SiteRenderController.CultureScopedViewResult` was renamed `CultureScopedResult` and wraps any
-  `IActionResult`.
+  `IActionResult`. `ScribanRenderScope` takes a third constructor parameter, a `SiteTemplateRenderSetDto`,
+  `ScribanSandbox.CreateContext` takes an optional `ITemplateLoader`, and `ISiteTemplatePublicAppService` gained
+  `FindPublishedAsync`.
 - **The Admin UI documentation and the `@dignite/ng.site` README now say what `provideSite()` costs a host's initial
   bundle.** It has to run at application-config level, so everything it registers - CKEditor included - is downloaded
   on first paint, whether or not any content type has a rich-text field and whether or not the Site screens are ever
@@ -62,6 +76,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A deleted page, content type, field or content no longer keeps its name from being used again.** Deleting only
+  marks the row deleted, and the duplicate check ignores it, so creating a page with the same name or route (or a
+  content type, field or content with a name or slug that was freed this way) was accepted and then rejected by the
+  database with a unique-constraint error - for tenant data; host rows were never affected. The unique indexes on pages
+  (`TenantId`, `Route` and `TenantId`, `Name`), content types, fields and contents now cover live rows only. **Consuming
+  applications using the EF Core provider need to apply one migration** (`Site_FilterUniqueIndexesBySoftDelete` in the
+  host project): it only drops and recreates those five indexes and does not touch any data.
 - **The `zh-Hans` admin UI no longer falls back to English for the Site settings and three error messages.** The
   labels and descriptions of the nine Site settings (enabled languages, primary domain, `llms.txt`, the three robots
   switches, the site name and the two logos), the default site name, and the errors for deleting or renaming the

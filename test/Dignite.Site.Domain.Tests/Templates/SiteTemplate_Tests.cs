@@ -23,7 +23,12 @@ public class SiteTemplate_Tests
 
     [Theory]
     [InlineData("a.b")]
+    [InlineData("partials/card.html")]
     [InlineData("../etc")]
+    [InlineData("assets/../etc")]
+    [InlineData("assets/css/../site.css")]
+    [InlineData("assets/.htaccess")]
+    [InlineData("assets/css/.hidden")]
     [InlineData("with space")]
     [InlineData("")]
     [InlineData("  ")]
@@ -31,6 +36,16 @@ public class SiteTemplate_Tests
     public void Should_Reject_An_Invalid_Name(string name)
     {
         Should.Throw<InvalidValueFormatException>(() => new SiteTemplate(Guid.NewGuid(), name));
+    }
+
+    /// <summary>The one place a dot is allowed: an asset's extension - see <see cref="SiteTemplateConsts.NamePattern"/>.</summary>
+    [Theory]
+    [InlineData("assets/site.css")]
+    [InlineData("assets/js/app.min.js")]
+    [InlineData("assets/fonts.v2.css")]
+    public void Should_Accept_A_Dot_Under_Assets(string name)
+    {
+        new SiteTemplate(Guid.NewGuid(), name).Name.ShouldBe(name);
     }
 
     [Fact]

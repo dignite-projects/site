@@ -202,6 +202,19 @@ public class ScribanTemplatePreviewRenderer_Tests
         fixture.Scriban.Host.LanguageContext.RenderedPath.ShouldBeNull();
     }
 
+    /// <summary>A preview sees the published partials, so a draft that includes one renders like the live page would.</summary>
+    [Fact]
+    public async Task A_Preview_Should_Include_The_Published_Partials()
+    {
+        var published = new SiteTemplateRenderSetDto();
+        published.Partials["partials/card"] = Version("<div class=\"card\">{{ page.name }}</div>", number: 1);
+        var fixture = new Fixture(PageMatch(), published);
+
+        var preview = await fixture.RenderAsync("Default", Version("{{ site_head }}<main>{{ include \"partials/card\" }}</main>"));
+
+        preview.Html.ShouldEndWith("<main><div class=\"card\">about</div></main>");
+    }
+
     /// <summary>The output bound is not a Scriban exception; a preview still reports it as the template's failure.</summary>
     [Fact]
     public async Task Output_Beyond_The_Limit_Should_Fail_With_Render_Failed()

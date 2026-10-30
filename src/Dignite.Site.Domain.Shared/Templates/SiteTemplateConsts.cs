@@ -16,10 +16,15 @@ public static class SiteTemplateConsts
     public static int MaxNameLength => PageConsts.MaxTemplateLength;
 
     /// <summary>
-    /// Same shape as <see cref="PageConsts.TemplatePattern"/> for the same reason as
-    /// <see cref="MaxNameLength"/>: a name that a page could not hold is a name no page could ever use.
+    /// The shape of <see cref="PageConsts.TemplatePattern"/> - letters, digits, <c>_</c>, <c>-</c>, grouped with
+    /// <c>/</c> - so a page template is a name a page can hold, and <c>..</c> cannot be spelled. One extension:
+    /// a name under <see cref="AssetsPrefix"/> may contain <c>.</c> (<c>assets/site.css</c>), because an asset is
+    /// served with a <c>Content-Type</c> taken from its extension. Still no <c>..</c> anywhere and no <c>.</c>
+    /// right after a <c>/</c>, so neither path traversal nor a hidden-file name can be spelled under <c>assets/</c>
+    /// either. A page template with a dot would be unreachable (no page can name it), so dots stay out there.
     /// </summary>
-    public const string NamePattern = PageConsts.TemplatePattern;
+    public const string NamePattern =
+        @"^\/?(?!.*\.\.)(?!.*\/\.)(?:" + AssetsPrefix + @"[A-Za-z0-9_][A-Za-z0-9_\-\/.]*|[A-Za-z0-9_][A-Za-z0-9_\-\/]*)$";
 
     /// <summary>Default value: 256 KiB of template source per version.</summary>
     public static int MaxBodyLength { get; set; } = 256 * 1024;
@@ -38,4 +43,16 @@ public static class SiteTemplateConsts
 
     /// <summary>The function that emits the page's SEO head tags (title, meta, canonical, hreflang, ...).</summary>
     public const string SiteHeadFunctionName = "site_head";
+
+    /// <summary>
+    /// First segment of the templates that <c>include</c> may pull in, and the only ones it may: see
+    /// <see cref="SiteTemplateNames"/>.
+    /// </summary>
+    public const string PartialsPrefix = "partials/";
+
+    /// <summary>
+    /// First segment of the text assets (CSS, JS, ...) served as they are by <c>GET /site-assets/</c>; their
+    /// bodies are not Scriban: see <see cref="SiteTemplateNames"/>.
+    /// </summary>
+    public const string AssetsPrefix = "assets/";
 }

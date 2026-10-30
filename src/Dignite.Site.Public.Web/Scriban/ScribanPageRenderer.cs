@@ -28,10 +28,16 @@ namespace Dignite.Site.Public.Scriban;
 /// <c>body</c>.
 /// <para>
 /// Both templates see the same globals (<see cref="ScribanRenderModelBuilder"/>) and functions
-/// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>file_url</c>, <c>contents</c>, <c>render_field</c>,
+/// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>file_url</c>, <c>asset_url</c>, <c>contents</c>, <c>render_field</c>,
 /// <c>select_options</c>, <c>html_raw</c>); a variable the page template assigns (<c>{{ title = "..." }}</c>) is visible to the
 /// layout, which is how a page hands its layout a title. Each template renders in its own sandboxed context
 /// (<see cref="ScribanSandbox"/>) with its own output bound; the time budget covers both.
+/// </para>
+/// <para>
+/// Both can <c>include</c> the tenant's published partials - those that came with the render set, through one
+/// <see cref="SiteTemplateLoader"/> per render (<see cref="CreateTemplateLoader"/>). A partial renders inside the
+/// context of the template that includes it, so it shares that template's variables, output bound and time
+/// budget.
 /// </para>
 /// <para>
 /// A rendered page must contain the platform's SEO head tags, so a render that never called
@@ -106,11 +112,12 @@ public class ScribanPageRenderer : ITransientDependency
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(requestAborted);
         timeout.CancelAfter(options.RenderTimeout);
 
-        var scope = new ScribanRenderScope(viewModel, actionContext);
+        var scope = new ScribanRenderScope(viewModel, actionContext, renderSet);
         var globals = await ModelBuilder.BuildGlobalsAsync(viewModel);
         RegisterFunctions(globals, scope);
+        var templateLoader = CreateTemplateLoader(renderSet);
 
-        var html = await RenderTemplateAsync(templateName, template, globals, timeout.Token, requestAborted);
+        var html = await RenderTemplateAsync(templateName, template, globals, templateLoader, timeout.Token, requestAborted);
         var documentName = templateName;
 
         if (renderSet.Layout != null)
@@ -118,7 +125,8 @@ public class ScribanPageRenderer : ITransientDependency
             // The page template's output is already HTML - encoded where it had to be - so the layout writes it
             // as is.
             globals.SetValue(SiteTemplateConsts.BodyVariableName, new ScribanRawHtml(html), true);
-            html = await RenderTemplateAsync(SiteTemplateConsts.LayoutName, renderSet.Layout, globals, timeout.Token, requestAborted);
+            html = await RenderTemplateAsync(
+                SiteTemplateConsts.LayoutName, renderSet.Layout, globals, templateLoader, timeout.Token, requestAborted);
             documentName = SiteTemplateConsts.LayoutName;
         }
 
@@ -141,22 +149,33 @@ public class ScribanPageRenderer : ITransientDependency
         globals.SetValue(TextFunction.Name, new TextFunction(TemplateLocalizer), true);
         globals.SetValue(UrlFunction.Name, new UrlFunction(scope, LanguageContext, LanguageOptions, UrlHelperFactory), true);
         globals.SetValue(FileUrlFunction.Name, new FileUrlFunction(), true);
+        globals.SetValue(AssetUrlFunction.Name, new AssetUrlFunction(scope, UrlHelperFactory), true);
         globals.SetValue(ContentsFunction.Name, new ContentsFunction(scope, ContentListQuery, ModelBuilder), true);
         globals.SetValue(RenderFieldFunction.Name, new RenderFieldFunction(scope, PartialRenderer), true);
         globals.SetValue(SelectOptionsFunction.Name, new SelectOptionsFunction(SelectFieldOptionsProvider), true);
         globals.SetValue(HtmlRawFunction.Name, new HtmlRawFunction(), true);
     }
 
+    /// <summary>
+    /// What <c>include</c> may pull in during this render: the render set's published partials, already read with
+    /// the page's template - an include costs no query.
+    /// </summary>
+    protected virtual ITemplateLoader CreateTemplateLoader(SiteTemplateRenderSetDto renderSet)
+    {
+        return new SiteTemplateLoader(renderSet.Partials, TemplateCache);
+    }
+
     protected virtual async Task<string> RenderTemplateAsync(
         string name,
         SiteTemplateVersionDto version,
         ScriptObject globals,
+        ITemplateLoader templateLoader,
         CancellationToken cancellationToken,
         CancellationToken requestAborted)
     {
         var template = TemplateCache.GetOrAdd(version, name);
         var output = new BoundedScriptOutput(name, Options.Value.MaxOutputLength);
-        var context = Sandbox.CreateContext(cancellationToken, output);
+        var context = Sandbox.CreateContext(cancellationToken, output, templateLoader);
         context.PushGlobal(globals);
 
         try

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Dignite.Site.Templates;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp;
 
@@ -22,5 +23,13 @@ public class SiteTemplatePublicController : SitePublicController, ISiteTemplateP
     public virtual Task<SiteTemplateRenderSetDto> GetRenderSetAsync([FromQuery] string name)
     {
         return SiteTemplatePublicAppService.GetRenderSetAsync(name);
+    }
+
+    /// <summary>Same as <see cref="GetRenderSetAsync"/>: a query parameter, since the name contains slashes (<c>assets/site.css</c>).</summary>
+    [HttpGet]
+    [Route("published")]
+    public virtual Task<SiteTemplateVersionDto?> FindPublishedAsync([FromQuery] string name)
+    {
+        return SiteTemplatePublicAppService.FindPublishedAsync(name);
     }
 }
