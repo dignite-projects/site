@@ -1,8 +1,11 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Templates;
 using Shouldly;
+using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Validation;
 using Xunit;
@@ -12,10 +15,45 @@ namespace Dignite.Site.Admin.Templates;
 public class SiteTemplateAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly ISiteTemplateAdminAppService _templateAppService;
+    private readonly FakeSiteTemplatePreviewRenderer _previewRenderer;
 
     public SiteTemplateAdminAppService_Tests()
     {
         _templateAppService = GetRequiredService<ISiteTemplateAdminAppService>();
+        _previewRenderer = GetRequiredService<FakeSiteTemplatePreviewRenderer>();
+    }
+
+    [Fact]
+    public async Task Should_Preview_A_Staged_Version_Through_The_Renderer()
+    {
+        var staged = await _templateAppService.UpdateAsync(
+            SiteTestData.PublishedTemplateId,
+            new UpdateSiteTemplateDto { Body = "v3 {{ page.name }}", Publish = false });
+
+        var preview = await _templateAppService.PreviewAsync(SiteTestData.PublishedTemplateId, staged.LatestVersionNumber, "/about");
+
+        var request = _previewRenderer.Requests.ShouldHaveSingleItem();
+        request.TemplateName.ShouldBe(SiteTestData.PublishedTemplateName);
+        request.Version.Number.ShouldBe(3);
+        request.Version.Body.ShouldBe("v3 {{ page.name }}");
+        request.Path.ShouldBe("/about");
+
+        preview.Html.ShouldBe("<html data-template=\"Seeded/Published\" data-version=\"3\">v3 {{ page.name }}</html>");
+        preview.VersionNumber.ShouldBe(3);
+        preview.Path.ShouldBe("/about");
+        preview.PageName.ShouldBe("about");
+
+        // A preview publishes nothing.
+        (await _templateAppService.GetAsync(SiteTestData.PublishedTemplateId)).PublishedVersionNumber.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Should_Throw_Not_Found_When_Previewing_A_Missing_Version()
+    {
+        await Should.ThrowAsync<EntityNotFoundException>(
+            () => _templateAppService.PreviewAsync(SiteTestData.PublishedTemplateId, 9, "/about"));
+
+        _previewRenderer.Requests.ShouldBeEmpty();
     }
 
     [Fact]
@@ -225,5 +263,43 @@ public class SiteTemplateAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         });
 
         layout.PublishedVersionNumber.ShouldBe(1);
+    }
+}
+
+/// <summary>
+/// Stands in for <c>Dignite.Site.Public.Web</c>'s renderer, which this test host does not load: records each
+/// request and answers with the version it was handed, wrapped so a test can see which template and version
+/// arrived. <see cref="Failure"/>, when set, is thrown instead - a template that fails to render.
+/// <para>
+/// Registered by convention for every test in this assembly; resolve it as itself to read what it recorded.
+/// A singleton, so the instance the app service resolves is the one the test reads - one per test, since every
+/// test builds its own application.
+/// </para>
+/// </summary>
+[ExposeServices(typeof(ISiteTemplatePreviewRenderer), typeof(FakeSiteTemplatePreviewRenderer))]
+public class FakeSiteTemplatePreviewRenderer : ISiteTemplatePreviewRenderer, ISingletonDependency
+{
+    public List<SiteTemplatePreviewRequest> Requests { get; } = new();
+
+    public System.Exception? Failure { get; set; }
+
+    public Task<SiteTemplatePreviewDto> RenderAsync(SiteTemplatePreviewRequest request, CancellationToken cancellationToken = default)
+    {
+        Requests.Add(request);
+
+        if (Failure != null)
+        {
+            throw Failure;
+        }
+
+        return Task.FromResult(new SiteTemplatePreviewDto
+        {
+            Html = $"<html data-template=\"{request.TemplateName}\" data-version=\"{request.Version.Number}\">{request.Version.Body}</html>",
+            Path = request.Path,
+            PageName = "about",
+            CultureName = "en",
+            PageTemplate = "Default",
+            VersionNumber = request.Version.Number
+        });
     }
 }

@@ -85,6 +85,16 @@ public partial class SiteTemplateAdminClientProxy : ClientProxyBase<ISiteTemplat
         });
     }
 
+    public virtual async Task<SiteTemplatePreviewDto> PreviewAsync(Guid id, int versionNumber, string path)
+    {
+        return await RequestAsync<SiteTemplatePreviewDto>(nameof(PreviewAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(Guid), id },
+            { typeof(int), versionNumber },
+            { typeof(string), path }
+        });
+    }
+
     public virtual async Task DeleteAsync(Guid id)
     {
         await RequestAsync(nameof(DeleteAsync), new ClientProxyRequestTypeValue

@@ -15,7 +15,7 @@
 npm install @dignite/ng.site
 ````
 
-The package brings `@dignite/ng.flex-fields`, `@dignite/ng.flex-fields-ckeditor` with CKEditor, `ng-zorro-antd` and `@angular/cdk` as its own dependencies. Its peers are the ABP 10.7 and Angular 22 packages that every ABP Angular application already has.
+The package brings `@dignite/ng.flex-fields`, `@dignite/ng.flex-fields-ckeditor` with CKEditor, `ng-zorro-antd`, `@angular/cdk` and CodeMirror as its own dependencies. Its peers are the ABP 10.7 and Angular 22 packages that every ABP Angular application already has.
 
 Register the providers in `app.config.ts`, the routes under a path of your choice, and the `SiteAdmin` API in the environment:
 
@@ -54,17 +54,18 @@ apis: {
 
 `provideSite()` registers the menu, the field types and the CKEditor integration, and has to be in the application's configuration rather than in a lazy route: the field types must be registered before anything resolves one.
 
-Because of that, everything `provideSite()` registers is part of the application's initial bundle, CKEditor included: it is downloaded on first paint, whether or not any content type has a rich-text field and whether or not the user opens the Site screens. Measured on a production build of an ABP admin application, registering Site added roughly 950 KB, about 170 KB gzipped. If the application enforces a bundle budget in `angular.json`, it may need to be raised.
+Because of that, everything `provideSite()` registers is part of the application's initial bundle, CKEditor included: it is downloaded on first paint, whether or not any content type has a rich-text field and whether or not the user opens the Site screens. Measured on a production build of an ABP admin application, registering Site added roughly 950 KB, about 170 KB gzipped. If the application enforces a bundle budget in `angular.json`, it may need to be raised. The code editor of the **Templates** screen (CodeMirror) is not part of it: it is loaded with its screen, when a user opens **Templates**.
 
 ## Screens
 
-The **Site** menu has three entries; each is shown to users with its permission:
+The **Site** menu has four entries; each is shown to users with its permission:
 
 | Screen | Permission | What it manages |
 |---|---|---|
 | **Contents** | `SiteAdmin.Contents` | The contents of the site, filtered by page, content type, language, status and slug. Once a page is chosen, its fields marked `ShowInList` become columns, and its searchable fields filters. Creating or editing a content opens the editor, a form built from the content type's fields. |
 | **Pages** | `SiteAdmin.Pages` | The page tree, with each page's route, template and parent. A page's **content types** are reached from here. |
 | **Fields** | `SiteAdmin.Fields` | The field library: each field's type, configuration, description and group. |
+| **Templates** | `SiteAdmin.Templates` | The [Scriban templates](rendering/scriban-templates.md) of the site. The list shows each template's published version, latest version and modification time. The editor has a code editor for the source with HTML highlighting, a comment, and **Save draft** and **Save and publish** buttons. The syntax errors a save is refused with are listed beside the editor, each with its line and column; clicking one moves the cursor there. The version list publishes any version, an older one being the rollback, or loads it into the editor. The preview panel renders the selected version in a frame, for the path you type, without publishing it; it needs `Dignite.Site.Public.Web` in the same application as the administration API. |
 
 The menu is hidden while the `Site.Enable` [feature](settings.md#the-site-feature) is off, since the permissions then read as not granted.
 

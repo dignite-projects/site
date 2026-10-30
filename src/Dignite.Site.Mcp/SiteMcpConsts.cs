@@ -36,7 +36,10 @@ public static class SiteMcpConsts
         "names are not in the schema - `site_list_templates` returns them. The template named `layout` wraps " +
         "every page and must call `site_head`. Saving parses the body and rejects a syntax error with its " +
         "line and column; fix the reported lines and save again. A save publishes at once unless " +
-        "`publish` is false, which stages the version for `site_publish_template` (also the rollback).";
+        "`publish` is false, which stages the version for `site_publish_template` (also the rollback). " +
+        "To change a live template safely, save with `publish` false, call `site_preview_template` on a " +
+        "path that template renders and read the HTML, then `site_publish_template`; publishing an older " +
+        "version rolls back.";
 
     /// <summary>
     /// The file tools' section of the instructions. Separate from <see cref="Instructions"/> so each stays

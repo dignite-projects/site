@@ -171,75 +171,25 @@ public class SiteRenderController : AbpController
         }
     }
 
-    /// <summary>
-    /// <c>View()</c> resolves either form, but <c>Page.Template</c> is meant to hold a bare view name -
-    /// stripping a ".cshtml" suffix here keeps that ergonomic without pretending to validate the value.
-    /// Unlike before issue #53, a name that does not resolve to a real view is not this method's problem
-    /// to catch - it throws the standard ASP.NET Core view-not-found error when <c>View()</c> renders it,
-    /// same as a misconfigured Template always should have.
-    /// </summary>
+    /// <summary>See <see cref="SiteRenderViewModelBuilder.ResolveTemplateName"/>.</summary>
     protected virtual string ResolveTemplateName(string template)
     {
-        return template.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase)
-            ? template[..^".cshtml".Length]
-            : template;
+        return SiteRenderViewModelBuilder.ResolveTemplateName(template);
     }
 
     protected virtual SiteRenderViewModel BuildPageViewModel(RouteMatchDto match, HeadMetadataDto? headMetadata)
     {
-        var (fieldFilters, publishedAfter, publishedBefore) = SiteRenderFilterValueMapper.Build(match.FilterValues);
-        return new SiteRenderViewModel
-        {
-            Page = match.Page!,
-            CultureName = match.CultureName,
-            FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
-            FieldFilters = fieldFilters,
-            PublishedAfter = publishedAfter,
-            PublishedBefore = publishedBefore,
-            HeadMetadata = headMetadata
-        };
+        return SiteRenderViewModelBuilder.BuildPage(match, headMetadata);
     }
 
-    protected virtual async Task<SiteRenderViewModel?> BuildContentViewModelAsync(RouteMatchDto match, HeadMetadataDto? headMetadata)
+    /// <summary>Fetches the field definitions through <see cref="GetFieldsByIdAsync"/>, so an override of it still applies.</summary>
+    protected virtual Task<SiteRenderViewModel?> BuildContentViewModelAsync(RouteMatchDto match, HeadMetadataDto? headMetadata)
     {
-        if (match.Content == null || match.ContentType == null)
-        {
-            // RouteMatchDto.Content/.ContentType are genuinely nullable (e.g. the content's own content
-            // type was deleted out from under it in a narrow admin-delete race) - nothing to render, not a
-            // crash.
-            return null;
-        }
-
-        var fieldsById = await GetFieldsByIdAsync(match.ContentType.Fields.Select(f => f.FieldId));
-        var (fieldFilters, publishedAfter, publishedBefore) = SiteRenderFilterValueMapper.Build(match.FilterValues);
-
-        return new SiteRenderViewModel
-        {
-            Page = match.Page!,
-            CultureName = match.CultureName,
-            FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase),
-            FieldFilters = fieldFilters,
-            PublishedAfter = publishedAfter,
-            PublishedBefore = publishedBefore,
-            HeadMetadata = headMetadata,
-            Content = new ContentRenderViewModel
-            {
-                Content = match.Content,
-                ContentType = match.ContentType,
-                Fields = SiteRenderFieldMapper.Build(match.Content, match.ContentType, fieldsById, listFieldsOnly: false)
-            }
-        };
+        return SiteRenderViewModelBuilder.BuildContentAsync(match, headMetadata, GetFieldsByIdAsync);
     }
 
-    protected virtual async Task<IReadOnlyDictionary<Guid, FieldDto>> GetFieldsByIdAsync(IEnumerable<Guid> fieldIds)
+    protected virtual Task<IReadOnlyDictionary<Guid, FieldDto>> GetFieldsByIdAsync(IEnumerable<Guid> fieldIds)
     {
-        var distinctIds = fieldIds.Distinct().ToList();
-        if (distinctIds.Count == 0)
-        {
-            return new Dictionary<Guid, FieldDto>();
-        }
-
-        var fields = await FieldAppService.GetListAsync(distinctIds);
-        return fields.Items.ToDictionary(f => f.Id);
+        return SiteRenderViewModelBuilder.GetFieldsByIdAsync(fieldIds, FieldAppService);
     }
 }

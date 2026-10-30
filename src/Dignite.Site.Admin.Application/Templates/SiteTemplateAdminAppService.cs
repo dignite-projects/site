@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Templates;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Entities;
+using Volo.Abp.Threading;
 
 namespace Dignite.Site.Admin.Templates;
 
@@ -111,6 +114,26 @@ public class SiteTemplateAdminAppService : SiteAdminAppService, ISiteTemplateAdm
                       ?? throw new EntityNotFoundException(typeof(SiteTemplateVersion), versionNumber);
 
         return ObjectMapper.Map<SiteTemplateVersion, SiteTemplateVersionDto>(version);
+    }
+
+    public virtual async Task<SiteTemplatePreviewDto> PreviewAsync(Guid id, int versionNumber, string path)
+    {
+        var template = await TemplateRepository.GetAsync(id, includeDetails: true);
+
+        var version = template.FindVersion(versionNumber)
+                      ?? throw new EntityNotFoundException(typeof(SiteTemplateVersion), versionNumber);
+
+        // Resolved lazily and optionally: the renderer is Dignite.Site.Public.Web's, which this layer cannot
+        // reference, and an administration API hosted without it simply cannot preview.
+        var renderer = LazyServiceProvider.LazyGetService<ISiteTemplatePreviewRenderer>()
+                       ?? throw new BusinessException(SiteErrorCodes.SiteTemplatePreviewUnavailable);
+
+        return await renderer.RenderAsync(new SiteTemplatePreviewRequest
+        {
+            TemplateName = template.Name,
+            Version = ObjectMapper.Map<SiteTemplateVersion, SiteTemplateVersionDto>(version),
+            Path = path
+        }, LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None);
     }
 
     [Authorize(SiteAdminPermissions.Templates.Delete)]

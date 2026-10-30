@@ -19,10 +19,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   over `api/site-admin/templates`, with the `SiteAdmin.Templates` permissions, and over MCP with
   `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and
   `site_delete_template`. Template output is HTML-encoded by default, like Razor: `site_head`, `render_field` and
-  `body` are emitted raw, and `html_raw` marks a trusted value. There is no preview of a staged version yet. See
+  `body` are emitted raw, and `html_raw` marks a trusted value. See
   [Scriban Templates](docs/en/rendering/scriban-templates.md). **A host whose `DbContext` implements
   `ISiteDbContext` must add `DbSet<SiteTemplate> SiteTemplates` and `DbSet<SiteTemplateVersion> SiteTemplateVersions`
   and add a migration for the two new tables.**
+- **A template version can be previewed before it is published, and the admin UI has a Templates screen with a code
+  editor.** Any saved version, a staged draft, the published one or an older one, is rendered on a path of the site
+  with the chosen version in place of the published template of that name, inside the published `layout`; previewing
+  the `layout` renders it around the page's Scriban template, or around an empty `body` when the page is still a Razor
+  view. The admin API gets `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview?path=`, which returns
+  the HTML with the page, language and template it was rendered for, and the MCP server gets `site_preview_template`,
+  whose HTML is cut at 32 KiB. The recommended flow is now to save as a draft, preview it and then publish it,
+  publishing an older version being the rollback. The **Templates** screen of the admin UI lists the templates with
+  their published and latest versions, edits a template in a code editor (CodeMirror, with HTML highlighting) with
+  **Save draft** and **Save and publish**, lists the syntax errors a save is refused with beside the editor (clicking
+  one moves the cursor to its line and column), publishes or loads any version, and renders the selected version in
+  a preview frame. A preview needs `Dignite.Site.Public.Web` in the same application as the administration API;
+  without it, and for a path that no page answers, it fails with the new errors `Site:090007` and `Site:090006`. The
+  code editor is loaded with the screen, not in the application's initial bundle, and `@dignite/ng.site` gains four
+  dependencies: `codemirror`, `@codemirror/lang-html`, `@codemirror/state` and `@codemirror/view`. See
+  [Scriban Templates](docs/en/rendering/scriban-templates.md) and [Admin UI](docs/en/admin-ui.md). **A host that
+  implements `ISiteTemplateAdminAppService` itself must add `PreviewAsync`.**
 
 ### Changed
 
