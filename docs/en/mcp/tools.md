@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Reference of the site_* MCP tools of Dignite Site: the schema, pages, content types, fields, contents, path resolution and files, with their parameters and permissions."
+    "Description": "Reference of the site_* MCP tools of Dignite Site: the schema, pages, content types, fields, contents, path resolution, templates and files, with their parameters and permissions."
 }
 ```
 
@@ -111,6 +111,20 @@ A content is addressed by `page`, `cultureName` and `slug`, an empty string for 
 | `site_resolve_path` | None | Resolves a path, such as `/zh-Hans/blog/my-trip`, to its page and content, as a visitor's request would be. Takes `path`. |
 
 It sees only what is published, so a match means something is live at that address. See [Resolving a Request](../pages-and-routing.md#resolving-a-request).
+
+## Templates
+
+| Tool | Permission | Description |
+|---|---|---|
+| `site_list_templates` | `SiteAdmin.Templates` | Lists the [Scriban templates](../rendering/scriban-templates.md), each with its published and latest version numbers. Takes an optional `filter` over the name. |
+| `site_get_template` | `SiteAdmin.Templates` | Reads a template: its summary, the body of one version, and the list of its versions. |
+| `site_save_template` | `SiteAdmin.Templates.Create` and `SiteAdmin.Templates.Update` | Creates the template, or adds a version to it. A syntax error is refused with its lines and columns. |
+| `site_publish_template` | `SiteAdmin.Templates.Update` | Makes a version the live one; an older version is the rollback. |
+| `site_delete_template` | `SiteAdmin.Templates.Delete` | Deletes a template with all of its versions; the pages that used its name render through the Razor view of that name again. Destructive. |
+
+Templates are not part of the schema: a template is addressed by its name, and `site_list_templates` returns the names. A page uses the published template whose name is the page's `template`; the template named `layout` wraps every page and must call `site_head`.
+
+`site_get_template` takes `template` and an optional `version`, and returns the published version's body when `version` is left out (the latest, with `isPublished` false, when nothing is published). `site_save_template` takes `template`, `body`, an optional `comment` and `publish`, true by default; with `publish` false the version is staged and the site keeps rendering the published one. `site_publish_template` takes `template` and `version`; `site_delete_template` takes `template`.
 
 ## Files
 

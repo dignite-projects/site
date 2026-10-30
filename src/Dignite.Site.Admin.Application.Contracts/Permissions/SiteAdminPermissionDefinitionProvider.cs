@@ -34,6 +34,11 @@ public class SiteAdminPermissionDefinitionProvider : PermissionDefinitionProvide
         contents.AddChild(SiteAdminPermissions.Contents.Update, L("Permission:Update"));
         contents.AddChild(SiteAdminPermissions.Contents.Delete, L("Permission:Delete"));
 
+        var templates = myGroup.AddPermission(SiteAdminPermissions.Templates.Default, L("Permission:Templates"));
+        templates.AddChild(SiteAdminPermissions.Templates.Create, L("Permission:Create"));
+        templates.AddChild(SiteAdminPermissions.Templates.Update, L("Permission:Update"));
+        templates.AddChild(SiteAdminPermissions.Templates.Delete, L("Permission:Delete"));
+
         // With Site.Enable off these permissions read as not granted, which is what takes the admin menu
         // away: the Angular routes hide on requiredPolicy, and application-configuration reports what the
         // checker says. Every permission needs it, children included - ABP checks each one on its own, a

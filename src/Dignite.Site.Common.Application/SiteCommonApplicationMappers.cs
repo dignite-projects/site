@@ -2,6 +2,7 @@ using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Templates;
 using Riok.Mapperly.Abstractions;
 using Volo.Abp.Mapperly;
 
@@ -72,4 +73,24 @@ public partial class ContentToContentDtoMapper : MapperBase<Content, ContentDto>
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
     [MapperIgnoreTarget(nameof(ContentDto.Url))]
     public override partial void Map(Content source, ContentDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class SiteTemplateToSiteTemplateDtoMapper : MapperBase<SiteTemplate, SiteTemplateDto>
+{
+    // LatestVersionNumber is not on the entity (it is the max over Versions, which a list does not load);
+    // the app service fills it, from one batched ISiteTemplateRepository.GetLatestVersionNumbersAsync.
+    [MapperIgnoreTarget(nameof(SiteTemplateDto.LatestVersionNumber))]
+    public override partial SiteTemplateDto Map(SiteTemplate source);
+
+    [MapperIgnoreTarget(nameof(SiteTemplateDto.LatestVersionNumber))]
+    public override partial void Map(SiteTemplate source, SiteTemplateDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class SiteTemplateVersionToSiteTemplateVersionDtoMapper : MapperBase<SiteTemplateVersion, SiteTemplateVersionDto>
+{
+    public override partial SiteTemplateVersionDto Map(SiteTemplateVersion source);
+
+    public override partial void Map(SiteTemplateVersion source, SiteTemplateVersionDto destination);
 }

@@ -30,11 +30,15 @@ namespace Dignite.Site.Mcp.Errors;
 /// </remarks>
 public class McpEntityNotFoundException : UserFriendlyException, IHasMcpToolErrorKind
 {
-    public McpEntityNotFoundException(string entityKind, string name, string? scope = null)
+    /// <summary>
+    /// The schema is where the names a site has are listed, which is the default hint. An entity that is not
+    /// part of the schema (a template) passes its own <paramref name="hint"/> naming the call that lists it.
+    /// </summary>
+    public McpEntityNotFoundException(string entityKind, string name, string? scope = null, string? hint = null)
         : base(
             message: scope == null
-                ? $"There is no {entityKind} named '{name}'. Call site_get_schema (or read the site://schema resource) for the names this site actually has."
-                : $"There is no {entityKind} named '{name}' {scope}. Call site_get_schema (or read the site://schema resource) for the names this site actually has.",
+                ? $"There is no {entityKind} named '{name}'. {hint ?? DefaultHint}"
+                : $"There is no {entityKind} named '{name}' {scope}. {hint ?? DefaultHint}",
             code: SiteMcpErrorCodes.NameNotFound)
     {
         EntityKind = entityKind;
@@ -43,6 +47,9 @@ public class McpEntityNotFoundException : UserFriendlyException, IHasMcpToolErro
         WithData(nameof(entityKind), entityKind);
         WithData(nameof(name), name);
     }
+
+    private const string DefaultHint =
+        "Call site_get_schema (or read the site://schema resource) for the names this site actually has.";
 
     public string EntityKind { get; }
 

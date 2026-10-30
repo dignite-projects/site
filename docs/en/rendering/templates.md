@@ -11,6 +11,8 @@
 
 Templates are Razor views, compiled with the application and deployed with it. They are written by the application's developers, never by tenants or AI clients: a Razor view runs arbitrary C#. What tenants and AI clients change is data (pages, contents, fields), which templates render.
 
+A tenant or an AI client that needs to change how pages look writes [Scriban templates](scriban-templates.md) instead. They are stored in the database, run in a sandbox, and take over a page whose `Template` they are named after; a page with no such template renders through the Razor view described here.
+
 ## Where Templates Live
 
 A page's `Template` is a view name, such as `Default` or `Blog/Index`. It is looked up in this order:

@@ -73,6 +73,8 @@ The `Site.Enable` feature, on by default, switches the administration side of Si
 | `SiteAdmin.Fields.Rename` | Renaming a field, which migrates the stored values of every content. |
 | `SiteAdmin.Contents` | Reading the contents, drafts included, and managing every user's files. |
 | `SiteAdmin.Contents.Create`, `.Update`, `.Delete` | Creating, updating and deleting contents, and uploading, changing and deleting files. |
+| `SiteAdmin.Templates` | Reading the [Scriban templates](rendering/scriban-templates.md) and their versions. |
+| `SiteAdmin.Templates.Create`, `.Update`, `.Delete` | Creating, saving and deleting templates. `.Update` also covers publishing a version, and so rolling back. |
 
 The file library has no permissions of its own; see [Files](files.md#permissions). The public read API needs no permission. The MCP tools are authorized by the same permissions as the administration API; see [MCP Server](mcp/index.md#authorization).
 

@@ -7,6 +7,7 @@ using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Templates;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
@@ -32,17 +33,20 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
     private readonly IRepository<Field, Guid> _fieldRepository;
     private readonly IRepository<Page, Guid> _pageRepository;
     private readonly IRepository<ContentType, Guid> _contentTypeRepository;
+    private readonly IRepository<SiteTemplate, Guid> _templateRepository;
     private readonly ContentManager _contentManager;
 
     public SiteTestDataSeedContributor(
         IRepository<Field, Guid> fieldRepository,
         IRepository<Page, Guid> pageRepository,
         IRepository<ContentType, Guid> contentTypeRepository,
+        IRepository<SiteTemplate, Guid> templateRepository,
         ContentManager contentManager)
     {
         _fieldRepository = fieldRepository;
         _pageRepository = pageRepository;
         _contentTypeRepository = contentTypeRepository;
+        _templateRepository = templateRepository;
         _contentManager = contentManager;
     }
 
@@ -51,6 +55,7 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
         await SeedFieldsAsync();
         await SeedPagesAndTypesAsync();
         await SeedContentsAsync();
+        await SeedTemplatesAsync();
     }
 
     /// <summary>
@@ -205,6 +210,26 @@ public class SiteTestDataSeedContributor : IDataSeedContributor, ITransientDepen
             SiteTestData.NewsItemTypeId, SiteTestData.EnglishCulture, SiteTestData.NewsSlug,
             SiteTestData.PublishTime, ContentStatus.Published,
             new Dictionary<string, object?> { ["title"] = "We launched" });
+    }
+
+    /// <summary>
+    /// One template with two versions and the later one live, one that was never published. Built through the
+    /// aggregate rather than the manager so the version numbers and ids are fixed, and inserted with their
+    /// versions already in the collection, the way the manager does.
+    /// </summary>
+    private async Task SeedTemplatesAsync()
+    {
+        var published = new SiteTemplate(SiteTestData.PublishedTemplateId, SiteTestData.PublishedTemplateName);
+        published.AddVersion(SiteTestData.PublishedTemplateVersion1Id, "v1 {{ page.name }}", null);
+        published.AddVersion(SiteTestData.PublishedTemplateVersion2Id, "v2 {{ page.name }}", "second");
+        published.Publish(2);
+
+        await _templateRepository.InsertAsync(published, autoSave: true);
+
+        var draft = new SiteTemplate(SiteTestData.DraftTemplateId, SiteTestData.DraftTemplateName);
+        draft.AddVersion(SiteTestData.DraftTemplateVersion1Id, "draft {{ page.name }}", null);
+
+        await _templateRepository.InsertAsync(draft, autoSave: true);
     }
 
     private static ContentTypeField Usage(

@@ -45,6 +45,10 @@
           "path": "rendering/templates.md"
         },
         {
+          "text": "Scriban Templates",
+          "path": "rendering/scriban-templates.md"
+        },
+        {
           "text": "Multilingual Sites",
           "path": "rendering/languages.md"
         },

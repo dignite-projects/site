@@ -77,7 +77,8 @@ public class PageTools : ITransientDependency
             "beneath it; the view is responsible for branching on whether content was resolved. Only " +
             "meaningful for a front end that lets the back end name the view to render (总体设计 §7.3 " +
             "Tier 0) - a Razor Pages or external front end resolves its own templates instead, but this " +
-            "is still required either way; pass 'Default' if you don't know this site uses that tier.")]
+            "is still required either way; pass 'Default' if you don't know this site uses that tier. A " +
+            "published Scriban template of the same name (see site_save_template) takes precedence over the MVC view.")]
         string template,
         [Description(
             "The parent page's machine name, for organizing this page under it in the Admin UI's tree. " +
@@ -124,7 +125,8 @@ public class PageTools : ITransientDependency
         string? route = null,
         [Description(
             "New view for this page - see site_create_page's 'template' for what it's for. Required, like " +
-            "every other field on a page - omit to keep the current one; it cannot be cleared to empty.")]
+            "every other field on a page - omit to keep the current one; it cannot be cleared to empty. A " +
+            "published Scriban template of the same name (see site_save_template) takes precedence over the MVC view.")]
         string? template = null,
         [Description(
             "New parent page's machine name, for reorganizing this page in the Admin UI's tree. Purely " +
