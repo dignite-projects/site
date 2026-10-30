@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A deleted page, content type, field or content no longer keeps its name from being used again.** Deleting only
+  marks the row deleted, and the duplicate check ignores it, so creating a page with the same name or route (or a
+  content type, field or content with a name or slug that was freed this way) was accepted and then rejected by the
+  database with a unique-constraint error - for tenant data; host rows were never affected. The unique indexes on pages
+  (`TenantId`, `Route` and `TenantId`, `Name`), content types, fields and contents now cover live rows only. **Consuming
+  applications using the EF Core provider need to apply one migration** (`Site_FilterUniqueIndexesBySoftDelete` in the
+  host project): it only drops and recreates those five indexes and does not touch any data.
 - **The `zh-Hans` admin UI no longer falls back to English for the Site settings and three error messages.** The
   labels and descriptions of the nine Site settings (enabled languages, primary domain, `llms.txt`, the three robots
   switches, the site name and the two logos), the default site name, and the errors for deleting or renaming the

@@ -44,8 +44,10 @@ public static class SiteDbContextModelCreatingExtensions
             // Both unique per tenant. The route is what a request resolves against and the name is the
             // handle MCP tools and templates address a page by, so a duplicate of either is ambiguous
             // rather than merely untidy - worth a database constraint, not just a manager check.
-            b.HasIndex(p => new { p.TenantId, p.Route }).IsUnique();
-            b.HasIndex(p => new { p.TenantId, p.Name }).IsUnique();
+            // Live rows only: Page is soft-deleted and the manager's duplicate check cannot see a deleted
+            // row, so an unfiltered index would reject a name or route the manager just cleared for reuse.
+            b.HasIndex(p => new { p.TenantId, p.Route }).IsUnique().HasFilter($"{nameof(Page.IsDeleted)} = 0");
+            b.HasIndex(p => new { p.TenantId, p.Name }).IsUnique().HasFilter($"{nameof(Page.IsDeleted)} = 0");
             b.HasIndex(p => new { p.TenantId, p.ParentId });
         });
 
@@ -71,7 +73,11 @@ public static class SiteDbContextModelCreatingExtensions
                 // reference, so a change to the arrangement can be silently dropped.
                 .Metadata.SetValueComparer(new ContentTypeFieldListValueComparer());
 
-            b.HasIndex(ct => new { ct.TenantId, ct.PageId, ct.Name }).IsUnique();
+            // Live rows only, for the same reason as Page's indexes: a soft-deleted type must not keep
+            // its name from being reused on the page.
+            b.HasIndex(ct => new { ct.TenantId, ct.PageId, ct.Name })
+                .IsUnique()
+                .HasFilter($"{nameof(ContentType.IsDeleted)} = 0");
         });
 
         builder.Entity<Field>(b =>
@@ -88,7 +94,9 @@ public static class SiteDbContextModelCreatingExtensions
 
             // Unique because a field's name doubles as the key its values are stored under in every
             // content's bag - two definitions sharing a name would be two definitions of one stored value.
-            b.HasIndex(f => new { f.TenantId, f.Name }).IsUnique();
+            // Live rows only: a deleted field's values are stripped from every bag (FieldManager.DeleteAsync),
+            // so nothing is stored under its name any more and the name is free to be defined again.
+            b.HasIndex(f => new { f.TenantId, f.Name }).IsUnique().HasFilter($"{nameof(Field.IsDeleted)} = 0");
 
             // Non-unique: grouping is a filing label, so many fields share one. Indexed because the
             // library listing filters and orders by it.
@@ -111,7 +119,11 @@ public static class SiteDbContextModelCreatingExtensions
             b.HasOne<ContentType>().WithMany().HasForeignKey(c => c.ContentTypeId).OnDelete(DeleteBehavior.Restrict);
 
             // 总体设计 §2.5's uniqueness rule, and the lookup route resolution performs on every request.
-            b.HasIndex(c => new { c.TenantId, c.PageId, c.CultureName, c.Slug }).IsUnique();
+            // Live rows only: Content is soft-deleted, and a slug freed by deleting a content is
+            // reusable - ContentManager's duplicate check does not see the deleted row either.
+            b.HasIndex(c => new { c.TenantId, c.PageId, c.CultureName, c.Slug })
+                .IsUnique()
+                .HasFilter($"{nameof(Content.IsDeleted)} = 0");
 
             // The translation-group key (§2.4). Contents sharing it in different languages are the same
             // content, which is what hreflang and the language switcher aggregate on - so this grouping
