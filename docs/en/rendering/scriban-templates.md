@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Write the templates of a Dignite Site in Scriban, stored in the database per tenant: the layout and site_head, versions and rollback, the data and functions a template can use, the sandbox limits, and the admin API and MCP tools that manage them."
+    "Description": "Write the templates of a Dignite Site in Scriban, stored in the database per tenant: the layout and site_head, partials, CSS and JavaScript assets, versions and rollback, the data and functions a template can use, the sandbox limits, and the admin API and MCP tools that manage them."
 }
 ```
 
@@ -20,7 +20,9 @@ A page's `Template` is a name, such as `Default` or `Blog/Index`. When a request
 
 There is no setting on the page: the engine follows from which of the two exists. Saving a template named `Blog/Index` takes over every page whose template is `Blog/Index`; deleting it, or having no published version, returns those pages to the Razor view of the same name. A template that has been saved but never published, or only staged, is not rendered.
 
-Names are written like a page's `Template`: letters, digits, `.`, `_`, `-` and `/`, with no leading slash. A leading slash and surrounding spaces are removed when a name is saved or looked up.
+Names are written like a page's `Template`: letters, digits, `_`, `-` and `/`, with no leading slash; a name under `assets/` may also contain `.`, for its extension, but never `..`. A leading slash and surrounding spaces are removed when a name is saved or looked up.
+
+Two first segments are reserved, written in lower case: `partials/` for [partials](#partials) and `assets/` for [text assets](#assets). A template under either never renders a page: a page whose `Template` is `partials/card` or `assets/site.css` is not matched to it, and falls through to the Razor view of that name.
 
 ## The Layout
 
@@ -93,6 +95,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `render_field name [show_in_list]` | Renders a field of `content` with the view of its field type, as `<flex-field-view>` does. |
 | `select_options page field` | The options of a `Select` field, as a list of `{ text, value }`. |
 | `html_raw value` | Marks a value as trusted HTML; see [Output Encoding](#output-encoding). |
+| `asset_url name` | The versioned address of a published [asset](#assets), such as `/site-assets/site.css?v=0b5f2c7e9a4d4c1f8e63a1d27c94b850`. |
 
 `contents` takes an object with these keys, all optional, and returns the page of contents with `items`, `total_count`, `max_result_count` and `current_page`:
 
@@ -115,17 +118,102 @@ A key that is not in the table is an error, and a `page` that does not exist giv
 </ul>
 ````
 
+## Partials
+
+A partial is a template that holds a fragment of markup, so that a page template or the layout can pull it in instead of repeating it. It is a template like any other, with versions and a published pointer; what makes it a partial is a name that starts with `partials/`. A page template includes it with `include`:
+
+````
+{{ include "partials/post-card" }}
+````
+
+The rules of `include`:
+
+* Only a template under `partials/` can be included. `include "layout"` or `include "Default"` fails with an error that names the rule.
+* Only a **published** partial of the request's own tenant is found. A partial that is unknown, unpublished or staged fails the render with an error that names it.
+* A partial never renders a page. A page whose `Template` is `partials/post-card` is not matched to it.
+
+A partial renders in the context of the template that includes it. It sees the same data and functions, and the variables that the including template has assigned. Arguments after the name pass values explicitly:
+
+* Positional arguments are available in the partial as `$1`, `$2` and so on.
+* Named arguments become local variables of the partial, read with the `$` prefix that Scriban gives a local: `{{ include "partials/card" title: "Hi" }}` gives the partial a `$title`.
+
+A partial's output is encoded the way any template's is: every value it writes is HTML-encoded once, and the result of `include` is placed into the including template as it is, not encoded a second time. A partial can include other partials. `include_join` is not available.
+
+Partials are read together with the page template, so a page costs one query however many partials it includes, and the set of partials a render sees is fixed when the render starts.
+
+For example, a `partials/post-card` that writes one item of a list:
+
+````
+<article>
+    <h2><a href="{{ item.url }}">{{ item.fields.title }}</a></h2>
+    <p>{{ item.publish_time | date.to_string "%Y-%m-%d" }}</p>
+</article>
+````
+
+A page template that lists the contents of the current page and includes the partial for each one. `item` is assigned by the loop, so the partial sees it:
+
+````
+{{ list = contents { max: 10 } }}
+{{ for item in list.items }}
+    {{ include "partials/post-card" }}
+{{ end }}
+````
+
+The same partial can take the item as an argument instead, `{{ include "partials/post-card" item }}`, and read it as `$1`. A named argument, `{{ include "partials/post-card" post: item }}`, is read as `$post`.
+
+## Assets
+
+A text asset is CSS, JavaScript or another text file, stored as a template whose name starts with `assets/`, such as `assets/site.css`. It has versions and a published pointer like any other template, with two differences:
+
+* Its body is stored as it is and is **not** parsed as Scriban, so `{{` in a stylesheet or a script is just text. Saving it does not run the syntax check.
+* It is served, unrendered, by the application at `GET /site-assets/{path}`, where `{path}` is the name without the `assets/` prefix: `assets/site.css` is served at `/site-assets/site.css`.
+
+Only the published version is served. An asset that is unknown or has no published version answers 404.
+
+The response carries these headers:
+
+| Header | Value |
+|---|---|
+| `Content-Type` | From the extension of the name, with `charset=utf-8`: `css` is `text/css`; `js` and `mjs` are `text/javascript`; `json` and `map` are `application/json`; `svg` is `image/svg+xml`; `xml` is `application/xml`; `webmanifest` is `application/manifest+json`; `txt` is `text/plain`; `csv` is `text/csv`; `ics` is `text/calendar`. Any other extension is `text/plain`. |
+| `X-Content-Type-Options` | `nosniff`. |
+| `ETag` | Identifies the published version. A request whose `If-None-Match` matches it is answered 304. |
+| `Cache-Control` | `public, max-age=31536000, immutable` when the `v` query of the URL is the id of the published version; otherwise `public, no-cache`, which is served but revalidated each time. |
+
+`asset_url` writes the address that earns the long cache. `asset_url "assets/site.css"` returns an address such as `/site-assets/site.css?v=0b5f2c7e9a4d4c1f8e63a1d27c94b850`, where `v` is the id of the published version, under the application's path base when it has one. Publishing a new version changes the id and so the address, which busts the browser and CDN caches; this is why the endpoint can mark a matching URL immutable. The id is used rather than the version number because numbers start again at 1 when a template is deleted and created again under the same name, while an id is never reused. The name must be under `assets/` and published, or the render fails with an error that names the asset.
+
+For example, save a template named `assets/site.css`:
+
+````
+body { font-family: system-ui, sans-serif; margin: 0; }
+nav a { margin-right: 0.5rem; }
+````
+
+and reference it from the layout:
+
+````
+<head>
+    <meta charset="utf-8" />
+    {{ site_head }}
+    <link rel="stylesheet" href="{{ asset_url "assets/site.css" }}" />
+</head>
+````
+
+The same goes for a script: `<script src="{{ asset_url "assets/site.js" }}" defer></script>`. To change the stylesheet, save a new version of `assets/site.css`; with `publish` on, pages link to the new address at once.
+
+Binary files, such as images and fonts, are not templates. They stay in the [file library](../files.md) and are addressed with `file_url`.
+
 ## Limits
 
 A template runs in a sandbox, so that a template written by a tenant or by an AI cannot take the application down or read what it should not.
 
-* A template reaches only the variables and functions above. It cannot call into the application, read files, or `include` another template.
+* A template reaches only the variables and functions above. It cannot call into the application or read files. It can `include` only the published [partials](#partials) of its own tenant.
+* Partials nest at most 10 deep, and a partial that includes itself, directly or through others, fails with an error that lists the chain. A host can change the depth with `SiteScribanOptions.MaxIncludeDepth`.
 * The loops of one template run at most 10,000 iterations per outermost loop, nested loops counted together, and nested calls go at most 100 deep.
 * A regular expression match is stopped after 100 ms.
 * One template writes at most 2 Mi characters (2,097,152).
 * Rendering one page, layout included, must finish within 3 seconds.
 
-A template that exceeds a limit, or fails at run time, fails the request with an error that names the template and the line and column; a timeout is reported as a timeout, naming the template. A host can change the limits with `SiteScribanOptions`.
+The loop, recursion, output and time limits apply to the whole render, partials included. A template that exceeds a limit, or fails at run time, fails the request with an error that names the template and the line and column; a timeout is reported as a timeout, naming the template. A host can change the limits with `SiteScribanOptions`.
 
 ## Managing Templates
 
@@ -133,7 +221,7 @@ The admin API manages templates under `api/site-admin/templates`:
 
 | Request | Permission | Description |
 |---|---|---|
-| `GET /` | `SiteAdmin.Templates` | Lists the templates, each with its published and latest version numbers. Takes an optional `filter` over the name. |
+| `GET /` | `SiteAdmin.Templates` | Lists the templates, each with its published and latest version numbers. Takes an optional `filter` over the name and an optional `prefix`, such as `partials/`, to list only the names that start with it. |
 | `GET /{id}` | `SiteAdmin.Templates` | Reads one template. |
 | `GET /by-name?name=...` | `SiteAdmin.Templates` | Reads a template by name; empty when there is none. |
 | `POST /` | `SiteAdmin.Templates.Create` | Creates a template with `name`, `body`, an optional `comment` and `publish`, true by default. |
@@ -147,7 +235,7 @@ A syntax error, a `layout` without `site_head` and a name that is already taken 
 
 ### MCP Tools
 
-The MCP server offers the same operations, addressed by template name: `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and `site_delete_template`. Saving needs both the create and the update permission, since the same call creates a template or adds a version. See [Tools](../mcp/tools.md#templates).
+The MCP server offers the same operations, addressed by template name: `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and `site_delete_template`. They cover [partials](#partials) and [assets](#assets) unchanged, since those are templates by name; `site_list_templates` takes an optional `prefix` to list only one kind. Saving needs both the create and the update permission, since the same call creates a template or adds a version. See [Tools](../mcp/tools.md#templates).
 
 ## Example
 

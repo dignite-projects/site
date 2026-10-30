@@ -36,7 +36,12 @@ public static class SiteMcpConsts
         "names are not in the schema - `site_list_templates` returns them. The template named `layout` wraps " +
         "every page and must call `site_head`. Saving parses the body and rejects a syntax error with its " +
         "line and column; fix the reported lines and save again. A save publishes at once unless " +
-        "`publish` is false, which stages the version for `site_publish_template` (also the rollback).";
+        "`publish` is false, which stages the version for `site_publish_template` (also the rollback). " +
+        "Two reserved prefixes: a template named `partials/...` is a fragment that other templates pull in " +
+        "with `{{ include \"partials/name\" }}` and never renders a page itself; a template named `assets/...` " +
+        "is a CSS or JS file served verbatim at `/site-assets/`, not parsed as Scriban, and addressed from " +
+        "templates with `{{ asset_url \"assets/site.css\" }}`. Binary files (images, fonts) are not templates: " +
+        "upload them with the file tools.";
 
     /// <summary>
     /// The file tools' section of the instructions. Separate from <see cref="Instructions"/> so each stays

@@ -41,7 +41,7 @@ public class SiteTemplateAdminAppService : SiteAdminAppService, ISiteTemplateAdm
     {
         // Without details: a list must not drag every version of every template out of the database. The
         // newest number of each comes back in one grouped query instead.
-        var templates = await TemplateRepository.GetListAsync(input.Filter, includeDetails: false);
+        var templates = await TemplateRepository.GetListAsync(input.Filter, input.Prefix, includeDetails: false);
 
         var latestVersionNumbers = await TemplateRepository.GetLatestVersionNumbersAsync(templates.Select(t => t.Id));
 

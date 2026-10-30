@@ -31,7 +31,7 @@ The options are all optional:
 Configure<SiteLanguageOptions>(options =>
 {
     // Paths that are not Site pages: in-site links to them never get a language prefix.
-    // Default: /Account, /Abp, /api, /connect, /swagger, /Error, /.well-known. Matched per whole
+    // Default: /Account, /Abp, /api, /connect, /swagger, /Error, /.well-known, /site-assets. Matched per whole
     // segment, ignoring case and slashes. Anything whose last segment has a dot is left alone as well.
     options.ExcludedPathPrefixes.Add("/Contact");
 

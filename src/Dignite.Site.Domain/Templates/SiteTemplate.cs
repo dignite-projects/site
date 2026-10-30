@@ -75,7 +75,7 @@ public class SiteTemplate : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// </summary>
     public static string NormalizeName(string name)
     {
-        return name.Trim().RemovePreFix("/");
+        return SiteTemplateNames.Normalize(name);
     }
 
     /// <summary>

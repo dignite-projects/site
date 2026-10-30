@@ -35,6 +35,15 @@ public class SiteScribanOptions
     /// <summary>Maximum depth of nested function calls. Default: 100 (Scriban's own).</summary>
     public int RecursiveLimit { get; set; } = 100;
 
+    /// <summary>
+    /// Maximum nesting of partials: a page template or the layout including a partial is depth 1, that partial
+    /// including another is depth 2. Default: 10. Independent of <see cref="RecursiveLimit"/>, which counts
+    /// nested function calls of every kind (each include spends two); this one names the problem when it is
+    /// partials nesting too deep. A partial that ends up including itself is reported as a cycle, naming the
+    /// chain, before this limit is reached.
+    /// </summary>
+    public int MaxIncludeDepth { get; set; } = 10;
+
     /// <summary>Maximum depth the engine follows when turning a nested object into text. Default: 20 (Scriban's own).</summary>
     public int ObjectRecursionLimit { get; set; } = 20;
 

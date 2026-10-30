@@ -2356,6 +2356,29 @@
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
+                },
+                {
+                  "name": "FindPublishedAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "name",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Templates.SiteTemplateVersionDto",
+                    "typeSimple": "Dignite.Site.Templates.SiteTemplateVersionDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
                 }
               ]
             }
@@ -2400,6 +2423,57 @@
               "returnValue": {
                 "type": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
                 "typeSimple": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Templates.ISiteTemplatePublicAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "FindPublishedAsyncByName": {
+              "uniqueName": "FindPublishedAsyncByName",
+              "name": "FindPublishedAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/templates/published",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "name",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "name",
+                  "name": "name",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Templates.SiteTemplateVersionDto",
+                "typeSimple": "Dignite.Site.Templates.SiteTemplateVersionDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
