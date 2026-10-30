@@ -19,8 +19,12 @@ namespace Dignite.Site.Public.Scriban;
 /// second line, should one slip in. Without it a property returning <see cref="Type"/> is traversable
 /// (<c>x.get_type.assembly</c>, ...). Allowed: the instance properties of <see cref="DateTime"/> and
 /// <see cref="TimeSpan"/> only (<c>content.publish_time.year</c>), plain values with no way out.</item>
-/// <item><see cref="TemplateContext.TemplateLoader"/> = null - <c>include</c> cannot read files or other
-/// templates; it throws.</item>
+/// <item><see cref="TemplateContext.TemplateLoader"/> - what <c>include</c> can reach: files, other tenants'
+/// templates, drafts. The renderer passes a <see cref="SiteTemplateLoader"/>, which offers the tenant's published
+/// partials (<c>partials/...</c>) and nothing else; without one (null) <c>include</c> throws. The builtin
+/// <c>include</c> itself is replaced by <see cref="SiteIncludeFunction"/> - cycles, nesting depth, and the
+/// partial's output written once encoded, not twice - and <c>include_join</c> is removed: it would return the
+/// partials' output as one plain string, encoded a second time when written, and is not offered.</item>
 /// <item><see cref="TemplateContext.StrictVariables"/> - an unknown variable or function is an error, not
 /// silently empty output: a typo fails the render instead of shipping a broken page.</item>
 /// <item><see cref="TemplateContext.LoopLimit"/> - <c>for</c>/<c>while</c> iterations and range sizes
@@ -57,6 +61,9 @@ namespace Dignite.Site.Public.Scriban;
 /// </summary>
 public class ScribanSandbox : ITransientDependency
 {
+    /// <summary>The builtin that includes several templates at once - not offered, see the class remarks.</summary>
+    public const string IncludeJoinFunctionName = "include_join";
+
     protected IOptions<SiteScribanOptions> Options { get; }
     protected HtmlEncoder HtmlEncoder { get; }
 
@@ -70,7 +77,13 @@ public class ScribanSandbox : ITransientDependency
     /// A fresh, locked-down context writing to <paramref name="output"/>. One per template render: a context
     /// is not thread-safe, and its output-length bookkeeping is per render.
     /// </summary>
-    public virtual TemplateContext CreateContext(CancellationToken cancellationToken, IScriptOutput output)
+    /// <param name="cancellationToken">Stops the render: the time budget, linked to the request's abort token.</param>
+    /// <param name="output">Where the template writes.</param>
+    /// <param name="templateLoader">What <c>include</c> may pull in; null, and <c>include</c> throws.</param>
+    public virtual TemplateContext CreateContext(
+        CancellationToken cancellationToken,
+        IScriptOutput output,
+        ITemplateLoader? templateLoader = null)
     {
         var options = Options.Value;
 
@@ -78,7 +91,7 @@ public class ScribanSandbox : ITransientDependency
         {
             AutoIndent = false,
             MemberFilter = IsAllowedMember,
-            TemplateLoader = null,
+            TemplateLoader = templateLoader,
             StrictVariables = true,
             LoopLimit = options.LoopLimit,
             RecursiveLimit = options.RecursiveLimit,
@@ -94,6 +107,15 @@ public class ScribanSandbox : ITransientDependency
         // TemplateContext.Output has no setter; a pushed output is what Template.RenderAsync writes to and
         // returns the text of.
         context.PushOutput(output);
+
+        // The builtins live in an object of this context's own - Scriban copies its defaults into a fresh one per
+        // context - so changing them here touches no other render. Replaced in place rather than shadowed by a
+        // global pushed on top: nothing then remains anywhere in the context that reaches the engine's own
+        // include. SetValue, unlike an assignment from a template, replaces an entry that is read-only. (A template
+        // can still shadow the name with a variable of its own, as it can any builtin's; that only breaks its own
+        // includes.)
+        context.BuiltinObject.SetValue(SiteIncludeFunction.Name, new SiteIncludeFunction(options.MaxIncludeDepth), true);
+        context.BuiltinObject.Remove(IncludeJoinFunctionName);
 
         return context;
     }

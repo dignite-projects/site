@@ -80,6 +80,47 @@ public class SiteTemplateManager_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Should_Store_An_Asset_Without_Parsing_It()
+    {
+        // Not Scriban: the "{{ color: }}" is CSS, and as Scriban it does not even parse (the control test below
+        // shows the same body refused under a page name) - an asset is stored without the parse at all.
+        var created = await WithUnitOfWorkAsync(() =>
+            _templateManager.CreateAsync("assets/site.css", ".a{{ color: }}"));
+
+        created.Name.ShouldBe("assets/site.css");
+        created.PublishedVersionNumber.ShouldBe(1);
+
+        var published = await WithUnitOfWorkAsync(() => _templateRepository.FindPublishedVersionAsync("assets/site.css"));
+        published.ShouldNotBeNull();
+        published.Body.ShouldBe(".a{{ color: }}");
+    }
+
+    [Fact]
+    public async Task Should_Still_Parse_The_Same_Body_Under_A_Page_Name()
+    {
+        await Should.ThrowAsync<SiteTemplateSyntaxException>(() => WithUnitOfWorkAsync(() =>
+            _templateManager.CreateAsync("not-an-asset", ".a{{ color: }}")));
+    }
+
+    [Fact]
+    public async Task Should_List_Only_Templates_Under_A_Prefix()
+    {
+        await WithUnitOfWorkAsync(async () =>
+        {
+            await _templateManager.CreateAsync("partials/list-a", "<i>a</i>");
+            await _templateManager.CreateAsync("partials/list-b", "<i>b</i>");
+            await _templateManager.CreateAsync("not-partials/list-c", "<i>c</i>");
+        });
+
+        var partials = await WithUnitOfWorkAsync(() => _templateRepository.GetListAsync(prefix: "partials/"));
+        partials.Select(t => t.Name).ShouldBe(new[] { "partials/list-a", "partials/list-b" });
+
+        // The prefix is normalized like a name, and combines with the free-text filter.
+        var filtered = await WithUnitOfWorkAsync(() => _templateRepository.GetListAsync("list-b", "/partials/"));
+        filtered.Select(t => t.Name).ShouldBe(new[] { "partials/list-b" });
+    }
+
+    [Fact]
     public async Task Should_Require_Site_Head_In_The_Layout()
     {
         await Should.ThrowAsync<SiteTemplateMissingSiteHeadException>(() => WithUnitOfWorkAsync(() =>
@@ -217,11 +258,11 @@ public class SiteTemplateManager_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_List_Templates_By_Name_And_Filter_Ignoring_Case()
     {
-        var all = await WithUnitOfWorkAsync(() => _templateRepository.GetListAsync(null, false));
+        var all = await WithUnitOfWorkAsync(() => _templateRepository.GetListAsync(includeDetails: false));
         all.Select(t => t.Name).ShouldBe(
             new[] { SiteTestData.DraftTemplateName, SiteTestData.PublishedTemplateName });
 
-        var filtered = await WithUnitOfWorkAsync(() => _templateRepository.GetListAsync("PUBLISHED", false));
+        var filtered = await WithUnitOfWorkAsync(() => _templateRepository.GetListAsync("PUBLISHED", includeDetails: false));
         filtered.Select(t => t.Name).ShouldBe(new[] { SiteTestData.PublishedTemplateName });
     }
 

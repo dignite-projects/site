@@ -41,10 +41,18 @@ public class EfCoreSiteTemplateRepository
 
     public virtual async Task<List<SiteTemplate>> GetListAsync(
         string? filter = null,
+        string? prefix = null,
         bool includeDetails = false,
         CancellationToken cancellationToken = default)
     {
         var queryable = (await GetQueryableAsync()).IncludeDetails(includeDetails);
+
+        if (!string.IsNullOrWhiteSpace(prefix))
+        {
+            // StartsWith is a LIKE 'prefix%' - an ordinal match on the stored (already normalized) name.
+            var normalizedPrefix = SiteTemplateNames.Normalize(prefix);
+            queryable = queryable.Where(t => t.Name.StartsWith(normalizedPrefix));
+        }
 
         if (!string.IsNullOrWhiteSpace(filter))
         {
@@ -75,6 +83,46 @@ public class EfCoreSiteTemplateRepository
                 select version)
             .AsNoTracking()
             .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
+    }
+
+    public virtual async Task<List<PublishedSiteTemplateVersion>> GetPublishedRenderSetAsync(
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        var templates = await GetQueryableAsync();
+        var versions = (await GetDbContextAsync()).SiteTemplateVersions;
+
+        // One query for the whole render set instead of one per template or include: a page view needs the
+        // page template, the layout, the partials it may include and the asset versions it may link, and
+        // the set a render sees is then fixed when it starts. Same join on the template's pointer as
+        // FindPublishedVersionAsync, so only live versions are read - never a template's history.
+        // An asset's body is never selected (null in SQL, not read): the renderer only needs its version
+        // number, and a stylesheet or script can be large and sits in every page view's path otherwise.
+        var rows = await (
+                from template in templates
+                join version in versions on template.Id equals version.TemplateId
+                where template.PublishedVersionNumber == version.Number
+                      && (template.Name == name
+                          || template.Name == SiteTemplateConsts.LayoutName
+                          || template.Name.StartsWith(SiteTemplateConsts.PartialsPrefix)
+                          || template.Name.StartsWith(SiteTemplateConsts.AssetsPrefix))
+                select new
+                {
+                    TemplateName = template.Name,
+                    version.Id,
+                    version.TemplateId,
+                    version.Number,
+                    Body = template.Name.StartsWith(SiteTemplateConsts.AssetsPrefix) ? null : version.Body,
+                    version.Comment,
+                    version.CreationTime
+                })
+            .AsNoTracking()
+            .ToListAsync(GetCancellationToken(cancellationToken));
+
+        return rows
+            .Select(r => new PublishedSiteTemplateVersion(
+                r.TemplateName, r.Id, r.TemplateId, r.Number, r.Body, r.Comment, r.CreationTime))
+            .ToList();
     }
 
     public virtual async Task<Dictionary<Guid, int>> GetLatestVersionNumbersAsync(

@@ -12,14 +12,15 @@ public class SiteLanguageOptions
     /// Paths that are not Site pages, so an in-site link to them never gets a language prefix
     /// (<see cref="SiteLinks"/>): prefixed, they would 404. By default ABP's and ASP.NET Core's own endpoints:
     /// the account pages, ABP's scripts and APIs, OpenIddict (<c>/connect</c>), Swagger, the error page and
-    /// <c>/.well-known</c>. Matched per whole segment, ignoring case, with or without slashes - "api" covers
+    /// <c>/.well-known</c>, plus <c>/site-assets</c>: a tenant's CSS and JS are the same file in every language,
+    /// not pages. Matched per whole segment, ignoring case, with or without slashes - "api" covers
     /// "/api/..." but not "/apiary". Anything whose last segment contains a dot (<c>favicon.ico</c>,
     /// <c>sitemap.xml</c>) is excluded as well, without being listed here. A host that serves its own pages
     /// next to Site's - a contact form under <c>/Contact</c>, say - adds their paths.
     /// </summary>
     public List<string> ExcludedPathPrefixes { get; } = new()
     {
-        "/Account", "/Abp", "/api", "/connect", "/swagger", "/Error", "/.well-known"
+        "/Account", "/Abp", "/api", "/connect", "/swagger", "/Error", "/.well-known", "/site-assets"
     };
 
     /// <summary>

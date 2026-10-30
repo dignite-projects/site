@@ -101,9 +101,16 @@ public class SiteTemplateManager : DomainService
     /// <summary>
     /// The save-time gate. Syntax first, then the layout rule: the layout is the template every page
     /// renders inside, so one without <c>site_head</c> would silently drop the SEO head tags site-wide.
+    /// An asset (<c>assets/*</c>) skips both: its body is served as it is and never rendered, so parsing it
+    /// as Scriban would only reject valid CSS or JS - <c>a{{color:red}}</c> is not a template error.
     /// </summary>
     protected virtual void CheckBody(string name, string body)
     {
+        if (SiteTemplateNames.IsAsset(SiteTemplate.NormalizeName(name)))
+        {
+            return;
+        }
+
         var errors = ScribanTemplateSyntax.GetErrors(body);
         if (errors.Count > 0)
         {

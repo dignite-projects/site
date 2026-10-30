@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields.Web;
 using Dignite.Site.Public.TagHelpers;
+using global::Scriban.Syntax;
 using Shouldly;
 using Volo.Abp;
 using Xunit;
@@ -113,6 +115,51 @@ public class ScribanPageRenderer_Tests
             $"[{ScribanTestRenderer.Encoder.Encode(Dignite.Site.Files.SiteFileUrl.Sized(url, 300)!)}]" +
             $"[{ScribanTestRenderer.Encoder.Encode(Dignite.Site.Files.SiteFileUrl.Sized(url, 300, 200)!)}]");
         html.ShouldContain("Width=300&amp;Height=200");
+    }
+
+    /// <summary>Under the host's base path, never with the page's language prefix (this page is /ja/about).</summary>
+    [Fact]
+    public async Task Asset_Url_Should_Carry_The_Published_Version_Id()
+    {
+        var html = await new ScribanTestRenderer("en,ja", "/ja/about").RenderAsync(ScribanTestRenderer.RenderSet(
+            "<link href=\"{{ asset_url \"assets/site.css\" }}\" rel=\"stylesheet\">[{{ asset_url \"/assets/js/site.js\" }}]",
+            HeadOnlyLayout,
+            assets: new Dictionary<string, Guid>
+            {
+                ["assets/site.css"] = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000003"),
+                ["assets/js/site.js"] = Guid.Parse("bbbbbbbb-0000-0000-0000-00000000000c")
+            }));
+
+        html.ShouldEndWith(
+            "<link href=\"/site-assets/site.css?v=aaaaaaaa000000000000000000000003\" rel=\"stylesheet\">" +
+            "[/site-assets/js/site.js?v=bbbbbbbb00000000000000000000000c]");
+    }
+
+    [Fact]
+    public async Task Asset_Url_Of_An_Unpublished_Asset_Should_Fail_Naming_It()
+    {
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
+            "{{ asset_url \"assets/missing.css\" }}",
+            HeadOnlyLayout,
+            assets: new Dictionary<string, Guid> { ["assets/site.css"] = Guid.NewGuid() })));
+
+        ex.ShouldBeAssignableTo<ScriptRuntimeException>();
+        ex!.Message.ShouldContain("'assets/missing.css'");
+    }
+
+    [Theory]
+    [InlineData("site.css")]
+    [InlineData("partials/card")]
+    public async Task Asset_Url_Of_A_Name_That_Is_Not_An_Asset_Should_Fail_Naming_The_Prefix(string name)
+    {
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
+            $"{{{{ asset_url \"{name}\" }}}}",
+            HeadOnlyLayout,
+            assets: new Dictionary<string, Guid> { ["assets/site.css"] = Guid.NewGuid() })));
+
+        ex.ShouldBeAssignableTo<ScriptRuntimeException>();
+        ex!.Message.ShouldContain("'assets/'");
+        ex.Message.ShouldContain($"'{name}'");
     }
 
     [Fact]

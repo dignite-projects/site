@@ -10,6 +10,7 @@ using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.Templates;
+using Dignite.Site.Templates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -189,6 +190,9 @@ public class SiteRenderController_Tests
             RequestedNames.Add(name);
             return Task.FromResult(renderSet);
         }
+
+        /// <summary>The asset endpoint's lookup; rendering a page never makes it.</summary>
+        public Task<SiteTemplateVersionDto?> FindPublishedAsync(string name) => throw new NotSupportedException();
     }
 
     private class FakeRoutingAppService(RouteMatchDto match) : IRoutingPublicAppService

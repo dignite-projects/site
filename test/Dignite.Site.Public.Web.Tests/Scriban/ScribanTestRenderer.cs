@@ -83,16 +83,48 @@ public class ScribanTestRenderer
     /// <summary>Renders <paramref name="page"/> - and <paramref name="layout"/> around it, when given - for <paramref name="viewModel"/>.</summary>
     public Task<string> RenderAsync(string page, string? layout = null, SiteRenderViewModel? viewModel = null)
     {
-        return Renderer.RenderAsync("Default", RenderSet(page, layout), viewModel ?? PageViewModel(), ActionContext);
+        return RenderAsync(RenderSet(page, layout), viewModel);
     }
 
-    public static SiteTemplateRenderSetDto RenderSet(string page, string? layout = null)
+    /// <summary>Renders <paramref name="page"/> with <paramref name="partials"/> (full name to body) published next to it.</summary>
+    public Task<string> RenderAsync(string page, string? layout, IReadOnlyDictionary<string, string> partials)
     {
-        return new SiteTemplateRenderSetDto
+        return RenderAsync(RenderSet(page, layout, partials));
+    }
+
+    /// <summary>Renders <paramref name="renderSet"/> as the page "Default".</summary>
+    public Task<string> RenderAsync(SiteTemplateRenderSetDto renderSet, SiteRenderViewModel? viewModel = null)
+    {
+        return Renderer.RenderAsync("Default", renderSet, viewModel ?? PageViewModel(), ActionContext);
+    }
+
+    /// <param name="page">The page template's body.</param>
+    /// <param name="layout">The layout's body, if any.</param>
+    /// <param name="partials">Published partials: full name (<c>partials/card</c>) to body.</param>
+    /// <param name="assets">Published assets: full name (<c>assets/site.css</c>) to the id of its published version.</param>
+    public static SiteTemplateRenderSetDto RenderSet(
+        string page,
+        string? layout = null,
+        IReadOnlyDictionary<string, string>? partials = null,
+        IReadOnlyDictionary<string, Guid>? assets = null)
+    {
+        var renderSet = new SiteTemplateRenderSetDto
         {
             Template = Version(page),
             Layout = layout == null ? null : Version(layout)
         };
+
+        foreach (var (name, body) in partials ?? new Dictionary<string, string>())
+        {
+            renderSet.Partials[name] = Version(body);
+        }
+
+        foreach (var (name, versionId) in assets ?? new Dictionary<string, Guid>())
+        {
+            renderSet.Assets[name] = versionId;
+        }
+
+        return renderSet;
     }
 
     public static SiteTemplateVersionDto Version(string body)
