@@ -113,16 +113,17 @@ function readOnlyExtensions(readonly: boolean) {
   return [EditorState.readOnly.of(readonly), EditorView.editable.of(!readonly)];
 }
 
-// The host theme is a Bootstrap 5 one that can switch to dark, so the colors come from its variables; the
-// fallbacks are Bootstrap's own light values.
+// The editor sits inside a Bootstrap card, so it inherits the card's colors rather than reading the body's:
+// in LeptonX Lite's dim theme --bs-body-bg is dark while the card stays light, and an editor painted with the
+// body tokens came out as a black box on a white card. Only the chrome (border, gutter, active line) reads
+// theme variables, with Bootstrap's light values as fallbacks.
 const EDITOR_THEME = EditorView.theme({
   '&': {
     minHeight: '24rem',
     maxHeight: '75vh',
     border: '1px solid var(--bs-border-color, #dee2e6)',
     borderRadius: 'var(--bs-border-radius, 0.375rem)',
-    backgroundColor: 'var(--bs-body-bg, #fff)',
-    color: 'var(--bs-body-color, #212529)',
+    backgroundColor: 'transparent',
   },
   '&.cm-focused': {
     outline: 'none',
@@ -133,11 +134,13 @@ const EDITOR_THEME = EditorView.theme({
     fontFamily: 'var(--bs-font-monospace, monospace)',
   },
   '.cm-gutters': {
-    backgroundColor: 'var(--bs-tertiary-bg, #f8f9fa)',
-    color: 'var(--bs-secondary-color, #6c757d)',
+    backgroundColor: 'transparent',
+    color: 'inherit',
+    opacity: '0.6',
     border: 'none',
+    borderRight: '1px solid var(--bs-border-color, #dee2e6)',
   },
   '.cm-activeLine, .cm-activeLineGutter': {
-    backgroundColor: 'var(--bs-secondary-bg, #e9ecef)',
+    backgroundColor: 'rgba(128, 128, 128, 0.12)',
   },
 });

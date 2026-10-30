@@ -2,16 +2,16 @@
 export interface CreateSiteTemplateDto {
   name: string;
   body: string;
-  comment?: string;
-  publish: boolean;
+  comment?: string | null;
+  publish?: boolean;
 }
 
 export interface GetSiteTemplateListInput {
-  filter?: string;
+  filter?: string | null;
 }
 
 export interface UpdateSiteTemplateDto {
   body: string;
-  comment?: string;
-  publish: boolean;
+  comment?: string | null;
+  publish?: boolean;
 }
