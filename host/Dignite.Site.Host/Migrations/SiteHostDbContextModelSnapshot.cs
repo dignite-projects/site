@@ -98,7 +98,8 @@ namespace Dignite.Site.Host.Migrations
                     b.HasIndex("PageId");
 
                     b.HasIndex("TenantId", "PageId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("IsDeleted = 0");
 
                     b.ToTable("SiteContentTypes", (string)null);
                 });
@@ -190,7 +191,8 @@ namespace Dignite.Site.Host.Migrations
                     b.HasIndex("TenantId", "PageId", "ContentTypeId", "Slug");
 
                     b.HasIndex("TenantId", "PageId", "CultureName", "Slug")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("IsDeleted = 0");
 
                     b.HasIndex("TenantId", "PageId", "CultureName", "Status", "PublishTime");
 
@@ -338,7 +340,8 @@ namespace Dignite.Site.Host.Migrations
                     b.HasIndex("TenantId", "GroupName");
 
                     b.HasIndex("TenantId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("IsDeleted = 0");
 
                     b.ToTable("SiteFields", (string)null);
                 });
@@ -593,12 +596,14 @@ namespace Dignite.Site.Host.Migrations
                     b.HasIndex("ParentId");
 
                     b.HasIndex("TenantId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("IsDeleted = 0");
 
                     b.HasIndex("TenantId", "ParentId");
 
                     b.HasIndex("TenantId", "Route")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("IsDeleted = 0");
 
                     b.ToTable("SitePages", (string)null);
                 });
