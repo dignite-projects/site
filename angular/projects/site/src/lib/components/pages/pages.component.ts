@@ -22,6 +22,9 @@ import type { NzTreeNodeOptions } from 'ng-zorro-antd/tree';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import type { GetPageListInput } from '../../proxy/dignite/site/admin/pages/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
+import { SiteTemplateAdminService } from '../../proxy/dignite/site/admin/templates/site-template-admin.service';
+import type { SiteTemplateDto } from '../../proxy/dignite/site/templates/models';
+import { SiteTemplateKind } from '../../proxy/dignite/site/templates/site-template-kind.enum';
 import { eSitePolicyNames } from '../../enums/policy-names';
 
 /** Max lengths mirror `PageConsts` (`src/Dignite.Site.Domain.Shared/Pages/PageConsts.cs`). */
@@ -40,6 +43,11 @@ const ROUTE_PATTERN = /^\S+$/;
 
 /** Mirrors `PageConsts.TemplatePattern`. Required - at least one character - since `template` is required. */
 const TEMPLATE_PATTERN = /^\/?[A-Za-z0-9_][A-Za-z0-9_/-]*$/;
+
+/** Mirrors `SiteTemplateNames.Normalize`: trimmed, without a leading slash - how a template's name is stored. */
+function normalizeTemplateName(value: string | null | undefined): string {
+  return (value ?? '').trim().replace(/^\//, '');
+}
 
 /** A page, plus the expand/collapse state `ngx-datatable`'s tree mode keeps on each row. */
 type PageRow = PageDto & { treeStatus?: TreeStatus };
@@ -158,6 +166,7 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
 })
 export class PagesComponent {
   private readonly pageService = inject(PageAdminService);
+  private readonly templateService = inject(SiteTemplateAdminService);
   private readonly fb = inject(FormBuilder);
   private readonly confirmation = inject(ConfirmationService);
   private readonly toaster = inject(ToasterService);
@@ -176,6 +185,12 @@ export class PagesComponent {
    */
   readonly data = signal<ListResultDto<PageRow>>({ items: [] });
   filters = {} as GetPageListInput;
+
+  /**
+   * The site's Scriban page templates, offered as suggestions for the `template` input. Loaded when the modal
+   * opens; empty when the person may not list templates (the input then stays a plain text box).
+   */
+  readonly templateOptions = signal<SiteTemplateDto[]>([]);
 
   readonly isModalOpen = signal(false);
   readonly isModalBusy = signal(false);
@@ -226,12 +241,14 @@ export class PagesComponent {
   openCreate(): void {
     this.editingPage = undefined;
     this.form = this.buildForm();
+    this.loadTemplateOptions();
     this.isModalOpen.set(true);
   }
 
   openEdit(page: PageDto): void {
     this.editingPage = page;
     this.form = this.buildForm(page);
+    this.loadTemplateOptions();
     this.isModalOpen.set(true);
   }
 
@@ -239,6 +256,22 @@ export class PagesComponent {
     this.isModalOpen.set(false);
     this.form = undefined;
     this.editingPage = undefined;
+  }
+
+  /**
+   * Whether the form offers to create a Scriban template for the page being edited: only for an existing
+   * page, only for a person who may create templates, and only while the typed name is not already one of the
+   * listed templates (that one is edited instead).
+   */
+  showCreateTemplateLink(): boolean {
+    const name = normalizeTemplateName(this.form?.value.template);
+
+    return (
+      !!this.editingPage &&
+      !!name &&
+      this.permission.getGrantedPolicy(this.policies.TemplatesCreate) &&
+      !this.templateOptions().some(option => option.name === name)
+    );
   }
 
   save(): void {
@@ -354,6 +387,19 @@ export class PagesComponent {
         children: this.buildTreeNodes(page.id!, excluded),
         isLeaf: !items.some(child => child.parentId === page.id),
       }));
+  }
+
+  private loadTemplateOptions(): void {
+    this.templateOptions.set([]);
+
+    // skipHandleError: a person without the Templates permission simply gets no suggestions, not an error toast.
+    this.templateService.getList({}, { skipHandleError: true }).subscribe({
+      next: result =>
+        this.templateOptions.set(
+          (result.items ?? []).filter(template => template.kind === SiteTemplateKind.Page),
+        ),
+      error: () => this.templateOptions.set([]),
+    });
   }
 
   private buildForm(page?: PageDto): FormGroup {

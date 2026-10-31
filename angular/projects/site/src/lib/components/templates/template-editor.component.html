@@ -15,9 +15,15 @@
 
   <div class="row g-3">
     <!-- Left: the source, its comment and the version history. -->
-    <div [class]="isEdit ? 'col-lg-7' : 'col-12'">
+    <div [class]="showFieldsColumn() ? 'col-lg-7' : 'col-12'">
       <div class="card mb-3">
         <div class="card-body">
+          @if (forPage(); as current) {
+            <small class="text-muted d-block mb-3">
+              {{ 'Site::NewTemplateForPageHint' | abpLocalization: (current.displayName ?? current.name ?? '') }}
+            </small>
+          }
+
           <form [formGroup]="form" (ngSubmit)="save(false)">
             @if (!isEdit) {
               <div class="mb-3">
@@ -165,9 +171,12 @@
       }
     </div>
 
-    <!-- Right: the preview. Only an existing template has saved versions to render. -->
+    <!-- Right: the page's fields and, for an existing template, the preview (only a saved template has versions to render). -->
     @if (isEdit) {
       <div class="col-lg-5">
+        @if (usage()?.kind !== kinds.Asset) {
+          <ng-container *ngTemplateOutlet="fieldsCard"></ng-container>
+        }
         <div class="card">
           <div class="card-body">
             <h6 class="mb-3">{{ 'Site::Preview' | abpLocalization }}</h6>
@@ -278,6 +287,54 @@
           </div>
         </div>
       </div>
+    } @else if (forPage()) {
+      <div class="col-lg-5">
+        <ng-container *ngTemplateOutlet="fieldsCard"></ng-container>
+      </div>
     }
   </div>
+
+  <!-- The fields of the page's content types, each a button that inserts the Scriban that prints it. -->
+  <ng-template #fieldsCard>
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="mb-2">{{ 'Site::AvailableFields' | abpLocalization }}</h6>
+
+        @if (isEdit) {
+          @if (selectedPage()) {
+            <small class="text-muted d-block mb-3">{{ 'Site::AvailableFieldsChoosePage' | abpLocalization }}</small>
+          } @else {
+            <small class="text-muted d-block">{{ 'Site::AvailableFieldsNone' | abpLocalization }}</small>
+          }
+        } @else if (forPage(); as current) {
+          <small class="text-muted d-block mb-3">
+            {{ 'Site::AvailableFieldsHint' | abpLocalization: (current.displayName ?? current.name ?? '') }}
+          </small>
+        }
+
+        <div style="max-height: 24rem; overflow-y: auto">
+          @for (group of fieldGroups(); track group.id) {
+            <div class="mb-3">
+              <div class="small fw-semibold mb-1">{{ group.displayName }}</div>
+              <div class="d-flex flex-column gap-1">
+                @for (field of group.fields; track field.name) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 text-start"
+                    [disabled]="!canSave"
+                    [title]="field.snippet"
+                    (click)="insertField(field)"
+                  >
+                    <span>{{ field.displayName }}</span>
+                    <small class="text-muted">{{ field.name }}</small>
+                    <span class="badge text-bg-secondary ms-auto">{{ field.fieldTypeName }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </ng-template>
 }

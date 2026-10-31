@@ -162,10 +162,40 @@
         </div>
         <div class="mb-3">
           <label class="form-label">{{ 'Site::DisplayName:Page.Template' | abpLocalization }}</label>
-          <input type="text" class="form-control" formControlName="template" />
-          <small class="form-text text-muted">
+          <!-- A suggestion list, not a select: a name that is no Scriban template is a Razor view, typed by hand. -->
+          <input
+            type="text"
+            class="form-control"
+            formControlName="template"
+            list="site-page-template-options"
+            autocomplete="off"
+          />
+          <datalist id="site-page-template-options">
+            @for (option of templateOptions(); track option.id) {
+              <option
+                [value]="option.name"
+                [attr.label]="option.publishedVersionNumber == null ? ('Site::NotPublished' | abpLocalization) : null"
+              ></option>
+            }
+          </datalist>
+          <small class="form-text text-muted d-block">
             {{ 'Site::Description:Page.Template' | abpLocalization }}
           </small>
+          <small class="form-text text-muted d-block">
+            {{ 'Site::PageTemplateOptionsHint' | abpLocalization }}
+          </small>
+          @if (editingPage; as editing) {
+            @if (showCreateTemplateLink()) {
+              <a
+                class="btn btn-link btn-sm p-0"
+                [routerLink]="['/site/templates/create']"
+                [queryParams]="{ name: form.value.template, page: editing.name }"
+                (click)="closeModal()"
+              >
+                <i class="fa fa-plus me-1"></i>{{ 'Site::CreateTemplateForPage' | abpLocalization }}
+              </a>
+            }
+          }
         </div>
         <div class="mb-3">
           <label class="form-label">{{ 'Site::DisplayName:Page.ParentId' | abpLocalization }}</label>

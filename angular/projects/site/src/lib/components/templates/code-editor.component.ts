@@ -107,6 +107,23 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
     });
     view.focus();
   }
+
+  /**
+   * Replaces the selection (or inserts at the cursor) with `text`, puts the cursor after it and focuses the
+   * editor. It is an ordinary transaction, so {@link valueChange} fires exactly as it does for typing. A
+   * read-only editor is left alone.
+   */
+  insert(text: string): void {
+    const view = this.view();
+    if (!view || this.readonly()) {
+      return;
+    }
+
+    view.dispatch(
+      view.state.update(view.state.replaceSelection(text), { scrollIntoView: true, userEvent: 'input' }),
+    );
+    view.focus();
+  }
 }
 
 function readOnlyExtensions(readonly: boolean) {

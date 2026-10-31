@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The admin UI helps write a template for a page.** The **Template** field of a page lists the site's Scriban page
+  templates to pick from, a draft marked as not published, and still takes the name of a Razor view; when the template
+  of an existing page is not a Scriban template, **Create a template for this page** opens the template editor with that
+  name, a skeleton for its kind (page template, `layout` or partial) and the page's fields beside the source. The editor's
+  new **Fields** card lists the fields of the content types of the page selected under **Preview**, with their types, and
+  inserts the matching expression at the cursor: `{{ content.fields.name }}` for a text, number, boolean, select or tree
+  field, with `date.to_string` for a date, and `{{ render_field "name" }}` for rich text, matrix, table, content and file
+  fields. See [Admin UI](docs/en/admin-ui.md).
 - **A template version can now be previewed on the live site, in a browser, across pages.** The admin UI's **Preview in
   a new window** asks the new `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview-link?path=` for a
   link: the page's real address with a token that is valid for 10 minutes. Opening it sets an `HttpOnly`,
