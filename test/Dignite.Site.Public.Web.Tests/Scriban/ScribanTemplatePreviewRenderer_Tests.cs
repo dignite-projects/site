@@ -215,6 +215,66 @@ public class ScribanTemplatePreviewRenderer_Tests
         preview.Html.ShouldEndWith("<main><div class=\"card\">about</div></main>");
     }
 
+    /// <summary>
+    /// A partial is previewed where it is used: the page's published template, which includes it, renders the
+    /// version - the partial is not rendered as the page.
+    /// </summary>
+    [Fact]
+    public async Task A_Partial_Version_Should_Be_Included_By_The_Published_Page_Template()
+    {
+        var published = new SiteTemplateRenderSetDto
+        {
+            Template = Version("{{ site_head }}<main>{{ include \"partials/card\" }}</main>", 2)
+        };
+        var publishedCard = Version("<div class=\"card\">published</div>", 1);
+        published.Partials["partials/card"] = publishedCard;
+        var fixture = new Fixture(PageMatch(), published);
+
+        var preview = await fixture.RenderAsync("partials/card", Version("<div class=\"card\">draft {{ page.name }}</div>"));
+
+        fixture.Templates.RequestedNames.ShouldBe(new[] { "Default" });
+        preview.Html.ShouldEndWith("<main><div class=\"card\">draft about</div></main>");
+        published.Partials["partials/card"].ShouldBeSameAs(publishedCard);
+    }
+
+    /// <summary>An asset version is previewed through the address asset_url writes for it.</summary>
+    [Fact]
+    public async Task An_Asset_Version_Should_Be_The_One_Asset_Url_Points_At()
+    {
+        var publishedId = Guid.NewGuid();
+        var published = new SiteTemplateRenderSetDto
+        {
+            Template = Version("{{ site_head }}<link href=\"{{ asset_url \"assets/site.css\" }}\">", 2)
+        };
+        published.Assets["assets/site.css"] = publishedId;
+        var fixture = new Fixture(PageMatch(), published);
+        var draft = Version("body { color: red; }");
+
+        var preview = await fixture.RenderAsync("assets/site.css", draft);
+
+        preview.Html.ShouldContain(draft.Id.ToString("N"));
+        preview.Html.ShouldNotContain(publishedId.ToString("N"));
+        published.Assets["assets/site.css"].ShouldBe(publishedId);
+    }
+
+    /// <summary>
+    /// A page still rendered by Razor: as for a layout preview, the published layout wraps an empty body, and a
+    /// partial it includes renders the version.
+    /// </summary>
+    [Fact]
+    public async Task A_Partial_Version_On_A_Razor_Page_Should_Render_Inside_The_Published_Layout()
+    {
+        var published = new SiteTemplateRenderSetDto
+        {
+            Layout = Version("{{ site_head }}<header>{{ include \"partials/nav\" }}</header>[{{ body }}]", 1)
+        };
+        var fixture = new Fixture(PageMatch(), published);
+
+        var preview = await fixture.RenderAsync("partials/nav", Version("<nav>draft</nav>"));
+
+        preview.Html.ShouldEndWith("<header><nav>draft</nav></header>[]");
+    }
+
     /// <summary>The output bound is not a Scriban exception; a preview still reports it as the template's failure.</summary>
     [Fact]
     public async Task Output_Beyond_The_Limit_Should_Fail_With_Render_Failed()

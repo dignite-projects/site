@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Settings;
 using Shouldly;
 using Volo.Abp.Validation;
 using Xunit;
@@ -229,6 +230,56 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         result.TotalCount.ShouldBe(0);
         result.Items.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// The admin surface carries the same relative, language-prefixed <c>Url</c> as the Public one - the
+    /// address the template editor previews a content at - and for a draft too, which the Public surface
+    /// never returns.
+    /// </summary>
+    [Fact]
+    public async Task Should_Carry_The_Same_Relative_Url_As_The_Public_Surface()
+    {
+        GetRequiredService<TestSettingValueProvider>().Set(SiteSettings.PrimaryDomain, "https://acme.example");
+
+        var blog = await _contentAppService.GetListAsync(new GetContentListInput
+        {
+            PageId = SiteTestData.BlogPageId,
+            MaxResultCount = 1000
+        });
+
+        blog.Items.ShouldNotBeEmpty();
+        blog.Items.ShouldAllBe(c => c.Url == "/blog/" + c.Slug);
+        blog.Items.Single(c => c.Slug == SiteTestData.DraftSlug).Url.ShouldBe($"/blog/{SiteTestData.DraftSlug}");
+
+        (await GetTripContentAsync()).Url.ShouldBe($"/blog/{SiteTestData.TripSlug}");
+
+        var news = await _contentAppService.FindBySlugAsync(
+            SiteTestData.NewsPageId, SiteTestData.EnglishCulture, SiteTestData.NewsSlug);
+        news!.Url.ShouldBe("/news/2026-07/launch");
+
+        var chineseAbout = await _contentAppService.FindBySlugAsync(
+            SiteTestData.AboutPageId, SiteTestData.ChineseCulture, "");
+        chineseAbout!.Url.ShouldBe("/zh-Hans/about");
+    }
+
+    /// <summary>
+    /// No primary domain and no request to infer one from: the list still answers, with empty URLs, rather than
+    /// failing because SEO is not configured yet.
+    /// </summary>
+    [Fact]
+    public async Task Should_Leave_The_Url_Empty_Rather_Than_Fail_Without_A_Base_Url()
+    {
+        var blog = await _contentAppService.GetListAsync(new GetContentListInput
+        {
+            PageId = SiteTestData.BlogPageId,
+            MaxResultCount = 1000
+        });
+
+        blog.Items.ShouldNotBeEmpty();
+        blog.Items.ShouldAllBe(c => c.Url == string.Empty);
+
+        (await GetTripContentAsync()).Url.ShouldBe(string.Empty);
     }
 
     private async Task<ContentDto> GetTripContentAsync()

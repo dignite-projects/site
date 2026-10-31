@@ -1,8 +1,8 @@
-import type { CreateSiteTemplateDto, GetSiteTemplateListInput, UpdateSiteTemplateDto } from './models';
+import type { CreateSiteTemplateDto, GetSiteTemplateListInput, SiteTemplateUnmatchedPageDto, SiteTemplateUsageDto, UpdateSiteTemplateDto } from './models';
 import { RestService, Rest } from '@abp/ng.core';
 import type { ListResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
-import type { SiteTemplateDto, SiteTemplatePreviewDto, SiteTemplateVersionDto } from '../../templates/models';
+import type { SiteTemplateDto, SiteTemplatePreviewDto, SiteTemplatePreviewLinkDto, SiteTemplateVersionDto } from '../../templates/models';
 
 @Injectable({
   providedIn: 'root',
@@ -65,6 +65,37 @@ export class SiteTemplateAdminService {
   
 
   
+  getPreviewLink = (id: string, versionNumber: number, path: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, SiteTemplatePreviewLinkDto>({
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      url: `/api/site-admin/templates/${id}/versions/${versionNumber}/preview-link`,
+      params: { path },
+    },
+      { apiName: this.apiName,...config });
+
+
+
+  getUnmatchedPages = (config?: Partial<Rest.Config>) =>
+    this.restService.request<any, ListResultDto<SiteTemplateUnmatchedPageDto>>({
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      url: '/api/site-admin/templates/unmatched-pages',
+    },
+      { apiName: this.apiName,...config });
+
+
+
+  getUsage = (id: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, SiteTemplateUsageDto>({
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      url: `/api/site-admin/templates/${id}/usage`,
+    },
+      { apiName: this.apiName,...config });
+
+
+
   getVersion = (id: string, versionNumber: number, config?: Partial<Rest.Config>) =>
     this.restService.request<any, SiteTemplateVersionDto>({
       method: 'GET',

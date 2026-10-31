@@ -74,4 +74,9 @@ public static class SiteErrorCodes
     // engine's own exception would reach an HTTP or MCP caller as "an internal error occurred"; this code
     // carries its message - template, line and column - as Data["Message"].
     public const string SiteTemplatePreviewRenderFailed = "Site:090008";
+
+    // A preview link (the site opened in a browser with a draft version in place of the published one) is
+    // signed by Dignite.Site.Public.Web, which also honors it; the admin service raises this when no issuer
+    // is registered - an administration API hosted without it.
+    public const string SiteTemplatePreviewLinkUnavailable = "Site:090009";
 }

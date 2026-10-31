@@ -95,6 +95,29 @@ public partial class SiteTemplateAdminClientProxy : ClientProxyBase<ISiteTemplat
         });
     }
 
+    public virtual async Task<SiteTemplateUsageDto> GetUsageAsync(Guid id)
+    {
+        return await RequestAsync<SiteTemplateUsageDto>(nameof(GetUsageAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(Guid), id }
+        });
+    }
+
+    public virtual async Task<ListResultDto<SiteTemplateUnmatchedPageDto>> GetUnmatchedPagesAsync()
+    {
+        return await RequestAsync<ListResultDto<SiteTemplateUnmatchedPageDto>>(nameof(GetUnmatchedPagesAsync));
+    }
+
+    public virtual async Task<SiteTemplatePreviewLinkDto> GetPreviewLinkAsync(Guid id, int versionNumber, string path)
+    {
+        return await RequestAsync<SiteTemplatePreviewLinkDto>(nameof(GetPreviewLinkAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(Guid), id },
+            { typeof(int), versionNumber },
+            { typeof(string), path }
+        });
+    }
+
     public virtual async Task DeleteAsync(Guid id)
     {
         await RequestAsync(nameof(DeleteAsync), new ClientProxyRequestTypeValue

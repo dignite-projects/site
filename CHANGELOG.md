@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A template version can now be previewed on the live site, in a browser, across pages.** The admin UI's **Preview in
+  a new window** asks the new `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview-link?path=` for a
+  link: the page's real address with a token that is valid for 10 minutes. Opening it sets an `HttpOnly`,
+  `SameSite=Lax` preview cookie that lasts 2 hours and redirects to the address without the token, and from then on
+  every page opened in that browser is rendered with the chosen version in its slot: a page template on the pages
+  that use it, the `layout` around every Scriban page, a partial wherever it is included, an asset at its
+  `/site-assets/` address and in `asset_url`. A banner at the top names the template and the version and links
+  to `/site-preview/exit`, which ends the preview. Preview responses carry `X-Robots-Tag: noindex` and
+  `Cache-Control: no-store`; a token or cookie that expired, was altered or was issued for another tenant is ignored,
+  and a render that fails shows its error message on the page instead of the site's error page. A page rendered by a
+  Razor view gets the headers but no banner. The link is issued and checked by `Dignite.Site.Public.Web`, so the
+  administration API and the site must be in that application, and several instances must share one Data Protection
+  key ring; asking for a link without it fails with the new `Site:090009`. The lifetimes are
+  `SiteTemplatePreviewOptions.TokenLifetime` and `CookieLifetime`. See
+  [Scriban Templates](docs/en/rendering/scriban-templates.md#previewing-a-version). **A host that implements
+  `ISiteTemplateAdminAppService` itself must add `GetUsageAsync`, `GetUnmatchedPagesAsync` and `GetPreviewLinkAsync`.**
+- **Templates now know where they are used.** `GET api/site-admin/templates/{id}/usage` returns the pages a template
+  takes part in rendering, each with its route, its address, whether its route has a slug and a sample content's
+  address, and the templates that refer to it with `include` or `asset_url`, read from the current version of every
+  template: the published one, else the newest. A page template is used by the pages that name it, the `layout` by
+  every page, a partial or an asset by the pages of the templates that refer to it, followed through partials that
+  include partials. `GET api/site-admin/templates/unmatched-pages` lists the pages whose `Template` names no published
+  Scriban template, which the site renders with a Razor view. In the admin UI the **Templates** list gets **Kind** and
+  **Used by** columns, marks a template nobody uses, and shows a **Pages rendered by Razor views** card; the editor's
+  preview panel offers the pages and contents to preview. See
+  [Scriban Templates](docs/en/rendering/scriban-templates.md#where-a-template-is-used) and
+  [Admin UI](docs/en/admin-ui.md).
+
+### Changed
+
+- **`SiteTemplateDto` gains `Kind` (`Page`, `Layout`, `Partial` or `Asset`, from the name) and `UsageCount`.** `Kind`
+  is on every read; `UsageCount` is filled by `GET api/site-admin/templates` only, and is empty for the `layout`.
+- **The admin `ContentDto.Url` is now populated.** It was empty on the administration API; it now carries the
+  content's relative, language-prefixed path (`/blog/my-trip`), as the Public API does, and stays empty when the site
+  has no base URL to compose it with.
+- **Previewing a `partials/` or `assets/` version now puts it in its slot.** It rendered the version as the page's
+  template before; the page at the path now includes the previewed partial, or links the previewed asset, which
+  changes what `site_preview_template` and `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview?path=`
+  return for those names. See [MCP Tools](docs/en/mcp/tools.md#templates).
+- **The admin UI's preview frame is replaced by the new window, and the controller-only
+  `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview.html` is removed.** It was not part of the API
+  definition and had no generated proxy.
+- **Constructor changes a host that subclasses or constructs these types must follow.**
+  `SiteTemplateAdminAppService` takes `(ISiteTemplateRepository, SiteTemplateManager, SiteTemplateUsageCalculator,
+  IContentRepository, SiteLanguageProvider, ISiteBaseUrlResolver)`. `ContentAdminAppService` takes
+  `(IContentRepository, ContentManager, IPageRepository, SiteUrlBuilder)`, and its `MapToDto(Content)` became `MapToDtoAsync(Content)`.
+  `SiteAssetController` takes `(ISiteTemplatePublicAppService, SiteTemplatePreviewState)`.
+  `ScribanTemplatePreviewRenderer` lost its protected `IsLayout`. `ISiteTemplateRepository` gains
+  `GetCurrentVersionsAsync`, which a custom repository must implement.
+
 ## [2.0.0] - 2026-10-30
 
 ### Added

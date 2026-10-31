@@ -5,8 +5,9 @@ public class SiteTemplatePreviewRequest
 {
     /// <summary>
     /// The template's name as stored (normalized, <c>SiteTemplate.NormalizeName</c>): the value a page's
-    /// <c>Template</c> holds, or <c>layout</c> (<see cref="SiteTemplateConsts.LayoutName"/>) for the template
-    /// that wraps every page.
+    /// <c>Template</c> holds, <c>layout</c> (<see cref="SiteTemplateConsts.LayoutName"/>) for the template
+    /// that wraps every page, or a <c>partials/</c> or <c>assets/</c> name, which is substituted where the page's
+    /// templates include it or point at it.
     /// </summary>
     public string TemplateName { get; set; } = default!;
 

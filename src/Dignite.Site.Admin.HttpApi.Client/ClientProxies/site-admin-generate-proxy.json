@@ -4183,6 +4183,85 @@
                   }
                 },
                 {
+                  "name": "GetUsageAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Templates.SiteTemplateUsageDto",
+                    "typeSimple": "Dignite.Site.Admin.Templates.SiteTemplateUsageDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "GetUnmatchedPagesAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Templates.SiteTemplateUnmatchedPageDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Templates.SiteTemplateUnmatchedPageDto>",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "GetPreviewLinkAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "versionNumber",
+                      "typeAsString": "System.Int32, System.Private.CoreLib",
+                      "type": "System.Int32",
+                      "typeSimple": "number",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "path",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Templates.SiteTemplatePreviewLinkDto",
+                    "typeSimple": "Dignite.Site.Templates.SiteTemplatePreviewLinkDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
                   "name": "DeleteAsync",
                   "parametersOnMethod": [
                     {
@@ -4237,7 +4316,9 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
@@ -4491,7 +4572,9 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
@@ -4577,7 +4660,9 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
@@ -4652,7 +4737,9 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
@@ -4719,7 +4806,9 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
@@ -4812,7 +4901,9 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
@@ -4870,6 +4961,202 @@
               "description": null,
               "displayName": null
             },
+            "GetUsageAsyncById": {
+              "uniqueName": "GetUsageAsyncById",
+              "name": "GetUsageAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/templates/{id}/usage",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Templates.SiteTemplateUsageDto",
+                "typeSimple": "Dignite.Site.Admin.Templates.SiteTemplateUsageDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Templates",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetUnmatchedPagesAsync": {
+              "uniqueName": "GetUnmatchedPagesAsync",
+              "name": "GetUnmatchedPagesAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/templates/unmatched-pages",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Templates.SiteTemplateUnmatchedPageDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Templates.SiteTemplateUnmatchedPageDto>",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Templates",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetPreviewLinkAsyncByIdAndVersionNumberAndPath": {
+              "uniqueName": "GetPreviewLinkAsyncByIdAndVersionNumberAndPath",
+              "name": "GetPreviewLinkAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/templates/{id}/versions/{versionNumber}/preview-link",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "versionNumber",
+                  "typeAsString": "System.Int32, System.Private.CoreLib",
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "path",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "versionNumber",
+                  "name": "versionNumber",
+                  "jsonName": null,
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "path",
+                  "name": "path",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Templates.SiteTemplatePreviewLinkDto",
+                "typeSimple": "Dignite.Site.Templates.SiteTemplatePreviewLinkDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Templates",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
             "DeleteAsyncById": {
               "uniqueName": "DeleteAsyncById",
               "name": "DeleteAsync",
@@ -4898,7 +5185,9 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,

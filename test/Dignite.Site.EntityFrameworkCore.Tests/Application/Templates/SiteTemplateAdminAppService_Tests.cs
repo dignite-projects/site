@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Settings;
 using Dignite.Site.Templates;
 using Shouldly;
 using Volo.Abp.Domain.Entities;
@@ -13,11 +14,13 @@ public class SiteTemplateAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly ISiteTemplateAdminAppService _templateAppService;
     private readonly FakeSiteTemplatePreviewRenderer _previewRenderer;
+    private readonly FakeSiteTemplatePreviewLinkIssuer _previewLinkIssuer;
 
     public SiteTemplateAdminAppService_Tests()
     {
         _templateAppService = GetRequiredService<ISiteTemplateAdminAppService>();
         _previewRenderer = GetRequiredService<FakeSiteTemplatePreviewRenderer>();
+        _previewLinkIssuer = GetRequiredService<FakeSiteTemplatePreviewLinkIssuer>();
     }
 
     [Fact]
@@ -51,6 +54,74 @@ public class SiteTemplateAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             () => _templateAppService.PreviewAsync(SiteTestData.PublishedTemplateId, 9, "/about"));
 
         _previewRenderer.Requests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_Issue_A_Preview_Link_For_A_Staged_Version_On_The_Primary_Domain()
+    {
+        GetRequiredService<TestSettingValueProvider>().Set(SiteSettings.PrimaryDomain, "https://acme.example");
+
+        var staged = await _templateAppService.UpdateAsync(
+            SiteTestData.PublishedTemplateId,
+            new UpdateSiteTemplateDto { Body = "v3 {{ page.name }}", Publish = false });
+
+        var link = await _templateAppService.GetPreviewLinkAsync(
+            SiteTestData.PublishedTemplateId, staged.LatestVersionNumber, "/about");
+
+        var request = _previewLinkIssuer.Requests.ShouldHaveSingleItem();
+        request.TemplateName.ShouldBe(SiteTestData.PublishedTemplateName);
+        request.VersionNumber.ShouldBe(3);
+        request.Path.ShouldBe("/about");
+        request.BaseUrl.ShouldBe("https://acme.example");
+
+        link.Url.ShouldBe("https://acme.example/about?site-preview=token-3");
+        link.TemplateName.ShouldBe(SiteTestData.PublishedTemplateName);
+        link.VersionNumber.ShouldBe(3);
+        link.ExpiresAt.ShouldBe(FakeSiteTemplatePreviewLinkIssuer.ExpiresAt);
+
+        // A link publishes nothing.
+        (await _templateAppService.GetAsync(SiteTestData.PublishedTemplateId)).PublishedVersionNumber.ShouldBe(2);
+    }
+
+    /// <summary>
+    /// Without a primary domain the base URL is left to the issuer, which falls back to the request it is
+    /// called from - the administration side and the site usually share one host.
+    /// </summary>
+    [Fact]
+    public async Task Should_Leave_The_Base_Url_To_The_Issuer_Without_A_Primary_Domain()
+    {
+        await _templateAppService.GetPreviewLinkAsync(SiteTestData.DraftTemplateId, 1, "/");
+
+        var request = _previewLinkIssuer.Requests.ShouldHaveSingleItem();
+        request.TemplateName.ShouldBe(SiteTestData.DraftTemplateName);
+        request.VersionNumber.ShouldBe(1);
+        request.BaseUrl.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Should_Throw_Not_Found_When_Linking_To_A_Missing_Version()
+    {
+        await Should.ThrowAsync<EntityNotFoundException>(
+            () => _templateAppService.GetPreviewLinkAsync(SiteTestData.PublishedTemplateId, 9, "/about"));
+
+        _previewLinkIssuer.Requests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_Say_What_Kind_Of_Template_A_Single_Read_Is()
+    {
+        (await _templateAppService.GetAsync(SiteTestData.PublishedTemplateId)).Kind.ShouldBe(SiteTemplateKind.Page);
+
+        var partial = await _templateAppService.CreateAsync(
+            new CreateSiteTemplateDto { Name = "partials/kind-card", Body = "<div></div>" });
+        partial.Kind.ShouldBe(SiteTemplateKind.Partial);
+        partial.UsageCount.ShouldBeNull();
+
+        var asset = await _templateAppService.CreateAsync(
+            new CreateSiteTemplateDto { Name = "assets/kind.css", Body = "a{{color:red}}" });
+        asset.Kind.ShouldBe(SiteTemplateKind.Asset);
+
+        (await _templateAppService.FindByNameAsync("assets/kind.css"))!.Kind.ShouldBe(SiteTemplateKind.Asset);
     }
 
     [Fact]

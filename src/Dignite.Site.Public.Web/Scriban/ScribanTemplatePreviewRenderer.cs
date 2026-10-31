@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Routing;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.Templates;
@@ -27,9 +28,11 @@ namespace Dignite.Site.Public.Scriban;
 /// The page is resolved and its model built exactly as <see cref="SiteRenderController"/> does it - the same
 /// Public application services, the same <see cref="SiteRenderViewModelBuilder"/> - and rendered by the same
 /// <see cref="ScribanPageRenderer"/>, so a preview differs from the live page only in the one version it
-/// substitutes. Previewing a page template keeps the published <c>layout</c> around it; previewing
-/// <c>layout</c> wraps the page's published template, or an empty body when the page is still rendered by
-/// Razor (a Razor view cannot be rendered into a Scriban layout).
+/// substitutes, in the slot its name says it fills (<see cref="SiteTemplatePreviewOverride"/>). Previewing a
+/// page template keeps the published <c>layout</c> around it; previewing <c>layout</c> wraps the page's
+/// published template; a <c>partials/</c> version is what every <c>include</c> of it renders, and an
+/// <c>assets/</c> version's id is what <c>asset_url</c> writes. When the page is still rendered by Razor, the
+/// layout wraps an empty body instead (a Razor view cannot be rendered into a Scriban layout).
 /// </para>
 /// <para>
 /// A template that fails at run time (<see cref="ScriptRuntimeException"/>, whose message names template, line
@@ -117,7 +120,9 @@ public class ScribanTemplatePreviewRenderer : ISiteTemplatePreviewRenderer, ITra
 
         var pageTemplateName = SiteRenderViewModelBuilder.ResolveTemplateName(match.Page.Template);
         var renderSet = await GetRenderSetAsync(request, pageTemplateName);
-        var templateName = IsLayout(request) ? pageTemplateName : request.TemplateName;
+        // The name of the template rendered as the page: the previewed one when it is a page template, otherwise
+        // the page's own, which the layout, partial or asset is substituted around.
+        var templateName = IsPageTemplate(request) ? request.TemplateName : pageTemplateName;
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -177,31 +182,29 @@ public class ScribanTemplatePreviewRenderer : ISiteTemplatePreviewRenderer, ITra
     }
 
     /// <summary>
-    /// The page's published render set with <see cref="SiteTemplatePreviewRequest.Version"/> substituted - a new
-    /// DTO, never the one the application service returned, which an in-process implementation may share.
+    /// The page's published render set with <see cref="SiteTemplatePreviewRequest.Version"/> substituted
+    /// (<see cref="SiteTemplatePreviewOverride.Apply"/>) - a new DTO, never the one the application service
+    /// returned, which an in-process implementation may share.
     /// </summary>
     protected virtual async Task<SiteTemplateRenderSetDto> GetRenderSetAsync(SiteTemplatePreviewRequest request, string pageTemplateName)
     {
         var published = await TemplateAppService.GetRenderSetAsync(pageTemplateName);
+        var renderSet = SiteTemplatePreviewOverride.Apply(published, pageTemplateName, request.TemplateName, request.Version);
 
-        if (IsLayout(request))
+        if (IsPageTemplate(request))
         {
-            return new SiteTemplateRenderSetDto
-            {
-                Template = published.Template ?? CreateEmptyPageTemplate(),
-                Layout = request.Version,
-                Partials = published.Partials,
-                Assets = published.Assets
-            };
+            // Unlike the site's draft mode, which substitutes a page template only on the pages that use it, this
+            // preview renders it as this page's template whatever the page names: the question it answers is "what
+            // would this page look like with it", and SiteTemplatePreviewDto.PageTemplate tells the caller what the
+            // page really uses.
+            renderSet.Template = request.Version;
         }
 
-        return new SiteTemplateRenderSetDto
-        {
-            Template = request.Version,
-            Layout = published.Layout,
-            Partials = published.Partials,
-            Assets = published.Assets
-        };
+        // A page still rendered by Razor: the layout - previewed, or published around a previewed partial or asset -
+        // wraps an empty body. Without a layout either, the render fails for want of site_head, as it would live.
+        renderSet.Template ??= CreateEmptyPageTemplate();
+
+        return renderSet;
     }
 
     /// <summary>See <see cref="EmptyPageTemplateId"/>.</summary>
@@ -215,9 +218,13 @@ public class ScribanTemplatePreviewRenderer : ISiteTemplatePreviewRenderer, ITra
         };
     }
 
-    protected virtual bool IsLayout(SiteTemplatePreviewRequest request)
+    /// <summary>
+    /// Whether the previewed template renders a page itself - neither the layout nor a partial nor an asset
+    /// (<see cref="SiteTemplateNames.GetKind"/>).
+    /// </summary>
+    protected virtual bool IsPageTemplate(SiteTemplatePreviewRequest request)
     {
-        return string.Equals(request.TemplateName, SiteTemplateConsts.LayoutName, StringComparison.Ordinal);
+        return SiteTemplateNames.GetKind(SiteTemplateNames.Normalize(request.TemplateName)) == SiteTemplateKind.Page;
     }
 
     /// <summary>Null or empty is the home page; a missing leading slash is added.</summary>

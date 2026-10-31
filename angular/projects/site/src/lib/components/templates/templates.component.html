@@ -50,6 +50,11 @@
         [flexGrow]="3"
         [name]="'Site::TemplateName' | abpLocalization"
       ></ngx-datatable-column>
+      <ngx-datatable-column [flexGrow]="2" [sortable]="false" [name]="'Site::TemplateKind' | abpLocalization">
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <span class="badge text-bg-light border">{{ kindKey(row) | abpLocalization }}</span>
+        </ng-template>
+      </ngx-datatable-column>
       <ngx-datatable-column
         [flexGrow]="2"
         [sortable]="false"
@@ -68,6 +73,20 @@
         [flexGrow]="2"
         [name]="'Site::LatestVersion' | abpLocalization"
       ></ngx-datatable-column>
+      <ngx-datatable-column [flexGrow]="2" [sortable]="false" [name]="'Site::UsedBy' | abpLocalization">
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          @if (row.kind === kinds.Layout) {
+            {{ 'Site::AllPages' | abpLocalization }}
+          } @else if (row.usageCount === 0) {
+            <span class="badge text-bg-warning">{{ 'Site::NotUsed' | abpLocalization }}</span>
+          } @else if (row.usageCount > 0) {
+            {{
+              (row.kind === kinds.Page ? 'Site::UsageCountPages' : 'Site::UsageCountTemplates')
+                | abpLocalization: row.usageCount
+            }}
+          }
+        </ng-template>
+      </ngx-datatable-column>
       <ngx-datatable-column
         [flexGrow]="3"
         [sortable]="false"
@@ -100,3 +119,37 @@
     </ngx-datatable>
   </div>
 </div>
+
+@if (unmatchedPages().length > 0) {
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="mb-1">{{ 'Site::UnmatchedPages' | abpLocalization }}</h5>
+      <p class="text-muted small">{{ 'Site::UnmatchedPagesHint' | abpLocalization }}</p>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>{{ 'Site::DisplayName:Page.DisplayName' | abpLocalization }}</th>
+              <th>{{ 'Site::DisplayName:Page.Name' | abpLocalization }}</th>
+              <th>{{ 'Site::DisplayName:Page.Template' | abpLocalization }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (page of unmatchedPages(); track page.pageId) {
+              <tr>
+                <td>{{ page.displayName }}</td>
+                <td>{{ page.name }}</td>
+                <td>
+                  {{ page.template }}
+                  @if (page.hasDraft) {
+                    <span class="badge text-bg-warning ms-1">{{ 'Site::UnmatchedPageHasDraft' | abpLocalization }}</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+}

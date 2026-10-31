@@ -1,5 +1,6 @@
 import { CoreModule, PermissionService } from '@abp/ng.core';
 import { ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
+import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,17 +10,22 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DomSanitizer } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, switchMap, tap } from 'rxjs';
+import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
 import { SiteTemplateAdminService } from '../../proxy/dignite/site/admin/templates/site-template-admin.service';
 import type {
+  SiteTemplatePageUsageDto,
+  SiteTemplateUsageDto,
+} from '../../proxy/dignite/site/admin/templates/models';
+import { ContentStatus } from '../../proxy/dignite/site/contents/content-status.enum';
+import type { ContentDto } from '../../proxy/dignite/site/contents/models';
+import { SiteTemplateKind } from '../../proxy/dignite/site/templates/site-template-kind.enum';
+import type {
   SiteTemplateDto,
-  SiteTemplatePreviewDto,
   SiteTemplateVersionDto,
 } from '../../proxy/dignite/site/templates/models';
 import { eSitePolicyNames } from '../../enums/policy-names';
-import { SiteFileUrlService } from '../../files/services/site-file-url.service';
 import { CodeEditorComponent } from './code-editor.component';
 
 /** Mirrors `SiteTemplateConsts.MaxNameLength` / `MaxCommentLength` (`src/Dignite.Site.Domain.Shared/Templates/SiteTemplateConsts.cs`). */
@@ -29,8 +35,8 @@ const MAX_COMMENT_LENGTH = 256;
 /** Mirrors `SiteTemplateConsts.NamePattern`, which is `PageConsts.TemplatePattern` (also mirrored by `pages.component.ts`). */
 const NAME_PATTERN = /^\/?[A-Za-z0-9_][A-Za-z0-9_/-]*$/;
 
-/** Mirrors `SiteTemplateConsts.LayoutName`: the template that wraps every page. */
-const LAYOUT_NAME = 'layout';
+/** How many published contents of a slug page the preview offers; the newest come first. */
+const PREVIEW_CONTENT_LIMIT = 100;
 
 /** `SiteErrorCodes.TemplateSyntaxError`: the message carries one `(line,column): message` line per error. */
 const SYNTAX_ERROR_CODE = 'Site:090002';
@@ -73,23 +79,6 @@ export function parseSyntaxErrors(message: string | null | undefined): TemplateS
   return errors;
 }
 
-/**
- * Puts `<base href>` right after the opening `<head>` tag, or in front of the document when there is none -
- * see {@link TemplateEditorComponent.renderPreview} for why the preview needs it.
- */
-export function withBaseHref(html: string, baseHref: string): string {
-  if (!baseHref) {
-    return html;
-  }
-
-  const base = `<base href="${baseHref.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">`;
-  const head = /<head(\s[^>]*)?>/i;
-
-  // A replacer function, not a replacement string: the rendered page may carry `$` sequences that
-  // String.replace would otherwise expand.
-  return head.test(html) ? html.replace(head, opening => opening + base) : base + html;
-}
-
 function errorMessageOf(response: ApiErrorResponse | undefined): string {
   const error = response?.error?.error;
   const details = (error?.validationErrors ?? []).map(entry => entry.message).filter(Boolean);
@@ -97,13 +86,13 @@ function errorMessageOf(response: ApiErrorResponse | undefined): string {
   return [error?.message ?? response?.message, ...details].filter(Boolean).join('\n');
 }
 
-function withoutLeadingSlash(name: string): string {
-  return name.replace(/^\//, '');
-}
-
 /**
  * Creating and editing one template, as a page of its own rather than a dialog: the source needs the room of
- * a code editor, and next to it sit the version history and a live preview.
+ * a code editor, and next to it sit the version history and the preview launcher.
+ *
+ * The preview is the real site in a new window, in draft mode: the admin API issues a short-lived link, and
+ * opening it makes the public site render the chosen version in place of the published one. This screen only
+ * picks what to open - a page of the site, one of its contents, or a hand-typed path.
  *
  * Saving always appends a version (the server never rewrites one). A draft is a version that is not the
  * published one; "save and publish" is a save that also moves the published pointer to the new version.
@@ -116,13 +105,15 @@ function withoutLeadingSlash(name: string): string {
 })
 export class TemplateEditorComponent {
   private readonly templateService = inject(SiteTemplateAdminService);
-  private readonly fileUrl = inject(SiteFileUrlService);
+  private readonly contentService = inject(ContentAdminService);
   private readonly permission = inject(PermissionService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toaster = inject(ToasterService);
-  private readonly sanitizer = inject(DomSanitizer);
+  private readonly document = inject(DOCUMENT);
+
+  readonly kinds = SiteTemplateKind;
 
   readonly templateId: string | null = this.route.snapshot.paramMap.get('id');
   readonly isEdit = !!this.templateId;
@@ -152,44 +143,44 @@ export class TemplateEditorComponent {
   /** Set by any other save error. */
   readonly saveError = signal<string | null>(null);
 
-  readonly previewPath = signal('/');
   /** The version the preview renders. Starts as the one the editor was opened on. */
   readonly selectedVersion = signal<number | undefined>(undefined);
-  readonly preview = signal<SiteTemplatePreviewDto | undefined>(undefined);
-  readonly previewSrcdoc = signal('');
-  readonly previewError = signal<string | null>(null);
-  readonly isPreviewing = signal(false);
 
-  /**
-   * The preview document as the iframe's `srcdoc` takes it. An `[srcdoc]` binding is an HTML sink, and
-   * Angular's sanitizer would strip `<head>`, `<style>` and `<base>` from a plain string - exactly what a
-   * rendered page is made of. Marking it trusted is safe here because the iframe is sandboxed without
-   * `allow-scripts`: nothing in a template's output can run.
-   */
-  readonly previewDocument = computed(() => this.sanitizer.bypassSecurityTrustHtml(this.previewSrcdoc()));
+  /** Who uses this template: the pages it renders and, for a partial or an asset, the templates that refer to it. */
+  readonly usage = signal<SiteTemplateUsageDto | undefined>(undefined);
+  /** The page the preview opens; starts as the first page of {@link usage}. */
+  readonly selectedPageId = signal<string | undefined>(undefined);
+  /** Published contents of the selected page, newest first; empty unless the page route has a slug. */
+  readonly contents = signal<ContentDto[]>([]);
+  readonly selectedContentId = signal<string | undefined>(undefined);
+  /** The "Advanced" path input; empty means it is not used. */
+  readonly customPath = signal('');
+  /** Set when the server refuses to issue a preview link. */
+  readonly previewLinkError = signal<string | null>(null);
 
   readonly isSelectedVersionPublished = computed(() => {
     const selected = this.selectedVersion();
     return selected !== undefined && selected === this.template()?.publishedVersionNumber;
   });
 
-  /**
-   * The template a request for the previewed path would normally use, when that is not the template being
-   * edited - the preview then shows this template standing in for it. `layout` wraps every page, so it
-   * never needs the note.
-   */
-  readonly pageTemplateNote = computed(() => {
-    const preview = this.preview();
-    const template = this.template();
+  readonly pages = computed<SiteTemplatePageUsageDto[]>(() => this.usage()?.pages ?? []);
 
-    if (!preview || !template || template.name === LAYOUT_NAME) {
-      return null;
-    }
+  readonly selectedPage = computed(() => this.pages().find(page => page.pageId === this.selectedPageId()));
 
-    return withoutLeadingSlash(preview.pageTemplate) !== withoutLeadingSlash(template.name)
-      ? preview.pageTemplate
-      : null;
+  readonly selectedContent = computed(() =>
+    this.contents().find(content => content.id === this.selectedContentId()),
+  );
+
+  /** Names of the templates that refer to this one with `include` / `asset_url` (partials and assets). */
+  readonly referencedByNames = computed(() => {
+    const names = (this.usage()?.referencedBy ?? []).map(reference => reference.templateName);
+    return [...new Set(names)].join(', ');
   });
+
+  /** The address the preview opens: a typed path, else the selected content, else the selected page. */
+  readonly previewPath = computed(
+    () => this.customPath().trim() || this.selectedContent()?.url || this.selectedPage()?.path || '/',
+  );
 
   readonly form: FormGroup = this.buildForm();
 
@@ -267,44 +258,76 @@ export class TemplateEditorComponent {
     });
   }
 
-  /** Points the preview at a saved version and renders it. */
-  previewVersion(versionNumber: number): void {
-    this.selectedVersion.set(versionNumber);
-    this.renderPreview();
-  }
+  /** Chooses the page the preview opens, and loads its contents when its route has a slug. */
+  selectPage(pageId: string | undefined): void {
+    this.selectedPageId.set(pageId);
+    this.contents.set([]);
+    this.selectedContentId.set(undefined);
 
-  /**
-   * Renders the selected version on the path the preview box holds.
-   *
-   * The result is shown through the iframe's `srcdoc`, not a `src` pointing at the API: an iframe request
-   * cannot carry the bearer token. The page's relative addresses (images, CSS, files) must then resolve
-   * against the host that serves the site, which in this product is the `SiteAdmin` API's host - hence the
-   * `<base>` element, the same host the file previews put in front of a stored address.
-   */
-  renderPreview(): void {
-    const id = this.templateId;
-    const version = this.selectedVersion();
-
-    if (!id || version === undefined) {
+    const page = this.selectedPage();
+    if (!page?.hasSlug) {
       return;
     }
 
-    this.isPreviewing.set(true);
-    this.previewError.set(null);
+    this.contentService
+      .getList({
+        pageId: page.pageId,
+        status: ContentStatus.Published,
+        maxResultCount: PREVIEW_CONTENT_LIMIT,
+        sorting: 'publishTime desc',
+      })
+      .subscribe(result => {
+        // The answer of an earlier choice arriving after a newer one must not overwrite it.
+        if (this.selectedPageId() !== page.pageId) {
+          return;
+        }
 
+        const items = result.items ?? [];
+        const sampleId = page.sampleContent?.contentId;
+
+        this.contents.set(items);
+        this.selectedContentId.set((items.find(item => item.id === sampleId) ?? items[0])?.id);
+      });
+  }
+
+  /**
+   * Opens the selected version on the site, in a new window, in draft mode.
+   *
+   * The window is opened first, synchronously inside the click: browsers allow a popup only in direct
+   * response to a user action, and the link only arrives after an HTTP round trip. The blank window is then
+   * pointed at the link, or closed again when no link could be issued.
+   */
+  openPreview(versionNumber: number | undefined = this.selectedVersion()): void {
+    const id = this.templateId;
+
+    if (!id || versionNumber === undefined) {
+      return;
+    }
+
+    const win = this.document.defaultView?.open('', '_blank') ?? null;
+    if (win) {
+      // The previewed site is another origin; it has no business reaching back into the admin.
+      win.opener = null;
+    }
+
+    this.selectedVersion.set(versionNumber);
+    this.previewLinkError.set(null);
+
+    // skipHandleError: the message is shown beside the button, where the person is looking.
     this.templateService
-      .preview(id, version, this.previewPath().trim() || '/', { skipHandleError: true })
+      .getPreviewLink(id, versionNumber, this.previewPath(), { skipHandleError: true })
       .subscribe({
-        next: result => {
-          this.preview.set(result);
-          this.previewSrcdoc.set(withBaseHref(result.html, this.baseHref()));
-          this.isPreviewing.set(false);
+        next: link => {
+          if (win) {
+            win.location.href = link.url;
+          } else {
+            // The blank window was blocked; a navigation outside the click may be blocked as well, but costs nothing.
+            this.document.defaultView?.open(link.url, '_blank');
+          }
         },
         error: (error: ApiErrorResponse) => {
-          this.preview.set(undefined);
-          this.previewSrcdoc.set('');
-          this.previewError.set(errorMessageOf(error));
-          this.isPreviewing.set(false);
+          win?.close();
+          this.previewLinkError.set(errorMessageOf(error));
         },
       });
   }
@@ -333,12 +356,11 @@ export class TemplateEditorComponent {
     }
 
     // The editor already holds what was saved, so only the history is reloaded - and the preview moves to
-    // the new version, since seeing it is what saving is for.
+    // the new version, since seeing it is what saving is for. No window is opened: that is the button's job.
     this.fetch(this.templateId).subscribe(() => {
       this.loadedVersion.set(saved.latestVersionNumber);
       this.selectedVersion.set(saved.latestVersionNumber);
       this.form.get('comment')?.reset('');
-      this.renderPreview();
     });
   }
 
@@ -383,17 +405,21 @@ export class TemplateEditorComponent {
     return forkJoin({
       template: this.templateService.get(id),
       versions: this.templateService.getVersions(id),
+      usage: this.templateService.getUsage(id),
     }).pipe(
-      tap(({ template, versions }) => {
+      tap(({ template, versions, usage }) => {
         this.template.set(template);
         this.versions.set([...(versions.items ?? [])].sort((a, b) => b.number - a.number));
+        this.usage.set(usage);
+
+        // Keep the person's page choice across a reload (publishing a version fetches again); fall back to
+        // the first page when there was none or it no longer uses this template.
+        const pages = usage.pages ?? [];
+        if (!pages.some(page => page.pageId === this.selectedPageId())) {
+          this.selectPage(pages[0]?.pageId);
+        }
       }),
     );
-  }
-
-  private baseHref(): string {
-    const apiBase = this.fileUrl.apiBase;
-    return apiBase ? `${apiBase}/` : '';
   }
 
   private buildForm(): FormGroup {

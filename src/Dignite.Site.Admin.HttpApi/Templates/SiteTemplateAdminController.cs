@@ -9,6 +9,11 @@ using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Admin.Templates;
 
+/// <summary>
+/// Every route with an id segment constrains it to a Guid (<c>{id:guid}</c>), so a literal segment next to it
+/// - <c>by-name</c>, <c>unmatched-pages</c> - can never be read as an id, whatever order the routes are
+/// matched in.
+/// </summary>
 [RemoteService(Name = SiteAdminRemoteServiceConsts.RemoteServiceName)]
 [Area(SiteAdminRemoteServiceConsts.ModuleName)]
 [Authorize(SiteAdminPermissions.Templates.Default)]
@@ -23,7 +28,7 @@ public class SiteTemplateAdminController : SiteAdminController, ISiteTemplateAdm
     }
 
     [HttpGet]
-    [Route("{id}")]
+    [Route("{id:guid}")]
     public virtual Task<SiteTemplateDto> GetAsync(Guid id)
     {
         return SiteTemplateAdminAppService.GetAsync(id);
@@ -51,7 +56,7 @@ public class SiteTemplateAdminController : SiteAdminController, ISiteTemplateAdm
     }
 
     [HttpPut]
-    [Route("{id}")]
+    [Route("{id:guid}")]
     [Authorize(SiteAdminPermissions.Templates.Update)]
     public virtual Task<SiteTemplateDto> UpdateAsync(Guid id, UpdateSiteTemplateDto input)
     {
@@ -59,7 +64,7 @@ public class SiteTemplateAdminController : SiteAdminController, ISiteTemplateAdm
     }
 
     [HttpPost]
-    [Route("{id}/publish/{versionNumber}")]
+    [Route("{id:guid}/publish/{versionNumber}")]
     [Authorize(SiteAdminPermissions.Templates.Update)]
     public virtual Task<SiteTemplateDto> PublishAsync(Guid id, int versionNumber)
     {
@@ -67,14 +72,14 @@ public class SiteTemplateAdminController : SiteAdminController, ISiteTemplateAdm
     }
 
     [HttpGet]
-    [Route("{id}/versions")]
+    [Route("{id:guid}/versions")]
     public virtual Task<ListResultDto<SiteTemplateVersionDto>> GetVersionsAsync(Guid id)
     {
         return SiteTemplateAdminAppService.GetVersionsAsync(id);
     }
 
     [HttpGet]
-    [Route("{id}/versions/{versionNumber}")]
+    [Route("{id:guid}/versions/{versionNumber}")]
     public virtual Task<SiteTemplateVersionDto> GetVersionAsync(Guid id, int versionNumber)
     {
         return SiteTemplateAdminAppService.GetVersionAsync(id, versionNumber);
@@ -82,33 +87,36 @@ public class SiteTemplateAdminController : SiteAdminController, ISiteTemplateAdm
 
     /// <summary>The path is a query parameter, not a route segment - it contains slashes (<c>/ja/blog/hello</c>).</summary>
     [HttpGet]
-    [Route("{id}/versions/{versionNumber}/preview")]
+    [Route("{id:guid}/versions/{versionNumber}/preview")]
     public virtual Task<SiteTemplatePreviewDto> PreviewAsync(Guid id, int versionNumber, string path)
     {
         return SiteTemplateAdminAppService.PreviewAsync(id, versionNumber, path);
     }
 
-    /// <summary>
-    /// The same preview as the page itself rather than JSON, for a browser signed in to the administration
-    /// side - the admin UI opens it in a frame or a new tab. Not part of <see cref="ISiteTemplateAdminAppService"/>
-    /// and hidden from the API explorer (<c>IgnoreApi</c>), so it stays out of the API definition and every proxy
-    /// generator - the C# client proxy and the Angular one - ignores it.
-    /// </summary>
     [HttpGet]
-    [Route("{id}/versions/{versionNumber}/preview.html")]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    public virtual async Task<IActionResult> PreviewHtmlAsync(Guid id, int versionNumber, string path)
+    [Route("{id:guid}/usage")]
+    public virtual Task<SiteTemplateUsageDto> GetUsageAsync(Guid id)
     {
-        var result = await SiteTemplateAdminAppService.PreviewAsync(id, versionNumber, path);
+        return SiteTemplateAdminAppService.GetUsageAsync(id);
+    }
 
-        // A preview is never indexed (总体设计 §5.3: drafts and previews are noindex). The page's own robots meta
-        // is the live page's, so the header says it for the preview.
-        Response.Headers["X-Robots-Tag"] = "noindex";
-        return Content(result.Html, "text/html; charset=utf-8");
+    [HttpGet]
+    [Route("unmatched-pages")]
+    public virtual Task<ListResultDto<SiteTemplateUnmatchedPageDto>> GetUnmatchedPagesAsync()
+    {
+        return SiteTemplateAdminAppService.GetUnmatchedPagesAsync();
+    }
+
+    /// <summary>The path is a query parameter, not a route segment - it contains slashes (<c>/ja/blog/hello</c>).</summary>
+    [HttpGet]
+    [Route("{id:guid}/versions/{versionNumber}/preview-link")]
+    public virtual Task<SiteTemplatePreviewLinkDto> GetPreviewLinkAsync(Guid id, int versionNumber, string path)
+    {
+        return SiteTemplateAdminAppService.GetPreviewLinkAsync(id, versionNumber, path);
     }
 
     [HttpDelete]
-    [Route("{id}")]
+    [Route("{id:guid}")]
     [Authorize(SiteAdminPermissions.Templates.Delete)]
     public virtual Task DeleteAsync(Guid id)
     {

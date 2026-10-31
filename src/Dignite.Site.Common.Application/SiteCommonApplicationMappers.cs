@@ -80,10 +80,16 @@ public partial class SiteTemplateToSiteTemplateDtoMapper : MapperBase<SiteTempla
 {
     // LatestVersionNumber is not on the entity (it is the max over Versions, which a list does not load);
     // the app service fills it, from one batched ISiteTemplateRepository.GetLatestVersionNumbersAsync.
+    // Kind is derived from the name and UsageCount counted over pages and other templates; the app service
+    // fills both as well.
     [MapperIgnoreTarget(nameof(SiteTemplateDto.LatestVersionNumber))]
+    [MapperIgnoreTarget(nameof(SiteTemplateDto.Kind))]
+    [MapperIgnoreTarget(nameof(SiteTemplateDto.UsageCount))]
     public override partial SiteTemplateDto Map(SiteTemplate source);
 
     [MapperIgnoreTarget(nameof(SiteTemplateDto.LatestVersionNumber))]
+    [MapperIgnoreTarget(nameof(SiteTemplateDto.Kind))]
+    [MapperIgnoreTarget(nameof(SiteTemplateDto.UsageCount))]
     public override partial void Map(SiteTemplate source, SiteTemplateDto destination);
 }
 
