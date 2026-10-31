@@ -20,4 +20,15 @@ public class SiteTemplateDto : FullAuditedEntityDto<Guid>
     /// application service builds the DTO fills it - one batched query for a list, not one per row.
     /// </summary>
     public int LatestVersionNumber { get; set; }
+
+    /// <summary>What the name says the template is - see <see cref="SiteTemplateNames.GetKind"/>.</summary>
+    public SiteTemplateKind Kind { get; set; }
+
+    /// <summary>
+    /// How many things use the template: for a page template the pages whose <c>Template</c> is its name,
+    /// for a partial or an asset the templates whose current version refers to it with <c>include</c> or
+    /// <c>asset_url</c>. Null for the layout, which every page uses, and on a read that did not count
+    /// (<c>GetAsync</c>, <c>FindByNameAsync</c>, a create or an update); the list fills it.
+    /// </summary>
+    public int? UsageCount { get; set; }
 }

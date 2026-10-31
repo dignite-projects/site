@@ -4,14 +4,17 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Dignite.Site.Fields;
+using Dignite.Site.Localization;
 using Dignite.Site.Pages;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.Templates;
 using Dignite.Site.Templates;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -51,15 +54,24 @@ public class SiteRenderController_Tests
     private static Task<IActionResult> RenderAsync(
         SiteLanguageTestHost host,
         RouteMatchDto match,
-        FakeTemplateAppService? templateAppService = null)
+        FakeTemplateAppService? templateAppService = null,
+        SiteTemplatePreviewTestContext? preview = null)
     {
+        // What the controller resolves lazily: the language context and the draft-mode state - without a preview
+        // cookie unless the test sends one.
+        preview ??= new SiteTemplatePreviewTestContext(host);
+        var services = new ServiceCollection()
+            .AddSingleton(host.LanguageContext)
+            .AddSingleton(preview.CreateState())
+            .BuildServiceProvider();
+
         var controller = new SiteRenderController(
             new FakeRoutingAppService(match), new FakeFieldAppService(), new FakeHeadMetadataAppService(HeadMetadata),
             templateAppService ?? new FakeTemplateAppService(new SiteTemplateRenderSetDto()))
         {
-            ControllerContext = new ControllerContext { HttpContext = host.HttpContext },
+            ControllerContext = new ControllerContext { HttpContext = host.HttpContext, RouteData = new RouteData() },
             TempData = new TempDataDictionary(host.HttpContext, new NullTempDataProvider()),
-            LazyServiceProvider = new AbpLazyServiceProvider(host.HttpContext.RequestServices)
+            LazyServiceProvider = new AbpLazyServiceProvider(services)
         };
 
         return controller.RenderAsync();
@@ -179,6 +191,132 @@ public class SiteRenderController_Tests
 
         result.ShouldBeOfType<NotFoundResult>();
         templates.RequestedNames.ShouldBeEmpty();
+    }
+
+    private static SiteTemplateRenderSetDto PublishedWithLayout() => ScribanTestRenderer.RenderSet(
+        "<h1>{{ page.name }}</h1>",
+        "<html lang=\"{{ culture }}\"><head>{{ site_head }}</head><body>{{ body }}</body></html>");
+
+    private static async Task<(string Html, int StatusCode)> ExecuteAsync(
+        ScribanTestRenderer scriban,
+        IActionResult result,
+        SiteTemplatePreviewTestContext preview)
+    {
+        scriban.Host.HttpContext.RequestServices = new ServiceCollection()
+            .AddSingleton(scriban.Renderer)
+            .AddSingleton<IStringLocalizer<SiteResource>>(preview.Localizer)
+            .BuildServiceProvider();
+        var body = new MemoryStream();
+        scriban.Host.HttpContext.Response.Body = body;
+
+        await result.ExecuteResultAsync(scriban.ActionContext);
+
+        return (Encoding.UTF8.GetString(body.ToArray()), scriban.Host.HttpContext.Response.StatusCode);
+    }
+
+    /// <summary>
+    /// Draft mode: the version the preview cookie names renders in its slot, with the banner right after
+    /// <c>&lt;body&gt;</c>, and the response is kept out of caches and indexes.
+    /// </summary>
+    [Fact]
+    public async Task A_Preview_Cookie_Should_Render_The_Version_With_The_Banner()
+    {
+        var scriban = new ScribanTestRenderer("en,ja", "/ja/about");
+        var preview = new SiteTemplatePreviewTestContext(scriban.Host);
+        preview.SetCookie("Default", 3);
+        preview.Versions.Add("Default", 3, "<h1>draft {{ page.name }}</h1>");
+
+        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), new FakeTemplateAppService(PublishedWithLayout()), preview);
+
+        var page = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ScribanPageResult>();
+        page.PreviewBanner.ShouldNotBeNull().ShouldContain("Previewing Default v3");
+        scriban.Host.HttpContext.Response.Headers["X-Robots-Tag"].ToString().ShouldBe("noindex");
+        scriban.Host.HttpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
+
+        var (html, statusCode) = await ExecuteAsync(scriban, result, preview);
+
+        statusCode.ShouldBe(StatusCodes.Status200OK);
+        html.ShouldStartWith("<html lang=\"ja\"><head><link href=\"https://acme.example/ja/about\" rel=\"canonical\">");
+        html.ShouldContain("<body><div id=\"" + SiteTemplatePreviewConsts.BannerElementId + "\"");
+        html.ShouldEndWith("</a></div><h1>draft about</h1></body></html>");
+    }
+
+    /// <summary>A draft of a page template no page has published yet: the page switches to it while previewing.</summary>
+    [Fact]
+    public async Task A_Preview_Should_Render_A_Page_Template_That_Was_Never_Published()
+    {
+        var scriban = new ScribanTestRenderer("en,ja", "/ja/about");
+        var preview = new SiteTemplatePreviewTestContext(scriban.Host);
+        preview.SetCookie("Default", 1);
+        preview.Versions.Add("Default", 1, "<html><head>{{ site_head }}</head><body><p>new</p></body></html>");
+
+        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), new FakeTemplateAppService(new SiteTemplateRenderSetDto()), preview);
+
+        result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ScribanPageResult>();
+        var (html, _) = await ExecuteAsync(scriban, result, preview);
+        html.ShouldEndWith("</a></div><p>new</p></body></html>");
+    }
+
+    [Fact]
+    public async Task Without_A_Preview_Cookie_The_Page_Should_Render_As_Published()
+    {
+        var scriban = new ScribanTestRenderer("en,ja", "/ja/about");
+        var preview = new SiteTemplatePreviewTestContext(scriban.Host);
+        preview.Versions.Add("Default", 3, "<h1>draft</h1>");
+
+        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), new FakeTemplateAppService(PublishedWithLayout()), preview);
+
+        result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ScribanPageResult>()
+            .PreviewBanner.ShouldBeNull();
+        scriban.Host.HttpContext.Response.Headers.ContainsKey("X-Robots-Tag").ShouldBeFalse();
+        scriban.Host.HttpContext.Response.Headers.CacheControl.ToString().ShouldBeEmpty();
+        preview.Versions.Requests.ShouldBeEmpty();
+
+        var (html, _) = await ExecuteAsync(scriban, result, preview);
+        html.ShouldNotContain(SiteTemplatePreviewConsts.BannerElementId);
+        html.ShouldEndWith("<body><h1>about</h1></body></html>");
+    }
+
+    /// <summary>
+    /// A version that fails in draft mode answers its author with a 500 page that says why and keeps the banner -
+    /// and so the way out - instead of the host's error page.
+    /// </summary>
+    [Fact]
+    public async Task A_Version_That_Fails_In_Draft_Mode_Should_Answer_With_The_Message()
+    {
+        var scriban = new ScribanTestRenderer("en,ja", "/ja/about");
+        var preview = new SiteTemplatePreviewTestContext(scriban.Host);
+        preview.SetCookie("Default", 3);
+        preview.Versions.Add("Default", 3, "<h1>{{ typo_var }}</h1>");
+
+        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), new FakeTemplateAppService(PublishedWithLayout()), preview);
+        var (html, statusCode) = await ExecuteAsync(scriban, result, preview);
+
+        statusCode.ShouldBe(StatusCodes.Status500InternalServerError);
+        scriban.Host.HttpContext.Response.ContentType.ShouldBe("text/html; charset=utf-8");
+        html.ShouldStartWith("<!DOCTYPE html>");
+        html.ShouldContain("<body><div id=\"" + SiteTemplatePreviewConsts.BannerElementId + "\"");
+        html.ShouldContain("The preview could not be rendered:");
+        html.ShouldContain("typo_var");
+    }
+
+    /// <summary>
+    /// A page still rendered by its Razor view stays Razor in draft mode - a layout cannot wrap it - and gets the
+    /// preview headers, but no banner.
+    /// </summary>
+    [Fact]
+    public async Task A_Razor_Page_In_Draft_Mode_Should_Get_The_Headers_Only()
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        var preview = new SiteTemplatePreviewTestContext(host);
+        preview.SetCookie("layout", 2);
+        preview.Versions.Add("layout", 2, "{{ site_head }}{{ body }}");
+
+        var result = await RenderAsync(host, PageMatch("en", "ja"), new FakeTemplateAppService(new SiteTemplateRenderSetDto()), preview);
+
+        result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
+        host.HttpContext.Response.Headers["X-Robots-Tag"].ToString().ShouldBe("noindex");
+        host.HttpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
     }
 
     private class FakeTemplateAppService(SiteTemplateRenderSetDto renderSet) : ISiteTemplatePublicAppService

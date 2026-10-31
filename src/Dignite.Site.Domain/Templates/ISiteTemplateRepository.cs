@@ -49,4 +49,12 @@ public interface ISiteTemplateRepository : IBasicRepository<SiteTemplate, Guid>
     /// versions is absent from the result.
     /// </summary>
     Task<Dictionary<Guid, int>> GetLatestVersionNumbersAsync(IEnumerable<Guid> templateIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// One row per template: its published version, or - for a template never published - its newest one
+    /// (<see cref="SiteTemplateCurrentVersion"/>). What working out which templates refer to which reads: one
+    /// version per template, never a history. An asset's body is not read (empty), since it is never parsed.
+    /// Ordered by name.
+    /// </summary>
+    Task<List<SiteTemplateCurrentVersion>> GetCurrentVersionsAsync(CancellationToken cancellationToken = default);
 }

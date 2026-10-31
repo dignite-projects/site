@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Templates;
 using Dignite.Site.Templates;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
+using Volo.Abp.MultiTenancy;
 using Xunit;
 
 namespace Dignite.Site.Public.Assets;
@@ -33,7 +35,8 @@ public class SiteAssetController_Tests
 
     private static (SiteAssetController Controller, DefaultHttpContext HttpContext, FakeTemplateAppService Templates) Create(
         string? query = null,
-        Dictionary<string, SiteTemplateVersionDto>? published = null)
+        Dictionary<string, SiteTemplateVersionDto>? published = null,
+        Action<SiteTemplatePreviewTestContext>? preview = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = HttpMethods.Get;
@@ -49,7 +52,11 @@ public class SiteAssetController_Tests
             ["assets/notes.unknown"] = Version("notes")
         });
 
-        var controller = new SiteAssetController(templates)
+        // Draft mode only when the test sends a preview cookie.
+        var previewContext = new SiteTemplatePreviewTestContext(httpContext, new CurrentTenant(AsyncLocalCurrentTenantAccessor.Instance));
+        preview?.Invoke(previewContext);
+
+        var controller = new SiteAssetController(templates, previewContext.CreateState())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext }
         };
@@ -191,6 +198,65 @@ public class SiteAssetController_Tests
 
         result.ShouldBeOfType<NotFoundResult>();
         templates.RequestedNames.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Draft mode: the visitor whose preview cookie names this asset gets the previewed version - which no cache may
+    /// keep - without the published one even being looked up.
+    /// </summary>
+    [Fact]
+    public async Task In_Draft_Mode_The_Previewed_Version_Should_Be_Served_Uncached()
+    {
+        SiteTemplateVersionDto? draft = null;
+        var (controller, httpContext, templates) = Create(preview: preview =>
+        {
+            preview.SetCookie("assets/site.css", 4);
+            draft = preview.Versions.Add("assets/site.css", 4, "body { color: red; }");
+        });
+        httpContext.Request.QueryString = new QueryString("?v=" + draft!.Id.ToString("N"));
+
+        var result = await controller.GetAsync("site.css");
+
+        var file = result.ShouldBeOfType<FileContentResult>();
+        file.ContentType.ShouldBe("text/css; charset=utf-8");
+        Encoding.UTF8.GetString(file.FileContents).ShouldBe("body { color: red; }");
+        templates.RequestedNames.ShouldBeEmpty();
+        httpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
+        httpContext.Response.Headers["X-Robots-Tag"].ToString().ShouldBe("noindex");
+        httpContext.Response.Headers["X-Content-Type-Options"].ToString().ShouldBe("nosniff");
+        httpContext.Response.Headers.ETag.ToString().ShouldBe("\"" + draft.Id.ToString("N") + "\"");
+    }
+
+    /// <summary>A visitor without the cookie who asks for the previewed version's id gets the published bytes.</summary>
+    [Fact]
+    public async Task Without_The_Cookie_A_Drafts_Address_Should_Get_The_Published_Bytes()
+    {
+        var (controller, httpContext, _) = Create("?v=" + Guid.NewGuid().ToString("N"));
+
+        var result = await controller.GetAsync("site.css");
+
+        Encoding.UTF8.GetString(result.ShouldBeOfType<FileContentResult>().FileContents).ShouldBe(SiteCss.Body);
+        httpContext.Response.Headers.CacheControl.ToString().ShouldBe("public, no-cache");
+        httpContext.Response.Headers.ContainsKey("X-Robots-Tag").ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Previewing_Another_Template_Should_Leave_This_Asset_Published()
+    {
+        FakePreviewVersionProvider? versions = null;
+        var (controller, httpContext, templates) = Create(preview: preview =>
+        {
+            preview.SetCookie("assets/js/site.js", 2);
+            preview.Versions.Add("assets/js/site.js", 2, "console.log(2);");
+            versions = preview.Versions;
+        });
+
+        var result = await controller.GetAsync("site.css");
+
+        Encoding.UTF8.GetString(result.ShouldBeOfType<FileContentResult>().FileContents).ShouldBe(SiteCss.Body);
+        templates.RequestedNames.ShouldBe(new[] { "assets/site.css" });
+        versions!.Requests.ShouldBeEmpty();
+        httpContext.Response.Headers.CacheControl.ToString().ShouldBe("public, no-cache");
     }
 
     private class FakeTemplateAppService(Dictionary<string, SiteTemplateVersionDto> published) : ISiteTemplatePublicAppService

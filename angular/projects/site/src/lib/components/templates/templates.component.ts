@@ -8,8 +8,11 @@ import {
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
+import { forkJoin } from 'rxjs';
+import type { SiteTemplateUnmatchedPageDto } from '../../proxy/dignite/site/admin/templates/models';
 import { SiteTemplateAdminService } from '../../proxy/dignite/site/admin/templates/site-template-admin.service';
 import type { SiteTemplateDto } from '../../proxy/dignite/site/templates/models';
+import { SiteTemplateKind } from '../../proxy/dignite/site/templates/site-template-kind.enum';
 import { eSitePolicyNames } from '../../enums/policy-names';
 
 @Component({
@@ -24,11 +27,14 @@ export class TemplatesComponent {
   private readonly toaster = inject(ToasterService);
 
   readonly policies = eSitePolicyNames;
+  readonly kinds = SiteTemplateKind;
 
   // State that changes in an HTTP callback is a signal, not a plain field: the host layout's ancestors
   // (`abp-router-outlet`, the LeptonX layouts) are OnPush, and a plain-field write in a response callback
   // never marks them for check, so the list would stay empty until some unrelated event happened to.
   readonly rows = signal<SiteTemplateDto[]>([]);
+  /** Pages whose `Template` names no published Scriban template: they render through a Razor view. */
+  readonly unmatchedPages = signal<SiteTemplateUnmatchedPageDto[]>([]);
   readonly isLoading = signal(false);
 
   /** Bound to the search box; the list is filtered by the server, so it is read when a search is run. */
@@ -41,13 +47,22 @@ export class TemplatesComponent {
   load(): void {
     this.isLoading.set(true);
 
-    this.templateService.getList({ filter: this.filter.trim() || undefined }).subscribe({
-      next: result => {
-        this.rows.set(result.items ?? []);
+    forkJoin({
+      templates: this.templateService.getList({ filter: this.filter.trim() || undefined }),
+      unmatched: this.templateService.getUnmatchedPages(),
+    }).subscribe({
+      next: ({ templates, unmatched }) => {
+        this.rows.set(templates.items ?? []);
+        this.unmatchedPages.set(unmatched.items ?? []);
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false),
     });
+  }
+
+  /** The localization key of the badge that names a template's kind. */
+  kindKey(template: SiteTemplateDto): string {
+    return `Site::TemplateKind:${SiteTemplateKind[template.kind ?? SiteTemplateKind.Page]}`;
   }
 
   clearFilter(): void {

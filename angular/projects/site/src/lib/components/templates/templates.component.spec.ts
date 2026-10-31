@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { SiteTemplateAdminService } from '../../proxy/dignite/site/admin/templates/site-template-admin.service';
 import type { SiteTemplateDto } from '../../proxy/dignite/site/templates/models';
+import { SiteTemplateKind } from '../../proxy/dignite/site/templates/site-template-kind.enum';
 import { TemplatesComponent } from './templates.component';
 
 describe('TemplatesComponent', () => {
@@ -15,7 +16,11 @@ describe('TemplatesComponent', () => {
         TemplatesComponent,
         {
           provide: SiteTemplateAdminService,
-          useValue: { getList: vi.fn(() => of({ items: [] })), ...overrides.templateService },
+          useValue: {
+            getList: vi.fn(() => of({ items: [] })),
+            getUnmatchedPages: vi.fn(() => of({ items: [] })),
+            ...overrides.templateService,
+          },
         },
         { provide: ConfirmationService, useValue: overrides.confirmation ?? {} },
         { provide: ToasterService, useValue: overrides.toaster ?? {} },
@@ -33,6 +38,28 @@ describe('TemplatesComponent', () => {
     expect(getList).toHaveBeenCalledWith({ filter: undefined });
     expect(component.rows().map(row => row.name)).toEqual(['layout', 'Default']);
     expect(component.isLoading()).toBe(false);
+  });
+
+  it('loads the pages that no published template renders next to the list', () => {
+    const unmatched = { pageId: 'p1', name: 'about', displayName: 'About', template: 'About', hasDraft: true };
+    const getUnmatchedPages = vi.fn(() => of({ items: [unmatched] }));
+    const component = create({ templateService: { getUnmatchedPages } });
+
+    expect(getUnmatchedPages).toHaveBeenCalledTimes(1);
+    expect(component.unmatchedPages()).toEqual([unmatched]);
+
+    component.load();
+    expect(getUnmatchedPages).toHaveBeenCalledTimes(2);
+  });
+
+  it('names the badge of a template by its kind', () => {
+    const component = create();
+
+    expect(component.kindKey({ kind: SiteTemplateKind.Page } as SiteTemplateDto)).toBe('Site::TemplateKind:Page');
+    expect(component.kindKey({ kind: SiteTemplateKind.Layout } as SiteTemplateDto)).toBe('Site::TemplateKind:Layout');
+    expect(component.kindKey({ kind: SiteTemplateKind.Partial } as SiteTemplateDto)).toBe('Site::TemplateKind:Partial');
+    expect(component.kindKey({ kind: SiteTemplateKind.Asset } as SiteTemplateDto)).toBe('Site::TemplateKind:Asset');
+    expect(component.kindKey({} as SiteTemplateDto)).toBe('Site::TemplateKind:Page');
   });
 
   it('sends the trimmed search text as the filter', () => {

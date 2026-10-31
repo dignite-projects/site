@@ -54,14 +54,55 @@ By default a body can be at most 256 KiB, and a comment 256 characters.
 
 ## Previewing a Version
 
-Any saved version of a template, whether a staged draft, the published one or an older one, can be rendered on a path of the site without publishing it. The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The page or content at that path is rendered with the chosen version in place of the published template of the same name, inside the published `layout` if there is one. Everything else is the live site's: the other templates, the data, the functions and the limits.
+Any saved version of a template, whether a staged draft, the published one or an older one, can be seen on the site without publishing it. A preview renders a saved version, so to see an edit, save it as a draft (`publish` off) and preview that version. The site keeps rendering the published version for its visitors meanwhile; publish the draft when the preview is right, and publish an older version to go back.
 
-Two cases are different when the previewed template is the `layout`:
+What a version replaces depends on the template's kind:
 
-* The layout is rendered around the published Scriban template of the page at the path.
-* When that page is still rendered by a Razor view, the layout is rendered around an empty `body`.
+| Template | What the preview puts in its place |
+|---|---|
+| A page template | The page's template, on the pages whose `Template` is its name. |
+| `layout` | The layout around every page that a Scriban template renders. |
+| A [partial](#partials) | The partial, wherever a template includes it. |
+| An [asset](#assets) | The asset at its `/site-assets/` address, and in the address `asset_url` writes. |
 
-A preview renders a saved version, so to see an edit, save it as a draft (`publish` off) and preview that version. The site keeps rendering the published version meanwhile; publish the draft when the preview is right, and publish an older version to go back.
+Everything else is the live site's: the other templates, the data, the functions and the limits.
+
+There are two ways to preview: in the browser, on the site itself, and as HTML over the API or MCP.
+
+### Previewing in the Browser
+
+The **Templates** screen of the [admin UI](../admin-ui.md#screens) has a **Preview in a new window** button. It asks the administration API for a preview link, `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview-link?path=`, and opens the link in a new window. The link is the real address of the page at `path`, such as `/about` or `/ja/blog/hello`, on the site's primary domain when one is configured and on the host of the request otherwise, with a token that is valid for 10 minutes. The home page is `/`.
+
+Opening the link starts the preview:
+
+1. The site checks the token and answers with a redirect to the same address without it, so the token does not stay in the address bar, the history or a `Referer` header.
+2. With that redirect it sets a preview cookie in the browser. The cookie is `HttpOnly` and `SameSite=Lax`, is `Secure` on HTTPS, and lasts 2 hours.
+3. From then on, every page that is opened in that browser is rendered with the chosen version in its slot, not only the page the link opened. Follow the links of the site to check the version on other pages and in other languages.
+
+A previewed page carries a banner at the top, which stays in view while scrolling, that names the template and the version, with an **Exit preview** link. The link deletes the cookie and returns to the page that was open, now rendered as published. The preview also ends on its own when the cookie expires.
+
+Preview responses are for the author only. They carry `X-Robots-Tag: noindex` and `Cache-Control: no-store`, so no search engine indexes them and no cache keeps them. Nothing is published, and other browsers see the published site while the preview is on.
+
+When a previewed template fails to render, the page shows the error message below the banner, instead of the site's error page. For a run-time error it names the template, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
+
+A token or a cookie that has expired, was altered, or was issued for another tenant is ignored. The visitor sees the published site, with no error.
+
+These limits apply:
+
+* A page that a [Razor view](templates.md) renders gets no banner. It still carries the `noindex` and `no-store` headers, and previewing the `layout` does not change it, since a Razor view never goes through the layout.
+* The link is issued, and the token checked, by `Dignite.Site.Public.Web`, so the administration API and the site must be in that application. Without it, asking for a link fails with `Site:090009`.
+* When the application runs on several instances, they must share one Data Protection key ring, as for any signed cookie or token in ASP.NET Core. Otherwise an instance cannot read a link that another one issued, and the preview does not start.
+
+A host can change the lifetimes of the token and the cookie with `TokenLifetime` and `CookieLifetime` of `SiteTemplatePreviewOptions`.
+
+### Previewing as HTML
+
+The administration API can also render the page and return the HTML, without a browser and without a cookie: `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview?path=`. The MCP tool `site_preview_template` does the same, so that an AI client can check its own draft before it publishes; see [MCP Tools](#mcp-tools).
+
+The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The version is put in its slot as the table above says, with these differences from the browser preview:
+
+* A page template is rendered as the template of the page at the path, whichever template that page uses. The result names the page's own template, which tells when they differ.
+* When the previewed template is the `layout`, a partial or an asset, and the page at the path is still rendered by a Razor view, the layout is rendered around an empty `body`.
 
 A preview fails with one of these errors:
 
@@ -69,12 +110,6 @@ A preview fails with one of these errors:
 * `Site:090007` when the application does not have `Dignite.Site.Public.Web`: a preview renders the page the way the site does, so it needs the rendering in the same application as the administration API.
 
 A render that fails, through a run-time error or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
-
-You can preview in three ways:
-
-* In the [admin UI](../admin-ui.md#screens), the **Templates** screen renders the selected version in a frame, for the path you type.
-* Over the [admin API](#managing-templates), which returns the HTML with the page it was rendered for.
-* Over MCP, with `site_preview_template`, so that an AI client can check its own draft before it publishes; see [MCP Tools](#mcp-tools).
 
 ## What a Template Sees
 
@@ -239,13 +274,24 @@ A template runs in a sandbox, so that a template written by a tenant or by an AI
 
 The loop, recursion, output and time limits apply to the whole render, partials included. A template that exceeds a limit, or fails at run time, fails the request with an error that names the template and the line and column; a timeout is reported as a timeout, naming the template. A host can change the limits with `SiteScribanOptions`.
 
+## Where a Template Is Used
+
+Changing a template changes every page that uses it, so the admin API tells where a template is used. `GET api/site-admin/templates/{id}/usage` returns, for the template:
+
+* `pages`, the pages the template takes part in rendering, the home page first and then by display name. A page template is used by the pages whose `Template` is its name, and the `layout` by every page. A partial or an asset is used by the pages of every template that refers to it, followed through partials that include other partials. Each page comes with its `route`, its own address as `path`, and `hasSlug`, whether its route has a slug. For a page with a slug, `sampleContent` is the newest published content that has a slug in a language the site serves, with its address, so that the detail view of the page can be previewed. It is empty when the page has no such content.
+* `referencedBy`, the templates that refer to this one with `include` or `asset_url`, each with the function it uses. Only the current version of a template is read: the published one, or the newest when none is published. A reference counts when its name is a literal string, as in `{{ include "partials/card" }}`. A name that a template computes at run time cannot be known, and a name inside plain text is not a reference.
+
+The list of templates, `GET api/site-admin/templates`, gives each template its `kind` (`Page`, `Layout`, `Partial` or `Asset`, from its name) and its `usageCount`: the number of pages for a page template, the number of templates that refer to it for a partial or an asset, and empty for the `layout`. A count of `0` marks a template that nobody uses.
+
+`GET api/site-admin/templates/unmatched-pages` lists the pages whose `Template` names no published Scriban template, which the site renders with the Razor view of that name; see [Choosing the Engine](#choosing-the-engine). When a template of that name exists but was never published, the page has `hasDraft` set and the template's id: publishing the template takes the page over.
+
 ## Managing Templates
 
 The admin API manages templates under `api/site-admin/templates`:
 
 | Request | Permission | Description |
 |---|---|---|
-| `GET /` | `SiteAdmin.Templates` | Lists the templates, each with its published and latest version numbers. Takes an optional `filter` over the name and an optional `prefix`, such as `partials/`, to list only the names that start with it. |
+| `GET /` | `SiteAdmin.Templates` | Lists the templates, each with its published and latest version numbers, its `kind` and its `usageCount`; see [Where a Template Is Used](#where-a-template-is-used). Takes an optional `filter` over the name and an optional `prefix`, such as `partials/`, to list only the names that start with it. |
 | `GET /{id}` | `SiteAdmin.Templates` | Reads one template. |
 | `GET /by-name?name=...` | `SiteAdmin.Templates` | Reads a template by name; empty when there is none. |
 | `POST /` | `SiteAdmin.Templates.Create` | Creates a template with `name`, `body`, an optional `comment` and `publish`, true by default. |
@@ -254,7 +300,9 @@ The admin API manages templates under `api/site-admin/templates`:
 | `GET /{id}/versions` | `SiteAdmin.Templates` | Lists the versions, newest first, without their bodies. |
 | `GET /{id}/versions/{versionNumber}` | `SiteAdmin.Templates` | Reads one version with its body. |
 | `GET /{id}/versions/{versionNumber}/preview?path=...` | `SiteAdmin.Templates` | Renders the version at the path; see [Previewing a Version](#previewing-a-version). Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` (the page's own template, which tells when the previewed template is not the one the page normally uses) and `versionNumber`. |
-| `GET /{id}/versions/{versionNumber}/preview.html?path=...` | `SiteAdmin.Templates` | The same, as a `text/html` document, for a browser authenticated with a cookie. It is not part of the API definition, so it has no generated proxy. |
+| `GET /{id}/versions/{versionNumber}/preview-link?path=...` | `SiteAdmin.Templates` | Returns a link that opens the site at the path with the version in place, for a browser; see [Previewing in the Browser](#previewing-in-the-browser). Returns `url`, `path`, `templateName`, `versionNumber` and `expiresAt`, when the token in the link expires. |
+| `GET /{id}/usage` | `SiteAdmin.Templates` | Returns the pages the template takes part in rendering and the templates that refer to it; see [Where a Template Is Used](#where-a-template-is-used). |
+| `GET /unmatched-pages` | `SiteAdmin.Templates` | Lists the pages whose `Template` names no published Scriban template, which the site renders with a Razor view. |
 | `DELETE /{id}` | `SiteAdmin.Templates.Delete` | Deletes the template with all of its versions. |
 
 A syntax error, a `layout` without `site_head` and a name that is already taken are answered as business errors, with the lines and columns in the message.

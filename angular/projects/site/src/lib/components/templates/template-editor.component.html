@@ -140,7 +140,7 @@
                         <button
                           type="button"
                           class="btn btn-sm btn-outline-secondary me-1"
-                          (click)="previewVersion(version.number)"
+                          (click)="openPreview(version.number)"
                         >
                           {{ 'Site::Preview' | abpLocalization }}
                         </button>
@@ -172,35 +172,6 @@
           <div class="card-body">
             <h6 class="mb-3">{{ 'Site::Preview' | abpLocalization }}</h6>
 
-            <div class="mb-2">
-              <label class="form-label" for="site-template-preview-path">
-                {{ 'Site::PreviewPath' | abpLocalization }}
-              </label>
-              <div class="input-group">
-                <input
-                  id="site-template-preview-path"
-                  type="text"
-                  class="form-control"
-                  autocomplete="off"
-                  [ngModel]="previewPath()"
-                  (ngModelChange)="previewPath.set($event)"
-                  (keyup.enter)="renderPreview()"
-                />
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  [disabled]="isPreviewing() || selectedVersion() === undefined"
-                  (click)="renderPreview()"
-                >
-                  @if (isPreviewing()) {
-                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                  }
-                  {{ 'Site::RunPreview' | abpLocalization }}
-                </button>
-              </div>
-              <small class="form-text text-muted">{{ 'Site::PreviewPathHint' | abpLocalization }}</small>
-            </div>
-
             <div class="mb-1">
               {{ 'Site::PreviewVersion' | abpLocalization }}
               <strong>{{ selectedVersion() }}</strong>
@@ -214,27 +185,95 @@
               {{ 'Site::PreviewUnsavedHint' | abpLocalization }}
             </small>
 
-            @if (preview(); as result) {
-              <div class="small text-muted mb-1">
-                {{ result.pageName }} &middot; {{ result.cultureName }}
+            @if (usage()?.kind === kinds.Layout) {
+              <small class="text-muted d-block mb-3">{{ 'Site::AllPages' | abpLocalization }}</small>
+            } @else if (usage()?.kind === kinds.Partial || usage()?.kind === kinds.Asset) {
+              @if (referencedByNames()) {
+                <small class="text-muted d-block mb-3">
+                  {{ 'Site::ReferencedBy' | abpLocalization }}: {{ referencedByNames() }}
+                </small>
+              }
+            }
+
+            @if (pages().length === 0) {
+              <p class="text-muted small">{{ 'Site::PreviewNoPages' | abpLocalization }}</p>
+            } @else {
+              <div class="mb-3">
+                <label class="form-label" for="site-template-preview-page">
+                  {{ 'Site::PreviewPage' | abpLocalization }}
+                </label>
+                <select
+                  id="site-template-preview-page"
+                  class="form-select"
+                  [ngModel]="selectedPageId()"
+                  (ngModelChange)="selectPage($event)"
+                >
+                  @for (page of pages(); track page.pageId) {
+                    <option [ngValue]="page.pageId">{{ page.displayName }} ({{ page.path }})</option>
+                  }
+                </select>
               </div>
-              @if (pageTemplateNote(); as pageTemplate) {
-                <div class="small text-muted mb-2">
-                  {{ 'Site::PreviewPageTemplateNote' | abpLocalization: pageTemplate }}
+
+              @if (selectedPage()?.hasSlug) {
+                <div class="mb-3">
+                  <label class="form-label" for="site-template-preview-content">
+                    {{ 'Site::PreviewContent' | abpLocalization }}
+                  </label>
+                  @if (contents().length > 0) {
+                    <select
+                      id="site-template-preview-content"
+                      class="form-select"
+                      [ngModel]="selectedContentId()"
+                      (ngModelChange)="selectedContentId.set($event)"
+                    >
+                      @for (content of contents(); track content.id) {
+                        <option [ngValue]="content.id">{{ content.slug || content.url }} ({{ content.cultureName }})</option>
+                      }
+                    </select>
+                  } @else {
+                    <p class="text-muted small mb-0">{{ 'Site::PreviewNoContents' | abpLocalization }}</p>
+                  }
                 </div>
               }
             }
 
-            @if (previewError(); as message) {
-              <div class="alert alert-warning mb-0" role="alert" style="white-space: pre-line">{{ message }}</div>
-            } @else if (previewSrcdoc()) {
-              <!-- allow-same-origin only: no allow-scripts, so nothing a template renders can run. -->
-              <iframe
-                class="w-100 border rounded bg-white"
-                style="height: 60vh"
-                sandbox="allow-same-origin"
-                [srcdoc]="previewDocument()"
-              ></iframe>
+            <details class="mb-3">
+              <summary>{{ 'Site::PreviewAdvanced' | abpLocalization }}</summary>
+              <div class="mt-2">
+                <label class="form-label" for="site-template-preview-path">
+                  {{ 'Site::PreviewPath' | abpLocalization }}
+                </label>
+                <input
+                  id="site-template-preview-path"
+                  type="text"
+                  class="form-control"
+                  autocomplete="off"
+                  placeholder="/"
+                  [ngModel]="customPath()"
+                  (ngModelChange)="customPath.set($event)"
+                />
+                <small class="form-text text-muted">{{ 'Site::PreviewPathHint' | abpLocalization }}</small>
+              </div>
+            </details>
+
+            <div class="mb-3">
+              <code>{{ previewPath() }}</code>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="selectedVersion() === undefined"
+              (click)="openPreview()"
+            >
+              <i class="fa fa-external-link me-1"></i>{{ 'Site::OpenPreview' | abpLocalization }}
+            </button>
+            <small class="form-text text-muted d-block mt-2">
+              {{ 'Site::OpenPreviewHint' | abpLocalization }}
+            </small>
+
+            @if (previewLinkError(); as message) {
+              <div class="alert alert-warning mt-3 mb-0" role="alert" style="white-space: pre-line">{{ message }}</div>
             }
           </div>
         </div>

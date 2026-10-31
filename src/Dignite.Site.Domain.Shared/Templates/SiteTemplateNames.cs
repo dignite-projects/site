@@ -48,6 +48,28 @@ public static class SiteTemplateNames
         return !IsPartial(name) && !IsAsset(name);
     }
 
+    /// <summary>Whether the (normalized) <paramref name="name"/> is <see cref="SiteTemplateConsts.LayoutName"/>.</summary>
+    public static bool IsLayout(string name)
+    {
+        return string.Equals(name, SiteTemplateConsts.LayoutName, StringComparison.Ordinal);
+    }
+
+    /// <summary>The kind of the (normalized) <paramref name="name"/>: the layout, a partial, an asset, or otherwise a page template.</summary>
+    public static SiteTemplateKind GetKind(string name)
+    {
+        if (IsPartial(name))
+        {
+            return SiteTemplateKind.Partial;
+        }
+
+        if (IsAsset(name))
+        {
+            return SiteTemplateKind.Asset;
+        }
+
+        return IsLayout(name) ? SiteTemplateKind.Layout : SiteTemplateKind.Page;
+    }
+
     /// <summary>
     /// The part of an asset's name after <see cref="SiteTemplateConsts.AssetsPrefix"/> - what follows
     /// <c>/site-assets/</c> in its address: <c>site.css</c> for <c>assets/site.css</c>.

@@ -144,6 +144,50 @@ public class EfCoreSiteTemplateRepository
         return rows.ToDictionary(r => r.TemplateId, r => r.Latest);
     }
 
+    public virtual async Task<List<SiteTemplateCurrentVersion>> GetCurrentVersionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var templates = await GetQueryableAsync();
+        var versions = (await GetDbContextAsync()).SiteTemplateVersions;
+
+        // One query: the join on the pointer that FindPublishedVersionAsync uses, widened to the newest
+        // version (a correlated MAX) for a template whose pointer is empty. Exactly one row per template
+        // either way, and never a history. The tenant and soft-delete filters apply to both sides.
+        // An asset's body is not selected, as in GetPublishedRenderSetAsync: it is never parsed, and a
+        // stylesheet or script can be large.
+        var rows = await (
+                from template in templates
+                join version in versions on template.Id equals version.TemplateId
+                where template.PublishedVersionNumber == version.Number
+                      || (template.PublishedVersionNumber == null
+                          && version.Number == versions
+                              .Where(v => v.TemplateId == template.Id)
+                              .Max(v => v.Number))
+                orderby template.Name
+                select new
+                {
+                    TemplateId = template.Id,
+                    TemplateName = template.Name,
+                    template.PublishedVersionNumber,
+                    version.Id,
+                    version.Number,
+                    Body = template.Name.StartsWith(SiteTemplateConsts.AssetsPrefix) ? string.Empty : version.Body
+                })
+            .AsNoTracking()
+            .ToListAsync(GetCancellationToken(cancellationToken));
+
+        return rows
+            .Select(r => new SiteTemplateCurrentVersion(
+                r.TemplateId,
+                r.TemplateName,
+                r.PublishedVersionNumber,
+                r.Id,
+                r.Number,
+                r.PublishedVersionNumber == r.Number,
+                r.Body))
+            .ToList();
+    }
+
     public override async Task<IQueryable<SiteTemplate>> WithDetailsAsync()
     {
         return (await GetQueryableAsync()).IncludeDetails();

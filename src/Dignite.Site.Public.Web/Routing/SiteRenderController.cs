@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Dignite.Site.Fields;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.Templates;
@@ -38,8 +39,14 @@ namespace Dignite.Site.Public.Routing;
 /// Order-0 candidate before ever considering Order-1, so this only fires once nothing more specific has
 /// already claimed the URL.
 /// </para>
+/// <para>
+/// Draft mode: <see cref="SiteTemplatePreviewResourceFilter"/> exchanges a preview link's token for the preview
+/// cookie, and <see cref="SiteTemplatePreviewState"/> puts the version that cookie names into the page's render set,
+/// with a banner on a Scriban page and <c>noindex</c>/<c>no-store</c> on every page.
+/// </para>
 /// </summary>
 [ControllerName(ControllerName)]
+[ServiceFilter(typeof(SiteTemplatePreviewResourceFilter))]
 public class SiteRenderController : AbpController
 {
     public const string ControllerName = "SiteRender";
@@ -116,9 +123,33 @@ public class SiteRenderController : AbpController
         var templateName = ResolveTemplateName(match.Page.Template);
         var renderSet = await TemplateAppService.GetRenderSetAsync(templateName);
 
-        IActionResult result = renderSet.Template != null
-            ? new ScribanPageResult(templateName, renderSet, viewModel)
-            : View(templateName, viewModel);
+        // Draft mode: a visitor holding a valid preview cookie sees the version it names in its slot. Unchanged -
+        // the very DTO - for everyone else. After the render-set read, for the same one-DbContext reason.
+        var previewState = LazyServiceProvider.LazyGetRequiredService<SiteTemplatePreviewState>();
+        renderSet = await previewState.ApplyAsync(templateName, renderSet);
+        var previewing = previewState.Ticket != null;
+
+        IActionResult result;
+        if (renderSet.Template != null)
+        {
+            result = new ScribanPageResult(templateName, renderSet, viewModel)
+            {
+                PreviewBanner = previewing ? previewState.GetBannerHtml(ControllerContext) : null
+            };
+        }
+        else
+        {
+            // A page still rendered by Razor gets the preview headers but no banner: the view's output is not
+            // this controller's to rewrite.
+            result = View(templateName, viewModel);
+        }
+
+        if (previewing)
+        {
+            // The page's own robots meta tag is the live page's; this header is what keeps the preview out of
+            // indexes and caches.
+            previewState.ApplyResponseHeaders(Response);
+        }
 
         return new CultureScopedResult(result, match.CultureName);
     }

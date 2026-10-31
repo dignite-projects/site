@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Templates;
 using Dignite.Site.Templates;
 using Microsoft.AspNetCore.Http;
@@ -18,8 +19,8 @@ namespace Dignite.Site.Public.Assets;
 /// Serves the tenant's published asset templates - CSS, JS and other text files saved under <c>assets/</c> - at
 /// <c>GET|HEAD /site-assets/{path}</c>: <c>/site-assets/site.css</c> is the published version of
 /// <c>assets/site.css</c>, its body as it is. Anonymous, like the pages that link to it; the tenant is the one
-/// the request resolves to. Contracts-only, like <see cref="Routing.SiteRenderController"/>: the one dependency is
-/// <see cref="ISiteTemplatePublicAppService"/>.
+/// the request resolves to. Contracts-only, like <see cref="Routing.SiteRenderController"/>: the published bytes
+/// come from <see cref="ISiteTemplatePublicAppService"/>.
 /// <para>
 /// <b>Caching.</b> <c>asset_url</c> writes the id of the published version into the address
 /// (<c>?v=</c> and 32 hex digits, <see cref="SiteAssetUrl.VersionQueryKey"/>), so publishing changes every link. A
@@ -42,6 +43,11 @@ namespace Dignite.Site.Public.Assets;
 /// this route keeps the default <c>Order = 0</c>, so <see cref="Routing.SiteRenderController"/>'s
 /// <c>Order = 1</c> catch-all never sees <c>/site-assets/</c>: an unknown asset is a 404 here, not a page lookup.
 /// </para>
+/// <para>
+/// <b>Draft mode.</b> A visitor whose preview cookie names an asset (<see cref="SiteTemplatePreviewState"/>) gets that
+/// version's body at its address instead - <c>no-store</c> and <c>noindex</c>, so no cache ever holds it and nobody
+/// else is ever served it.
+/// </para>
 /// </summary>
 [ControllerName(ControllerName)]
 public class SiteAssetController : AbpController
@@ -52,10 +58,12 @@ public class SiteAssetController : AbpController
     public const int ImmutableMaxAgeSeconds = 365 * 24 * 60 * 60;
 
     protected ISiteTemplatePublicAppService TemplateAppService { get; }
+    protected SiteTemplatePreviewState PreviewState { get; }
 
-    public SiteAssetController(ISiteTemplatePublicAppService templateAppService)
+    public SiteAssetController(ISiteTemplatePublicAppService templateAppService, SiteTemplatePreviewState previewState)
     {
         TemplateAppService = templateAppService;
+        PreviewState = previewState;
     }
 
     [AcceptVerbs("GET", "HEAD", Route = "/" + SiteAssetUrl.RoutePrefix + "/{**path}")]
@@ -66,14 +74,60 @@ public class SiteAssetController : AbpController
             return NotFound();
         }
 
-        var version = await TemplateAppService.FindPublishedAsync(SiteTemplateNames.GetAssetName(path));
+        var name = SiteTemplateNames.GetAssetName(path);
+
+        var previewVersion = await FindPreviewVersionAsync(name);
+        if (previewVersion != null)
+        {
+            return Serve(previewVersion, path, preview: true);
+        }
+
+        var version = await TemplateAppService.FindPublishedAsync(name);
         if (version == null)
         {
             return NotFound();
         }
 
+        return Serve(version, path, preview: false);
+    }
+
+    /// <summary>
+    /// The version of <paramref name="name"/> the visitor's draft mode puts in place of the published one: only for
+    /// a valid preview cookie whose ticket names this very asset (<see cref="SiteTemplatePreviewState"/>), null for
+    /// everyone else - who keep getting the published bytes, whatever <c>v</c> they ask for.
+    /// </summary>
+    protected virtual async Task<SiteTemplateVersionDto?> FindPreviewVersionAsync(string name)
+    {
+        var ticket = PreviewState.Ticket;
+        if (ticket == null
+            || ticket.Kind != SiteTemplateKind.Asset
+            || !string.Equals(ticket.TemplateName, name, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return await PreviewState.GetOverrideVersionAsync(HttpContext.RequestAborted);
+    }
+
+    /// <summary>
+    /// <paramref name="version"/>'s body, typed by <paramref name="path"/>'s extension. A previewed version is never
+    /// stored by any cache and never indexed (<see cref="SiteTemplatePreviewHttp.ApplyHeaders"/>); a published one is
+    /// cached as the class remarks describe.
+    /// </summary>
+    protected virtual IActionResult Serve(SiteTemplateVersionDto version, string path, bool preview)
+    {
         var entityTag = new EntityTagHeaderValue("\"" + version.Id.ToString("N") + "\"");
-        SetCacheHeaders(entityTag, IsVersioned(version.Id));
+
+        if (preview)
+        {
+            Response.Headers.ETag = entityTag.ToString();
+            Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
+            SiteTemplatePreviewHttp.ApplyHeaders(Response);
+        }
+        else
+        {
+            SetCacheHeaders(entityTag, IsVersioned(version.Id));
+        }
 
         if (IsNotModified(entityTag))
         {

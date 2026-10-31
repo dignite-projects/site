@@ -57,6 +57,67 @@ public static class ScribanTemplateSyntax
         return string.Join("\n", errors.Select(e => $"({e.Line},{e.Column}): {e.Message}"));
     }
 
+    /// <summary>
+    /// The templates <paramref name="template"/> refers to by name: every <c>include "partials/x"</c> and
+    /// <c>asset_url "assets/x"</c> whose first argument is a string literal, as a function call
+    /// (<c>{{ include "partials/card" }}</c>, <c>{{ include "partials/card" item }}</c>) or piped
+    /// (<c>{{ "partials/card" | include }}</c>). Names are normalized the way they are stored. A name computed
+    /// at run time (<c>include name</c>) cannot be known here and is not listed. Walks the tree, not the text,
+    /// so the words in markup or in a comment do not count. Empty for a template that does not parse.
+    /// </summary>
+    public static IReadOnlyList<SiteTemplateReference> GetTemplateReferences(Scriban.Template template)
+    {
+        var references = new List<SiteTemplateReference>();
+
+        if (template.Page != null && !template.HasErrors)
+        {
+            CollectReferences(template.Page, references);
+        }
+
+        return references;
+    }
+
+    private static readonly string[] ReferencingFunctions = { "include", "asset_url" };
+
+    private static void CollectReferences(ScriptNode node, List<SiteTemplateReference> references)
+    {
+        switch (node)
+        {
+            case ScriptFunctionCall call when call.Target is ScriptVariableGlobal target
+                                              && ReferencingFunctions.Contains(target.Name)
+                                              && call.Arguments.Count > 0
+                                              && call.Arguments[0] is ScriptLiteral { Value: string name }:
+                references.Add(new SiteTemplateReference(target.Name, SiteTemplateNames.Normalize(name)));
+                break;
+
+            // The right side of a pipe is the bare variable or, as the parser usually builds it, a function call of
+            // it without the piped argument.
+            case ScriptPipeCall pipe when pipe.From is ScriptLiteral { Value: string pipedName }
+                                          && GetPipedFunctionName(pipe.To) is { } pipedFunction
+                                          && ReferencingFunctions.Contains(pipedFunction):
+                references.Add(new SiteTemplateReference(pipedFunction, SiteTemplateNames.Normalize(pipedName)));
+                break;
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (child != null)
+            {
+                CollectReferences(child, references);
+            }
+        }
+    }
+
+    private static string? GetPipedFunctionName(ScriptExpression? to)
+    {
+        return to switch
+        {
+            ScriptVariableGlobal variable => variable.Name,
+            ScriptFunctionCall { Target: ScriptVariableGlobal target } => target.Name,
+            _ => null
+        };
+    }
+
     private static bool ContainsSiteHead(ScriptNode node)
     {
         if (node is ScriptVariableGlobal variable &&

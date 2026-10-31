@@ -1,21 +1,22 @@
-import { EnvironmentService, PermissionService } from '@abp/ng.core';
+import { PermissionService } from '@abp/ng.core';
 import { ToasterService } from '@abp/ng.theme.shared';
+import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
+import type {
+  SiteTemplatePageUsageDto,
+  SiteTemplateUsageDto,
+} from '../../proxy/dignite/site/admin/templates/models';
 import { SiteTemplateAdminService } from '../../proxy/dignite/site/admin/templates/site-template-admin.service';
+import type { ContentDto } from '../../proxy/dignite/site/contents/models';
 import type {
   SiteTemplateDto,
-  SiteTemplatePreviewDto,
+  SiteTemplatePreviewLinkDto,
   SiteTemplateVersionDto,
 } from '../../proxy/dignite/site/templates/models';
-import {
-  TemplateEditorComponent,
-  parseSyntaxErrors,
-  withBaseHref,
-} from './template-editor.component';
-
-const API_URL = 'https://api.example';
+import { TemplateEditorComponent, parseSyntaxErrors } from './template-editor.component';
 
 describe('TemplateEditorComponent', () => {
   const template = (overrides: Partial<SiteTemplateDto> = {}) =>
@@ -24,26 +25,66 @@ describe('TemplateEditorComponent', () => {
   const version = (number: number, body = `<p>v${number}</p>`) =>
     ({ id: `v${number}`, templateId: 't1', number, body, comment: `comment ${number}` }) as SiteTemplateVersionDto;
 
-  const previewResult = (overrides: Partial<SiteTemplatePreviewDto> = {}) =>
-    ({
-      html: '<!doctype html><html><head><title>x</title></head><body>hi</body></html>',
-      path: '/about',
-      pageName: 'about',
-      cultureName: 'en',
-      pageTemplate: 'Default',
-      versionNumber: 2,
-      ...overrides,
-    }) as SiteTemplatePreviewDto;
+  const aboutPage = {
+    pageId: 'p1',
+    name: 'about',
+    displayName: 'About',
+    route: 'about',
+    template: 'Default',
+    hasSlug: false,
+    path: '/about',
+    sampleContent: null,
+  } as SiteTemplatePageUsageDto;
+
+  const slugPage = {
+    pageId: 'p2',
+    name: 'blog',
+    displayName: 'Blog',
+    route: 'blog/{slug}',
+    template: 'Default',
+    hasSlug: true,
+    path: '/blog',
+    sampleContent: { contentId: 'c2', slug: 'two', cultureName: 'en', path: '/blog/two' },
+  } as SiteTemplatePageUsageDto;
+
+  const slugPageFirst = [slugPage, aboutPage];
+
+  const usage = (pages: SiteTemplatePageUsageDto[] = [aboutPage]) =>
+    ({ templateId: 't1', templateName: 'Default', kind: 0, pages, referencedBy: [] }) as SiteTemplateUsageDto;
+
+  const content = (id: string, slug: string) =>
+    ({ id, pageId: 'p2', slug, cultureName: 'en', url: `/blog/${slug}` }) as ContentDto;
+
+  const link = {
+    url: 'https://site.example/blog/two?site-preview=token',
+    path: '/blog/two',
+    templateName: 'Default',
+    versionNumber: 2,
+  } as SiteTemplatePreviewLinkDto;
 
   /** An ABP error response: the HTTP error's body is `{ error: { code, message } }`. */
   const apiError = (code: string, message: string) => ({ error: { error: { code, message } } });
 
   function create(
-    overrides: { id?: string | null; templateService?: object; toaster?: object; router?: object } = {},
+    overrides: {
+      id?: string | null;
+      templateService?: object;
+      contents?: ContentDto[];
+      toaster?: object;
+      router?: object;
+    } = {},
   ) {
     const id = overrides.id === undefined ? 't1' : overrides.id;
     const success = vi.fn();
     const navigate = vi.fn();
+
+    // The window the preview opens: its `location` is assigned to, `close` is called when no link comes.
+    const win = { location: { href: '' }, close: vi.fn(), opener: {} as object | null };
+    const open = vi.fn(() => win);
+    const getContents = vi.fn(() =>
+      of({ items: overrides.contents ?? [content('c1', 'one'), content('c2', 'two')], totalCount: 2 }),
+    );
+    const getPreviewLink = vi.fn(() => of(link));
 
     TestBed.configureTestingModule({
       providers: [
@@ -54,14 +95,13 @@ describe('TemplateEditorComponent', () => {
             get: vi.fn(() => of(template())),
             getVersions: vi.fn(() => of({ items: [version(1), version(2)] })),
             getVersion: vi.fn((_id: string, number: number) => of(version(number))),
-            preview: vi.fn(() => of(previewResult())),
+            getUsage: vi.fn(() => of(usage())),
+            getPreviewLink,
             ...overrides.templateService,
           },
         },
-        {
-          provide: EnvironmentService,
-          useValue: { getEnvironment: () => ({ apis: {} }), getApiUrl: () => API_URL },
-        },
+        { provide: ContentAdminService, useValue: { getList: getContents } },
+        { provide: DOCUMENT, useValue: { defaultView: { open } } },
         { provide: PermissionService, useValue: { getGrantedPolicy: () => true } },
         { provide: ToasterService, useValue: overrides.toaster ?? { success } },
         { provide: Router, useValue: overrides.router ?? { navigate } },
@@ -72,7 +112,15 @@ describe('TemplateEditorComponent', () => {
       ],
     });
 
-    return { component: TestBed.inject(TemplateEditorComponent), success, navigate };
+    return {
+      component: TestBed.inject(TemplateEditorComponent),
+      success,
+      navigate,
+      open,
+      win,
+      getContents,
+      getPreviewLink,
+    };
   }
 
   describe('opening an existing template', () => {
@@ -104,10 +152,9 @@ describe('TemplateEditorComponent', () => {
   });
 
   describe('save', () => {
-    it('saves a draft as a new version with publish: false, then previews it', () => {
+    it('saves a draft as a new version with publish: false, and selects it for the preview without opening a window', () => {
       const update = vi.fn(() => of(template({ latestVersionNumber: 3 })));
-      const preview = vi.fn(() => of(previewResult({ versionNumber: 3 })));
-      const { component, success } = create({ templateService: { update, preview } });
+      const { component, success, open, getPreviewLink } = create({ templateService: { update } });
 
       component.body.set('<p>edited</p>');
       component.form.patchValue({ comment: 'fix typo' });
@@ -122,7 +169,8 @@ describe('TemplateEditorComponent', () => {
         messageLocalizationParams: ['3'],
       });
       expect(component.selectedVersion()).toBe(3);
-      expect(preview).toHaveBeenCalledWith('t1', 3, '/', { skipHandleError: true });
+      expect(open).not.toHaveBeenCalled();
+      expect(getPreviewLink).not.toHaveBeenCalled();
       expect(component.isBusy()).toBe(false);
     });
 
@@ -228,52 +276,211 @@ describe('TemplateEditorComponent', () => {
       });
       expect(component.isBusy()).toBe(false);
     });
+
+    it('reloads the usage with the template and versions', () => {
+      const getUsage = vi.fn(() => of(usage()));
+      const publish = vi.fn(() => of(template()));
+      const { component } = create({ templateService: { getUsage, publish } });
+      getUsage.mockClear();
+
+      component.publishVersion(2);
+
+      expect(getUsage).toHaveBeenCalledWith('t1');
+    });
+
+    it('keeps the chosen page when the usage is reloaded', () => {
+      const publish = vi.fn(() => of(template()));
+      const { component } = create({
+        templateService: { getUsage: vi.fn(() => of(usage(slugPageFirst))), publish },
+      });
+
+      component.selectPage('p1');
+      component.publishVersion(2);
+
+      expect(component.selectedPageId()).toBe('p1');
+    });
   });
 
-  describe('renderPreview', () => {
-    it('renders the selected version on the given path, with the API host as the base address', () => {
-      const html = '<!doctype html><html><head><title>x</title></head><body>hi</body></html>';
-      const preview = vi.fn(() => of(previewResult({ html })));
-      const { component } = create({ templateService: { preview } });
+  describe('the page and content the preview opens', () => {
+    it('selects the first page of the usage, and loads no contents for a page without a slug', () => {
+      const { component, getContents } = create();
 
-      component.selectedVersion.set(2);
-      component.previewPath.set('/about');
-      component.renderPreview();
-
-      expect(preview).toHaveBeenCalledWith('t1', 2, '/about', { skipHandleError: true });
-      expect(component.previewSrcdoc()).toBe(
-        '<!doctype html><html><head><base href="https://api.example/"><title>x</title></head><body>hi</body></html>',
-      );
-      expect(component.previewError()).toBeNull();
-      expect(component.isPreviewing()).toBe(false);
+      expect(component.usage()?.templateName).toBe('Default');
+      expect(component.selectedPageId()).toBe('p1');
+      expect(component.selectedPage()?.displayName).toBe('About');
+      expect(getContents).not.toHaveBeenCalled();
+      expect(component.contents()).toEqual([]);
+      expect(component.selectedContentId()).toBeUndefined();
     });
 
-    it('puts the server message in the preview area when rendering fails', () => {
-      const preview = vi.fn(() =>
-        throwError(() => apiError('Site:090006', "No page of the site answers the path '/nope'.")),
-      );
-      const { component } = create({ templateService: { preview } });
+    it('loads the published contents of a slug page, newest first, and defaults to its sample content', () => {
+      const { component, getContents } = create({
+        templateService: { getUsage: vi.fn(() => of(usage(slugPageFirst))) },
+      });
 
-      component.previewPath.set('/nope');
-      component.renderPreview();
-
-      expect(component.previewError()).toBe("No page of the site answers the path '/nope'.");
-      expect(component.previewSrcdoc()).toBe('');
-      expect(component.preview()).toBeUndefined();
+      expect(getContents).toHaveBeenCalledWith({
+        pageId: 'p2',
+        status: 1,
+        maxResultCount: 100,
+        sorting: 'publishTime desc',
+      });
+      expect(component.contents().map(content => content.id)).toEqual(['c1', 'c2']);
+      expect(component.selectedContentId()).toBe('c2');
     });
 
-    it('notes the template the page normally uses, unless this is the layout', () => {
-      const preview = vi.fn(() => of(previewResult({ pageTemplate: 'Blog/Article' })));
-      const { component } = create({ templateService: { preview } });
+    it('falls back to the first content when the sample content is not in the list', () => {
+      const sample = { contentId: 'gone', slug: 'gone', cultureName: 'en', path: '/blog/gone' };
+      const { component } = create({
+        templateService: {
+          getUsage: vi.fn(() => of(usage([{ ...slugPage, sampleContent: sample }, aboutPage]))),
+        },
+      });
 
-      component.renderPreview();
-      expect(component.pageTemplateNote()).toBe('Blog/Article');
+      expect(component.selectedContentId()).toBe('c1');
+    });
 
-      component.template.set(template({ name: 'layout' }));
-      expect(component.pageTemplateNote()).toBeNull();
+    it('has no selection when the template is used by no page', () => {
+      const { component, getContents } = create({
+        templateService: { getUsage: vi.fn(() => of(usage([]))) },
+      });
 
-      component.template.set(template({ name: '/Blog/Article' }));
-      expect(component.pageTemplateNote()).toBeNull();
+      expect(component.selectedPageId()).toBeUndefined();
+      expect(component.previewPath()).toBe('/');
+      expect(getContents).not.toHaveBeenCalled();
+    });
+
+    it('clears and reloads the contents when another page is chosen', () => {
+      const { component, getContents } = create({
+        templateService: { getUsage: vi.fn(() => of(usage(slugPageFirst))) },
+      });
+
+      component.selectPage('p1');
+      expect(component.contents()).toEqual([]);
+      expect(component.selectedContentId()).toBeUndefined();
+
+      component.selectPage('p2');
+      expect(getContents).toHaveBeenCalledTimes(2);
+      expect(component.selectedContentId()).toBe('c2');
+    });
+  });
+
+  describe('previewPath', () => {
+    it('is the page path when no content applies', () => {
+      const { component } = create();
+
+      expect(component.previewPath()).toBe('/about');
+    });
+
+    it('is the selected content url on a slug page', () => {
+      const { component } = create({ templateService: { getUsage: vi.fn(() => of(usage(slugPageFirst))) } });
+
+      expect(component.previewPath()).toBe('/blog/two');
+
+      component.selectedContentId.set('c1');
+      expect(component.previewPath()).toBe('/blog/one');
+    });
+
+    it('is the page path when the slug page has no content', () => {
+      const { component } = create({
+        templateService: { getUsage: vi.fn(() => of(usage(slugPageFirst))) },
+        contents: [],
+      });
+
+      expect(component.previewPath()).toBe('/blog');
+    });
+
+    it('prefers the typed path to anything chosen, ignoring blanks', () => {
+      const { component } = create({ templateService: { getUsage: vi.fn(() => of(usage(slugPageFirst))) } });
+
+      component.customPath.set('  /ja/special  ');
+      expect(component.previewPath()).toBe('/ja/special');
+
+      component.customPath.set('   ');
+      expect(component.previewPath()).toBe('/blog/two');
+    });
+  });
+
+  describe('openPreview', () => {
+    it('opens the window first, then points it at the link and selects the version', () => {
+      const { component, open, win, getPreviewLink } = create();
+      let openedBeforeRequest = false;
+      getPreviewLink.mockImplementationOnce(() => {
+        openedBeforeRequest = open.mock.calls.length === 1;
+        return of(link);
+      });
+
+      component.openPreview(2);
+
+      expect(open).toHaveBeenCalledWith('', '_blank');
+      expect(openedBeforeRequest).toBe(true);
+      expect(getPreviewLink).toHaveBeenCalledWith('t1', 2, '/about', { skipHandleError: true });
+      expect(win.location.href).toBe(link.url);
+      expect(win.opener).toBeNull();
+      expect(win.close).not.toHaveBeenCalled();
+      expect(component.selectedVersion()).toBe(2);
+      expect(component.previewLinkError()).toBeNull();
+    });
+
+    it('previews the selected version, with the chosen content, when called without one', () => {
+      const { component, getPreviewLink } = create({
+        templateService: { getUsage: vi.fn(() => of(usage(slugPageFirst))) },
+      });
+
+      component.openPreview();
+
+      expect(getPreviewLink).toHaveBeenCalledWith('t1', 1, '/blog/two', { skipHandleError: true });
+    });
+
+    it('closes the window and shows the server message when no link can be issued', () => {
+      const getPreviewLink = vi.fn(() =>
+        throwError(() => apiError('Site:090009', 'Previewing needs the public site in this application.')),
+      );
+      const { component, win } = create({ templateService: { getPreviewLink } });
+
+      component.openPreview(2);
+
+      expect(win.close).toHaveBeenCalledTimes(1);
+      expect(win.location.href).toBe('');
+      expect(component.previewLinkError()).toBe('Previewing needs the public site in this application.');
+    });
+
+    it('clears an earlier error when it tries again', () => {
+      const getPreviewLink = vi
+        .fn()
+        .mockReturnValueOnce(throwError(() => apiError('Site:090009', 'nope')))
+        .mockReturnValueOnce(of(link));
+      const { component } = create({ templateService: { getPreviewLink } });
+
+      component.openPreview();
+      expect(component.previewLinkError()).toBe('nope');
+
+      component.openPreview();
+      expect(component.previewLinkError()).toBeNull();
+    });
+
+    it('asks for nothing while no version is selected', () => {
+      const { component, open, getPreviewLink } = create();
+
+      component.selectedVersion.set(undefined);
+      component.openPreview();
+
+      expect(open).not.toHaveBeenCalled();
+      expect(getPreviewLink).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('referencedByNames', () => {
+    it('lists each referring template once', () => {
+      const reference = (templateName: string) => ({ templateId: templateName, templateName });
+      const { component } = create({
+        templateService: {
+          getUsage: vi.fn(() =>
+            of({ ...usage(), kind: 2, referencedBy: [reference('layout'), reference('Blog/Post'), reference('layout')] }),
+          ),
+        },
+      });
+
+      expect(component.referencedByNames()).toBe('layout, Blog/Post');
     });
   });
 });
@@ -289,27 +496,5 @@ describe('parseSyntaxErrors', () => {
   it('returns nothing for a message with no entries', () => {
     expect(parseSyntaxErrors('something else')).toEqual([]);
     expect(parseSyntaxErrors(undefined)).toEqual([]);
-  });
-});
-
-describe('withBaseHref', () => {
-  it('inserts the base element right after the opening head tag, whatever its case or attributes', () => {
-    expect(withBaseHref('<HEAD data-x="1"><title>t</title></HEAD>', 'https://api.example/')).toBe(
-      '<HEAD data-x="1"><base href="https://api.example/"><title>t</title></HEAD>',
-    );
-  });
-
-  it('puts it in front of a document that has no head, and does not mistake <header> for one', () => {
-    expect(withBaseHref('<header>x</header>', 'https://api.example/')).toBe(
-      '<base href="https://api.example/"><header>x</header>',
-    );
-  });
-
-  it('leaves the document alone when there is no host to resolve against', () => {
-    expect(withBaseHref('<head></head>', '')).toBe('<head></head>');
-  });
-
-  it('does not expand $ sequences in the document', () => {
-    expect(withBaseHref('<head>$&</head>', 'https://a/')).toBe('<head><base href="https://a/">$&</head>');
   });
 });

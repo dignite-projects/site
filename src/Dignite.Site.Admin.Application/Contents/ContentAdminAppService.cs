@@ -6,12 +6,20 @@ using System.Threading.Tasks;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Common;
 using Dignite.Site.Contents;
+using Dignite.Site.Pages;
+using Dignite.Site.Seo;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Validation;
 
 namespace Dignite.Site.Admin.Contents;
 
+/// <summary>
+/// Every content, whatever its status - unlike the Public surface. <see cref="ContentDto.Url"/> is the same
+/// relative, language-prefixed path the Public surface returns (<c>/blog/my-trip</c>, <c>/zh-Hans/about</c>),
+/// for a draft too: it is where the content will be once it is public, which is what an editor previewing it
+/// needs.
+/// </summary>
 [Authorize(SiteAdminPermissions.Contents.Default)]
 public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppService
 {
@@ -19,16 +27,26 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
 
     protected ContentManager ContentManager { get; }
 
-    public ContentAdminAppService(IContentRepository contentRepository, ContentManager contentManager)
+    protected IPageRepository PageRepository { get; }
+
+    protected SiteUrlBuilder UrlBuilder { get; }
+
+    public ContentAdminAppService(
+        IContentRepository contentRepository,
+        ContentManager contentManager,
+        IPageRepository pageRepository,
+        SiteUrlBuilder urlBuilder)
     {
         ContentRepository = contentRepository;
         ContentManager = contentManager;
+        PageRepository = pageRepository;
+        UrlBuilder = urlBuilder;
     }
 
     public virtual async Task<ContentDto> GetAsync(Guid id)
     {
         var content = await ContentRepository.GetAsync(id);
-        return MapToDto(content);
+        return await MapToDtoAsync(content);
     }
 
     public virtual async Task<ContentDto?> FindBySlugAsync(Guid pageId, string cultureName, string slug)
@@ -62,7 +80,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
 
         var content = await ContentRepository.FindBySlugAsync(pageId, normalizedCulture, slug);
 
-        return content == null ? null : MapToDto(content);
+        return content == null ? null : await MapToDtoAsync(content);
     }
 
     public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
@@ -78,7 +96,14 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
             filter: input.Filter, flexFieldConditions: input.FlexFieldConditions,
             maxResultCount: input.MaxResultCount, skipCount: input.SkipCount, sorting: input.Sorting);
 
-        return new PagedResultDto<ContentDto>(totalCount, contents.Select(MapToDto).ToList());
+        // Batched by distinct PageId, as the Public list does - not one page lookup per item.
+        var pageIds = contents.Select(c => c.PageId).Distinct().ToList();
+        var pagesById = (await PageRepository.GetListAsync(pageIds)).ToDictionary(p => p.Id);
+        var urlContext = await TryCreateUrlContextAsync();
+
+        return new PagedResultDto<ContentDto>(
+            totalCount,
+            contents.Select(c => MapToDto(c, pagesById.GetValueOrDefault(c.PageId), urlContext)).ToList());
     }
 
     [Authorize(SiteAdminPermissions.Contents.Create)]
@@ -88,7 +113,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
             input.ContentTypeId, input.CultureName, input.Slug, input.PublishTime, input.Status,
             input.FieldValues);
 
-        return MapToDto(content);
+        return await MapToDtoAsync(content);
     }
 
     [Authorize(SiteAdminPermissions.Contents.Update)]
@@ -99,7 +124,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
         content = await ContentManager.UpdateAsync(
             content, input.Slug, input.PublishTime, input.Status, input.FieldValues, input.ContentTypeId);
 
-        return MapToDto(content);
+        return await MapToDtoAsync(content);
     }
 
     [Authorize(SiteAdminPermissions.Contents.Delete)]
@@ -109,10 +134,43 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
         await ContentRepository.DeleteAsync(id);
     }
 
-    protected virtual ContentDto MapToDto(Content content)
+    /// <summary>Maps one content, looking its page up for <see cref="ContentDto.Url"/>.</summary>
+    protected virtual async Task<ContentDto> MapToDtoAsync(Content content)
+    {
+        var page = await PageRepository.FindAsync(content.PageId, includeDetails: false);
+        return MapToDto(content, page, await TryCreateUrlContextAsync());
+    }
+
+    /// <summary>
+    /// <see cref="ContentDto.Url"/> is composed exactly as <c>ContentPublicAppService.MapToDto</c> does
+    /// (<see cref="SiteUrlBuilder.BuildContentPath"/>), and is empty when <paramref name="page"/> is null (a
+    /// narrow delete race) or <paramref name="urlContext"/> is (no base URL).
+    /// </summary>
+    protected virtual ContentDto MapToDto(Content content, Page? page, SiteUrlContext? urlContext)
     {
         var dto = ObjectMapper.Map<Content, ContentDto>(content);
         dto.FieldValues = content.FlexFields.ToValueDictionary();
+        dto.Url = page != null && urlContext != null
+            ? UrlBuilder.BuildContentPath(urlContext, page, content)
+            : string.Empty;
         return dto;
+    }
+
+    /// <summary>
+    /// The URL context, or null when the site has no base URL - no primary domain configured, and no request
+    /// to infer one from. The path itself does not depend on the domain, but it goes through the one URL
+    /// builder rather than a second composition; and an administration list must not fail because SEO is
+    /// not configured yet, so the URL is left empty instead.
+    /// </summary>
+    protected virtual async Task<SiteUrlContext?> TryCreateUrlContextAsync()
+    {
+        try
+        {
+            return await UrlBuilder.CreateContextAsync();
+        }
+        catch (PrimaryDomainNotConfiguredException)
+        {
+            return null;
+        }
     }
 }
