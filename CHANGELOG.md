@@ -60,6 +60,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bundle, and `@dignite/ng.site` gains six dependencies: `codemirror`, `@codemirror/lang-html`,
   `@codemirror/lang-css`, `@codemirror/lang-javascript`, `@codemirror/state` and `@codemirror/view`. See
   [Admin UI](docs/en/admin-ui.md).
+- **The theme can be previewed in a browser.** **Preview** in the Theme screen, and in its release history, opens the
+  site in a new tab with the working copy as saved, or with a release, for that browser only: a link signed with the
+  application's Data Protection keys (`GET api/site-admin/theme/preview-link`) is exchanged for a cookie, and for two
+  hours every page and static file renders with that theme, under a banner with an exit, with `no-store` and `noindex`;
+  a template that fails shows its error. Visitors keep seeing the live release, and the working copy is read only by an
+  in-process hook, never over the public API. Several instances serving the site must share one Data Protection key
+  ring. See [Scriban Templates](docs/en/rendering/scriban-templates.md#in-a-browser).
 
 ### Changed
 

@@ -22,6 +22,44 @@
           }
         </small>
       </div>
+      <!-- Preview: the home page, or a page the template in front renders. A menu of our own: no dropdown library. -->
+      <div class="btn-group position-relative theme-preview-menu">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [title]="'Site::PreviewThemeHint' | abpLocalization"
+          (click)="openPreview()"
+        >
+          <i class="fa fa-eye me-1"></i>{{ 'Site::PreviewTheme' | abpLocalization }}
+        </button>
+        @if (previewPages().length > 0) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split"
+            [attr.aria-expanded]="isPreviewMenuOpen()"
+            (click)="isPreviewMenuOpen.set(!isPreviewMenuOpen())"
+          >
+            <span class="visually-hidden">{{ 'Site::PreviewPagesOf' | abpLocalization: activePath() ?? '' }}</span>
+          </button>
+          @if (isPreviewMenuOpen()) {
+            <div class="dropdown-menu dropdown-menu-end show" style="position: absolute; inset: 100% 0 auto auto">
+              <h6 class="dropdown-header">{{ 'Site::PreviewPagesOf' | abpLocalization: activePath() ?? '' }}</h6>
+              @for (page of previewPages(); track $index) {
+                <button
+                  type="button"
+                  class="dropdown-item"
+                  [disabled]="!page.path"
+                  [title]="page.path ? '' : ('Site::PreviewPageNeedsContent' | abpLocalization)"
+                  (click)="openPreview(undefined, page.path ?? undefined)"
+                >
+                  {{ page.name }}
+                  <small class="text-muted ms-1">{{ page.path ?? page.route }}</small>
+                </button>
+              }
+            </div>
+          }
+        }
+      </div>
       <button type="button" class="btn btn-outline-secondary" (click)="runCheck()" [disabled]="isChecking()">
         @if (isChecking()) {
           <span class="spinner-border spinner-border-sm me-1" role="status"></span>
@@ -424,6 +462,14 @@
               <td>{{ release.changedFileCount }}</td>
               <td>{{ release.creationTime | date: 'short' }}</td>
               <td class="text-end text-nowrap">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary me-1"
+                  [title]="'Site::PreviewReleaseHint' | abpLocalization"
+                  (click)="openPreview(release.id)"
+                >
+                  <i class="fa fa-eye me-1"></i>{{ 'Site::PreviewTheme' | abpLocalization }}
+                </button>
                 @if (canPublish && !release.isLive) {
                   <button type="button" class="btn btn-sm btn-outline-primary me-1" (click)="makeLive(release)">
                     {{ 'Site::MakeReleaseLive' | abpLocalization }}

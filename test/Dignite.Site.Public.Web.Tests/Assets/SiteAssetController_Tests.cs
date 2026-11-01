@@ -2,11 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Themes;
 using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.MultiTenancy;
 using Xunit;
 
 namespace Dignite.Site.Public.Assets;
@@ -28,6 +32,14 @@ public class SiteAssetController_Tests
     private static (SiteAssetController Controller, DefaultHttpContext HttpContext, FakeThemeAppService Themes) Create(
         string? query = null)
     {
+        return Create(query, out _);
+    }
+
+    /// <summary>As <see cref="Create(string?)"/>, with the preview of the request to set a cookie and a source on.</summary>
+    private static (SiteAssetController Controller, DefaultHttpContext HttpContext, FakeThemeAppService Themes) Create(
+        string? query,
+        out SitePreviewTestContext preview)
+    {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = HttpMethods.Get;
         if (query != null)
@@ -42,9 +54,15 @@ public class SiteAssetController_Tests
             ["notes.unknown"] = "notes"
         });
 
+        var previewContext = new SitePreviewTestContext(httpContext, new CurrentTenant(AsyncLocalCurrentTenantAccessor.Instance));
+        preview = previewContext;
+
         var controller = new SiteAssetController(themes)
         {
-            ControllerContext = new ControllerContext { HttpContext = httpContext }
+            ControllerContext = new ControllerContext { HttpContext = httpContext },
+            LazyServiceProvider = new AbpLazyServiceProvider(new ServiceCollection()
+                .AddSingleton(_ => previewContext.CreateState())
+                .BuildServiceProvider())
         };
 
         return (controller, httpContext, themes);
@@ -180,6 +198,69 @@ public class SiteAssetController_Tests
 
         result.ShouldBeOfType<NotFoundResult>();
         themes.RequestedPaths.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A visitor holding a preview cookie is served the working copy's file - never stored, never indexed - and the
+    /// live release is not asked.
+    /// </summary>
+    [Fact]
+    public async Task A_Preview_Should_Serve_The_Working_Copys_File()
+    {
+        var (controller, httpContext, themes) = Create("?v=" + SiteCssHash, out var preview);
+        preview.Source.WorkingCopy = ScribanSnapshot(("assets/site.css", "body { color: red; }"));
+        preview.SetCookie();
+
+        var result = await controller.GetAsync("assets/site.css");
+
+        var file = result.ShouldBeOfType<FileContentResult>();
+        file.ContentType.ShouldBe("text/css; charset=utf-8");
+        Encoding.UTF8.GetString(file.FileContents).ShouldBe("body { color: red; }");
+        themes.RequestedPaths.ShouldBeEmpty();
+        httpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
+        httpContext.Response.Headers["X-Robots-Tag"].ToString().ShouldBe("noindex");
+        httpContext.Response.Headers["X-Content-Type-Options"].ToString().ShouldBe("nosniff");
+        httpContext.Response.Headers.ETag.ToString().ShouldBeEmpty();
+    }
+
+    /// <summary>A file the working copy no longer has is not there in the preview, even when it is live.</summary>
+    [Fact]
+    public async Task A_Preview_Should_Not_Fall_Back_To_A_Live_File()
+    {
+        var (controller, httpContext, themes) = Create(null, out var preview);
+        preview.Source.WorkingCopy = ScribanSnapshot(("js/site.js", "1;"));
+        preview.SetCookie();
+
+        var result = await controller.GetAsync("assets/site.css");
+
+        result.ShouldBeOfType<NotFoundResult>();
+        themes.RequestedPaths.ShouldBeEmpty();
+        httpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
+    }
+
+    /// <summary>A host without the in-process source serves the live release, cookie or not.</summary>
+    [Fact]
+    public async Task Without_A_Preview_Source_The_Live_File_Should_Be_Served()
+    {
+        var (controller, _, themes) = Create(null, out var preview);
+        preview.HasSource = false;
+        preview.SetCookie();
+
+        var result = await controller.GetAsync("assets/site.css");
+
+        Encoding.UTF8.GetString(result.ShouldBeOfType<FileContentResult>().FileContents).ShouldBe(SiteCssBody);
+        themes.RequestedPaths.ShouldBe(new[] { "assets/site.css" });
+    }
+
+    private static SiteThemeSnapshotDto ScribanSnapshot(params (string Path, string Body)[] files)
+    {
+        var snapshot = new SiteThemeSnapshotDto();
+        foreach (var (path, body) in files)
+        {
+            snapshot.Files.Add(new SiteThemeSnapshotFileDto { Path = path, Body = body, ContentHash = SiteThemePaths.ComputeContentHash(body) });
+        }
+
+        return snapshot;
     }
 
     private class FakeThemeAppService(Dictionary<string, string> live) : ISiteThemePublicAppService

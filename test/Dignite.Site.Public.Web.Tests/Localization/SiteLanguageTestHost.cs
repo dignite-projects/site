@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Settings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,11 +34,17 @@ public class SiteLanguageTestHost
             CurrentTenant,
             new HttpContextAccessor { HttpContext = HttpContext });
 
+        // Built when first resolved, so a test can set the cookie and the source first.
+        Preview = new SitePreviewTestContext(HttpContext, CurrentTenant);
         HttpContext.RequestServices = new ServiceCollection()
             .AddSingleton(LanguageContext)
             .AddSingleton(Options)
+            .AddSingleton(_ => Preview.CreateState())
             .BuildServiceProvider();
     }
+
+    /// <summary>The site's preview over this request: no cookie unless a test sets one.</summary>
+    public SitePreviewTestContext Preview { get; }
 
     public FakeSettingProvider Settings { get; }
 

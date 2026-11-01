@@ -12,6 +12,8 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import type { PageDto } from '../../proxy/dignite/site/pages/models';
+import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
 import type {
   SiteReleaseDto,
@@ -34,8 +36,11 @@ import {
   buildThemeTree,
   errorMessageOf,
   foldersOf,
+  isAssetPath,
   languageOf,
   normalizeThemePath,
+  pageTemplatePath,
+  routeToPreviewPath,
   skeletonFor,
   themePathProblem,
 } from './theme-workbench.helpers';
@@ -51,6 +56,13 @@ export interface ThemeOpenFile {
   savedBody: string;
   concurrencyStamp?: string;
   syntaxErrors: SiteThemeSyntaxErrorDto[];
+}
+
+/** A page to open a preview on: its name, and the address, or null when it shows one content and has none of its own. */
+export interface ThemePreviewPage {
+  name: string;
+  route: string;
+  path: string | null;
 }
 
 /** A row of the tree as the template renders it: a node and how deep it is. */
@@ -138,6 +150,7 @@ interface ThemeTreeRow {
 })
 export class ThemeWorkbenchComponent implements OnInit {
   private readonly themeService = inject(SiteThemeAdminService);
+  private readonly pageService = inject(PageAdminService);
   private readonly permission = inject(PermissionService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly toaster = inject(ToasterService);
@@ -216,6 +229,22 @@ export class ThemeWorkbenchComponent implements OnInit {
   readonly isSettingsOpen = signal(false);
   readonly settingsLayout = signal('');
 
+  /** The site's pages, to preview the one the template in front renders; empty without the Pages permission. */
+  readonly pages = signal<PageDto[]>([]);
+  readonly isPreviewMenuOpen = signal(false);
+
+  /** The active pages whose template is the file in front. */
+  readonly previewPages = computed<ThemePreviewPage[]>(() => {
+    const path = this.activePath();
+    if (!path || isAssetPath(path)) {
+      return [];
+    }
+
+    return this.pages()
+      .filter(page => page.isActive && pageTemplatePath(page.template) === path)
+      .map(page => ({ name: page.displayName || page.name, route: page.route, path: routeToPreviewPath(page.route) }));
+  });
+
   ngOnInit(): void {
     forkJoin([this.themeService.get(), this.themeService.getFiles()]).subscribe({
       next: ([theme, files]) => {
@@ -226,6 +255,18 @@ export class ThemeWorkbenchComponent implements OnInit {
       },
       error: () => this.isLoading.set(false),
     });
+
+    if (this.permission.getGrantedPolicy(eSitePolicyNames.Pages)) {
+      this.pageService.getList({}).subscribe(result => this.pages.set(result.items ?? []));
+    }
+  }
+
+  /** Closes the preview menu on a click anywhere outside it. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.isPreviewMenuOpen() && !(event.target as Element | null)?.closest?.('.theme-preview-menu')) {
+      this.isPreviewMenuOpen.set(false);
+    }
   }
 
   /** Asks before leaving the page while a file has unsaved changes. */
@@ -564,6 +605,33 @@ export class ThemeWorkbenchComponent implements OnInit {
           this.runCheck();
         });
       });
+    });
+  }
+
+  // Preview.
+
+  /**
+   * Opens the site in a new tab with the working copy as saved, or with a release, for this browser only. The tab is
+   * opened inside the click, so the browser lets it through, and pointed at the signed link once it arrives; it gets
+   * no handle on this page, since the theme's scripts run in it.
+   */
+  openPreview(releaseId?: string, path?: string): void {
+    this.isPreviewMenuOpen.set(false);
+    const tab = window.open('', '_blank');
+    if (!tab) {
+      this.toaster.warn('Site::PreviewPopupBlocked');
+      return;
+    }
+
+    tab.opener = null;
+    if (!releaseId && this.hasUnsavedFiles()) {
+      this.toaster.info('Site::PreviewUnsavedNotShown');
+    }
+
+    this.themeService.getPreviewLink(path, releaseId).subscribe({
+      next: link => tab.location.replace(link.url!),
+      // The error itself is shown by the default handler.
+      error: () => tab.close(),
     });
   }
 

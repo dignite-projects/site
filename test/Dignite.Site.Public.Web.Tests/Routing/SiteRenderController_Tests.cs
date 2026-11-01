@@ -62,7 +62,7 @@ public class SiteRenderController_Tests
             new FakeRoutingAppService(match), new FakeFieldAppService(), new FakeHeadMetadataAppService(HeadMetadata),
             liveTheme)
         {
-            ControllerContext = new ControllerContext { HttpContext = host.HttpContext },
+            ControllerContext = new ControllerContext { HttpContext = host.HttpContext, RouteData = new RouteData() },
             TempData = new TempDataDictionary(host.HttpContext, new NullTempDataProvider()),
             LazyServiceProvider = new AbpLazyServiceProvider(host.HttpContext.RequestServices)
         };
@@ -207,6 +207,99 @@ public class SiteRenderController_Tests
 
         result.ShouldBeOfType<NotFoundResult>();
         themes.Calls.ShouldBe(0);
+    }
+
+    /// <summary>
+    /// A visitor holding a preview cookie for the working copy sees the page rendered with it - live release untouched,
+    /// never asked for - under the banner, with the preview's headers, and told what failed if a template fails.
+    /// </summary>
+    [Fact]
+    public async Task A_Preview_Of_The_Working_Copy_Should_Render_With_It()
+    {
+        var scriban = new ScribanTestRenderer("en,ja", "/ja/about");
+        var themes = new FakeThemeAppService(ScribanTestRenderer.RenderSet("<h1>live</h1>", "{{ site_head }}{{ body }}").Snapshot);
+        var preview = scriban.Host.Preview;
+        preview.Source.WorkingCopy = ScribanTestRenderer.RenderSet(
+            "<h1>draft</h1>",
+            "<html><head>{{ site_head }}</head><body>{{ body }}</body></html>").Snapshot;
+        preview.SetCookie();
+
+        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), themes);
+
+        themes.Calls.ShouldBe(0);
+        var page = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ScribanPageResult>();
+        page.ShowsErrors.ShouldBeTrue();
+        page.Banner.ShouldNotBeNull();
+        page.Banner.ShouldContain("Previewing the working copy");
+        page.Banner.ShouldContain("/site-preview/exit?returnUrl=%2Fja%2Fabout");
+        scriban.Host.HttpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
+        scriban.Host.HttpContext.Response.Headers["X-Robots-Tag"].ToString().ShouldBe("noindex");
+
+        scriban.Host.HttpContext.RequestServices = new ServiceCollection()
+            .AddSingleton(scriban.Renderer)
+            .BuildServiceProvider();
+        var body = new MemoryStream();
+        scriban.Host.HttpContext.Response.Body = body;
+
+        await result.ExecuteResultAsync(scriban.ActionContext);
+
+        var html = Encoding.UTF8.GetString(body.ToArray());
+        html.ShouldContain("<body><div id=\"site-preview-banner\"");
+        html.ShouldEndWith("<h1>draft</h1></body></html>");
+    }
+
+    /// <summary>A preview of a release reads that release; a page of it without a Scriban template still renders with Razor.</summary>
+    [Fact]
+    public async Task A_Preview_Of_A_Release_Without_The_Page_Template_Should_Keep_The_Razor_View()
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        var releaseId = Guid.NewGuid();
+        var release = ScribanTestRenderer.Snapshot(new Dictionary<string, string> { ["layouts/default"] = "{{ site_head }}{{ body }}" });
+        release.ReleaseId = releaseId;
+        release.ReleaseNumber = 2;
+        host.Preview.Source.Releases[releaseId] = release;
+        host.Preview.SetCookie(releaseId);
+        var themes = new FakeThemeAppService(ScribanTestRenderer.RenderSet("<h1>live</h1>", "{{ site_head }}{{ body }}").Snapshot);
+
+        var result = await RenderAsync(host, PageMatch("en", "ja"), themes);
+
+        result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
+        themes.Calls.ShouldBe(0);
+        host.Preview.Source.SnapshotRequests.ShouldBe(new Guid?[] { releaseId });
+        host.HttpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
+    }
+
+    /// <summary>The previewed release is gone: the live release renders, and the banner says so.</summary>
+    [Fact]
+    public async Task A_Preview_Of_A_Release_That_Is_Gone_Should_Render_The_Live_Release()
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        host.Preview.SetCookie(Guid.NewGuid());
+        var themes = new FakeThemeAppService(ScribanTestRenderer.RenderSet("<h1>live</h1>", "{{ site_head }}{{ body }}").Snapshot);
+
+        var result = await RenderAsync(host, PageMatch("en", "ja"), themes);
+
+        themes.Calls.ShouldBe(1);
+        var page = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ScribanPageResult>();
+        page.Banner!.ShouldContain("Nothing to preview");
+    }
+
+    /// <summary>A cookie of another tenant: the live release, no banner, no preview headers.</summary>
+    [Fact]
+    public async Task Another_Tenants_Cookie_Should_Render_The_Live_Release()
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        host.Preview.Source.WorkingCopy = ScribanTestRenderer.RenderSet("<h1>draft</h1>", "{{ site_head }}{{ body }}").Snapshot;
+        host.Preview.SetCookie(tenantId: Guid.NewGuid());
+        var themes = new FakeThemeAppService(ScribanTestRenderer.RenderSet("<h1>live</h1>", "{{ site_head }}{{ body }}").Snapshot);
+
+        var result = await RenderAsync(host, PageMatch("en", "ja"), themes);
+
+        var page = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ScribanPageResult>();
+        page.Banner.ShouldBeNull();
+        page.ShowsErrors.ShouldBeFalse();
+        host.Preview.Source.SnapshotRequests.ShouldBeEmpty();
+        host.HttpContext.Response.Headers.CacheControl.ToString().ShouldBeEmpty();
     }
 
     /// <summary>A live release, or none (null).</summary>

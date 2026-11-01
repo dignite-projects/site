@@ -83,4 +83,16 @@ public interface ISiteThemeAdminAppService : IApplicationService
     /// </para>
     /// </summary>
     Task<SiteThemePreviewDto> PreviewAsync(string path, Guid? releaseId = null);
+
+    /// <summary>
+    /// A link that opens the site at <paramref name="path"/> (the home page when null) in a browser with the working copy
+    /// as saved, or with release <paramref name="releaseId"/>, in place of the live release - for whoever opens it, within
+    /// minutes, and then for a couple of hours: every page renders with that theme under a banner, until the banner's
+    /// exit. Visitors keep seeing the live release.
+    /// <para>
+    /// Needs <c>Dignite.Site.Public.Web</c> in the same application - it signs the link with the keys the site reads it
+    /// with - and fails with <c>Site:090007</c> without it.
+    /// </para>
+    /// </summary>
+    Task<SiteThemePreviewLinkDto> GetPreviewLinkAsync(string? path = null, Guid? releaseId = null);
 }

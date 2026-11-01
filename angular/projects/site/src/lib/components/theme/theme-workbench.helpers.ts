@@ -225,3 +225,35 @@ export function errorMessageOf(response: ApiErrorResponse | undefined): string {
 
   return [error?.message ?? response?.message, ...details].filter(Boolean).join('\n');
 }
+
+/** The theme path a page's `Template` renders through - the site's resolution: a trailing `.cshtml` is dropped. */
+export function pageTemplatePath(template: string): string {
+  const name = (template ?? '').trim();
+  return normalizeThemePath(name.toLowerCase().endsWith('.cshtml') ? name.slice(0, -'.cshtml'.length) : name);
+}
+
+/**
+ * The address that opens a page with a route, as far as it can be written without data: its literal segments up to the
+ * first parameter, when that one is optional (`{slug?}`, `{x=1}`, `{*rest}`) - `/events/{slug?}` is `/events`.
+ * Null when the first parameter is required (`/news/{year}/{slug}`): that page shows one content, reached from the site.
+ */
+export function routeToPreviewPath(route: string): string | null {
+  const kept: string[] = [];
+  for (const segment of (route ?? '').split('/').filter(part => part.length > 0)) {
+    if (!segment.includes('{')) {
+      kept.push(segment);
+      continue;
+    }
+
+    // The name runs up to a constraint (:), a default (=) or the optional mark (?); a catch-all starts with *.
+    const optional = /^\{\*|^\{[^:?=}]+[?=]/.test(segment);
+    if (!optional) {
+      return null;
+    }
+
+    // What follows an optional parameter depends on it.
+    break;
+  }
+
+  return '/' + kept.join('/');
+}

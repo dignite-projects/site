@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Dignite.Site.Fields;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.Themes;
@@ -38,8 +39,15 @@ namespace Dignite.Site.Public.Routing;
 /// Order-0 candidate before ever considering Order-1, so this only fires once nothing more specific has
 /// already claimed the URL.
 /// </para>
+/// <para>
+/// Preview: <see cref="SitePreviewResourceFilter"/> exchanges a preview link's token for the preview cookie, and
+/// <see cref="SitePreviewState"/> answers with the theme that cookie names - the working copy or a release - in place of
+/// the live release, for this visitor only; the page then carries a banner, and every response <c>noindex</c> and
+/// <c>no-store</c>.
+/// </para>
 /// </summary>
 [ControllerName(ControllerName)]
+[ServiceFilter(typeof(SitePreviewResourceFilter))]
 public class SiteRenderController : AbpController
 {
     public const string ControllerName = "SiteRender";
@@ -115,11 +123,32 @@ public class SiteRenderController : AbpController
         // after the other reads, for the same one-DbContext reason as above.
         var templateName = ResolveTemplateName(match.Page.Template);
         var templatePath = SiteThemePaths.Normalize(templateName);
-        var renderSet = await LiveThemeProvider.GetAsync();
+        // A visitor holding a valid preview cookie sees the theme it names instead; everyone else, the live release.
+        var preview = LazyServiceProvider.LazyGetRequiredService<SitePreviewState>();
+        var previewing = preview.Ticket != null;
+        var renderSet = (previewing ? await preview.GetRenderSetAsync() : null) ?? await LiveThemeProvider.GetAsync();
 
-        IActionResult result = renderSet?.FindTemplate(templatePath) != null
-            ? new ScribanPageResult(templatePath, renderSet, viewModel)
-            : View(templateName, viewModel);
+        IActionResult result;
+        if (renderSet?.FindTemplate(templatePath) != null)
+        {
+            result = new ScribanPageResult(templatePath, renderSet, viewModel)
+            {
+                Banner = previewing ? preview.GetBannerHtml(ControllerContext) : null,
+                ShowsErrors = previewing
+            };
+        }
+        else
+        {
+            // A page still rendered by Razor gets the preview headers but no banner: the view's output is not this
+            // controller's to rewrite.
+            result = View(templateName, viewModel);
+        }
+
+        if (previewing)
+        {
+            // The page's own robots meta tag is the live page's; these headers keep the preview out of indexes and caches.
+            preview.ApplyResponseHeaders(Response);
+        }
 
         return new CultureScopedResult(result, match.CultureName);
     }
