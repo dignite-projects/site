@@ -6,14 +6,18 @@ import {
   HostListener,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
+import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
+import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
 import type {
   SiteReleaseDto,
@@ -34,7 +38,9 @@ import {
   ApiErrorResponse,
   ThemeTreeNode,
   buildThemeTree,
+  ThemeField,
   errorMessageOf,
+  fieldGroupsFor,
   foldersOf,
   isAssetPath,
   languageOf,
@@ -60,6 +66,7 @@ export interface ThemeOpenFile {
 
 /** A page to open a preview on: its name, and the address, or null when it shows one content and has none of its own. */
 export interface ThemePreviewPage {
+  id: string;
   name: string;
   route: string;
   path: string | null;
@@ -137,6 +144,11 @@ interface ThemeTreeRow {
       white-space: nowrap;
     }
 
+    .theme-field-snippet {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
     .theme-tabs {
       overflow-x: auto;
       overflow-y: hidden;
@@ -151,6 +163,7 @@ interface ThemeTreeRow {
 export class ThemeWorkbenchComponent implements OnInit {
   private readonly themeService = inject(SiteThemeAdminService);
   private readonly pageService = inject(PageAdminService);
+  private readonly fieldService = inject(FieldAdminService);
   private readonly permission = inject(PermissionService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly toaster = inject(ToasterService);
@@ -242,8 +255,62 @@ export class ThemeWorkbenchComponent implements OnInit {
 
     return this.pages()
       .filter(page => page.isActive && pageTemplatePath(page.template) === path)
-      .map(page => ({ name: page.displayName || page.name, route: page.route, path: routeToPreviewPath(page.route) }));
+      .map(page => ({
+        id: page.id ?? '',
+        name: page.displayName || page.name,
+        route: page.route,
+        path: routeToPreviewPath(page.route),
+      }));
   });
+
+  // The field sidebar.
+
+  /** The right column: the check, or the fields of a page the template in front renders. */
+  readonly rightPanel = signal<'check' | 'fields'>('check');
+  /** The page the author picked to list the fields of; the first page of the template in front otherwise. */
+  readonly chosenFieldsPageId = signal<string | undefined>(undefined);
+  /** Pages read in full, with their content types, by id; null for one that could not be read. */
+  private readonly pageDetails = signal<ReadonlyMap<string, PageDto | null>>(new Map());
+  /** The field library, read once; undefined until then, empty when it could not be read (no Fields permission). */
+  private readonly fieldLibrary = signal<FieldDto[] | undefined>(undefined);
+  private fieldLibraryRequested = false;
+  private readonly requestedPageIds = new Set<string>();
+
+  /** Whether the fields show: asked for, and the file in front is the template of a page. */
+  readonly showsFields = computed(() => this.rightPanel() === 'fields' && this.previewPages().length > 0);
+
+  readonly fieldsPageId = computed(() => {
+    const ids = this.previewPages().map(page => page.id);
+    const chosen = this.chosenFieldsPageId();
+    return chosen && ids.includes(chosen) ? chosen : ids[0];
+  });
+
+  readonly fieldGroups = computed(() => {
+    const id = this.fieldsPageId();
+    return fieldGroupsFor((id && this.pageDetails().get(id)) || undefined, this.fieldLibrary());
+  });
+
+  readonly isLoadingFields = computed(() => {
+    const id = this.fieldsPageId();
+    return this.fieldLibrary() === undefined || (!!id && !this.pageDetails().has(id));
+  });
+
+  constructor() {
+    // Reads what the sidebar lists when it is shown: the library once, each page once.
+    effect(() => {
+      if (!this.showsFields()) {
+        return;
+      }
+
+      const id = this.fieldsPageId();
+      untracked(() => {
+        this.ensureFieldLibrary();
+        if (id) {
+          this.ensurePageDetail(id);
+        }
+      });
+    });
+  }
 
   ngOnInit(): void {
     forkJoin([this.themeService.get(), this.themeService.getFiles()]).subscribe({
@@ -259,6 +326,36 @@ export class ThemeWorkbenchComponent implements OnInit {
     if (this.permission.getGrantedPolicy(eSitePolicyNames.Pages)) {
       this.pageService.getList({}).subscribe(result => this.pages.set(result.items ?? []));
     }
+  }
+
+  /** Inserts a field's snippet into the file in front, at the cursor. */
+  insertField(field: ThemeField): void {
+    this.editor()?.insert(field.snippet);
+  }
+
+  private ensureFieldLibrary(): void {
+    if (this.fieldLibraryRequested) {
+      return;
+    }
+
+    this.fieldLibraryRequested = true;
+    // skipHandleError: without the Fields permission the sidebar says it has nothing to list; no toast.
+    this.fieldService.getList({}, { skipHandleError: true }).subscribe({
+      next: result => this.fieldLibrary.set(result.items ?? []),
+      error: () => this.fieldLibrary.set([]),
+    });
+  }
+
+  private ensurePageDetail(id: string): void {
+    if (this.requestedPageIds.has(id)) {
+      return;
+    }
+
+    this.requestedPageIds.add(id);
+    this.pageService.get(id, { skipHandleError: true }).subscribe({
+      next: page => this.pageDetails.update(details => new Map(details).set(id, page)),
+      error: () => this.pageDetails.update(details => new Map(details).set(id, null)),
+    });
   }
 
   /** Closes the preview menu on a click anywhere outside it. */

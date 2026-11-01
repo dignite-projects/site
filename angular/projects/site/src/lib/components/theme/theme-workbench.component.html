@@ -229,49 +229,111 @@
       </div>
     </div>
 
-    <!-- Right: the check. -->
+    <!-- Right: the check, or the fields of a page the template in front renders. -->
     <div class="col-lg-3">
       <div class="card h-100">
         <div class="card-body theme-issues">
-          <h6>{{ 'Site::ThemeCheck' | abpLocalization }}</h6>
-          @if (check(); as current) {
-            @if (current.issues.length === 0) {
-              <p class="text-success small mb-2"><i class="fa fa-check me-1"></i>{{ 'Site::ThemeCheckClean' | abpLocalization }}</p>
+          @if (previewPages().length > 0) {
+            <ul class="nav nav-tabs mb-2">
+              <li class="nav-item">
+                <a class="nav-link" href="javascript:void(0)" [class.active]="!showsFields()" (click)="rightPanel.set('check')">
+                  {{ 'Site::ThemeCheck' | abpLocalization }}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="javascript:void(0)" [class.active]="showsFields()" (click)="rightPanel.set('fields')">
+                  {{ 'Site::ThemeFields' | abpLocalization }}
+                </a>
+              </li>
+            </ul>
+          } @else {
+            <h6>{{ 'Site::ThemeCheck' | abpLocalization }}</h6>
+          }
+          @if (showsFields()) {
+            @if (previewPages().length > 1) {
+              <label class="form-label small mb-1" for="site-theme-fields-page">{{ 'Site::ThemeFieldsPage' | abpLocalization }}</label>
+              <select
+                id="site-theme-fields-page"
+                class="form-select form-select-sm mb-2"
+                [ngModel]="fieldsPageId()"
+                (ngModelChange)="chosenFieldsPageId.set($event)"
+              >
+                @for (page of previewPages(); track page.id) {
+                  <option [value]="page.id">{{ page.name }}</option>
+                }
+              </select>
+            } @else {
+              <p class="small fw-bold mb-1">{{ 'Site::ThemeFieldsOfPage' | abpLocalization: previewPages()[0].name }}</p>
             }
-            @for (group of [severities.Error, severities.Warning]; track group) {
-              @if (issuesOf(group).length > 0) {
-                <div class="small fw-bold mb-1" [class.text-danger]="group === severities.Error" [class.text-warning]="group === severities.Warning">
-                  {{ (group === severities.Error ? 'Site::ThemeErrors' : 'Site::ThemeWarnings') | abpLocalization }}
-                  ({{ issuesOf(group).length }})
-                </div>
+            <p class="small text-muted mb-2">
+              {{ (canEdit ? 'Site::ThemeFieldsHint' : 'Site::ThemeFieldsReadOnlyHint') | abpLocalization }}
+            </p>
+            @if (isLoadingFields()) {
+              <div class="text-center py-3"><span class="spinner-border spinner-border-sm" role="status"></span></div>
+            } @else {
+              @for (group of fieldGroups(); track group.id) {
+                <div class="small fw-bold mb-1">{{ group.displayName }}</div>
                 <ul class="list-unstyled small mb-3">
-                  @for (issue of issuesOf(group); track $index) {
+                  @for (field of group.fields; track field.name) {
                     <li class="mb-2">
-                      @if (issue.path) {
-                        <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="goToIssue(issue)">
-                          {{ issue.path }}@if (issue.line) {:{{ issue.line }}}
-                        </button>
-                        <br />
-                      }
-                      {{ issue.message }}
+                      <button
+                        type="button"
+                        class="btn btn-link btn-sm p-0 align-baseline text-start"
+                        [disabled]="!canEdit"
+                        (click)="insertField(field)"
+                      >
+                        {{ field.displayName }}
+                      </button>
+                      <span class="text-muted ms-1">{{ field.fieldTypeName }}</span>
+                      <br />
+                      <code class="theme-field-snippet">{{ field.snippet }}</code>
                     </li>
                   }
                 </ul>
+              } @empty {
+                <p class="small text-muted mb-0">{{ 'Site::ThemeFieldsNone' | abpLocalization }}</p>
               }
             }
-            <p class="small text-muted mb-0">
-              @if (current.changes.length > 0) {
-                {{ 'Site::ThemeUnpublishedChanges' | abpLocalization: current.changes.length.toString() }}
-              }
-              @if (defaultLayoutChanged(current)) {
-                {{ 'Site::ThemeDefaultLayoutUnpublished' | abpLocalization: (current.liveDefaultLayout || ('Site::NoDefaultLayout' | abpLocalization)) }}
-              }
-              @if (!current.hasChanges) {
-                {{ 'Site::ThemeNoUnpublishedChanges' | abpLocalization }}
-              }
-            </p>
           } @else {
-            <p class="text-muted small mb-0">{{ 'Site::ThemeCheckNotRun' | abpLocalization }}</p>
+            @if (check(); as current) {
+              @if (current.issues.length === 0) {
+                <p class="text-success small mb-2"><i class="fa fa-check me-1"></i>{{ 'Site::ThemeCheckClean' | abpLocalization }}</p>
+              }
+              @for (group of [severities.Error, severities.Warning]; track group) {
+                @if (issuesOf(group).length > 0) {
+                  <div class="small fw-bold mb-1" [class.text-danger]="group === severities.Error" [class.text-warning]="group === severities.Warning">
+                    {{ (group === severities.Error ? 'Site::ThemeErrors' : 'Site::ThemeWarnings') | abpLocalization }}
+                    ({{ issuesOf(group).length }})
+                  </div>
+                  <ul class="list-unstyled small mb-3">
+                    @for (issue of issuesOf(group); track $index) {
+                      <li class="mb-2">
+                        @if (issue.path) {
+                          <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="goToIssue(issue)">
+                            {{ issue.path }}@if (issue.line) {:{{ issue.line }}}
+                          </button>
+                          <br />
+                        }
+                        {{ issue.message }}
+                      </li>
+                    }
+                  </ul>
+                }
+              }
+              <p class="small text-muted mb-0">
+                @if (current.changes.length > 0) {
+                  {{ 'Site::ThemeUnpublishedChanges' | abpLocalization: current.changes.length.toString() }}
+                }
+                @if (defaultLayoutChanged(current)) {
+                  {{ 'Site::ThemeDefaultLayoutUnpublished' | abpLocalization: (current.liveDefaultLayout || ('Site::NoDefaultLayout' | abpLocalization)) }}
+                }
+                @if (!current.hasChanges) {
+                  {{ 'Site::ThemeNoUnpublishedChanges' | abpLocalization }}
+                }
+              </p>
+            } @else {
+              <p class="text-muted small mb-0">{{ 'Site::ThemeCheckNotRun' | abpLocalization }}</p>
+            }
           }
         </div>
       </div>
