@@ -2318,31 +2318,31 @@
             }
           }
         },
-        "Dignite.Site.Public.Templates.SiteTemplatePublicController": {
-          "controllerName": "SiteTemplatePublic",
-          "controllerGroupName": "SiteTemplatePublic",
+        "Dignite.Site.Public.Themes.SiteThemePublicController": {
+          "controllerName": "SiteThemePublic",
+          "controllerGroupName": "SiteThemePublic",
           "isRemoteService": true,
           "isIntegrationService": false,
           "apiVersion": null,
-          "type": "Dignite.Site.Public.Templates.SiteTemplatePublicController",
+          "type": "Dignite.Site.Public.Themes.SiteThemePublicController",
           "summary": null,
           "remarks": null,
           "description": null,
           "displayName": null,
           "interfaces": [
             {
-              "type": "Dignite.Site.Public.Templates.ISiteTemplatePublicAppService",
-              "name": "ISiteTemplatePublicAppService",
+              "type": "Dignite.Site.Public.Themes.ISiteThemePublicAppService",
+              "name": "ISiteThemePublicAppService",
               "methods": [
                 {
-                  "name": "GetRenderSetAsync",
+                  "name": "GetLiveAsync",
                   "parametersOnMethod": [
                     {
-                      "name": "name",
-                      "typeAsString": "System.String, System.Private.CoreLib",
-                      "type": "System.String",
-                      "typeSimple": "string",
-                      "isOptional": false,
+                      "name": "knownReleaseId",
+                      "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                      "type": "System.Guid?",
+                      "typeSimple": "string?",
+                      "isOptional": true,
                       "defaultValue": null,
                       "summary": null,
                       "description": null,
@@ -2350,18 +2350,18 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
-                    "typeSimple": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
+                    "type": "Dignite.Site.Public.Themes.SiteLiveThemeDto",
+                    "typeSimple": "Dignite.Site.Public.Themes.SiteLiveThemeDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "FindPublishedAsync",
+                  "name": "FindLiveAssetAsync",
                   "parametersOnMethod": [
                     {
-                      "name": "name",
+                      "name": "path",
                       "typeAsString": "System.String, System.Private.CoreLib",
                       "type": "System.String",
                       "typeSimple": "string",
@@ -2373,8 +2373,8 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplateVersionDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplateVersionDto",
+                    "type": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
+                    "typeSimple": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
@@ -2384,19 +2384,19 @@
             }
           ],
           "actions": {
-            "GetRenderSetAsyncByName": {
-              "uniqueName": "GetRenderSetAsyncByName",
-              "name": "GetRenderSetAsync",
+            "GetLiveAsyncByKnownReleaseId": {
+              "uniqueName": "GetLiveAsyncByKnownReleaseId",
+              "name": "GetLiveAsync",
               "httpMethod": "GET",
-              "url": "api/site-public/templates/render-set",
+              "url": "api/site-public/theme/live",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
-                  "name": "name",
-                  "typeAsString": "System.String, System.Private.CoreLib",
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
+                  "name": "knownReleaseId",
+                  "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": true,
                   "defaultValue": null,
                   "summary": null,
                   "description": null,
@@ -2405,11 +2405,11 @@
               ],
               "parameters": [
                 {
-                  "nameOnMethod": "name",
-                  "name": "name",
+                  "nameOnMethod": "knownReleaseId",
+                  "name": "knownReleaseId",
                   "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -2421,29 +2421,29 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
-                "typeSimple": "Dignite.Site.Public.Templates.SiteTemplateRenderSetDto",
+                "type": "Dignite.Site.Public.Themes.SiteLiveThemeDto",
+                "typeSimple": "Dignite.Site.Public.Themes.SiteLiveThemeDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Public.Templates.ISiteTemplatePublicAppService",
+              "implementFrom": "Dignite.Site.Public.Themes.ISiteThemePublicAppService",
               "summary": null,
               "remarks": null,
               "description": null,
               "displayName": null
             },
-            "FindPublishedAsyncByName": {
-              "uniqueName": "FindPublishedAsyncByName",
-              "name": "FindPublishedAsync",
+            "FindLiveAssetAsyncByPath": {
+              "uniqueName": "FindLiveAssetAsyncByPath",
+              "name": "FindLiveAssetAsync",
               "httpMethod": "GET",
-              "url": "api/site-public/templates/published",
+              "url": "api/site-public/theme/assets",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
-                  "name": "name",
+                  "name": "path",
                   "typeAsString": "System.String, System.Private.CoreLib",
                   "type": "System.String",
                   "typeSimple": "string",
@@ -2456,8 +2456,8 @@
               ],
               "parameters": [
                 {
-                  "nameOnMethod": "name",
-                  "name": "name",
+                  "nameOnMethod": "path",
+                  "name": "path",
                   "jsonName": null,
                   "type": "System.String",
                   "typeSimple": "string",
@@ -2472,15 +2472,15 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplateVersionDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplateVersionDto",
+                "type": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
+                "typeSimple": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Public.Templates.ISiteTemplatePublicAppService",
+              "implementFrom": "Dignite.Site.Public.Themes.ISiteThemePublicAppService",
               "summary": null,
               "remarks": null,
               "description": null,

@@ -8,9 +8,9 @@ using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Routing;
 using Dignite.Site.Public.Scriban.Functions;
 using Dignite.Site.Public.TagHelpers;
-using Dignite.Site.Public.Templates;
 using Dignite.Site.Public.Templating;
-using Dignite.Site.Templates;
+using Dignite.Site.Public.Themes;
+using Dignite.Site.Themes;
 using global::Scriban.Runtime;
 using global::Scriban.Syntax;
 using Microsoft.AspNetCore.Mvc;
@@ -23,9 +23,10 @@ using Volo.Abp.DependencyInjection;
 namespace Dignite.Site.Public.Scriban;
 
 /// <summary>
-/// Renders one page with the tenant's published Scriban templates (Tier 0): the page template, then - when the
-/// tenant has published one - the <c>layout</c> around it, which reads the page template's output as
-/// <c>body</c>.
+/// Renders one page with a theme's Scriban templates (Tier 0): the page template, then the layout around it, which
+/// reads the page template's output as <c>body</c>. The layout is the one the page template's front matter names
+/// (<c>layout = "layouts/landing"</c>), else the theme's default layout; <c>layout = "none"</c>, or no default layout,
+/// renders the page template alone.
 /// <para>
 /// Both templates see the same globals (<see cref="ScribanRenderModelBuilder"/>) and functions
 /// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>file_url</c>, <c>asset_url</c>, <c>contents</c>, <c>render_field</c>,
@@ -34,16 +35,16 @@ namespace Dignite.Site.Public.Scriban;
 /// (<see cref="ScribanSandbox"/>) with its own output bound; the time budget covers both.
 /// </para>
 /// <para>
-/// Both can <c>include</c> the tenant's published partials - those that came with the render set, through one
-/// <see cref="SiteTemplateLoader"/> per render (<see cref="CreateTemplateLoader"/>). A partial renders inside the
-/// context of the template that includes it, so it shares that template's variables, output bound and time
+/// Both can <c>include</c> the theme's other templates - those that came with the render set, through one
+/// <see cref="SiteTemplateLoader"/> per render (<see cref="CreateTemplateLoader"/>). An included template renders inside
+/// the context of the template that includes it, so it shares that template's variables, output bound and time
 /// budget.
 /// </para>
 /// <para>
 /// A rendered page must contain the platform's SEO head tags, so a render that never called
-/// <c>site_head</c> fails with <see cref="SiteErrorCodes.SiteTemplateDidNotRenderSiteHead"/>. Saving a layout
-/// already checks it mentions <c>site_head</c>; this catches a page without a layout, and a call that is
-/// there but never reached (<c>{{ if false }}{{ site_head }}{{ end }}</c>).
+/// <c>site_head</c> fails with <see cref="SiteErrorCodes.SiteTemplateDidNotRenderSiteHead"/>. The check before a
+/// publish already looks for <c>site_head</c>; this catches a call that is there but never reached
+/// (<c>{{ if false }}{{ site_head }}{{ end }}</c>).
 /// </para>
 /// </summary>
 public class ScribanPageRenderer : ITransientDependency
@@ -89,22 +90,31 @@ public class ScribanPageRenderer : ITransientDependency
         HtmlEncoder = htmlEncoder;
     }
 
-    /// <summary>The page's HTML.</summary>
-    /// <param name="templateName">The name the page's template was looked up by (<c>Page.Template</c>), for messages.</param>
-    /// <param name="renderSet">The published template, which must be there, and the published layout, if any.</param>
+    /// <summary>The page's HTML, and the layout it was rendered in.</summary>
+    /// <param name="templatePath">The page's template (<c>Page.Template</c>, normalized), which must be a template of <paramref name="renderSet"/>.</param>
+    /// <param name="renderSet">The theme to render with: the live release, or what a preview renders.</param>
     /// <param name="viewModel">The resolved page.</param>
     /// <param name="actionContext">The request being answered.</param>
     /// <exception cref="TimeoutException">The render took longer than <see cref="SiteScribanOptions.RenderTimeout"/>.</exception>
     /// <exception cref="BusinessException"><see cref="SiteErrorCodes.SiteTemplateDidNotRenderSiteHead"/>.</exception>
-    /// <exception cref="ScriptRuntimeException">The template failed - its message carries the template name, line and column.</exception>
-    public virtual async Task<string> RenderAsync(
-        string templateName,
-        SiteTemplateRenderSetDto renderSet,
+    /// <exception cref="ScriptRuntimeException">A template failed - its message carries the template path, line and column.</exception>
+    /// <exception cref="InvalidOperationException">A template does not parse, or the layout is not a template of the theme.</exception>
+    public virtual async Task<ScribanPageRender> RenderAsync(
+        string templatePath,
+        SiteThemeRenderSet renderSet,
         SiteRenderViewModel viewModel,
         ActionContext actionContext)
     {
-        var template = renderSet.Template
-                       ?? throw new ArgumentException("The render set has no template to render.", nameof(renderSet));
+        var templateFile = renderSet.FindTemplate(templatePath)
+                           ?? throw new ArgumentException($"The theme has no template '{templatePath}' to render.", nameof(templatePath));
+
+        var template = TemplateCache.GetOrAdd(templateFile);
+        var layoutPath = GetLayoutPath(template, renderSet);
+        var layoutFile = layoutPath == null
+            ? null
+            : renderSet.FindTemplate(layoutPath)
+              ?? throw new InvalidOperationException(
+                  $"The layout '{layoutPath}' of the Scriban template '{templatePath}' is not a template of the theme.");
 
         var options = Options.Value;
         var requestAborted = actionContext.HttpContext.RequestAborted;
@@ -117,17 +127,16 @@ public class ScribanPageRenderer : ITransientDependency
         RegisterFunctions(globals, scope);
         var templateLoader = CreateTemplateLoader(renderSet);
 
-        var html = await RenderTemplateAsync(templateName, template, globals, templateLoader, timeout.Token, requestAborted);
-        var documentName = templateName;
+        var html = await RenderTemplateAsync(templateFile, globals, templateLoader, timeout.Token, requestAborted);
+        var documentName = templatePath;
 
-        if (renderSet.Layout != null)
+        if (layoutFile != null)
         {
             // The page template's output is already HTML - encoded where it had to be - so the layout writes it
             // as is.
-            globals.SetValue(SiteTemplateConsts.BodyVariableName, new ScribanRawHtml(html), true);
-            html = await RenderTemplateAsync(
-                SiteTemplateConsts.LayoutName, renderSet.Layout, globals, templateLoader, timeout.Token, requestAborted);
-            documentName = SiteTemplateConsts.LayoutName;
+            globals.SetValue(SiteThemeConsts.BodyVariableName, new ScribanRawHtml(html), true);
+            html = await RenderTemplateAsync(layoutFile, globals, templateLoader, timeout.Token, requestAborted);
+            documentName = layoutFile.Path;
         }
 
         if (!scope.SiteHeadCalled)
@@ -136,7 +145,17 @@ public class ScribanPageRenderer : ITransientDependency
                 .WithData("Name", documentName);
         }
 
-        return html;
+        return new ScribanPageRender(html, layoutFile?.Path);
+    }
+
+    /// <summary>
+    /// The layout a page template renders in: what its front matter's <c>layout</c> names, else the theme's default
+    /// layout; null for <c>layout = "none"</c>, or when there is no default.
+    /// </summary>
+    protected virtual string? GetLayoutPath(global::Scriban.Template pageTemplate, SiteThemeRenderSet renderSet)
+    {
+        var layout = ScribanTemplateSyntax.ReadFrontMatter(pageTemplate).Layout?.Path ?? renderSet.DefaultLayout;
+        return layout == SiteThemeConsts.NoLayout ? null : layout;
     }
 
     /// <summary>
@@ -157,23 +176,23 @@ public class ScribanPageRenderer : ITransientDependency
     }
 
     /// <summary>
-    /// What <c>include</c> may pull in during this render: the render set's published partials, already read with
-    /// the page's template - an include costs no query.
+    /// What <c>include</c> may pull in during this render: the theme's templates, which came with the render set -
+    /// an include costs no query.
     /// </summary>
-    protected virtual ITemplateLoader CreateTemplateLoader(SiteTemplateRenderSetDto renderSet)
+    protected virtual ITemplateLoader CreateTemplateLoader(SiteThemeRenderSet renderSet)
     {
-        return new SiteTemplateLoader(renderSet.Partials, TemplateCache);
+        return new SiteTemplateLoader(renderSet, TemplateCache);
     }
 
     protected virtual async Task<string> RenderTemplateAsync(
-        string name,
-        SiteTemplateVersionDto version,
+        SiteThemeSnapshotFileDto file,
         ScriptObject globals,
         ITemplateLoader templateLoader,
         CancellationToken cancellationToken,
         CancellationToken requestAborted)
     {
-        var template = TemplateCache.GetOrAdd(version, name);
+        var name = file.Path;
+        var template = TemplateCache.GetOrAdd(file);
         var output = new BoundedScriptOutput(name, Options.Value.MaxOutputLength);
         var context = Sandbox.CreateContext(cancellationToken, output, templateLoader);
         context.PushGlobal(globals);

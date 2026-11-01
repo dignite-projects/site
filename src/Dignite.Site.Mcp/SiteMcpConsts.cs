@@ -31,20 +31,19 @@ public static class SiteMcpConsts
         "- `slug` is always required. Pass an empty string only when the content IS the page (a home or " +
         "\"about\" page whose URL is the page's route). Otherwise pass a real slug.\n" +
         "- `cultureName` must be one of the schema's `enabledLanguages`. Do not invent a variant.\n\n" +
-        "Templates (site_*_template* tools): a page renders through the published Scriban template named " +
-        "like its `template` value, and through the Razor view of that name when there is none. Template " +
-        "names are not in the schema - `site_list_templates` returns them. The template named `layout` wraps " +
-        "every page and must call `site_head`. Saving parses the body and rejects a syntax error with its " +
-        "line and column; fix the reported lines and save again. A save publishes at once unless " +
-        "`publish` is false, which stages the version for `site_publish_template` (also the rollback). " +
-        "To change a live template safely, save with `publish` false, call `site_preview_template` on a " +
-        "path that template renders and read the HTML, then `site_publish_template`; publishing an older " +
-        "version rolls back.\n\n" +
-        "Two reserved prefixes: a template named `partials/...` is a fragment that other templates pull in " +
-        "with `{{ include \"partials/name\" }}` and never renders a page itself; a template named `assets/...` " +
-        "is a CSS or JS file served verbatim at `/site-assets/`, not parsed as Scriban, and addressed from " +
-        "templates with `{{ asset_url \"assets/site.css\" }}`. Binary files (images, fonts) are not templates: " +
-        "upload them with the file tools.";
+        "Theme (site_*theme*, site_*release* and site_preview tools): the site's look is a theme of files. A " +
+        "file without an extension (`Events`, `blog/_sidebar`, `layouts/default`) is a Scriban template; one " +
+        "with an extension (`assets/site.css`) is a static file served as it is. A page renders through the " +
+        "template whose path equals its `template` value, and through the Razor view of that name when the " +
+        "theme has none. Saving a file changes only the working copy - the site does not change until " +
+        "`site_publish_theme` publishes the whole working copy as a release. Work in this order: " +
+        "`site_save_theme_file`, then `site_check_theme` and fix every error it lists, then `site_preview` on a " +
+        "path and read the HTML, then `site_publish_theme` with the check's fingerprint. To undo a release, " +
+        "`site_set_live_release` with an older one. A page template picks its layout in front matter - a first " +
+        "line `+++`, then `layout = \"layouts/landing\"` (or `\"none\"`), then `+++` - else it uses the theme's " +
+        "default layout. Every reference is a full path from the theme's root: `{{ include \"blog/_sidebar\" }}`, " +
+        "`{{ asset_url \"assets/site.css\" }}`. Binary files (images, fonts) are not theme files: upload them with " +
+        "the file tools.";
 
     /// <summary>
     /// The file tools' section of the instructions. Separate from <see cref="Instructions"/> so each stays

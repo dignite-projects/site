@@ -7,7 +7,7 @@ using Dignite.Site.Mcp.Files;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
 using Dignite.Site.Mcp.Schema;
-using Dignite.Site.Mcp.Templates;
+using Dignite.Site.Mcp.Themes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Modularity;
@@ -55,7 +55,7 @@ public class SiteMcpModule : AbpModule
             .AddTools<FileContainerTools>()
             .AddTools<DirectoryTools>()
             .AddTools<FileTools>()
-            .AddTools<SiteTemplateTools>()
+            .AddTools<SiteThemeTools>()
             .AddResources<SiteSchemaResources>()
             .AddInstructions(SiteMcpConsts.Instructions)
             .AddInstructions(SiteMcpConsts.FileInstructions));

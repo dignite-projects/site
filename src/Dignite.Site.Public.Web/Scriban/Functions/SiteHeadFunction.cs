@@ -1,7 +1,7 @@
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Dignite.Site.Public.TagHelpers;
-using Dignite.Site.Templates;
+using Dignite.Site.Themes;
 using global::Scriban;
 using global::Scriban.Parsing;
 using global::Scriban.Runtime;
@@ -17,7 +17,7 @@ namespace Dignite.Site.Public.Scriban.Functions;
 /// </summary>
 public class SiteHeadFunction : SiteScriptFunction
 {
-    public const string Name = SiteTemplateConsts.SiteHeadFunctionName;
+    public const string Name = SiteThemeConsts.SiteHeadFunctionName;
 
     protected ScribanRenderScope Scope { get; }
     protected HtmlEncoder Encoder { get; }

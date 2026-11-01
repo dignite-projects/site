@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Reference of the site_* MCP tools of Dignite Site: the schema, pages, content types, fields, contents, path resolution, templates and files, with their parameters and permissions."
+    "Description": "Reference of the site_* MCP tools of Dignite Site: the schema, pages, content types, fields, contents, path resolution, the theme and its releases, and files, with their parameters and permissions."
 }
 ```
 
@@ -34,7 +34,7 @@ The `site://schema` resource returns the same document, with the same permission
 | `name` | The machine name, unique in the site, such as `blog`. |
 | `displayName` | The human-readable name. |
 | `route` | The route template, such as `/blog/{slug}`. See [Route Templates](../pages-and-routing.md#route-templates). |
-| `template` | The view that renders the page; `Default` when the site does not use another. |
+| `template` | The template that renders the page: the path of a [Scriban template](../rendering/scriban-templates.md) of the theme, or else the name of a Razor view; `Default` when the site does not use another. |
 | `parent` | Optional. The name of the page to organize it under in the admin UI. |
 | `isActive` | Optional, `true` by default. |
 
@@ -112,22 +112,24 @@ A content is addressed by `page`, `cultureName` and `slug`, an empty string for 
 
 It sees only what is published, so a match means something is live at that address. See [Resolving a Request](../pages-and-routing.md#resolving-a-request).
 
-## Templates
+## Theme
 
 | Tool | Permission | Description |
 |---|---|---|
-| `site_list_templates` | `SiteAdmin.Templates` | Lists the [Scriban templates](../rendering/scriban-templates.md), each with its published and latest version numbers. Takes an optional `filter` over the name and an optional `prefix`. |
-| `site_get_template` | `SiteAdmin.Templates` | Reads a template: its summary, the body of one version, and the list of its versions. |
-| `site_save_template` | `SiteAdmin.Templates.Create` and `SiteAdmin.Templates.Update` | Creates the template, or adds a version to it. A syntax error is refused with its lines and columns. |
-| `site_preview_template` | `SiteAdmin.Templates` | Renders a version of a template at a path of the site without publishing it, and returns the HTML. See [Previewing a Version](../rendering/scriban-templates.md#previewing-a-version). |
-| `site_publish_template` | `SiteAdmin.Templates.Update` | Makes a version the live one; an older version is the rollback. |
-| `site_delete_template` | `SiteAdmin.Templates.Delete` | Deletes a template with all of its versions; the pages that used its name render through the Razor view of that name again. Destructive. |
+| `site_list_theme_files` | `SiteAdmin.Themes` | Lists the files of the [theme](../rendering/scriban-templates.md#the-theme)'s working copy, each with its status against the live release, and returns the default layout and the live release's number. |
+| `site_get_theme_file` | `SiteAdmin.Themes` | Reads one file, with its syntax errors. Takes `path` and an optional `release`, a release number, to read the file as that release has it. |
+| `site_save_theme_file` | `SiteAdmin.Themes.Edit` | Creates or overwrites a file of the working copy, with `path` and `body`, and returns its syntax errors. The site does not change. |
+| `site_rename_theme_file` | `SiteAdmin.Themes.Edit` | Moves a file, with `path`, `newPath` and `updateReferences`, true by default, which rewrites what names it. |
+| `site_delete_theme_file` | `SiteAdmin.Themes.Edit` | Removes a file from the working copy, and returns what used it. Destructive. |
+| `site_update_theme` | `SiteAdmin.Themes.Edit` | Sets the default layout, with `defaultLayout`, a template path or an empty string for none. |
+| `site_check_theme` | `SiteAdmin.Themes` | [Checks](../rendering/scriban-templates.md#checking-the-theme) the working copy, lists what publishing would change, and returns the `fingerprint` a publish needs. |
+| `site_preview` | `SiteAdmin.Themes` | [Previews](../rendering/scriban-templates.md#previewing) the page at `path` with the working copy, or with an optional `release`, and returns the HTML with `pageName`, `cultureName`, `pageTemplate` and `layout`. |
+| `site_publish_theme` | `SiteAdmin.Themes.Publish` | Publishes the working copy as a new release and makes it live, with the check's `fingerprint` and an optional `comment`. |
+| `site_list_releases` | `SiteAdmin.Themes` | Lists the releases, newest first, with which one is live. |
+| `site_set_live_release` | `SiteAdmin.Themes.Publish` | Makes the release with the number `release` live; an older one is the rollback. |
+| `site_restore_release` | `SiteAdmin.Themes.Edit` | Replaces the working copy with the release with the number `release`. Nothing goes live. Destructive. |
 
-Templates are not part of the schema: a template is addressed by its name, and `site_list_templates` returns the names. A page uses the published template whose name is the page's `template`; the template named `layout` wraps every page and must call `site_head`.
-
-Two name prefixes are reserved. A template under `partials/` is a [partial](../rendering/scriban-templates.md#partials), pulled into other templates with `include`, and never renders a page. A template under `assets/` is a text [asset](../rendering/scriban-templates.md#assets), such as CSS or JavaScript: it is not parsed and is served at `/site-assets/`. The tools above save, read, publish and delete both unchanged, and `prefix` limits `site_list_templates` to one kind, as in `partials/`.
-
-`site_get_template` takes `template` and an optional `version`, and returns the published version's body when `version` is left out (the latest, with `isPublished` false, when nothing is published). `site_save_template` takes `template`, `body`, an optional `comment` and `publish`, true by default; with `publish` false the version is staged and the site keeps rendering the published one. `site_preview_template` takes `template`, `path` and an optional `version`, the published one by default (the latest when nothing is published), and returns the rendered HTML with `pageName`, `cultureName`, `pageTemplate` (the page's own template), `version` and `isPublished`. The HTML is cut at 32 KiB: then `isTruncated` is true and `htmlLength` is the full length. Save as a draft (`publish` false), preview the version, and publish it with `site_publish_template` when it is right; publishing an older version is the rollback. `site_publish_template` takes `template` and `version`; `site_delete_template` takes `template`.
+The theme is not part of the schema: its files are addressed by path, and `site_list_theme_files` returns them; releases are addressed by number. Saving changes only the working copy. Save, check and fix every error the check reports, preview a path, and then publish with the check's fingerprint; a publish is refused when the working copy changed since the check. The HTML of `site_preview` is cut at 32 KiB: then `isTruncated` is true and `htmlLength` is the full length.
 
 ## Files
 

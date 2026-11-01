@@ -4,8 +4,9 @@ using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
-using Dignite.Site.Public.Templates;
+using Dignite.Site.Public.Themes;
 using Dignite.Site.Seo;
+using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -18,11 +19,10 @@ namespace Dignite.Site.Public.Routing;
 
 /// <summary>
 /// Renders whatever <see cref="IRoutingPublicAppService"/> resolves, with one of two engines, chosen per page by
-/// <c>Page.Template</c>: when the tenant has published a Scriban template of that name
-/// (<see cref="ISiteTemplatePublicAppService"/>), with it - wrapped in the tenant's published <c>layout</c>, if
-/// any - through <see cref="ScribanPageResult"/>; otherwise, exactly as before, the Razor view of that name via
-/// classic MVC <c>View()</c>. A tenant thus moves to its own templates page by page, and a site that has none
-/// renders as it always did.
+/// <c>Page.Template</c>: when the tenant's live release (<see cref="SiteLiveThemeProvider"/>) has a template at that
+/// path, with it - in the layout it names, or the theme's default layout - through <see cref="ScribanPageResult"/>;
+/// otherwise, exactly as before, the Razor view of that name via classic MVC <c>View()</c>. A tenant thus moves to its
+/// own templates page by page, and a site that has published none renders as it always did.
 /// <para>
 /// Deliberately Contracts-only: this whole project is meant to be portable to a different host someday,
 /// so every dependency here is an interface from <c>Dignite.Site.Public.Application.Contracts</c> - never
@@ -47,18 +47,18 @@ public class SiteRenderController : AbpController
     protected IRoutingPublicAppService RoutingAppService { get; }
     protected IFieldPublicAppService FieldAppService { get; }
     protected IHeadMetadataPublicAppService HeadMetadataAppService { get; }
-    protected ISiteTemplatePublicAppService TemplateAppService { get; }
+    protected SiteLiveThemeProvider LiveThemeProvider { get; }
 
     public SiteRenderController(
         IRoutingPublicAppService routingAppService,
         IFieldPublicAppService fieldAppService,
         IHeadMetadataPublicAppService headMetadataAppService,
-        ISiteTemplatePublicAppService templateAppService)
+        SiteLiveThemeProvider liveThemeProvider)
     {
         RoutingAppService = routingAppService;
         FieldAppService = fieldAppService;
         HeadMetadataAppService = headMetadataAppService;
-        TemplateAppService = templateAppService;
+        LiveThemeProvider = liveThemeProvider;
     }
 
     [AcceptVerbs("GET", "HEAD", Route = "/{**path}", Order = 1)]
@@ -109,15 +109,16 @@ public class SiteRenderController : AbpController
         languageContext.HeadMetadata = headMetadata;
 
         // One required template for every RouteMatchKindDto - the template itself branches on whether
-        // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). The
-        // tenant's published Scriban template of that name wins; without one, a missing or misconfigured
-        // Page.Template throws (standard ASP.NET Core view-not-found) rather than silently degrading - issue
-        // #53. Looked up last, after the other reads, for the same one-DbContext reason as above.
+        // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). A template
+        // at that path in the live release wins; without one, a missing or misconfigured Page.Template throws
+        // (standard ASP.NET Core view-not-found) rather than silently degrading - issue #53. Looked up last,
+        // after the other reads, for the same one-DbContext reason as above.
         var templateName = ResolveTemplateName(match.Page.Template);
-        var renderSet = await TemplateAppService.GetRenderSetAsync(templateName);
+        var templatePath = SiteThemePaths.Normalize(templateName);
+        var renderSet = await LiveThemeProvider.GetAsync();
 
-        IActionResult result = renderSet.Template != null
-            ? new ScribanPageResult(templateName, renderSet, viewModel)
+        IActionResult result = renderSet?.FindTemplate(templatePath) != null
+            ? new ScribanPageResult(templatePath, renderSet, viewModel)
             : View(templateName, viewModel);
 
         return new CultureScopedResult(result, match.CultureName);

@@ -56,15 +56,25 @@ public static class SiteErrorCodes
     public const string FileContainerNotAvailable = "Site:080001";
     public const string FileSortingNotSupported = "Site:080002";
 
-    // Tenant-authored Scriban templates (Dignite.Site.Templates). The last one is raised by the renderer,
-    // which cannot reference Domain, as a plain BusinessException carrying this code.
-    public const string SiteTemplateNameAlreadyExists = "Site:090001";
-    public const string SiteTemplateSyntaxError = "Site:090002";
-    public const string SiteTemplateVersionNotFound = "Site:090003";
-    public const string SiteTemplateMissingSiteHead = "Site:090004";
+    // The tenant's theme (Dignite.Site.Themes): a working copy of files, published as immutable releases.
+    public const string SiteThemeFileAlreadyExists = "Site:090001";
+
+    /// <summary>A publish refused because the check found errors; Data["Count"] is how many.</summary>
+    public const string SiteThemeHasErrors = "Site:090002";
+
+    /// <summary>A publish whose fingerprint is not the working copy's any more: someone saved in between.</summary>
+    public const string SiteThemeChangedSinceCheck = "Site:090003";
+
+    /// <summary>A file whose extension is not a static file the site serves; Data["Path"].</summary>
+    public const string SiteThemeFileExtensionNotAllowed = "Site:090004";
+
+    /// <summary>
+    /// Raised by the renderer, which cannot reference Domain, as a plain BusinessException carrying this code:
+    /// a page rendered without calling <c>site_head</c>.
+    /// </summary>
     public const string SiteTemplateDidNotRenderSiteHead = "Site:090005";
 
-    // Previewing a saved version on a page of the site. The first is raised by the renderer in
+    // Previewing a page of the site with the working copy or a release. The first is raised by the renderer in
     // Dignite.Site.Public.Web (no Domain there either), the second by the admin service when no renderer is
     // registered - an administration API hosted without Dignite.Site.Public.Web.
     public const string SiteTemplatePreviewPathNotFound = "Site:090006";
@@ -74,4 +84,13 @@ public static class SiteErrorCodes
     // engine's own exception would reach an HTTP or MCP caller as "an internal error occurred"; this code
     // carries its message - template, line and column - as Data["Message"].
     public const string SiteTemplatePreviewRenderFailed = "Site:090008";
+
+    /// <summary>A preview of a page whose template is not in the theme, so a Razor view renders it; Data["Template"].</summary>
+    public const string SiteThemePreviewPageNotScriban = "Site:090009";
+
+    /// <summary>A publish with nothing to publish: the working copy is the live release.</summary>
+    public const string SiteThemeNoChanges = "Site:090010";
+
+    /// <summary>A default layout that is not a template path (it names a static file, or is not a valid path); Data["Layout"].</summary>
+    public const string SiteThemeDefaultLayoutInvalid = "Site:090011";
 }

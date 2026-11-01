@@ -11,59 +11,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **A tenant or an AI client can now write the templates of a site in Scriban.** A page renders through the published
-  Scriban template named like its `Template`, stored in the database per tenant, and through the Razor view of that
-  name when there is none, so Razor sites keep working unchanged and deleting a template returns its name to Razor.
-  Templates are saved as numbered, immutable versions with a published pointer, so publishing an older version is the
-  rollback. Saving parses the body and refuses a syntax error with its line and column, and the template named
-  `layout`, which wraps every page, must call `site_head`. Templates run in a sandbox: they see data and a fixed set
-  of functions, with limits on loops, recursion, regular expressions, output size and render time. They are managed
-  over `api/site-admin/templates`, with the `SiteAdmin.Templates` permissions, and over MCP with
-  `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and
-  `site_delete_template`. Template output is HTML-encoded by default, like Razor: `site_head`, `render_field` and
-  `body` are emitted raw, and `html_raw` marks a trusted value. See
-  [Scriban Templates](docs/en/rendering/scriban-templates.md). **A host whose `DbContext` implements
-  `ISiteDbContext` must add `DbSet<SiteTemplate> SiteTemplates` and `DbSet<SiteTemplateVersion> SiteTemplateVersions`
-  and add a migration for the two new tables.**
-- **Scriban templates can now share fragments and ship CSS and JavaScript.** A template named under `partials/` is a
-  partial that other templates pull in with `{{ include "partials/post-card" }}`. It renders in the context of the
-  including template, takes positional (`$1`) and named arguments, and only a published partial of the request's own
-  tenant can be included; partials nest at most 10 deep (`SiteScribanOptions.MaxIncludeDepth`), a cycle fails with the
-  chain, and the existing limits apply to the whole render. A template named under `assets/` is a text asset: its body
-  is not parsed as Scriban and is served, unrendered, at `/site-assets/{path}` with its content type, an `ETag` and
-  `nosniff`, and the new template function `asset_url` writes its versioned address, `/site-assets/site.css?v=` followed by the id of the
-  published version, which is cached for a year, so publishing a new version busts the caches. A page whose `Template` starts with `partials/`
-  or `assets/` is never rendered by Scriban. `site_list_templates` and `GET api/site-admin/templates` take an optional
-  `prefix`; `GET api/site-public/templates/published?name=...` returns the published version of any template, and
-  `render-set` now also returns `partials` and `assets`. See
-  [Scriban Templates](docs/en/rendering/scriban-templates.md).
-- **A template version can be previewed before it is published, and the admin UI has a Templates screen with a code
-  editor.** Any saved version, a staged draft, the published one or an older one, is rendered on a path of the site
-  with the chosen version in place of the published template of that name, inside the published `layout`; previewing
-  the `layout` renders it around the page's Scriban template, or around an empty `body` when the page is still a Razor
-  view. The admin API gets `GET api/site-admin/templates/{id}/versions/{versionNumber}/preview?path=`, which returns
-  the HTML with the page, language and template it was rendered for, and the MCP server gets `site_preview_template`,
-  whose HTML is cut at 32 KiB. The recommended flow is now to save as a draft, preview it and then publish it,
-  publishing an older version being the rollback. The **Templates** screen of the admin UI lists the templates with
-  their published and latest versions, edits a template in a code editor (CodeMirror, with HTML highlighting) with
-  **Save draft** and **Save and publish**, lists the syntax errors a save is refused with beside the editor (clicking
-  one moves the cursor to its line and column), publishes or loads any version, and renders the selected version in
-  a preview frame. A preview needs `Dignite.Site.Public.Web` in the same application as the administration API;
-  without it, for a path that no page answers and for a render that fails, it fails with the new errors
-  `Site:090007`, `Site:090006` and `Site:090008`. The code editor is loaded with the screen, not in the application's initial bundle, and `@dignite/ng.site` gains four
-  dependencies: `codemirror`, `@codemirror/lang-html`, `@codemirror/state` and `@codemirror/view`. See
-  [Scriban Templates](docs/en/rendering/scriban-templates.md) and [Admin UI](docs/en/admin-ui.md). **A host that
-  implements `ISiteTemplateAdminAppService` itself must add `PreviewAsync`.**
+- **A tenant or an AI client can now write the theme of a site in Scriban.** A theme is a set of files stored in the
+  database per tenant: a path without an extension (`Default`, `blog/post`, `layouts/default`) is a Scriban template,
+  one with an extension (`assets/site.css`) a static file, and no folder is reserved. A page renders through the
+  template whose path is its `Template` in the live release, and through the Razor view of that name when there is
+  none, so Razor sites keep working unchanged. A page template chooses its layout in front matter
+  (`+++` / `layout = "layouts/landing"` / `+++`, or `layout = "none"`), else uses the theme's default layout, a setting
+  that starts as `layouts/default`; a new theme starts with that layout and an empty `assets/site.css`. Templates run
+  in a sandbox: they see data and a fixed set of functions, with limits on loops, recursion, regular expressions,
+  output size and render time. Template output is HTML-encoded by default, like Razor: `site_head`, `render_field` and
+  `body` are emitted raw, and `html_raw` marks a trusted value; a render that never calls `site_head` fails with
+  `Site:090005`. The theme is managed over `api/site-admin/theme`, with the new `SiteAdmin.Themes`, `.Edit` and
+  `.Publish` permissions, and over MCP with `site_list_theme_files`, `site_get_theme_file`, `site_save_theme_file`,
+  `site_rename_theme_file`, `site_delete_theme_file`, `site_update_theme`, `site_check_theme`, `site_preview`,
+  `site_publish_theme`, `site_list_releases`, `site_set_live_release` and `site_restore_release`. See
+  [Scriban Templates](docs/en/rendering/scriban-templates.md). **A host whose `DbContext` implements `ISiteDbContext`
+  must add `DbSet`s for `SiteTheme`, `SiteThemeFile`, `SiteRelease`, `SiteReleaseFile` and `SiteThemeBlob`, and a
+  migration for the five new tables.**
+- **A theme is edited in a working copy and published as a whole.** Saving a file changes only the working copy, in
+  place, and may save a template that does not parse. A check reads the whole working copy and the pages' templates
+  and reports errors - syntax, front matter, references by `include`, `asset_url` or `layout` to missing files or to
+  the wrong kind of file, include cycles, a layout or a page without a layout that never calls `site_head` - and
+  warnings, such as pages left to Razor and files nothing uses, each in the user's language. Publishing refuses any
+  error (`Site:090002`), a working copy changed since its check (`Site:090003`) and a publish with nothing to publish
+  (`Site:090010`), and otherwise freezes every file and the default layout into the next numbered release and makes it
+  live in one step. Making an older release live is the rollback; restoring a release copies it back into the working
+  copy. Renaming a file can rewrite the literal references to it. A page can be previewed with the working copy or with
+  any release without publishing, over `GET api/site-admin/theme/preview` and `site_preview`; a preview needs
+  `Dignite.Site.Public.Web` in the same application as the administration API, and fails with `Site:090006`,
+  `Site:090007`, `Site:090008` or `Site:090009` when the path, the renderer, the render or the page's engine is not
+  there.
+- **Templates can share fragments and a theme can ship CSS and JavaScript.** `{{ include "blog/_card" }}` renders any
+  template of the theme by its full path, in the context of the including template, with positional (`$1`) and named
+  arguments; includes nest at most 10 deep (`SiteScribanOptions.MaxIncludeDepth`), a cycle fails with the chain, and
+  the existing limits apply to the whole render. A static file is not parsed as Scriban and is served, unrendered, from
+  the live release at `/site-assets/{path}`, with its content type, the content hash as `ETag`, and `nosniff`. The new
+  template function `asset_url` writes its address with the SHA-256 of its content, `?v=...`, which is cached for a
+  year: a release that changes the file changes the address, and an unchanged file keeps its address from one release
+  to the next. See [Scriban Templates](docs/en/rendering/scriban-templates.md).
 
 ### Changed
 
 - **`Dignite.Site.Public.Web` API changes a host that subclasses or constructs these types must follow.**
-  `SiteRenderController` takes a fourth constructor parameter, `ISiteTemplatePublicAppService`. `ContentListTagHelper`
+  `SiteRenderController` takes a fourth constructor parameter, `SiteLiveThemeProvider`. `ContentListTagHelper`
   now takes `(IRazorPartialRenderer, ContentListQuery)`, and its query logic moved to the new `ContentListQuery`
   service. `SiteRenderController.CultureScopedViewResult` was renamed `CultureScopedResult` and wraps any
-  `IActionResult`. `ScribanRenderScope` takes a third constructor parameter, a `SiteTemplateRenderSetDto`,
-  `ScribanSandbox.CreateContext` takes an optional `ITemplateLoader`, and `ISiteTemplatePublicAppService` gained
-  `FindPublishedAsync`.
+  `IActionResult`. `ScribanRenderScope` takes a third constructor parameter, a `SiteThemeRenderSet`, and
+  `ScribanSandbox.CreateContext` takes an optional `ITemplateLoader`.
 - **The Admin UI documentation and the `@dignite/ng.site` README now say what `provideSite()` costs a host's initial
   bundle.** It has to run at application-config level, so everything it registers - CKEditor included - is downloaded
   on first paint, whether or not any content type has a rich-text field and whether or not the Site screens are ever

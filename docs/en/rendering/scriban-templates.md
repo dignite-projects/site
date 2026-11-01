@@ -1,80 +1,124 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Write the templates of a Dignite Site in Scriban, stored in the database per tenant: the layout and site_head, partials, CSS and JavaScript assets, versions, preview and rollback, the data and functions a template can use, the sandbox limits, and the admin API and MCP tools that manage them."
+    "Description": "Write the theme of a Dignite Site in Scriban: template and static files stored per tenant, layouts chosen in front matter, partials, a working copy checked and published as a whole into releases, preview and rollback, the data and functions a template can use, the sandbox limits, and the admin API and MCP tools that manage it."
 }
 ```
 
 # Scriban Templates
 
-A page can be rendered by a [Scriban](https://github.com/scriban/scriban) template instead of a Razor view. Unlike a [Razor template](templates.md), which is compiled with the application and written by its developers, a Scriban template is stored in the database, belongs to one tenant, and is written by the tenant or by an AI client over the [admin API](#managing-templates) or the [MCP tools](#mcp-tools). It runs in a sandbox: a template can read the data it is given and call a fixed set of functions, and nothing else.
+A page can be rendered by a [Scriban](https://github.com/scriban/scriban) template instead of a Razor view. Unlike a [Razor template](templates.md), which is compiled with the application and written by its developers, a Scriban template is stored in the database, belongs to one tenant, and is written by the tenant or by an AI client over the [admin API](#managing-the-theme) or the [MCP tools](#mcp-tools). It runs in a sandbox: a template can read the data it is given and call a fixed set of functions, and nothing else.
 
 Scriban templates are available when the application uses `Dignite.Site.Public.Web`. Both engines can be used on the same site, page by page.
 
+## The Theme
+
+A tenant's Scriban templates, together with the CSS, JavaScript and other text files they link, form its **theme**: a set of files, each addressed by its path.
+
+| File | Example | What it is |
+|---|---|---|
+| A path whose last segment has no extension | `Default`, `blog/post`, `_card`, `layouts/default` | A Scriban template. |
+| A path whose last segment has an extension | `assets/site.css`, `js/menu.min.js` | A [static file](#static-files), served as it is. |
+
+There are no reserved folders. A new theme starts with two files, `layouts/default` and `assets/site.css`, and the folders they are in are only a suggestion: arrange the files as you like. What a template is used for follows from what refers to it:
+
+* A **page template** is a template a page's `Template` names; see [Choosing the Engine](#choosing-the-engine).
+* A **partial** is a template another template `include`s; see [Partials](#partials). A leading `_` in its name, as in `_card` or `blog/_sidebar`, is a common way to tell partials apart, but it is not required.
+* A **layout** is a template a page template is rendered in; see [Layouts](#layouts).
+
+The same template can play more than one part.
+
+A path is made of segments separated by `/`. A segment is letters, digits, `_` and `-`, starting with a letter, a digit or `_`; only the last segment may have an extension, as in `menu.min.js`. A leading slash and surrounding spaces are removed when a path is saved or looked up. The extension of a static file must be one of `css`, `js`, `mjs`, `json`, `map`, `txt`, `svg`, `xml`, `webmanifest`, `ics` and `csv`; a file with any other extension is refused, so that a template is not saved as `post.html` by mistake.
+
+By default a file can be at most 256 KiB.
+
 ## Choosing the Engine
 
-A page's `Template` is a name, such as `Default` or `Blog/Index`. When a request is rendered, the name is looked up in this order:
+A page's `Template` is the path of a template, such as `Default` or `blog/post`. When a request is rendered, it is looked up in this order:
 
-1. A **published Scriban template** of the same name, in the database of the request's tenant.
+1. A template at that path in the **live release** of the request's tenant; see [The Working Copy and Releases](#the-working-copy-and-releases).
 2. Otherwise, the **Razor view** of that name; see [Where Templates Live](templates.md#where-templates-live).
 
-There is no setting on the page: the engine follows from which of the two exists. Saving a template named `Blog/Index` takes over every page whose template is `Blog/Index`; deleting it, or having no published version, returns those pages to the Razor view of the same name. A template that has been saved but never published, or only staged, is not rendered.
+There is no setting on the page: the engine follows from which of the two exists. Publishing a theme with a template at `blog/post` takes over every page whose template is `blog/post`; publishing one without it returns those pages to the Razor view of the same name. A file that has only been saved in the working copy is not rendered.
 
-Names are written like a page's `Template`: letters, digits, `_`, `-` and `/`, with no leading slash; a name under `assets/` may also contain `.`, for its extension, but never `..`. A leading slash and surrounding spaces are removed when a name is saved or looked up.
+## Layouts
 
-Two first segments are reserved, written in lower case: `partials/` for [partials](#partials) and `assets/` for [text assets](#assets). A template under either never renders a page: a page whose `Template` is `partials/card` or `assets/site.css` is not matched to it, and falls through to the Razor view of that name.
+A layout is a complete document with `{{ body }}` where the page goes. The page template is rendered first, and its output is available to the layout as `body`; variables that the page template assigns are visible to the layout too. With a layout, the page templates write only what goes inside `<body>`; see the [example](#example).
 
-## The Layout
+A page template chooses its layout in **front matter**: a first line `+++`, then `layout =` and the layout's path in quotes, then a line `+++`:
 
-The template named `layout` is special: it wraps every page that is rendered by a Scriban template. The page template is rendered first, and its output is available to the layout as `body`. A layout is a complete document, with `{{ body }}` where the page goes; see the [example](#example).
+````
++++
+layout = "layouts/landing"
++++
+<section class="hero">{{ page.display_name }}</section>
+````
 
-The layout applies to pages rendered by a Scriban template; a page rendered by a Razor view never goes through it. Once a layout is published, the page templates write only what goes inside `<body>`. Variables that a page template assigns are visible to the layout.
+* Without front matter, or without `layout`, the page template uses the theme's **default layout**, a setting of the theme that names a template. A new theme's default layout is `layouts/default`; it can name any template, or be cleared.
+* `layout = "none"` renders the page template alone, as a complete document.
+* Front matter is not part of the output. It may set nothing but `layout`, to a path in quotes; anything else is an [error](#checking-the-theme). Front matter is read only in a page template: a partial's is ignored, and a layout cannot have one.
 
-The layout must call `site_head`, which writes the head metadata of the page: the title, the description, the canonical URL, the robots tag, Open Graph, the Twitter card and the hreflang alternates. Without it, every page of the site would lose its [SEO](../seo/index.md) tags. So the rule is enforced twice:
+A page must call `site_head`, which writes the head metadata of the page: the title, the description, the canonical URL, the robots tag, Open Graph, the Twitter card and the hreflang alternates. Without it, the page would lose its [SEO](../seo/index.md) tags. So the rule is enforced twice:
 
-* Saving a `layout` that never calls `site_head` is rejected.
+* The [check](#checking-the-theme) refuses a layout, or a page template rendered without a layout, that calls `site_head` nowhere, neither itself nor in a template it includes. A theme with such an error cannot be published.
 * Rendering a page whose render never executed `site_head` fails with the error `Site:090005`, instead of serving a page without the tags.
 
 `site_head` writes the same tags as the `<site-head-metadata>` tag helper of a Razor view. It takes two optional arguments, a title and a description: the title overrides the Open Graph title, and the description is used only when the content has none of its own. For example, `{{ site_head "Archive" }}`.
 
-## Versions, Publishing and Rollback
+## The Working Copy and Releases
 
-A template is a name with a list of numbered versions. A version is never edited: saving a template adds the next version, and the older ones stay. One version at a time is **published**, and only that one is rendered.
+A tenant edits its theme in a **working copy**, and the site renders a **release**: a frozen copy of the whole theme, files and default layout together.
 
-* **Create** a template with its first version.
-* **Save** a template to add a version. By default the new version is published at once. With `publish` off it is only staged: it is stored, and the site keeps rendering the published version.
-* **Publish** any existing version to make it the live one. Publishing an older version is the rollback; publishing the staged one is the release.
-* **Delete** a template to remove it with all of its versions.
+* **Saving** a file changes the working copy only, in place: there is no version per save, and the site does not change. A template with a syntax error can be saved; the error is reported with the file, and the theme cannot be published until it is fixed.
+* **Publishing** checks the working copy and, when the check finds no error, freezes it into the next numbered release and makes that release live, in one step. Every file changes at once, so the site never renders a mix of old and new files.
+* **Rolling back** makes an older release live again. The working copy is not touched.
+* **Restoring** a release copies its files and default layout back into the working copy, replacing it, to carry on from there. Nothing goes live.
 
-Every version can carry a short comment, and the body of every version can be read back. A version can be seen before it is published; see [Previewing a Version](#previewing-a-version).
+A release keeps every file as it was published, and the list of releases tells, for each one, its number, its comment, when it was published and by whom, and how many files it changed. Releases are never deleted.
 
-Saving parses the body. A body with a syntax error is rejected, and nothing is stored; the error lists each problem on a line of its own, as `(line,column): message`.
+A publish is refused when:
 
-By default a body can be at most 256 KiB, and a comment 256 characters.
+* the check finds an error (`Site:090002`);
+* the working copy changed since it was checked (`Site:090003`): publishing takes the fingerprint the check returned, so that what goes live is what was checked;
+* nothing changed since the live release (`Site:090010`).
 
-## Previewing a Version
+Renaming a file can rewrite, in the same step, every `include`, `asset_url` and front matter `layout` that names it by its path in quotes, and the default layout setting. The pages whose `Template` names the old path are not changed, and are listed. Deleting a file removes it from the working copy; the live release keeps it until the next publish.
 
-Any saved version of a template, whether a staged draft, the published one or an older one, can be rendered on a path of the site without publishing it. The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The page or content at that path is rendered with the chosen version in place of the published template of the same name, inside the published `layout` if there is one. Everything else is the live site's: the other templates, the data, the functions and the limits.
+## Checking the Theme
 
-Two cases are different when the previewed template is the `layout`:
+The check reads the whole working copy, and the pages' templates, and lists what is wrong. Only literal paths in quotes are followed: a path computed when the template runs cannot be known before it runs.
 
-* The layout is rendered around the published Scriban template of the page at the path.
-* When that page is still rendered by a Razor view, the layout is rendered around an empty `body`.
+These are errors, and a theme with any of them cannot be published:
 
-A preview renders a saved version, so to see an edit, save it as a draft (`publish` off) and preview that version. The site keeps rendering the published version meanwhile; publish the draft when the preview is right, and publish an older version to go back.
+* A template has a syntax error.
+* Front matter sets something other than `layout = "..."`, or a layout has front matter.
+* The default layout names no template of the theme.
+* An `include`, an `asset_url` or a `layout` names a file the theme does not have, or the wrong kind of file: `include` and `layout` take a template, `asset_url` a static file.
+* Templates include each other in a circle.
+* A layout, or a page template rendered without a layout, never calls `site_head`, not even in what it includes.
 
-A preview fails with one of these errors:
+These are warnings:
+
+* A page's `Template` is not a template of the theme, so a Razor view renders it.
+* A layout never writes `{{ body }}`.
+* A layout is also a page template, or is included.
+* Nothing uses a file: no page, template or setting refers to it.
+
+Each finding names its file and, where it has one, the line and the column, with a message in the user's language.
+
+## Previewing
+
+A page of the site can be rendered with the working copy, or with any release, without publishing anything. The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The page or content at that path is rendered through its template and layout as the given theme has them; the data, the functions and the limits are the live site's.
+
+A preview renders saved files, so save first. It fails with one of these errors:
 
 * `Site:090006` when no page answers the path.
 * `Site:090007` when the application does not have `Dignite.Site.Public.Web`: a preview renders the page the way the site does, so it needs the rendering in the same application as the administration API.
+* `Site:090009` when the page's `Template` is not a template of the previewed theme, so a Razor view renders it.
 
-A render that fails, through a run-time error or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
+A render that fails, through a run-time error, a template that does not parse or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
 
-You can preview in three ways:
-
-* In the [admin UI](../admin-ui.md#screens), the **Templates** screen renders the selected version in a frame, for the path you type.
-* Over the [admin API](#managing-templates), which returns the HTML with the page it was rendered for.
-* Over MCP, with `site_preview_template`, so that an AI client can check its own draft before it publishes; see [MCP Tools](#mcp-tools).
+You can preview over the [admin API](#managing-the-theme), which returns the HTML with the page, the template and the layout it was rendered with, and over MCP, with `site_preview`, so that an AI client can check its own changes before it publishes; see [MCP Tools](#mcp-tools).
 
 ## What a Template Sees
 
@@ -93,7 +137,7 @@ A template is given data, and only data: the page and the content being rendered
 | `filter_values`, `field_filters` | What the path gave the route's placeholders, with the keys as the route wrote them: `filter_values["publishTime:yyyy"]`. See [The View Model](templates.md#the-view-model). |
 | `published_after`, `published_before` | The period that `publishTime` placeholders named, as dates, or empty. |
 | `head` | The head metadata of the request, or empty: `meta_title`, `base_meta_title`, `meta_description`, `canonical_url`, `robots_content`, `og_image_url`, `og_type`, `twitter_card_type`, `hreflang_alternates` (each with `culture_name`, `url` and `path`) and `x_default_url`. |
-| `body` | In the layout only: the rendered page template. |
+| `body` | In a layout only: the rendered page template. |
 
 ### Output Encoding
 
@@ -101,7 +145,7 @@ Every value a template writes is HTML-encoded, as in a Razor view: `{{ content.f
 
 * the output of `site_head`,
 * the output of `render_field`, which the field type has already encoded or sanitized for its kind of value,
-* `body`, in the layout.
+* `body`, in a layout.
 
 `html_raw` marks a value as trusted HTML, so that it is written as it is. It bypasses the field type's own sanitizing, so use `render_field` for rich text and keep `html_raw` for HTML that you control.
 
@@ -111,7 +155,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 
 | Function | Description |
 |---|---|
-| `site_head [title] [description]` | Writes the head tags; see [The Layout](#the-layout). |
+| `site_head [title] [description]` | Writes the head tags; see [Layouts](#layouts). |
 | `t key [fallback]` | A localized text, in the language of the page; `fallback` when the key has no text. It can be piped: `{{ "Key" | t }}`. See [Localizing Template Texts](template-localization.md). |
 | `url path [culture]` | The address of a path in a language. Only a path that starts with `~/` gets the language prefix and the application's path base; anything else is returned unchanged. The language of the request by default. |
 | `file_url url width [height]` | The address of a stored image resized to the given size, from a file field's value. |
@@ -119,7 +163,8 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `render_field name [show_in_list]` | Renders a field of `content` with the view of its field type, as `<flex-field-view>` does. |
 | `select_options page field` | The options of a `Select` field, as a list of `{ text, value }`. |
 | `html_raw value` | Marks a value as trusted HTML; see [Output Encoding](#output-encoding). |
-| `asset_url name` | The versioned address of a published [asset](#assets), such as `/site-assets/site.css?v=0b5f2c7e9a4d4c1f8e63a1d27c94b850`. |
+| `include path [arguments]` | Renders another template in place; see [Partials](#partials). |
+| `asset_url path` | The address of a [static file](#static-files) of the theme, with the hash of its content, such as `/site-assets/assets/site.css?v=7b58...6970`. |
 
 `contents` takes an object with these keys, all optional, and returns the page of contents with `items`, `total_count`, `max_result_count` and `current_page`:
 
@@ -144,28 +189,28 @@ A key that is not in the table is an error, and a `page` that does not exist giv
 
 ## Partials
 
-A partial is a template that holds a fragment of markup, so that a page template or the layout can pull it in instead of repeating it. It is a template like any other, with versions and a published pointer; what makes it a partial is a name that starts with `partials/`. A page template includes it with `include`:
+A partial is a template that holds a fragment of markup, so that a page template or a layout can pull it in instead of repeating it. Any template of the theme can be included, by its full path:
 
 ````
-{{ include "partials/post-card" }}
+{{ include "blog/_post-card" }}
 ````
 
 The rules of `include`:
 
-* Only a template under `partials/` can be included. `include "layout"` or `include "Default"` fails with an error that names the rule.
-* Only a **published** partial of the request's own tenant is found. A partial that is unknown, unpublished or staged fails the render with an error that names it.
-* A partial never renders a page. A page whose `Template` is `partials/post-card` is not matched to it.
+* The path is the template's full path from the theme's root, whatever folder the including template is in.
+* Only a template of the theme being rendered is found: the live release for the site, the previewed working copy or release for a preview. A template that is not there fails the render with an error that names it.
+* A static file cannot be included.
 
-A partial renders in the context of the template that includes it. It sees the same data and functions, and the variables that the including template has assigned. Arguments after the name pass values explicitly:
+A partial renders in the context of the template that includes it. It sees the same data and functions, and the variables that the including template has assigned. Arguments after the path pass values explicitly:
 
 * Positional arguments are available in the partial as `$1`, `$2` and so on.
-* Named arguments become local variables of the partial, read with the `$` prefix that Scriban gives a local: `{{ include "partials/card" title: "Hi" }}` gives the partial a `$title`.
+* Named arguments become local variables of the partial, read with the `$` prefix that Scriban gives a local: `{{ include "_card" title: "Hi" }}` gives the partial a `$title`.
 
 A partial's output is encoded the way any template's is: every value it writes is HTML-encoded once, and the result of `include` is placed into the including template as it is, not encoded a second time. A partial can include other partials. `include_join` is not available.
 
-Partials are read together with the page template, so a page costs one query however many partials it includes, and the set of partials a render sees is fixed when the render starts.
+The theme is read together with the page, so a page costs no query per partial it includes, and the set of templates a render sees is fixed when the render starts.
 
-For example, a `partials/post-card` that writes one item of a list:
+For example, a `blog/_post-card` that writes one item of a list:
 
 ````
 <article>
@@ -179,40 +224,40 @@ A page template that lists the contents of the current page and includes the par
 ````
 {{ list = contents { max: 10 } }}
 {{ for item in list.items }}
-    {{ include "partials/post-card" }}
+    {{ include "blog/_post-card" }}
 {{ end }}
 ````
 
-The same partial can take the item as an argument instead, `{{ include "partials/post-card" item }}`, and read it as `$1`. A named argument, `{{ include "partials/post-card" post: item }}`, is read as `$post`.
+The same partial can take the item as an argument instead, `{{ include "blog/_post-card" item }}`, and read it as `$1`. A named argument, `{{ include "blog/_post-card" post: item }}`, is read as `$post`.
 
-## Assets
+## Static Files
 
-A text asset is CSS, JavaScript or another text file, stored as a template whose name starts with `assets/`, such as `assets/site.css`. It has versions and a published pointer like any other template, with two differences:
+A static file is CSS, JavaScript or another text file of the theme, a file whose name has an extension, such as `assets/site.css`. It is published with the rest of the theme, with two differences from a template:
 
-* Its body is stored as it is and is **not** parsed as Scriban, so `{{` in a stylesheet or a script is just text. Saving it does not run the syntax check.
-* It is served, unrendered, by the application at `GET /site-assets/{path}`, where `{path}` is the name without the `assets/` prefix: `assets/site.css` is served at `/site-assets/site.css`.
+* It is stored as it is and is **not** parsed as Scriban, so `{{` in a stylesheet or a script is just text.
+* It is served, unrendered, by the application at `GET /site-assets/{path}`, where `{path}` is its full path: `assets/site.css` is served at `/site-assets/assets/site.css`.
 
-Only the published version is served. An asset that is unknown or has no published version answers 404.
+Only the live release's files are served. A file the live release does not have answers 404; so does a template's path.
 
 The response carries these headers:
 
 | Header | Value |
 |---|---|
-| `Content-Type` | From the extension of the name, with `charset=utf-8`: `css` is `text/css`; `js` and `mjs` are `text/javascript`; `json` and `map` are `application/json`; `svg` is `image/svg+xml`; `xml` is `application/xml`; `webmanifest` is `application/manifest+json`; `txt` is `text/plain`; `csv` is `text/csv`; `ics` is `text/calendar`. Any other extension is `text/plain`. |
+| `Content-Type` | From the extension, with `charset=utf-8`: `css` is `text/css`; `js` and `mjs` are `text/javascript`; `json` and `map` are `application/json`; `svg` is `image/svg+xml`; `xml` is `application/xml`; `webmanifest` is `application/manifest+json`; `txt` is `text/plain`; `csv` is `text/csv`; `ics` is `text/calendar`. |
 | `X-Content-Type-Options` | `nosniff`. |
-| `ETag` | Identifies the published version. A request whose `If-None-Match` matches it is answered 304. |
-| `Cache-Control` | `public, max-age=31536000, immutable` when the `v` query of the URL is the id of the published version; otherwise `public, no-cache`, which is served but revalidated each time. |
+| `ETag` | The hash of the content. A request whose `If-None-Match` matches it is answered 304. |
+| `Cache-Control` | `public, max-age=31536000, immutable` when the `v` query of the URL is the hash of the content served; otherwise `public, no-cache`, which is served but revalidated each time. |
 
-`asset_url` writes the address that earns the long cache. `asset_url "assets/site.css"` returns an address such as `/site-assets/site.css?v=0b5f2c7e9a4d4c1f8e63a1d27c94b850`, where `v` is the id of the published version, under the application's path base when it has one. Publishing a new version changes the id and so the address, which busts the browser and CDN caches; this is why the endpoint can mark a matching URL immutable. The id is used rather than the version number because numbers start again at 1 when a template is deleted and created again under the same name, while an id is never reused. The name must be under `assets/` and published, or the render fails with an error that names the asset.
+`asset_url` writes the address that earns the long cache. `asset_url "assets/site.css"` returns `/site-assets/assets/site.css?v=` followed by the SHA-256 of the file's content, under the application's path base when it has one. A release that changes the file changes the address, which busts the browser and CDN caches, while a file that did not change keeps its address, and its cached copy, from one release to the next. The path must be a static file of the theme, or the render fails with an error that names it.
 
-For example, save a template named `assets/site.css`:
+For example, a stylesheet at `assets/site.css`:
 
 ````
 body { font-family: system-ui, sans-serif; margin: 0; }
 nav a { margin-right: 0.5rem; }
 ````
 
-and reference it from the layout:
+referenced from a layout:
 
 ````
 <head>
@@ -222,15 +267,15 @@ and reference it from the layout:
 </head>
 ````
 
-The same goes for a script: `<script src="{{ asset_url "assets/site.js" }}" defer></script>`. To change the stylesheet, save a new version of `assets/site.css`; with `publish` on, pages link to the new address at once.
+The same goes for a script: `<script src="{{ asset_url "js/site.js" }}" defer></script>`.
 
-Binary files, such as images and fonts, are not templates. They stay in the [file library](../files.md) and are addressed with `file_url`.
+Binary files, such as images and fonts, are not theme files. They stay in the [file library](../files.md) and are addressed with `file_url`.
 
 ## Limits
 
 A template runs in a sandbox, so that a template written by a tenant or by an AI cannot take the application down or read what it should not.
 
-* A template reaches only the variables and functions above. It cannot call into the application or read files. It can `include` only the published [partials](#partials) of its own tenant.
+* A template reaches only the variables and functions above. It cannot call into the application or read files. It can `include` only the templates of the theme it is rendered with, which belongs to its own tenant.
 * Partials nest at most 10 deep, and a partial that includes itself, directly or through others, fails with an error that lists the chain. A host can change the depth with `SiteScribanOptions.MaxIncludeDepth`.
 * The loops of one template run at most 10,000 iterations per outermost loop, nested loops counted together, and nested calls go at most 100 deep.
 * A regular expression match is stopped after 100 ms.
@@ -239,33 +284,38 @@ A template runs in a sandbox, so that a template written by a tenant or by an AI
 
 The loop, recursion, output and time limits apply to the whole render, partials included. A template that exceeds a limit, or fails at run time, fails the request with an error that names the template and the line and column; a timeout is reported as a timeout, naming the template. A host can change the limits with `SiteScribanOptions`.
 
-## Managing Templates
+## Managing the Theme
 
-The admin API manages templates under `api/site-admin/templates`:
+The admin API manages the theme under `api/site-admin/theme`. A file's path travels as the `path` query parameter, since it contains slashes. The theme is created on first use, with its two starting files; creating it publishes nothing.
 
 | Request | Permission | Description |
 |---|---|---|
-| `GET /` | `SiteAdmin.Templates` | Lists the templates, each with its published and latest version numbers. Takes an optional `filter` over the name and an optional `prefix`, such as `partials/`, to list only the names that start with it. |
-| `GET /{id}` | `SiteAdmin.Templates` | Reads one template. |
-| `GET /by-name?name=...` | `SiteAdmin.Templates` | Reads a template by name; empty when there is none. |
-| `POST /` | `SiteAdmin.Templates.Create` | Creates a template with `name`, `body`, an optional `comment` and `publish`, true by default. |
-| `PUT /{id}` | `SiteAdmin.Templates.Update` | Saves the next version, with `body`, an optional `comment` and `publish`. |
-| `POST /{id}/publish/{versionNumber}` | `SiteAdmin.Templates.Update` | Publishes a version, newer or older. |
-| `GET /{id}/versions` | `SiteAdmin.Templates` | Lists the versions, newest first, without their bodies. |
-| `GET /{id}/versions/{versionNumber}` | `SiteAdmin.Templates` | Reads one version with its body. |
-| `GET /{id}/versions/{versionNumber}/preview?path=...` | `SiteAdmin.Templates` | Renders the version at the path; see [Previewing a Version](#previewing-a-version). Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` (the page's own template, which tells when the previewed template is not the one the page normally uses) and `versionNumber`. |
-| `GET /{id}/versions/{versionNumber}/preview.html?path=...` | `SiteAdmin.Templates` | The same, as a `text/html` document, for a browser authenticated with a cookie. It is not part of the API definition, so it has no generated proxy. |
-| `DELETE /{id}` | `SiteAdmin.Templates.Delete` | Deletes the template with all of its versions. |
+| `GET /` | `SiteAdmin.Themes` | The theme: its default layout, the live release's id and number, and a concurrency stamp. |
+| `PUT /` | `SiteAdmin.Themes.Edit` | Sets the default layout, a template path or empty for none. |
+| `GET /files` | `SiteAdmin.Themes` | The files of the working copy, each with its status against the live release: unchanged, modified or added; a file the live release has and the working copy no longer does is listed as deleted. |
+| `GET /files/by-path?path=...` | `SiteAdmin.Themes` | One file with its body, its concurrency stamp and its syntax errors. |
+| `PUT /files` | `SiteAdmin.Themes.Edit` | Creates or overwrites a file, with `path`, `body` and, to detect a change by someone else, the `concurrencyStamp` it was read with. Returns the file with its syntax errors. |
+| `POST /files/rename` | `SiteAdmin.Themes.Edit` | Moves a file, with `path`, `newPath` and `updateReferences`, true by default; see [The Working Copy and Releases](#the-working-copy-and-releases). |
+| `DELETE /files/by-path?path=...` | `SiteAdmin.Themes.Edit` | Removes a file from the working copy. |
+| `GET /files/usages?path=...` | `SiteAdmin.Themes` | The pages, files and setting that use a file. |
+| `GET /check` | `SiteAdmin.Themes` | [Checks](#checking-the-theme) the working copy. Returns the findings, the files that would change, the default layout of the working copy and of the live release, and the `fingerprint` a publish needs. |
+| `POST /publish` | `SiteAdmin.Themes.Publish` | Publishes the working copy, with the check's `fingerprint` and an optional `comment`. |
+| `GET /releases` | `SiteAdmin.Themes` | The releases, newest first. |
+| `GET /releases/{id}` | `SiteAdmin.Themes` | One release with its file list. |
+| `GET /releases/{id}/files/by-path?path=...` | `SiteAdmin.Themes` | One file of a release with its body. |
+| `POST /releases/{id}/set-live` | `SiteAdmin.Themes.Publish` | Makes a release live; an older one is the rollback. |
+| `POST /releases/{id}/restore` | `SiteAdmin.Themes.Edit` | Copies a release back into the working copy. |
+| `GET /preview?path=...&releaseId=...` | `SiteAdmin.Themes` | [Previews](#previewing) the page at the path with the working copy, or with the release when `releaseId` is given. Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` and `layout`. |
 
-A syntax error, a `layout` without `site_head` and a name that is already taken are answered as business errors, with the lines and columns in the message.
+A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`) are answered as business errors.
 
 ### MCP Tools
 
-The MCP server offers the same operations, addressed by template name: `site_list_templates`, `site_get_template`, `site_save_template`, `site_publish_template` and `site_delete_template`, and `site_preview_template`, which renders a version at a path. They cover [partials](#partials) and [assets](#assets) unchanged, since those are templates by name; `site_list_templates` takes an optional `prefix` to list only one kind. Saving needs both the create and the update permission, since the same call creates a template or adds a version. The recommended flow is to save as a draft (`publish` false), preview it, and then publish it; publishing an older version is the rollback. See [Tools](../mcp/tools.md#templates).
+The MCP server offers the same operations: `site_list_theme_files`, `site_get_theme_file`, `site_save_theme_file`, `site_rename_theme_file`, `site_delete_theme_file`, `site_update_theme`, `site_check_theme`, `site_preview`, `site_publish_theme`, `site_list_releases`, `site_set_live_release` and `site_restore_release`. Files are addressed by path and releases by number. The recommended flow is to save, check and fix every error, preview, and then publish with the check's fingerprint; making an older release live is the rollback. See [Tools](../mcp/tools.md#theme).
 
 ## Example
 
-A Scriban equivalent of a minimal Razor `Default` view, which renders a content with its fields, or the list of the page's contents. Without a layout, the template is a complete document:
+A Scriban equivalent of a minimal Razor `Default` view, which renders a content with its fields, or the list of the page's contents. With `layout = "none"`, or with no default layout, the template is a complete document:
 
 ````
 <!DOCTYPE html>
@@ -300,7 +350,7 @@ A Scriban equivalent of a minimal Razor `Default` view, which renders a content 
 </html>
 ````
 
-The document around the page is the same for every page, so it belongs in the `layout` template:
+The document around the page is the same for every page, so it belongs in a layout, such as the theme's default layout, `layouts/default`:
 
 ````
 <!DOCTYPE html>
@@ -317,7 +367,7 @@ The document around the page is the same for every page, so it belongs in the `l
 </html>
 ````
 
-Once the layout is published, the page template writes only what goes inside `<body>`, so the `Default` template shrinks to:
+In that layout, the page template writes only what goes inside `<body>`, so the `Default` template shrinks to:
 
 ````
 <h1>{{ page.display_name }}</h1>
@@ -342,7 +392,7 @@ Once the layout is published, the page template writes only what goes inside `<b
 {{ end }}
 ````
 
-Saved with these two templates, every page whose `Template` is `Default` renders through Scriban, and every other page keeps its Razor view.
+Published with these two files, every page whose `Template` is `Default` renders through Scriban, and every other page keeps its Razor view.
 
 ## See Also
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Dignite.Site.Templates;
+using Dignite.Site.Themes;
 using global::Scriban;
 using global::Scriban.Functions;
 using global::Scriban.Runtime;
@@ -11,11 +11,11 @@ using global::Scriban.Syntax;
 namespace Dignite.Site.Public.Scriban;
 
 /// <summary>
-/// <c>include "partials/name" [arguments...]</c>: renders a published partial in place - Scriban's own
+/// <c>include "path" [arguments...]</c>: renders another template of the theme in place - Scriban's own
 /// <see cref="IncludeFunction"/>, which <see cref="ScribanSandbox"/> replaces with this in every context, with
 /// three things added around it:
 /// <list type="bullet">
-/// <item>A cycle (<c>partials/a</c> including <c>partials/b</c> including <c>partials/a</c>) fails at once, naming
+/// <item>A cycle (<c>_a</c> including <c>_b</c> including <c>_a</c>) fails at once, naming
 /// the chain, instead of running into <see cref="TemplateContext.RecursiveLimit"/> with a message about function
 /// calls.</item>
 /// <item>Nesting deeper than <see cref="SiteScribanOptions.MaxIncludeDepth"/> fails, naming the option.</item>
@@ -100,7 +100,7 @@ public class SiteIncludeFunction : IScriptCustomFunction
             return null;
         }
 
-        var name = SiteTemplateNames.Normalize(templateName);
+        var name = SiteThemePaths.Normalize(templateName);
         var includeStack = siteContext.IncludeStack;
         var span = callerContext?.Span ?? context.CurrentSpan;
 

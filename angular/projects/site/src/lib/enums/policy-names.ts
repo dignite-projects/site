@@ -34,9 +34,9 @@ export enum eSitePolicyNames {
   ContentsUpdate = 'SiteAdmin.Contents.Update',
   ContentsDelete = 'SiteAdmin.Contents.Delete',
 
-  Templates = 'SiteAdmin.Templates',
-  TemplatesCreate = 'SiteAdmin.Templates.Create',
-  /** Also gates publishing a version: it is the same decision as writing one. */
-  TemplatesUpdate = 'SiteAdmin.Templates.Update',
-  TemplatesDelete = 'SiteAdmin.Templates.Delete',
+  Themes = 'SiteAdmin.Themes',
+  /** Changing the working copy: files, the default layout, restoring a release into it. */
+  ThemesEdit = 'SiteAdmin.Themes.Edit',
+  /** Changing what the site renders: publishing, and making an older release live. */
+  ThemesPublish = 'SiteAdmin.Themes.Publish',
 }

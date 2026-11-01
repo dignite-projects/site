@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields.Web;
 using Dignite.Site.Public.TagHelpers;
+using Dignite.Site.Themes;
 using global::Scriban.Syntax;
 using Shouldly;
 using Volo.Abp;
@@ -71,7 +72,80 @@ public class ScribanPageRenderer_Tests
         var ex = await Should.ThrowAsync<BusinessException>(() => new ScribanTestRenderer().RenderAsync(
             "<p>page</p>", "{{ if false }}{{ site_head }}{{ end }}{{ body }}"));
 
-        ex.Data["Name"].ShouldBe("layout");
+        ex.Data["Name"].ShouldBe(ScribanTestRenderer.LayoutPath);
+    }
+
+    [Fact]
+    public async Task A_Page_Should_Render_In_The_Default_Layout()
+    {
+        var render = await new ScribanTestRenderer().RenderPageAsync(ScribanTestRenderer.RenderSet(
+            "<p>page</p>", "{{ site_head }}<main>{{ body }}</main>"));
+
+        render.LayoutPath.ShouldBe(ScribanTestRenderer.LayoutPath);
+        render.Html.ShouldEndWith("<main><p>page</p></main>");
+    }
+
+    [Fact]
+    public async Task A_Page_Should_Render_In_The_Layout_Its_Front_Matter_Names()
+    {
+        var render = await new ScribanTestRenderer().RenderPageAsync(ScribanTestRenderer.RenderSet(
+            new Dictionary<string, string>
+            {
+                [ScribanTestRenderer.PagePath] = "+++\nlayout = \"layouts/landing\"\n+++\n<p>page</p>",
+                [ScribanTestRenderer.LayoutPath] = "{{ site_head }}<main>{{ body }}</main>",
+                ["layouts/landing"] = "{{ site_head }}<section class=\"landing\">{{ body }}</section>"
+            },
+            ScribanTestRenderer.LayoutPath));
+
+        render.LayoutPath.ShouldBe("layouts/landing");
+        render.Html.ShouldEndWith("<section class=\"landing\"><p>page</p></section>");
+    }
+
+    [Fact]
+    public async Task A_Page_Should_Render_Alone_With_Layout_None()
+    {
+        var render = await new ScribanTestRenderer().RenderPageAsync(ScribanTestRenderer.RenderSet(
+            "+++\nlayout = \"none\"\n+++\n{{ site_head }}<p>page</p>", "{{ site_head }}<main>{{ body }}</main>"));
+
+        render.LayoutPath.ShouldBeNull();
+        render.Html.ShouldEndWith("<p>page</p>");
+        render.Html.ShouldNotContain("<main>");
+    }
+
+    [Fact]
+    public async Task A_Page_Should_Render_Alone_Without_A_Default_Layout()
+    {
+        var render = await new ScribanTestRenderer().RenderPageAsync(ScribanTestRenderer.RenderSet(
+            new Dictionary<string, string> { [ScribanTestRenderer.PagePath] = "{{ site_head }}<p>page</p>" }));
+
+        render.LayoutPath.ShouldBeNull();
+        render.Html.ShouldEndWith("<p>page</p>");
+    }
+
+    [Fact]
+    public async Task A_Layout_That_Is_Not_In_The_Theme_Should_Fail_Naming_It()
+    {
+        var ex = await Should.ThrowAsync<InvalidOperationException>(() => new ScribanTestRenderer().RenderPageAsync(
+            ScribanTestRenderer.RenderSet("+++\nlayout = \"layouts/gone\"\n+++\n<p>page</p>", "{{ site_head }}{{ body }}")));
+
+        ex.Message.ShouldContain("'layouts/gone'");
+    }
+
+    /// <summary>A page template can be anywhere: the path is the page's Template, directories and all.</summary>
+    [Fact]
+    public async Task A_Page_Template_Should_Be_Found_By_Its_Full_Path()
+    {
+        var render = await new ScribanTestRenderer().RenderPageAsync(
+            ScribanTestRenderer.RenderSet(
+                new Dictionary<string, string>
+                {
+                    ["blog/post"] = "<p>post</p>",
+                    [ScribanTestRenderer.LayoutPath] = "{{ site_head }}{{ body }}"
+                },
+                ScribanTestRenderer.LayoutPath),
+            templatePath: "blog/post");
+
+        render.Html.ShouldEndWith("<p>post</p>");
     }
 
     [Fact]
@@ -119,47 +193,44 @@ public class ScribanPageRenderer_Tests
 
     /// <summary>Under the host's base path, never with the page's language prefix (this page is /ja/about).</summary>
     [Fact]
-    public async Task Asset_Url_Should_Carry_The_Published_Version_Id()
+    public async Task Asset_Url_Should_Carry_The_Content_Hash()
     {
         var html = await new ScribanTestRenderer("en,ja", "/ja/about").RenderAsync(ScribanTestRenderer.RenderSet(
-            "<link href=\"{{ asset_url \"assets/site.css\" }}\" rel=\"stylesheet\">[{{ asset_url \"/assets/js/site.js\" }}]",
+            "<link href=\"{{ asset_url \"assets/site.css\" }}\" rel=\"stylesheet\">[{{ asset_url \"/js/site.js\" }}]",
             HeadOnlyLayout,
-            assets: new Dictionary<string, Guid>
+            assets: new Dictionary<string, string>
             {
-                ["assets/site.css"] = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000003"),
-                ["assets/js/site.js"] = Guid.Parse("bbbbbbbb-0000-0000-0000-00000000000c")
+                ["assets/site.css"] = "body{}",
+                ["js/site.js"] = "console.log(1);"
             }));
 
         html.ShouldEndWith(
-            "<link href=\"/site-assets/site.css?v=aaaaaaaa000000000000000000000003\" rel=\"stylesheet\">" +
-            "[/site-assets/js/site.js?v=bbbbbbbb00000000000000000000000c]");
+            $"<link href=\"/site-assets/assets/site.css?v={SiteThemePaths.ComputeContentHash("body{}")}\" rel=\"stylesheet\">" +
+            $"[/site-assets/js/site.js?v={SiteThemePaths.ComputeContentHash("console.log(1);")}]");
     }
 
     [Fact]
-    public async Task Asset_Url_Of_An_Unpublished_Asset_Should_Fail_Naming_It()
+    public async Task Asset_Url_Of_A_Missing_File_Should_Fail_Naming_It()
     {
         var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
             "{{ asset_url \"assets/missing.css\" }}",
             HeadOnlyLayout,
-            assets: new Dictionary<string, Guid> { ["assets/site.css"] = Guid.NewGuid() })));
+            assets: new Dictionary<string, string> { ["assets/site.css"] = "" })));
 
         ex.ShouldBeAssignableTo<ScriptRuntimeException>();
         ex!.Message.ShouldContain("'assets/missing.css'");
     }
 
-    [Theory]
-    [InlineData("site.css")]
-    [InlineData("partials/card")]
-    public async Task Asset_Url_Of_A_Name_That_Is_Not_An_Asset_Should_Fail_Naming_The_Prefix(string name)
+    [Fact]
+    public async Task Asset_Url_Of_A_Template_Should_Fail_Naming_It()
     {
         var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
-            $"{{{{ asset_url \"{name}\" }}}}",
+            "{{ asset_url \"_card\" }}",
             HeadOnlyLayout,
-            assets: new Dictionary<string, Guid> { ["assets/site.css"] = Guid.NewGuid() })));
+            partials: new Dictionary<string, string> { ["_card"] = "" })));
 
         ex.ShouldBeAssignableTo<ScriptRuntimeException>();
-        ex!.Message.ShouldContain("'assets/'");
-        ex.Message.ShouldContain($"'{name}'");
+        ex!.Message.ShouldContain("'_card' is a template");
     }
 
     [Fact]
@@ -170,14 +241,12 @@ public class ScribanPageRenderer_Tests
         renderer.ContentListQuery.TotalCount = 7;
         var viewModel = ScribanTestRenderer.PageViewModel();
 
-        var html = await renderer.Renderer.RenderAsync(
-            "Default",
+        var html = await renderer.RenderAsync(
             ScribanTestRenderer.RenderSet(
                 "{{ list = contents { max: 5, page_no: 2 } }}{{ list.total_count }}|{{ list.current_page }}|" +
                 "{{ for item in list.items }}{{ item.slug }}:{{ item.fields.Title }}:{{ item.publish_time.year }}{{ end }}",
                 HeadOnlyLayout),
-            viewModel,
-            renderer.ActionContext);
+            viewModel);
 
         html.ShouldEndWith("7|2|first:First post:2026");
 

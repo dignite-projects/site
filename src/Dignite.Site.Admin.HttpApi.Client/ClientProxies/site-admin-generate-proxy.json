@@ -3904,30 +3904,41 @@
             }
           }
         },
-        "Dignite.Site.Admin.Templates.SiteTemplateAdminController": {
-          "controllerName": "SiteTemplateAdmin",
-          "controllerGroupName": "SiteTemplateAdmin",
+        "Dignite.Site.Admin.Themes.SiteThemeAdminController": {
+          "controllerName": "SiteThemeAdmin",
+          "controllerGroupName": "SiteThemeAdmin",
           "isRemoteService": true,
           "isIntegrationService": false,
           "apiVersion": null,
-          "type": "Dignite.Site.Admin.Templates.SiteTemplateAdminController",
+          "type": "Dignite.Site.Admin.Themes.SiteThemeAdminController",
           "summary": null,
           "remarks": null,
           "description": null,
           "displayName": null,
           "interfaces": [
             {
-              "type": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
-              "name": "ISiteTemplateAdminAppService",
+              "type": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "name": "ISiteThemeAdminAppService",
               "methods": [
                 {
                   "name": "GetAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "UpdateAsync",
                   "parametersOnMethod": [
                     {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto",
+                      "typeSimple": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -3936,18 +3947,29 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplateDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "FindByNameAsync",
+                  "name": "GetFilesAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteThemeFileSummaryDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteThemeFileSummaryDto>",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "GetFileAsync",
                   "parametersOnMethod": [
                     {
-                      "name": "name",
+                      "name": "path",
                       "typeAsString": "System.String, System.Private.CoreLib",
                       "type": "System.String",
                       "typeSimple": "string",
@@ -3959,21 +3981,21 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplateDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "GetListAsync",
+                  "name": "SaveFileAsync",
                   "parametersOnMethod": [
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Templates.GetSiteTemplateListInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Templates.GetSiteTemplateListInput",
-                      "typeSimple": "Dignite.Site.Admin.Templates.GetSiteTemplateListInput",
+                      "typeAsString": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto",
+                      "typeSimple": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -3982,21 +4004,21 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateDto>",
-                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateDto>",
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "CreateAsync",
+                  "name": "RenameFileAsync",
                   "parametersOnMethod": [
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto",
-                      "typeSimple": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto",
+                      "typeAsString": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto",
+                      "typeSimple": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -4005,32 +4027,44 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplateDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeRenameResultDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeRenameResultDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "UpdateAsync",
+                  "name": "DeleteFileAsync",
                   "parametersOnMethod": [
                     {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
+                      "name": "path",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
                       "typeSimple": "string",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
                       "description": null,
                       "displayName": null
-                    },
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "GetFileUsagesAsync",
+                  "parametersOnMethod": [
                     {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto",
-                      "typeSimple": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto",
+                      "name": "path",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -4039,8 +4073,19 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplateDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeFileUsagesDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileUsagesDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "CheckAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
@@ -4050,21 +4095,10 @@
                   "name": "PublishAsync",
                   "parametersOnMethod": [
                     {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "versionNumber",
-                      "typeAsString": "System.Int32, System.Private.CoreLib",
-                      "type": "System.Int32",
-                      "typeSimple": "number",
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Themes.PublishSiteThemeDto, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.PublishSiteThemeDto",
+                      "typeSimple": "Dignite.Site.Admin.Themes.PublishSiteThemeDto",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -4073,15 +4107,26 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplateDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                    "type": "Dignite.Site.Admin.Themes.SiteReleaseDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "GetVersionsAsync",
+                  "name": "GetReleasesAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteReleaseDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteReleaseDto>",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "GetReleaseAsync",
                   "parametersOnMethod": [
                     {
                       "name": "id",
@@ -4096,66 +4141,21 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateVersionDto>",
-                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateVersionDto>",
+                    "type": "Dignite.Site.Admin.Themes.SiteReleaseDetailDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDetailDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "GetVersionAsync",
+                  "name": "GetReleaseFileAsync",
                   "parametersOnMethod": [
                     {
                       "name": "id",
                       "typeAsString": "System.Guid, System.Private.CoreLib",
                       "type": "System.Guid",
                       "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "versionNumber",
-                      "typeAsString": "System.Int32, System.Private.CoreLib",
-                      "type": "System.Int32",
-                      "typeSimple": "number",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplateVersionDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplateVersionDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "PreviewAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "versionNumber",
-                      "typeAsString": "System.Int32, System.Private.CoreLib",
-                      "type": "System.Int32",
-                      "typeSimple": "number",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -4175,15 +4175,38 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Templates.SiteTemplatePreviewDto",
-                    "typeSimple": "Dignite.Site.Templates.SiteTemplatePreviewDto",
+                    "type": "Dignite.Site.Admin.Themes.SiteReleaseFileContentDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseFileContentDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "DeleteAsync",
+                  "name": "SetLiveReleaseAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Themes.SiteReleaseDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "RestoreReleaseAsync",
                   "parametersOnMethod": [
                     {
                       "name": "id",
@@ -4204,23 +4227,85 @@
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
+                },
+                {
+                  "name": "PreviewAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "path",
+                      "typeAsString": "System.String, System.Private.CoreLib",
+                      "type": "System.String",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "releaseId",
+                      "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                      "type": "System.Guid?",
+                      "typeSimple": "string?",
+                      "isOptional": true,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Themes.SiteThemePreviewDto",
+                    "typeSimple": "Dignite.Site.Themes.SiteThemePreviewDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
                 }
               ]
             }
           ],
           "actions": {
-            "GetAsyncById": {
-              "uniqueName": "GetAsyncById",
+            "GetAsync": {
+              "uniqueName": "GetAsync",
               "name": "GetAsync",
               "httpMethod": "GET",
-              "url": "api/site-admin/templates/{id}",
+              "url": "api/site-admin/theme",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UpdateAsyncByInput": {
+              "uniqueName": "UpdateAsyncByInput",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "api/site-admin/theme",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -4230,15 +4315,15 @@
               ],
               "parameters": [
                 {
-                  "nameOnMethod": "id",
-                  "name": "id",
+                  "nameOnMethod": "input",
+                  "name": "input",
                   "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
+                  "type": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.UpdateSiteThemeDto",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
                   "descriptorName": "",
                   "summary": null,
                   "description": null,
@@ -4246,8 +4331,8 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplateDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                "type": "Dignite.Site.Admin.Themes.SiteThemeDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
@@ -4255,25 +4340,57 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "SiteAdmin.Templates",
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Themes.Edit",
                   "roles": null
                 }
               ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
               "displayName": null
             },
-            "FindByNameAsyncByName": {
-              "uniqueName": "FindByNameAsyncByName",
-              "name": "FindByNameAsync",
+            "GetFilesAsync": {
+              "uniqueName": "GetFilesAsync",
+              "name": "GetFilesAsync",
               "httpMethod": "GET",
-              "url": "api/site-admin/templates/by-name",
+              "url": "api/site-admin/theme/files",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteThemeFileSummaryDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteThemeFileSummaryDto>",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetFileAsyncByPath": {
+              "uniqueName": "GetFileAsyncByPath",
+              "name": "GetFileAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/files/by-path",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
-                  "name": "name",
+                  "name": "path",
                   "typeAsString": "System.String, System.Private.CoreLib",
                   "type": "System.String",
                   "typeSimple": "string",
@@ -4286,15 +4403,15 @@
               ],
               "parameters": [
                 {
-                  "nameOnMethod": "name",
-                  "name": "name",
+                  "nameOnMethod": "path",
+                  "name": "path",
                   "jsonName": null,
                   "type": "System.String",
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
+                  "bindingSourceId": "Query",
                   "descriptorName": "",
                   "summary": null,
                   "description": null,
@@ -4302,8 +4419,8 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplateDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                "type": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
@@ -4311,170 +4428,28 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "SiteAdmin.Templates",
+                  "policy": "SiteAdmin.Themes",
                   "roles": null
                 }
               ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
               "displayName": null
             },
-            "GetListAsyncByInput": {
-              "uniqueName": "GetListAsyncByInput",
-              "name": "GetListAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/templates",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Templates.GetSiteTemplateListInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Templates.GetSiteTemplateListInput",
-                  "typeSimple": "Dignite.Site.Admin.Templates.GetSiteTemplateListInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "Filter",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "Prefix",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateDto>",
-                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateDto>",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": false,
-              "authorizeDatas": [
-                {
-                  "policy": "SiteAdmin.Templates",
-                  "roles": null
-                }
-              ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "CreateAsyncByInput": {
-              "uniqueName": "CreateAsyncByInput",
-              "name": "CreateAsync",
-              "httpMethod": "POST",
-              "url": "api/site-admin/templates",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto",
-                  "typeSimple": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto",
-                  "typeSimple": "Dignite.Site.Admin.Templates.CreateSiteTemplateDto",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplateDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": false,
-              "authorizeDatas": [
-                {
-                  "policy": "SiteAdmin.Templates",
-                  "roles": null
-                },
-                {
-                  "policy": "SiteAdmin.Templates.Create",
-                  "roles": null
-                }
-              ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "UpdateAsyncByIdAndInput": {
-              "uniqueName": "UpdateAsyncByIdAndInput",
-              "name": "UpdateAsync",
+            "SaveFileAsyncByInput": {
+              "uniqueName": "SaveFileAsyncByInput",
+              "name": "SaveFileAsync",
               "httpMethod": "PUT",
-              "url": "api/site-admin/templates/{id}",
+              "url": "api/site-admin/theme/files",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
                   "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto",
-                  "typeSimple": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto",
+                  "typeAsString": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -4484,26 +4459,11 @@
               ],
               "parameters": [
                 {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
                   "nameOnMethod": "input",
                   "name": "input",
                   "jsonName": null,
-                  "type": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto",
-                  "typeSimple": "Dignite.Site.Admin.Templates.UpdateSiteTemplateDto",
+                  "type": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.SaveSiteThemeFileDto",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -4515,8 +4475,8 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplateDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                "type": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
@@ -4524,25 +4484,317 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "SiteAdmin.Templates",
+                  "policy": "SiteAdmin.Themes",
                   "roles": null
                 },
                 {
-                  "policy": "SiteAdmin.Templates.Update",
+                  "policy": "SiteAdmin.Themes.Edit",
                   "roles": null
                 }
               ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
               "displayName": null
             },
-            "PublishAsyncByIdAndVersionNumber": {
-              "uniqueName": "PublishAsyncByIdAndVersionNumber",
+            "RenameFileAsyncByInput": {
+              "uniqueName": "RenameFileAsyncByInput",
+              "name": "RenameFileAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/theme/files/rename",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.RenameSiteThemeFileDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeRenameResultDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeRenameResultDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Themes.Edit",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DeleteFileAsyncByPath": {
+              "uniqueName": "DeleteFileAsyncByPath",
+              "name": "DeleteFileAsync",
+              "httpMethod": "DELETE",
+              "url": "api/site-admin/theme/files/by-path",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "path",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "path",
+                  "name": "path",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Themes.Edit",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetFileUsagesAsyncByPath": {
+              "uniqueName": "GetFileUsagesAsyncByPath",
+              "name": "GetFileUsagesAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/files/usages",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "path",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "path",
+                  "name": "path",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeFileUsagesDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileUsagesDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "CheckAsync": {
+              "uniqueName": "CheckAsync",
+              "name": "CheckAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/check",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "PublishAsyncByInput": {
+              "uniqueName": "PublishAsyncByInput",
               "name": "PublishAsync",
               "httpMethod": "POST",
-              "url": "api/site-admin/templates/{id}/publish/{versionNumber}",
+              "url": "api/site-admin/theme/publish",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Themes.PublishSiteThemeDto, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.PublishSiteThemeDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.PublishSiteThemeDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Themes.PublishSiteThemeDto",
+                  "typeSimple": "Dignite.Site.Admin.Themes.PublishSiteThemeDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteReleaseDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Themes.Publish",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetReleasesAsync": {
+              "uniqueName": "GetReleasesAsync",
+              "name": "GetReleasesAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/releases",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteReleaseDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteReleaseDto>",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetReleaseAsyncById": {
+              "uniqueName": "GetReleaseAsyncById",
+              "name": "GetReleaseAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/releases/{id}",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -4550,17 +4802,6 @@
                   "typeAsString": "System.Guid, System.Private.CoreLib",
                   "type": "System.Guid",
                   "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "versionNumber",
-                  "typeAsString": "System.Int32, System.Private.CoreLib",
-                  "type": "System.Int32",
-                  "typeSimple": "number",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -4583,26 +4824,11 @@
                   "summary": null,
                   "description": null,
                   "displayName": null
-                },
-                {
-                  "nameOnMethod": "versionNumber",
-                  "name": "versionNumber",
-                  "jsonName": null,
-                  "type": "System.Int32",
-                  "typeSimple": "number",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplateDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplateDto",
+                "type": "Dignite.Site.Admin.Themes.SiteReleaseDetailDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDetailDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
@@ -4610,25 +4836,21 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "SiteAdmin.Templates",
-                  "roles": null
-                },
-                {
-                  "policy": "SiteAdmin.Templates.Update",
+                  "policy": "SiteAdmin.Themes",
                   "roles": null
                 }
               ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
               "displayName": null
             },
-            "GetVersionsAsyncById": {
-              "uniqueName": "GetVersionsAsyncById",
-              "name": "GetVersionsAsync",
+            "GetReleaseFileAsyncByIdAndPath": {
+              "uniqueName": "GetReleaseFileAsyncByIdAndPath",
+              "name": "GetReleaseFileAsync",
               "httpMethod": "GET",
-              "url": "api/site-admin/templates/{id}/versions",
+              "url": "api/site-admin/theme/releases/{id}/files/by-path",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -4636,155 +4858,6 @@
                   "typeAsString": "System.Guid, System.Private.CoreLib",
                   "type": "System.Guid",
                   "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateVersionDto>",
-                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Templates.SiteTemplateVersionDto>",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": false,
-              "authorizeDatas": [
-                {
-                  "policy": "SiteAdmin.Templates",
-                  "roles": null
-                }
-              ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "GetVersionAsyncByIdAndVersionNumber": {
-              "uniqueName": "GetVersionAsyncByIdAndVersionNumber",
-              "name": "GetVersionAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/templates/{id}/versions/{versionNumber}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "versionNumber",
-                  "typeAsString": "System.Int32, System.Private.CoreLib",
-                  "type": "System.Int32",
-                  "typeSimple": "number",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "versionNumber",
-                  "name": "versionNumber",
-                  "jsonName": null,
-                  "type": "System.Int32",
-                  "typeSimple": "number",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplateVersionDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplateVersionDto",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": false,
-              "authorizeDatas": [
-                {
-                  "policy": "SiteAdmin.Templates",
-                  "roles": null
-                }
-              ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "PreviewAsyncByIdAndVersionNumberAndPath": {
-              "uniqueName": "PreviewAsyncByIdAndVersionNumberAndPath",
-              "name": "PreviewAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/templates/{id}/versions/{versionNumber}/preview",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "versionNumber",
-                  "typeAsString": "System.Int32, System.Private.CoreLib",
-                  "type": "System.Int32",
-                  "typeSimple": "number",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -4810,21 +4883,6 @@
                   "jsonName": null,
                   "type": "System.Guid",
                   "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "versionNumber",
-                  "name": "versionNumber",
-                  "jsonName": null,
-                  "type": "System.Int32",
-                  "typeSimple": "number",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": [],
@@ -4843,7 +4901,7 @@
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
+                  "bindingSourceId": "Query",
                   "descriptorName": "",
                   "summary": null,
                   "description": null,
@@ -4851,8 +4909,8 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Templates.SiteTemplatePreviewDto",
-                "typeSimple": "Dignite.Site.Templates.SiteTemplatePreviewDto",
+                "type": "Dignite.Site.Admin.Themes.SiteReleaseFileContentDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseFileContentDto",
                 "summary": null,
                 "contentTypes": null,
                 "isRemoteStream": false
@@ -4860,21 +4918,81 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "SiteAdmin.Templates",
+                  "policy": "SiteAdmin.Themes",
                   "roles": null
                 }
               ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
               "displayName": null
             },
-            "DeleteAsyncById": {
-              "uniqueName": "DeleteAsyncById",
-              "name": "DeleteAsync",
-              "httpMethod": "DELETE",
-              "url": "api/site-admin/templates/{id}",
+            "SetLiveReleaseAsyncById": {
+              "uniqueName": "SetLiveReleaseAsyncById",
+              "name": "SetLiveReleaseAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/theme/releases/{id}/set-live",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteReleaseDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Themes.Publish",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "RestoreReleaseAsyncById": {
+              "uniqueName": "RestoreReleaseAsyncById",
+              "name": "RestoreReleaseAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/theme/releases/{id}/restore",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -4916,15 +5034,97 @@
               "allowAnonymous": false,
               "authorizeDatas": [
                 {
-                  "policy": "SiteAdmin.Templates",
+                  "policy": "SiteAdmin.Themes",
                   "roles": null
                 },
                 {
-                  "policy": "SiteAdmin.Templates.Delete",
+                  "policy": "SiteAdmin.Themes.Edit",
                   "roles": null
                 }
               ],
-              "implementFrom": "Dignite.Site.Admin.Templates.ISiteTemplateAdminAppService",
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "PreviewAsyncByPathAndReleaseId": {
+              "uniqueName": "PreviewAsyncByPathAndReleaseId",
+              "name": "PreviewAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/preview",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "path",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "releaseId",
+                  "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": true,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "path",
+                  "name": "path",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "releaseId",
+                  "name": "releaseId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Themes.SiteThemePreviewDto",
+                "typeSimple": "Dignite.Site.Themes.SiteThemePreviewDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
