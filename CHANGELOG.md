@@ -49,6 +49,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   template function `asset_url` writes its address with the SHA-256 of its content, `?v=...`, which is cached for a
   year: a release that changes the file changes the address, and an unchanged file keeps its address from one release
   to the next. See [Scriban Templates](docs/en/rendering/scriban-templates.md).
+- **The admin UI has a Theme screen.** The working copy's files are a tree of their folders, marked new, modified or
+  deleted against the live release; open files are tabs in a code editor (CodeMirror) that highlights templates as HTML
+  and static files by their extension, saves with Ctrl+S and asks before overwriting someone else's save. Files can be
+  created from a starting skeleton, renamed (optionally rewriting what refers to them) and deleted after seeing what uses
+  them. The check runs beside the editor, and a finding opens its file at its line; **Publish** shows the errors and the
+  changes and publishes with a comment, **Releases** makes an older release live or copies one back into the working
+  copy, and **Settings** sets the default layout. In the Pages screen, a page's template offers the theme's templates
+  while still accepting a Razor view's name. The code editor is loaded with the screen, not in the application's initial
+  bundle, and `@dignite/ng.site` gains six dependencies: `codemirror`, `@codemirror/lang-html`,
+  `@codemirror/lang-css`, `@codemirror/lang-javascript`, `@codemirror/state` and `@codemirror/view`. See
+  [Admin UI](docs/en/admin-ui.md).
 
 ### Changed
 

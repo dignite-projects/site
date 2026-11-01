@@ -286,7 +286,7 @@ The loop, recursion, output and time limits apply to the whole render, partials 
 
 ## Managing the Theme
 
-The admin API manages the theme under `api/site-admin/theme`. A file's path travels as the `path` query parameter, since it contains slashes. The theme is created on first use, with its two starting files; creating it publishes nothing.
+The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and publishes the theme. The admin API manages it under `api/site-admin/theme`. A file's path travels as the `path` query parameter, since it contains slashes. The theme is created on first use, with its two starting files; creating it publishes nothing.
 
 | Request | Permission | Description |
 |---|---|---|

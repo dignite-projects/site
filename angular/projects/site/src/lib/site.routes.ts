@@ -59,6 +59,13 @@ export const SITE_ROUTES: Routes = [
           import('./components/fields/fields.component').then(c => c.FieldsComponent),
         data: { requiredPolicy: eSitePolicyNames.Fields },
       },
+      {
+        // The theme is edited on a page of its own: a file tree, a code editor and the check side by side.
+        path: 'theme',
+        loadComponent: () =>
+          import('./components/theme/theme-workbench.component').then(c => c.ThemeWorkbenchComponent),
+        data: { requiredPolicy: eSitePolicyNames.Themes },
+      },
     ],
   },
 ];

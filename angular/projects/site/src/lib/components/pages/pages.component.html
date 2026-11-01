@@ -162,7 +162,18 @@
         </div>
         <div class="mb-3">
           <label class="form-label">{{ 'Site::DisplayName:Page.Template' | abpLocalization }}</label>
-          <input type="text" class="form-control" formControlName="template" />
+          <input
+            type="text"
+            class="form-control"
+            formControlName="template"
+            list="site-page-template-options"
+            autocomplete="off"
+          />
+          <datalist id="site-page-template-options">
+            @for (path of templateOptions(); track path) {
+              <option [value]="path"></option>
+            }
+          </datalist>
           <small class="form-text text-muted">
             {{ 'Site::Description:Page.Template' | abpLocalization }}
           </small>

@@ -4,4 +4,5 @@ import * as Fields from './fields';
 import * as Files from './files';
 import * as Pages from './pages';
 import * as Schema from './schema';
-export { ContentTypes, Contents, Fields, Files, Pages, Schema };
+import * as Themes from './themes';
+export { ContentTypes, Contents, Fields, Files, Pages, Schema, Themes };

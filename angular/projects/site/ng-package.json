@@ -7,7 +7,9 @@
   "allowedNonPeerDependencies": [
     "@abp/ng.components",
     "@angular/cdk",
+    "@codemirror/lang-css",
     "@codemirror/lang-html",
+    "@codemirror/lang-javascript",
     "@codemirror/state",
     "@codemirror/view",
     "@dignite/ng.flex-fields",
