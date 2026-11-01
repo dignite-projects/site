@@ -141,4 +141,11 @@ public class SiteThemeAdminController : SiteAdminController, ISiteThemeAdminAppS
     {
         return ThemeAdminAppService.PreviewAsync(path, releaseId);
     }
+
+    [HttpGet]
+    [Route("preview-link")]
+    public virtual Task<SiteThemePreviewLinkDto> GetPreviewLinkAsync([FromQuery] string? path = null, [FromQuery] Guid? releaseId = null)
+    {
+        return ThemeAdminAppService.GetPreviewLinkAsync(path, releaseId);
+    }
 }

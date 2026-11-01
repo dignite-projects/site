@@ -263,4 +263,41 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         _previewRenderer.Requests.ShouldHaveSingleItem().Snapshot.ReleaseId.ShouldBe(first.Id);
         preview.Html.ShouldBe("<html data-release=\"1\"><p>one</p></html>");
     }
+
+    [Fact]
+    public async Task Should_Issue_A_Preview_Link_For_The_Working_Copy()
+    {
+        var issuer = GetRequiredService<FakeSiteThemePreviewLinkIssuer>();
+
+        var link = await _themeAppService.GetPreviewLinkAsync("/about");
+
+        var request = issuer.Requests.ShouldHaveSingleItem();
+        request.Path.ShouldBe("/about");
+        request.ReleaseId.ShouldBeNull();
+        link.Url.ShouldBe("https://site.example/about?site-preview=token");
+    }
+
+    [Fact]
+    public async Task Should_Issue_A_Preview_Link_For_A_Release()
+    {
+        await SaveAsync("Default", "<p>one</p>");
+        var first = await PublishAsync();
+        var issuer = GetRequiredService<FakeSiteThemePreviewLinkIssuer>();
+
+        var link = await _themeAppService.GetPreviewLinkAsync(releaseId: first.Id);
+
+        issuer.Requests.ShouldHaveSingleItem().ReleaseId.ShouldBe(first.Id);
+        link.ReleaseId.ShouldBe(first.Id);
+    }
+
+    /// <summary>Refused while the author can still be told, rather than a link that quietly shows the live release.</summary>
+    [Fact]
+    public async Task Should_Not_Issue_A_Preview_Link_For_An_Unknown_Release()
+    {
+        var issuer = GetRequiredService<FakeSiteThemePreviewLinkIssuer>();
+
+        await Should.ThrowAsync<EntityNotFoundException>(() => _themeAppService.GetPreviewLinkAsync(releaseId: Guid.NewGuid()));
+
+        issuer.Requests.ShouldBeEmpty();
+    }
 }

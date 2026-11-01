@@ -2,7 +2,7 @@ import type { PublishSiteThemeDto, RenameSiteThemeFileDto, SaveSiteThemeFileDto,
 import { RestService, Rest } from '@abp/ng.core';
 import type { ListResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
-import type { SiteThemePreviewDto } from '../../themes/models';
+import type { SiteThemePreviewDto, SiteThemePreviewLinkDto } from '../../themes/models';
 
 @Injectable({
   providedIn: 'root',
@@ -59,6 +59,15 @@ export class SiteThemeAdminService {
     this.restService.request<any, ListResultDto<SiteThemeFileSummaryDto>>({
       method: 'GET',
       url: '/api/site-admin/theme/files',
+    },
+    { apiName: this.apiName,...config });
+
+
+  getPreviewLink = (path?: string, releaseId?: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, SiteThemePreviewLinkDto>({
+      method: 'GET',
+      url: '/api/site-admin/theme/preview-link',
+      params: { path, releaseId },
     },
     { apiName: this.apiName,...config });
 

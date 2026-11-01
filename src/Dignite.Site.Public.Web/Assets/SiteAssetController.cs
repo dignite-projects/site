@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Dignite.Site.Public.Preview;
 using Dignite.Site.Public.Themes;
 using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Http;
@@ -27,6 +28,11 @@ namespace Dignite.Site.Public.Assets;
 /// that address differently. Any other request - no <c>v</c>, or one that is not the live content's - gets
 /// <c>no-cache</c>: stored, but revalidated on every use, since the live content of a path changes with every
 /// release. The <c>ETag</c> is the same hash, so a revalidating cache gets a 304 while the bytes are unchanged.
+/// </para>
+/// <para>
+/// <b>Preview.</b> A visitor holding a valid preview cookie (<see cref="SitePreviewState"/>) is served the static files of
+/// the theme it names - the working copy or a release - instead, with <c>no-store</c> and <c>noindex</c>: those bytes
+/// are for the author only, and no cache may keep them.
 /// </para>
 /// <para>
 /// <c>X-Content-Type-Options: nosniff</c> keeps a browser to the declared type, which comes from the extension
@@ -61,6 +67,12 @@ public class SiteAssetController : AbpController
             return NotFound();
         }
 
+        var preview = LazyServiceProvider.LazyGetRequiredService<SitePreviewState>();
+        if (preview.IsAvailable)
+        {
+            return await GetPreviewAssetAsync(preview, path);
+        }
+
         var asset = await ThemeAppService.FindLiveAssetAsync(path);
         if (asset == null)
         {
@@ -78,6 +90,21 @@ public class SiteAssetController : AbpController
         // No BOM: the charset is declared, and a BOM before a stylesheet's @charset invalidates it.
         var body = new UTF8Encoding(false).GetBytes(asset.Body ?? string.Empty);
         return File(body, GetContentType(path));
+    }
+
+    /// <summary>A static file of the previewed theme - see the class remarks. No validators: nothing of it is stored.</summary>
+    protected virtual async Task<IActionResult> GetPreviewAssetAsync(SitePreviewState preview, string path)
+    {
+        preview.ApplyResponseHeaders(Response);
+        Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
+
+        var asset = await preview.FindAssetAsync(path);
+        if (asset == null)
+        {
+            return NotFound();
+        }
+
+        return File(new UTF8Encoding(false).GetBytes(asset.Body ?? string.Empty), GetContentType(path));
     }
 
     /// <summary>

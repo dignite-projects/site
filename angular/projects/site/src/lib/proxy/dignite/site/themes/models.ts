@@ -7,3 +7,10 @@ export interface SiteThemePreviewDto {
   pageTemplate?: string;
   layout?: string;
 }
+
+export interface SiteThemePreviewLinkDto {
+  url?: string;
+  path?: string;
+  releaseId?: string;
+  expiresAt?: string;
+}

@@ -108,7 +108,21 @@ Each finding names its file and, where it has one, the line and the column, with
 
 ## Previewing
 
-A page of the site can be rendered with the working copy, or with any release, without publishing anything. The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The page or content at that path is rendered through its template and layout as the given theme has them; the data, the functions and the limits are the live site's.
+The site can be seen with the working copy, or with any release, without publishing anything: in a browser, where you click through the site as a visitor would, or as the HTML of one page, over the API and MCP. Either way a preview renders the saved files, and the data, the functions and the limits are the live site's.
+
+### In a Browser
+
+**Preview** in the Theme screen opens the site's home page in a new tab with the working copy; its menu lists the pages whose `Template` is the file you are editing, to open one of them instead. **Releases** has a **Preview** for each release, to look at one before making it live. The link is signed for you and valid for ten minutes. Opening it sets a cookie in that browser, and for the next two hours every page and static file of the site you open there renders with that theme. Visitors keep seeing the live release.
+
+The working copy is read again on every page view: save in the editor, then reload the preview tab to see the change. Unsaved changes are not in the preview.
+
+A page rendered by a Scriban template carries a banner at the top that says what is previewed, with an **Exit preview** link that removes the cookie and reloads the page as it is live; a page still rendered by a Razor view has no banner. `/site-preview/exit` ends a preview too. Every response of a preview is sent with `Cache-Control: no-store` and `X-Robots-Tag: noindex`, so no cache keeps it and no search engine indexes it. A template that fails shows a page with the error, the template, and for a run-time error the line and the column, instead of the site's error page.
+
+The link is issued by the administration API, `GET /preview-link` (see [Managing the Theme](#managing-the-theme)), and points at the address of the application that serves it, which is the site's own when one application serves both. The site reads the link with the application's Data Protection keys: when several instances serve the site, they must share one key ring, as they already must for authentication cookies. Issuing a link needs `Dignite.Site.Public.Web` in the same application as the administration API, and fails with `Site:090007` without it.
+
+### As HTML
+
+The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The page or content at that path is rendered through its template and layout as the given theme has them.
 
 A preview renders saved files, so save first. It fails with one of these errors:
 
@@ -306,6 +320,7 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | `POST /releases/{id}/set-live` | `SiteAdmin.Themes.Publish` | Makes a release live; an older one is the rollback. |
 | `POST /releases/{id}/restore` | `SiteAdmin.Themes.Edit` | Copies a release back into the working copy. |
 | `GET /preview?path=...&releaseId=...` | `SiteAdmin.Themes` | [Previews](#previewing) the page at the path with the working copy, or with the release when `releaseId` is given. Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` and `layout`. |
+| `GET /preview-link?path=...&releaseId=...` | `SiteAdmin.Themes` | A link that opens the site at the path, the home page by default, [in a browser](#in-a-browser) with the working copy, or with the release when `releaseId` is given. Returns `url`, `path`, `releaseId` and `expiresAt`. |
 
 A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`) are answered as business errors.
 

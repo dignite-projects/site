@@ -7,6 +7,8 @@ import {
   isAssetPath,
   languageOf,
   normalizeThemePath,
+  pageTemplatePath,
+  routeToPreviewPath,
   skeletonFor,
   themePathProblem,
 } from './theme-workbench.helpers';
@@ -101,5 +103,30 @@ describe('theme workbench helpers', () => {
         error: { error: { message: 'Invalid', validationErrors: [{ message: 'Path is required.' }] } },
       }),
     ).toBe('Invalid\nPath is required.');
+  });
+});
+
+describe('pageTemplatePath', () => {
+  it('drops a trailing .cshtml and a leading slash, as the site resolves a page template', () => {
+    expect(pageTemplatePath('Events')).toBe('Events');
+    expect(pageTemplatePath('Default.cshtml')).toBe('Default');
+    expect(pageTemplatePath(' /blog/Article.CSHTML ')).toBe('blog/Article');
+  });
+});
+
+describe('routeToPreviewPath', () => {
+  it('keeps the literal segments up to an optional parameter', () => {
+    expect(routeToPreviewPath('/')).toBe('/');
+    expect(routeToPreviewPath('/about')).toBe('/about');
+    expect(routeToPreviewPath('/events/{slug?}')).toBe('/events');
+    expect(routeToPreviewPath('/news/{news-category?:^(news|tutorials)$}/{publishTime?:yyyy:^\\d{4}$}')).toBe('/news');
+    expect(routeToPreviewPath('/docs/{page=intro}')).toBe('/docs');
+    expect(routeToPreviewPath('/files/{**rest}')).toBe('/files');
+  });
+
+  it('has no address for a route whose first parameter is required', () => {
+    expect(routeToPreviewPath('/news/{publishTime:yyyy:^\\d{4}$}/{slug}')).toBeNull();
+    expect(routeToPreviewPath('/blog/{slug}')).toBeNull();
+    expect(routeToPreviewPath('/page-{n}')).toBeNull();
   });
 });

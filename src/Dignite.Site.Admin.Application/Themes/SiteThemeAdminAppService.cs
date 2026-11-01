@@ -253,6 +253,22 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None);
     }
 
+    public virtual async Task<SiteThemePreviewLinkDto> GetPreviewLinkAsync(string? path = null, Guid? releaseId = null)
+    {
+        var theme = await ThemeManager.GetOrCreateAsync();
+        if (releaseId is { } id)
+        {
+            // Refused here, while the author can still be told; the site would quietly show the live release.
+            await ThemeManager.GetReleaseAsync(theme, id);
+        }
+
+        // Optional, like the preview renderer: the issuer is Dignite.Site.Public.Web's.
+        var issuer = LazyServiceProvider.LazyGetService<ISiteThemePreviewLinkIssuer>()
+                     ?? throw new BusinessException(SiteErrorCodes.SiteTemplatePreviewUnavailable);
+
+        return await issuer.IssueAsync(new SiteThemePreviewLinkRequest { Path = path, ReleaseId = releaseId });
+    }
+
     protected virtual async Task<SiteThemeSnapshotDto> GetWorkingCopySnapshotAsync(SiteTheme theme)
     {
         var files = await FileRepository.GetListAsync(theme.Id);

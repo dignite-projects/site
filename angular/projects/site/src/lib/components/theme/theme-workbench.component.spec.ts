@@ -2,6 +2,7 @@ import { LocalizationService, PermissionService } from '@abp/ng.core';
 import { Confirmation, ConfirmationService, ToasterService } from '@abp/ng.theme.shared';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
 import type { SiteThemeCheckDto, SiteThemeFileDto } from '../../proxy/dignite/site/admin/themes/models';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
@@ -25,7 +26,7 @@ describe('ThemeWorkbenchComponent', () => {
     ...overrides,
   });
 
-  function create(themeService: object = {}, confirmation: object = {}) {
+  function create(themeService: object = {}, confirmation: object = {}, pages: object[] = []) {
     const toaster = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() };
     const service = {
       get: vi.fn(() => of({ defaultLayout: 'layouts/default', concurrencyStamp: 's' })),
@@ -40,6 +41,7 @@ describe('ThemeWorkbenchComponent', () => {
       providers: [
         ThemeWorkbenchComponent,
         { provide: SiteThemeAdminService, useValue: service },
+        { provide: PageAdminService, useValue: { getList: vi.fn(() => of({ items: pages })) } },
         { provide: ConfirmationService, useValue: confirmation },
         { provide: ToasterService, useValue: toaster },
         { provide: LocalizationService, useValue: { instant: (key: string) => key } },
@@ -224,6 +226,75 @@ describe('ThemeWorkbenchComponent', () => {
     expect(component.defaultLayoutChanged(check({ ...live, defaultLayout: 'layouts/default' }))).toBe(false);
     expect(component.defaultLayoutChanged(check({ liveReleaseNumber: 3, defaultLayout: undefined, liveDefaultLayout: null as unknown as string }))).toBe(false);
     expect(component.defaultLayoutChanged(check({ defaultLayout: 'layouts/landing' }))).toBe(false);
+  });
+
+  describe('preview', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('opens a tab in the click and points it at the signed link, without a handle on this page', () => {
+      const tab = { opener: {}, location: { replace: vi.fn() }, close: vi.fn() };
+      vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+      const getPreviewLink = vi.fn(() => of({ url: 'https://site.example/?site-preview=t' }));
+      const { component } = create({ getPreviewLink });
+
+      component.openPreview('release-1');
+
+      expect(window.open).toHaveBeenCalledWith('', '_blank');
+      expect(tab.opener).toBeNull();
+      expect(getPreviewLink).toHaveBeenCalledWith(undefined, 'release-1');
+      expect(tab.location.replace).toHaveBeenCalledWith('https://site.example/?site-preview=t');
+    });
+
+    it('offers the active pages the template in front renders, with an address where a page has one', () => {
+      const tab = { opener: {}, location: { replace: vi.fn() }, close: vi.fn() };
+      vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+      const getPreviewLink = vi.fn(() => of({ url: 'https://site.example/events?site-preview=t' }));
+      const { component } = create({ getPreviewLink }, {}, [
+        { name: 'events', displayName: 'Events', route: '/events/{slug?}', template: 'Events', isActive: true },
+        { name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events.cshtml', isActive: true },
+        { name: 'old', displayName: 'Old', route: '/old', template: 'Events', isActive: false },
+        { name: 'about', displayName: 'About', route: '/about', template: 'Default', isActive: true },
+      ]);
+
+      expect(component.previewPages()).toEqual([]);
+      component.openFile('Events');
+
+      expect(component.previewPages()).toEqual([
+        { name: 'Events', route: '/events/{slug?}', path: '/events' },
+        { name: 'news', route: '/news/{year}/{slug}', path: null },
+      ]);
+
+      component.isPreviewMenuOpen.set(true);
+      component.openPreview(undefined, '/events');
+
+      expect(getPreviewLink).toHaveBeenCalledWith('/events', undefined);
+      expect(component.isPreviewMenuOpen()).toBe(false);
+    });
+
+    it('says so when the browser blocks the tab, and asks for no link', () => {
+      vi.spyOn(window, 'open').mockReturnValue(null);
+      const getPreviewLink = vi.fn();
+      const { component, toaster } = create({ getPreviewLink });
+
+      component.openPreview();
+
+      expect(toaster.warn).toHaveBeenCalledWith('Site::PreviewPopupBlocked');
+      expect(getPreviewLink).not.toHaveBeenCalled();
+    });
+
+    it('tells that unsaved changes are not previewed, and closes the tab when no link comes', () => {
+      const tab = { opener: {}, location: { replace: vi.fn() }, close: vi.fn() };
+      vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+      const getPreviewLink = vi.fn(() => throwError(() => ({ status: 403 })));
+      const { component, toaster } = create({ getPreviewLink });
+      component.openFile('Events');
+      component.onEdit('<p>changed</p>');
+
+      component.openPreview();
+
+      expect(toaster.info).toHaveBeenCalledWith('Site::PreviewUnsavedNotShown');
+      expect(tab.close).toHaveBeenCalled();
+    });
   });
 
   it('keeps a renamed file open under its new path', () => {

@@ -135,4 +135,13 @@ public partial class SiteThemeAdminClientProxy : ClientProxyBase<ISiteThemeAdmin
             { typeof(Guid?), releaseId }
         });
     }
+
+    public virtual async Task<SiteThemePreviewLinkDto> GetPreviewLinkAsync(string? path = null, Guid? releaseId = null)
+    {
+        return await RequestAsync<SiteThemePreviewLinkDto>(nameof(GetPreviewLinkAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(string), path },
+            { typeof(Guid?), releaseId }
+        });
+    }
 }
