@@ -3,12 +3,14 @@ import {
   buildThemeTree,
   errorMessageOf,
   extensionOf,
+  fieldGroupsFor,
   foldersOf,
   isAssetPath,
   languageOf,
   normalizeThemePath,
   pageTemplatePath,
   routeToPreviewPath,
+  snippetFor,
   skeletonFor,
   themePathProblem,
 } from './theme-workbench.helpers';
@@ -128,5 +130,60 @@ describe('routeToPreviewPath', () => {
     expect(routeToPreviewPath('/news/{publishTime:yyyy:^\\d{4}$}/{slug}')).toBeNull();
     expect(routeToPreviewPath('/blog/{slug}')).toBeNull();
     expect(routeToPreviewPath('/page-{n}')).toBeNull();
+  });
+});
+
+describe('snippetFor', () => {
+  it('reads plain values off content.fields, formats a date and renders anything else', () => {
+    expect(snippetFor('Text', 'title')).toBe('{{ content.fields.title }}');
+    expect(snippetFor('Boolean', 'featured')).toBe('{{ content.fields.featured }}');
+    expect(snippetFor('DateTime', 'starts')).toBe('{{ content.fields.starts | date.to_string "%Y-%m-%d" }}');
+    expect(snippetFor('CKEditor', 'body')).toBe('{{ render_field "body" }}');
+    expect(snippetFor('Matrix', 'blocks')).toBe('{{ render_field "blocks" }}');
+  });
+
+  it('reads a name that is not an identifier with the indexer', () => {
+    expect(snippetFor('Text', 'sub-title')).toBe('{{ content.fields["sub-title"] }}');
+  });
+});
+
+describe('fieldGroupsFor', () => {
+  const library = [
+    { id: 'f-title', name: 'title', displayName: 'Title', fieldTypeName: 'Text' },
+    { id: 'f-body', name: 'body', displayName: 'Body', fieldTypeName: 'CKEditor' },
+    { id: 'f-seo', name: 'seo', displayName: 'SEO', fieldTypeName: 'Seo' },
+  ];
+
+  it('lists each content type with its fields in order, named as arranged, without the SEO block', () => {
+    const page = {
+      contentTypes: [
+        {
+          id: 'ct-event',
+          displayName: 'Event',
+          fields: [
+            { fieldId: 'f-body', order: 2 },
+            { fieldId: 'f-title', order: 1, displayName: 'Event name' },
+            { fieldId: 'f-seo', order: 3 },
+          ],
+        },
+        { id: 'ct-empty', displayName: 'Only SEO', fields: [{ fieldId: 'f-seo', order: 1 }] },
+      ],
+    };
+
+    expect(fieldGroupsFor(page, library)).toEqual([
+      {
+        id: 'ct-event',
+        displayName: 'Event',
+        fields: [
+          { name: 'title', displayName: 'Event name', fieldTypeName: 'Text', snippet: '{{ content.fields.title }}' },
+          { name: 'body', displayName: 'Body', fieldTypeName: 'CKEditor', snippet: '{{ render_field "body" }}' },
+        ],
+      },
+    ]);
+  });
+
+  it('is empty until both the page and the library are there', () => {
+    expect(fieldGroupsFor(undefined, library)).toEqual([]);
+    expect(fieldGroupsFor({ contentTypes: [] }, undefined)).toEqual([]);
   });
 });

@@ -2,6 +2,7 @@ import { LocalizationService, PermissionService } from '@abp/ng.core';
 import { Confirmation, ConfirmationService, ToasterService } from '@abp/ng.theme.shared';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
 import type { SiteThemeCheckDto, SiteThemeFileDto } from '../../proxy/dignite/site/admin/themes/models';
@@ -26,7 +27,17 @@ describe('ThemeWorkbenchComponent', () => {
     ...overrides,
   });
 
-  function create(themeService: object = {}, confirmation: object = {}, pages: object[] = []) {
+  function create(
+    themeService: object = {},
+    confirmation: object = {},
+    pages: object[] = [],
+    fieldLibrary: object[] = [],
+  ) {
+    const pageService = {
+      getList: vi.fn(() => of({ items: pages })),
+      get: vi.fn((id: string) => of(pages.find(page => (page as { id?: string }).id === id))),
+    };
+    const fieldService = { getList: vi.fn(() => of({ items: fieldLibrary })) };
     const toaster = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() };
     const service = {
       get: vi.fn(() => of({ defaultLayout: 'layouts/default', concurrencyStamp: 's' })),
@@ -41,7 +52,8 @@ describe('ThemeWorkbenchComponent', () => {
       providers: [
         ThemeWorkbenchComponent,
         { provide: SiteThemeAdminService, useValue: service },
-        { provide: PageAdminService, useValue: { getList: vi.fn(() => of({ items: pages })) } },
+        { provide: PageAdminService, useValue: pageService },
+        { provide: FieldAdminService, useValue: fieldService },
         { provide: ConfirmationService, useValue: confirmation },
         { provide: ToasterService, useValue: toaster },
         { provide: LocalizationService, useValue: { instant: (key: string) => key } },
@@ -51,7 +63,7 @@ describe('ThemeWorkbenchComponent', () => {
 
     const component = TestBed.inject(ThemeWorkbenchComponent);
     component.ngOnInit();
-    return { component, service, toaster };
+    return { component, service, toaster, pageService, fieldService };
   }
 
   it('loads the theme, its files and the check', () => {
@@ -250,8 +262,8 @@ describe('ThemeWorkbenchComponent', () => {
       vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
       const getPreviewLink = vi.fn(() => of({ url: 'https://site.example/events?site-preview=t' }));
       const { component } = create({ getPreviewLink }, {}, [
-        { name: 'events', displayName: 'Events', route: '/events/{slug?}', template: 'Events', isActive: true },
-        { name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events.cshtml', isActive: true },
+        { id: 'p-events', name: 'events', displayName: 'Events', route: '/events/{slug?}', template: 'Events', isActive: true },
+        { id: 'p-news', name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events.cshtml', isActive: true },
         { name: 'old', displayName: 'Old', route: '/old', template: 'Events', isActive: false },
         { name: 'about', displayName: 'About', route: '/about', template: 'Default', isActive: true },
       ]);
@@ -260,8 +272,8 @@ describe('ThemeWorkbenchComponent', () => {
       component.openFile('Events');
 
       expect(component.previewPages()).toEqual([
-        { name: 'Events', route: '/events/{slug?}', path: '/events' },
-        { name: 'news', route: '/news/{year}/{slug}', path: null },
+        { id: 'p-events', name: 'Events', route: '/events/{slug?}', path: '/events' },
+        { id: 'p-news', name: 'news', route: '/news/{year}/{slug}', path: null },
       ]);
 
       component.isPreviewMenuOpen.set(true);
@@ -294,6 +306,62 @@ describe('ThemeWorkbenchComponent', () => {
 
       expect(toaster.info).toHaveBeenCalledWith('Site::PreviewUnsavedNotShown');
       expect(tab.close).toHaveBeenCalled();
+    });
+  });
+
+  describe('field sidebar', () => {
+    const pages = [
+      {
+        id: 'p-events',
+        name: 'events',
+        displayName: 'Events',
+        route: '/events/{slug?}',
+        template: 'Events',
+        isActive: true,
+        contentTypes: [{ id: 'ct-event', displayName: 'Event', fields: [{ fieldId: 'f-title', order: 1 }] }],
+      },
+      { id: 'p-archive', name: 'archive', displayName: 'Archive', route: '/archive', template: 'Events', isActive: true, contentTypes: [] },
+    ];
+    const library = [{ id: 'f-title', name: 'title', displayName: 'Title', fieldTypeName: 'Text' }];
+
+    it('lists the fields of a page the template in front renders, reading each page and the library once', () => {
+      const { component, pageService, fieldService } = create({}, {}, pages, library);
+      component.openFile('Events');
+
+      component.rightPanel.set('fields');
+      TestBed.tick();
+
+      expect(component.showsFields()).toBe(true);
+      expect(component.fieldsPageId()).toBe('p-events');
+      expect(component.fieldGroups()).toEqual([
+        {
+          id: 'ct-event',
+          displayName: 'Event',
+          fields: [{ name: 'title', displayName: 'Title', fieldTypeName: 'Text', snippet: '{{ content.fields.title }}' }],
+        },
+      ]);
+
+      component.chosenFieldsPageId.set('p-archive');
+      TestBed.tick();
+      expect(component.isLoadingFields()).toBe(false);
+      expect(component.fieldGroups()).toEqual([]);
+
+      component.chosenFieldsPageId.set('p-events');
+      TestBed.tick();
+      expect(pageService.get).toHaveBeenCalledTimes(2);
+      expect(fieldService.getList).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the check for a file no page renders, and reads nothing', () => {
+      const { component, pageService, fieldService } = create({}, {}, pages, library);
+      component.rightPanel.set('fields');
+
+      component.openFile('partials/card');
+      TestBed.tick();
+
+      expect(component.showsFields()).toBe(false);
+      expect(pageService.get).not.toHaveBeenCalled();
+      expect(fieldService.getList).not.toHaveBeenCalled();
     });
   });
 

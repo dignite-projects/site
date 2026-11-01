@@ -1,4 +1,6 @@
 import type { SiteThemeFileSummaryDto } from '../../proxy/dignite/site/admin/themes/models';
+import type { FieldDto } from '../../proxy/dignite/site/fields/models';
+import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 
 /** Mirrors `SiteThemeConsts.PathPattern` (`src/Dignite.Site.Domain.Shared/Themes/SiteThemeConsts.cs`). */
@@ -256,4 +258,86 @@ export function routeToPreviewPath(route: string): string | null {
   }
 
   return '/' + kept.join('/');
+}
+
+/** The field type of a page's SEO block: edited in its own panel and written by `site_head`, never by hand. */
+const SEO_FIELD_TYPE = 'Seo';
+
+/** A field name Scriban can read as a member (`content.fields.title`); anything else needs the indexer form. */
+const SCRIBAN_MEMBER_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * The Scriban that prints a field of the current content. Plain values are read straight off `content.fields`; a date
+ * is formatted; everything composite or rich (editor text, matrix, table, a linked content, files) goes through
+ * `render_field`, which knows how to draw it. A name that is not a plain identifier (it may hold a hyphen) is read with
+ * the indexer, the only form Scriban parses for it.
+ */
+export function snippetFor(fieldTypeName: string, name: string): string {
+  const member = SCRIBAN_MEMBER_NAME.test(name) ? `content.fields.${name}` : `content.fields["${name}"]`;
+
+  switch (fieldTypeName) {
+    case 'Text':
+    case 'Number':
+    case 'Boolean':
+    case 'Select':
+    case 'Tree':
+      return `{{ ${member} }}`;
+    case 'DateTime':
+      return `{{ ${member} | date.to_string "%Y-%m-%d" }}`;
+    default:
+      return `{{ render_field "${name}" }}`;
+  }
+}
+
+/** One field in the sidebar: what the author sees and the snippet a click inserts. */
+export interface ThemeField {
+  name: string;
+  displayName: string;
+  fieldTypeName: string;
+  snippet: string;
+}
+
+/** The fields of one content type of a page, in the order the content type arranges them. */
+export interface ThemeFieldGroup {
+  id: string;
+  displayName: string;
+  fields: ThemeField[];
+}
+
+/**
+ * One group per content type of `page`, its fields in arrangement order, named as the content type names them, without
+ * the SEO block; a content type left with no field is left out. Empty until both the page and the field library are
+ * there.
+ */
+export function fieldGroupsFor(page: PageDto | undefined, library: FieldDto[] | undefined): ThemeFieldGroup[] {
+  if (!page || !library) {
+    return [];
+  }
+
+  const fieldsById = new Map(library.map(field => [field.id, field] as const));
+
+  return (page.contentTypes ?? [])
+    .map(contentType => ({
+      id: contentType.id ?? contentType.name ?? '',
+      displayName: contentType.displayName || contentType.name || '',
+      fields: [...(contentType.fields ?? [])]
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .flatMap(arranged => {
+          const field = fieldsById.get(arranged.fieldId ?? '');
+          if (!field?.name || field.fieldTypeName === SEO_FIELD_TYPE) {
+            return [];
+          }
+
+          const fieldTypeName = field.fieldTypeName ?? '';
+          return [
+            {
+              name: field.name,
+              displayName: arranged.displayName || field.displayName || field.name,
+              fieldTypeName,
+              snippet: snippetFor(fieldTypeName, field.name),
+            },
+          ];
+        }),
+    }))
+    .filter(group => group.fields.length > 0);
 }
