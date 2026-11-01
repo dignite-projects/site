@@ -3,7 +3,7 @@ using Dignite.Site.Contents;
 using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
-using Dignite.Site.Templates;
+using Dignite.Site.Themes;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
@@ -34,7 +34,13 @@ public interface ISiteDbContext : IEfCoreDbContext
 
     DbSet<FileDescriptor> FileDescriptors { get; }
 
-    DbSet<SiteTemplate> SiteTemplates { get; }
+    DbSet<SiteTheme> SiteThemes { get; }
 
-    DbSet<SiteTemplateVersion> SiteTemplateVersions { get; }
+    DbSet<SiteThemeFile> SiteThemeFiles { get; }
+
+    DbSet<SiteRelease> SiteReleases { get; }
+
+    DbSet<SiteReleaseFile> SiteReleaseFiles { get; }
+
+    DbSet<SiteThemeBlob> SiteThemeBlobs { get; }
 }

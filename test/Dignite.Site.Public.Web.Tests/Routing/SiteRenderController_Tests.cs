@@ -9,8 +9,8 @@ using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Scriban;
 using Dignite.Site.Public.Seo;
-using Dignite.Site.Public.Templates;
-using Dignite.Site.Templates;
+using Dignite.Site.Public.Themes;
+using Dignite.Site.Themes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -51,11 +51,16 @@ public class SiteRenderController_Tests
     private static Task<IActionResult> RenderAsync(
         SiteLanguageTestHost host,
         RouteMatchDto match,
-        FakeTemplateAppService? templateAppService = null)
+        FakeThemeAppService? themeAppService = null)
     {
+        var liveTheme = new SiteLiveThemeProvider(
+            themeAppService ?? new FakeThemeAppService(null),
+            new SiteLiveThemeCache(Microsoft.Extensions.Options.Options.Create(new SiteScribanOptions())),
+            host.CurrentTenant);
+
         var controller = new SiteRenderController(
             new FakeRoutingAppService(match), new FakeFieldAppService(), new FakeHeadMetadataAppService(HeadMetadata),
-            templateAppService ?? new FakeTemplateAppService(new SiteTemplateRenderSetDto()))
+            liveTheme)
         {
             ControllerContext = new ControllerContext { HttpContext = host.HttpContext },
             TempData = new TempDataDictionary(host.HttpContext, new NullTempDataProvider()),
@@ -115,23 +120,23 @@ public class SiteRenderController_Tests
     }
 
     /// <summary>
-    /// A page whose template the tenant has published in Scriban renders through it - in the page's language -
-    /// instead of the Razor view of the same name.
+    /// A page whose template the live release has renders through it - in the page's language - instead of the
+    /// Razor view of the same name.
     /// </summary>
     [Fact]
-    public async Task A_Published_Template_Should_Render_With_Scriban()
+    public async Task A_Template_Of_The_Live_Release_Should_Render_With_Scriban()
     {
         var scriban = new ScribanTestRenderer("en,ja", "/ja/about");
-        var templates = new FakeTemplateAppService(ScribanTestRenderer.RenderSet(
+        var themes = new FakeThemeAppService(ScribanTestRenderer.RenderSet(
             "<h1>{{ page.name }}</h1>",
-            "<html lang=\"{{ culture }}\"><head>{{ site_head }}</head><body>{{ body }}</body></html>"));
+            "<html lang=\"{{ culture }}\"><head>{{ site_head }}</head><body>{{ body }}</body></html>").Snapshot);
 
-        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), templates);
+        var result = await RenderAsync(scriban.Host, PageMatch("en", "ja"), themes);
 
-        templates.RequestedNames.ShouldBe(new[] { "Default" });
+        themes.Calls.ShouldBe(1);
         var scoped = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>();
         scoped.CultureName.ShouldBe("ja");
-        scoped.Inner.ShouldBeOfType<ScribanPageResult>().TemplateName.ShouldBe("Default");
+        scoped.Inner.ShouldBeOfType<ScribanPageResult>().TemplatePath.ShouldBe("Default");
 
         scriban.Host.HttpContext.RequestServices = new ServiceCollection()
             .AddSingleton(scriban.Renderer)
@@ -147,52 +152,87 @@ public class SiteRenderController_Tests
         html.ShouldEndWith("<body><h1>about</h1></body></html>");
     }
 
-    /// <summary>No published template of that name: the Razor view, exactly as before.</summary>
+    /// <summary>No template of that name in the live release: the Razor view, exactly as before.</summary>
     [Fact]
-    public async Task No_Published_Template_Should_Keep_The_Razor_View()
+    public async Task No_Template_Of_That_Name_Should_Keep_The_Razor_View()
     {
         var host = new SiteLanguageTestHost("en,ja", "/ja/about");
-        var templates = new FakeTemplateAppService(new SiteTemplateRenderSetDto
-        {
-            // A published layout alone does not switch a page over - only its own template does.
-            Layout = ScribanTestRenderer.Version("{{ site_head }}{{ body }}")
-        });
+        var themes = new FakeThemeAppService(ScribanTestRenderer.Snapshot(
+            // A layout alone does not switch a page over - only its own template does.
+            new Dictionary<string, string> { ["layouts/default"] = "{{ site_head }}{{ body }}" },
+            "layouts/default"));
         var match = PageMatch("en", "ja");
         match.Page!.Template = "Default.cshtml";
 
-        var result = await RenderAsync(host, match, templates);
+        var result = await RenderAsync(host, match, themes);
 
-        templates.RequestedNames.ShouldBe(new[] { "Default" });
         var view = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
         view.ViewName.ShouldBe("Default");
         view.Model.ShouldBeOfType<SiteRenderViewModel>().Page.Name.ShouldBe("about");
     }
 
-    /// <summary>A 404 never asks for templates.</summary>
+    /// <summary>A tenant that never published renders every page with Razor.</summary>
     [Fact]
-    public async Task An_Unmatched_Path_Should_Not_Look_Up_A_Template()
+    public async Task Nothing_Published_Should_Keep_The_Razor_View()
     {
-        var host = new SiteLanguageTestHost("en", "/missing");
-        var templates = new FakeTemplateAppService(new SiteTemplateRenderSetDto());
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
 
-        var result = await RenderAsync(host, new RouteMatchDto { Matched = false }, templates);
+        var result = await RenderAsync(host, PageMatch("en", "ja"), new FakeThemeAppService(null));
 
-        result.ShouldBeOfType<NotFoundResult>();
-        templates.RequestedNames.ShouldBeEmpty();
+        result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
     }
 
-    private class FakeTemplateAppService(SiteTemplateRenderSetDto renderSet) : ISiteTemplatePublicAppService
+    /// <summary>A page whose Template names a static file of the theme is not rendered by Scriban.</summary>
+    [Fact]
+    public async Task A_Static_File_Should_Never_Render_A_Page()
     {
-        public List<string> RequestedNames { get; } = new();
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        var themes = new FakeThemeAppService(ScribanTestRenderer.Snapshot(new Dictionary<string, string> { ["site.css"] = "" }));
+        var match = PageMatch("en", "ja");
+        match.Page!.Template = "site.css";
 
-        public Task<SiteTemplateRenderSetDto> GetRenderSetAsync(string name)
+        var result = await RenderAsync(host, match, themes);
+
+        result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
+    }
+
+    /// <summary>A 404 never asks for the theme.</summary>
+    [Fact]
+    public async Task An_Unmatched_Path_Should_Not_Look_Up_The_Theme()
+    {
+        var host = new SiteLanguageTestHost("en", "/missing");
+        var themes = new FakeThemeAppService(null);
+
+        var result = await RenderAsync(host, new RouteMatchDto { Matched = false }, themes);
+
+        result.ShouldBeOfType<NotFoundResult>();
+        themes.Calls.ShouldBe(0);
+    }
+
+    /// <summary>A live release, or none (null).</summary>
+    private class FakeThemeAppService(SiteThemeSnapshotDto? live) : ISiteThemePublicAppService
+    {
+        private readonly Guid? _releaseId = live == null ? null : Guid.NewGuid();
+
+        public int Calls { get; private set; }
+
+        public Task<SiteLiveThemeDto> GetLiveAsync(Guid? knownReleaseId = null)
         {
-            RequestedNames.Add(name);
-            return Task.FromResult(renderSet);
+            Calls++;
+
+            if (live == null)
+            {
+                return Task.FromResult(new SiteLiveThemeDto());
+            }
+
+            live.ReleaseId = _releaseId;
+            return Task.FromResult(knownReleaseId == _releaseId
+                ? new SiteLiveThemeDto { ReleaseId = _releaseId, IsUnchanged = true }
+                : new SiteLiveThemeDto { ReleaseId = _releaseId, Snapshot = live });
         }
 
         /// <summary>The asset endpoint's lookup; rendering a page never makes it.</summary>
-        public Task<SiteTemplateVersionDto?> FindPublishedAsync(string name) => throw new NotSupportedException();
+        public Task<SiteThemeAssetDto?> FindLiveAssetAsync(string path) => throw new NotSupportedException();
     }
 
     private class FakeRoutingAppService(RouteMatchDto match) : IRoutingPublicAppService

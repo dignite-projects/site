@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Dignite.Site.Templates;
+using Dignite.Site.Themes;
 using global::Scriban.Syntax;
 using Shouldly;
 using Xunit;
@@ -10,8 +10,8 @@ using Xunit;
 namespace Dignite.Site.Public.Scriban;
 
 /// <summary>
-/// <c>include</c>: a page template or the layout pulls in the tenant's published partials - and nothing else -
-/// rendered with the same encoding rules as the template around them.
+/// <c>include</c>: a page template or the layout pulls in another template of the theme it renders with - and nothing
+/// else - rendered with the same encoding rules as the template around them.
 /// </summary>
 public class ScribanIncludes_Tests
 {
@@ -105,20 +105,36 @@ public class ScribanIncludes_Tests
         html.ShouldEndWith("<ul><li>inner</li></ul>");
     }
 
-    [Theory]
-    [InlineData("layout")]
-    [InlineData("Default")]
-    [InlineData("assets/site.css")]
-    public async Task A_Template_That_Is_Not_A_Partial_Should_Not_Be_Includable(string name)
+    [Fact]
+    public async Task A_Static_File_Should_Not_Be_Includable()
     {
-        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
-            $"{{{{ include \"{name}\" }}}}",
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
+            "{{ include \"assets/site.css\" }}",
             HeadOnlyLayout,
-            new Dictionary<string, string>()));
+            assets: new Dictionary<string, string> { ["assets/site.css"] = "body{}" })));
 
         ex.ShouldBeAssignableTo<ScriptRuntimeException>();
-        ex!.Message.ShouldContain("'partials/'");
-        ex.Message.ShouldContain($"'{name}'");
+        ex!.Message.ShouldContain("'assets/site.css' is a static file");
+    }
+
+    /// <summary>
+    /// The program does not tell a partial from a page template - a leading <c>_</c> is a naming habit, a directory
+    /// a choice of the author's - so any template of the theme can be included.
+    /// </summary>
+    [Fact]
+    public async Task Any_Template_Should_Be_Includable()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync(
+            "[{{ include \"Events\" }}][{{ include \"blog/_card\" }}][{{ include \"shared/footer\" }}]",
+            HeadOnlyLayout,
+            new Dictionary<string, string>
+            {
+                ["Events"] = "events",
+                ["blog/_card"] = "card",
+                ["shared/footer"] = "footer"
+            });
+
+        html.ShouldEndWith("[events][card][footer]");
     }
 
     [Fact]
@@ -134,11 +150,11 @@ public class ScribanIncludes_Tests
     }
 
     /// <summary>
-    /// The render set holds the tenant's published partials only; a draft, or another tenant's partial, is not
-    /// in it, and so cannot be included, whatever its name.
+    /// The render set holds the files of the theme being rendered only; a file of the working copy, of another release
+    /// or of another tenant is not in it, and so cannot be included, whatever its name.
     /// </summary>
     [Fact]
-    public async Task A_Partial_Outside_The_Render_Set_Should_Not_Be_Includable()
+    public async Task A_Template_Outside_The_Render_Set_Should_Not_Be_Includable()
     {
         var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
             "{{ include \"partials/draft\" }}",
@@ -146,7 +162,7 @@ public class ScribanIncludes_Tests
             new Dictionary<string, string> { ["partials/published"] = "published" }));
 
         ex.ShouldBeAssignableTo<ScriptRuntimeException>();
-        ex!.Message.ShouldContain("No published template named 'partials/draft'");
+        ex!.Message.ShouldContain("No template 'partials/draft' in the theme");
     }
 
     [Fact]
@@ -278,9 +294,7 @@ public class ScribanIncludes_Tests
         var wrapped = Microsoft.Extensions.Options.Options.Create(options);
         var sandbox = new ScribanSandbox(wrapped, ScribanTestRenderer.Encoder);
         using var cache = new ScribanTemplateCache(wrapped);
-        var loader = new SiteTemplateLoader(
-            partials.ToDictionary(p => p.Key, p => ScribanTestRenderer.Version(p.Value)),
-            cache);
+        var loader = new SiteTemplateLoader(ScribanTestRenderer.RenderSet(partials), cache);
 
         using var timeout = new CancellationTokenSource(options.RenderTimeout);
         var context = sandbox.CreateContext(timeout.Token, new BoundedScriptOutput("test", options.MaxOutputLength), loader);

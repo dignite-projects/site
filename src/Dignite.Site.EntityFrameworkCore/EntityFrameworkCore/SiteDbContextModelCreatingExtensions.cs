@@ -6,7 +6,7 @@ using Dignite.Site.EntityFrameworkCore.ValueComparers;
 using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
-using Dignite.Site.Templates;
+using Dignite.Site.Themes;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp;
 using Volo.Abp.EntityFrameworkCore.Modeling;
@@ -214,37 +214,71 @@ public static class SiteDbContextModelCreatingExtensions
             b.HasOne<DirectoryDescriptor>().WithMany().HasForeignKey(f => f.DirectoryId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Tenant-authored Scriban templates: a header row and its immutable versions.
-        builder.Entity<SiteTemplate>(b =>
+        // The tenant's theme: one header row, the working copy's files, the immutable releases with their file
+        // lists, and the published bodies, stored once per content.
+        builder.Entity<SiteTheme>(b =>
         {
-            b.ToTable(SiteDbProperties.DbTablePrefix + "Templates", SiteDbProperties.DbSchema);
+            b.ToTable(SiteDbProperties.DbTablePrefix + "Themes", SiteDbProperties.DbSchema);
             b.ConfigureByConvention();
 
-            b.Property(t => t.Name).IsRequired().HasMaxLength(SiteTemplateConsts.MaxNameLength);
+            b.Property(t => t.DefaultLayout).HasMaxLength(SiteThemeConsts.MaxPathLength);
 
-            // Unique per tenant: the name is what Page.Template finds a template by, so a duplicate would
-            // make "which template renders this page" ambiguous. Live rows only - a template is soft-deleted,
-            // and a deleted one must not stop its name from being created again.
-            b.HasIndex(t => new { t.TenantId, t.Name })
-                .IsUnique()
-                .HasFilter($"{nameof(SiteTemplate.IsDeleted)} = 0");
-
-            b.HasMany(t => t.Versions).WithOne().HasForeignKey(v => v.TemplateId)
-                .IsRequired().OnDelete(DeleteBehavior.Cascade);
+            // One theme per tenant, for now.
+            b.HasIndex(t => t.TenantId).IsUnique();
         });
 
-        builder.Entity<SiteTemplateVersion>(b =>
+        builder.Entity<SiteThemeFile>(b =>
         {
-            b.ToTable(SiteDbProperties.DbTablePrefix + "TemplateVersions", SiteDbProperties.DbSchema);
+            b.ToTable(SiteDbProperties.DbTablePrefix + "ThemeFiles", SiteDbProperties.DbSchema);
             b.ConfigureByConvention();
 
-            // No maximum length: the source of a template is a large text column, capped by
-            // SiteTemplateConsts.MaxBodyLength in the entity rather than by the database type.
-            b.Property(v => v.Body).IsRequired();
-            b.Property(v => v.Comment).HasMaxLength(SiteTemplateConsts.MaxCommentLength);
+            b.Property(f => f.Path).IsRequired().HasMaxLength(SiteThemeConsts.MaxPathLength);
+            // No maximum length: a large text column, capped by SiteThemeConsts.MaxBodyLength in the entity.
+            b.Property(f => f.Body).IsRequired();
+            b.Property(f => f.ContentHash).IsRequired().HasMaxLength(SiteThemeConsts.ContentHashLength);
+            b.Ignore(f => f.IsAsset);
 
-            // A version number is never reused within its template.
-            b.HasIndex(v => new { v.TemplateId, v.Number }).IsUnique();
+            // The path is what a page's Template and every include find a file by.
+            b.HasIndex(f => new { f.ThemeId, f.Path }).IsUnique();
+
+            b.HasOne<SiteTheme>().WithMany().HasForeignKey(f => f.ThemeId).IsRequired().OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SiteRelease>(b =>
+        {
+            b.ToTable(SiteDbProperties.DbTablePrefix + "Releases", SiteDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(r => r.DefaultLayout).HasMaxLength(SiteThemeConsts.MaxPathLength);
+            b.Property(r => r.Comment).HasMaxLength(SiteThemeConsts.MaxCommentLength);
+
+            // A release number is never reused within its theme.
+            b.HasIndex(r => new { r.ThemeId, r.Number }).IsUnique();
+
+            b.HasOne<SiteTheme>().WithMany().HasForeignKey(r => r.ThemeId).IsRequired().OnDelete(DeleteBehavior.Cascade);
+            b.HasMany(r => r.Files).WithOne().HasForeignKey(f => f.ReleaseId).IsRequired().OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SiteReleaseFile>(b =>
+        {
+            b.ToTable(SiteDbProperties.DbTablePrefix + "ReleaseFiles", SiteDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasKey(f => new { f.ReleaseId, f.Path });
+            b.Property(f => f.Path).IsRequired().HasMaxLength(SiteThemeConsts.MaxPathLength);
+            b.Property(f => f.ContentHash).IsRequired().HasMaxLength(SiteThemeConsts.ContentHashLength);
+        });
+
+        builder.Entity<SiteThemeBlob>(b =>
+        {
+            b.ToTable(SiteDbProperties.DbTablePrefix + "ThemeBlobs", SiteDbProperties.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(x => x.ContentHash).IsRequired().HasMaxLength(SiteThemeConsts.ContentHashLength);
+            b.Property(x => x.Body).IsRequired();
+
+            // A content is stored once per tenant; a release file finds its body by this pair.
+            b.HasIndex(x => new { x.TenantId, x.ContentHash }).IsUnique();
         });
     }
 }

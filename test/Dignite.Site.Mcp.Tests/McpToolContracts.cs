@@ -7,7 +7,7 @@ using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Fields;
 using Dignite.Site.Admin.Pages;
-using Dignite.Site.Admin.Templates;
+using Dignite.Site.Admin.Themes;
 using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Mcp.Contents;
@@ -16,7 +16,7 @@ using Dignite.Site.Mcp.Fields;
 using Dignite.Site.Mcp.Files;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
-using Dignite.Site.Mcp.Templates;
+using Dignite.Site.Mcp.Themes;
 using Dignite.Site.Public.Routing;
 
 namespace Dignite.Site.Mcp;
@@ -233,31 +233,35 @@ public static class McpToolContracts
             Direct("ParentId", typeof(Guid?), "parentId"),
         ]),
 
-        // site_save_template is one tool over two DTOs - it creates the template when the name is new and
-        // appends a version when it exists - so it has one row per DTO. The contract test looks the method up
-        // by name and checks each row's properties against that same parameter list.
-        new(typeof(SiteTemplateTools), nameof(SiteTemplateTools.SaveTemplateAsync), typeof(CreateSiteTemplateDto),
+        new(typeof(SiteThemeTools), nameof(SiteThemeTools.SaveThemeFileAsync), typeof(SaveSiteThemeFileDto),
         [
-            Translated("Name", typeof(string), "template"),
+            Direct("Path", typeof(string), "path"),
             Direct("Body", typeof(string), "body"),
-            Direct("Comment", typeof(string), "comment"),
-            Direct("Publish", typeof(bool), "publish"),
+            Omitted("ConcurrencyStamp", typeof(string),
+                "A model writes the whole file each time and overwrites; the stamp guards two people editing in the admin UI."),
         ]),
 
-        new(typeof(SiteTemplateTools), nameof(SiteTemplateTools.SaveTemplateAsync), typeof(UpdateSiteTemplateDto),
+        new(typeof(SiteThemeTools), nameof(SiteThemeTools.RenameThemeFileAsync), typeof(RenameSiteThemeFileDto),
         [
-            Direct("Body", typeof(string), "body"),
-            Direct("Comment", typeof(string), "comment"),
-            Direct("Publish", typeof(bool), "publish"),
+            Direct("Path", typeof(string), "path"),
+            Direct("NewPath", typeof(string), "newPath"),
+            Direct("UpdateReferences", typeof(bool), "updateReferences"),
         ]),
 
-        new(typeof(SiteTemplateTools), nameof(SiteTemplateTools.ListTemplatesAsync), typeof(GetSiteTemplateListInput),
+        new(typeof(SiteThemeTools), nameof(SiteThemeTools.UpdateThemeAsync), typeof(UpdateSiteThemeDto),
         [
-            Direct("Filter", typeof(string), "filter"),
-            Direct("Prefix", typeof(string), "prefix"),
+            Direct("DefaultLayout", typeof(string), "defaultLayout"),
+            Omitted("ConcurrencyStamp", typeof(string),
+                "Same as a file's: the setting is overwritten, the stamp guards the admin UI."),
         ]),
 
-        // site_preview_template has no row: it builds no DTO, passing its scalars (the version number and the
-        // path) straight to ISiteTemplateAdminAppService.PreviewAsync, so there is no DTO shape to drift from.
+        new(typeof(SiteThemeTools), nameof(SiteThemeTools.PublishThemeAsync), typeof(PublishSiteThemeDto),
+        [
+            Direct("Fingerprint", typeof(string), "fingerprint"),
+            Direct("Comment", typeof(string), "comment"),
+        ]),
+
+        // site_preview, site_get_theme_file, site_delete_theme_file and the release tools have no row: they build no
+        // DTO, passing a path or a release (looked up by number) straight to ISiteThemeAdminAppService.
     };
 }

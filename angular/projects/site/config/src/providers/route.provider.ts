@@ -39,7 +39,7 @@ export function configureRoutes() {
       layout: eLayoutType.application,
       order: 3,
       requiredPolicy:
-        'SiteAdmin.Pages || SiteAdmin.ContentTypes || SiteAdmin.Fields || SiteAdmin.Contents || SiteAdmin.Templates',
+        'SiteAdmin.Pages || SiteAdmin.ContentTypes || SiteAdmin.Fields || SiteAdmin.Contents',
     },
     {
       path: '/site/contents',
@@ -67,15 +67,6 @@ export function configureRoutes() {
       layout: eLayoutType.application,
       order: 3,
       requiredPolicy: 'SiteAdmin.Fields',
-    },
-    {
-      path: '/site/templates',
-      name: eSiteRouteNames.Templates,
-      parentName: eSiteRouteNames.Site,
-      iconClass: 'fas fa-code',
-      layout: eLayoutType.application,
-      order: 4,
-      requiredPolicy: 'SiteAdmin.Templates',
     },
   ]);
 

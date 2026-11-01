@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Dignite.Site.Templates;
+using Dignite.Site.Themes;
 using global::Scriban;
 using global::Scriban.Runtime;
 using global::Scriban.Syntax;

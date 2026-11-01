@@ -15,9 +15,9 @@ using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Routing;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.TagHelpers;
-using Dignite.Site.Public.Templates;
 using Dignite.Site.Public.Templating;
-using Dignite.Site.Templates;
+using Dignite.Site.Public.Themes;
+using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -80,56 +80,78 @@ public class ScribanTestRenderer
 
     public ActionContext ActionContext => new(Host.HttpContext, new RouteData(), new ActionDescriptor());
 
+    /// <summary>Where <see cref="RenderSet(string, string?, IReadOnlyDictionary{string, string}?, IReadOnlyDictionary{string, string}?)"/> puts the page template.</summary>
+    public const string PagePath = "Default";
+
+    /// <summary>Where it puts the layout, which it also makes the theme's default layout.</summary>
+    public const string LayoutPath = "layouts/default";
+
     /// <summary>Renders <paramref name="page"/> - and <paramref name="layout"/> around it, when given - for <paramref name="viewModel"/>.</summary>
     public Task<string> RenderAsync(string page, string? layout = null, SiteRenderViewModel? viewModel = null)
     {
         return RenderAsync(RenderSet(page, layout), viewModel);
     }
 
-    /// <summary>Renders <paramref name="page"/> with <paramref name="partials"/> (full name to body) published next to it.</summary>
+    /// <summary>Renders <paramref name="page"/> with <paramref name="partials"/> (path to body) in the theme next to it.</summary>
     public Task<string> RenderAsync(string page, string? layout, IReadOnlyDictionary<string, string> partials)
     {
         return RenderAsync(RenderSet(page, layout, partials));
     }
 
-    /// <summary>Renders <paramref name="renderSet"/> as the page "Default".</summary>
-    public Task<string> RenderAsync(SiteTemplateRenderSetDto renderSet, SiteRenderViewModel? viewModel = null)
+    /// <summary>Renders <paramref name="renderSet"/>'s <see cref="PagePath"/> as the page's template.</summary>
+    public async Task<string> RenderAsync(SiteThemeRenderSet renderSet, SiteRenderViewModel? viewModel = null)
     {
-        return Renderer.RenderAsync("Default", renderSet, viewModel ?? PageViewModel(), ActionContext);
+        return (await RenderPageAsync(renderSet, viewModel)).Html;
     }
 
-    /// <param name="page">The page template's body.</param>
-    /// <param name="layout">The layout's body, if any.</param>
-    /// <param name="partials">Published partials: full name (<c>partials/card</c>) to body.</param>
-    /// <param name="assets">Published assets: full name (<c>assets/site.css</c>) to the id of its published version.</param>
-    public static SiteTemplateRenderSetDto RenderSet(
+    /// <summary>Like <see cref="RenderAsync(SiteThemeRenderSet, SiteRenderViewModel?)"/>, with the layout the page rendered in.</summary>
+    public Task<ScribanPageRender> RenderPageAsync(SiteThemeRenderSet renderSet, SiteRenderViewModel? viewModel = null, string templatePath = PagePath)
+    {
+        return Renderer.RenderAsync(templatePath, renderSet, viewModel ?? PageViewModel(), ActionContext);
+    }
+
+    /// <param name="page">The page template's body, at <see cref="PagePath"/>.</param>
+    /// <param name="layout">The layout's body, if any, at <see cref="LayoutPath"/> and made the default layout.</param>
+    /// <param name="partials">Other templates of the theme: path (<c>partials/card</c>, <c>_card</c>) to body.</param>
+    /// <param name="assets">Static files of the theme: path (<c>assets/site.css</c>) to body.</param>
+    public static SiteThemeRenderSet RenderSet(
         string page,
         string? layout = null,
         IReadOnlyDictionary<string, string>? partials = null,
-        IReadOnlyDictionary<string, Guid>? assets = null)
+        IReadOnlyDictionary<string, string>? assets = null)
     {
-        var renderSet = new SiteTemplateRenderSetDto
+        var files = new Dictionary<string, string> { [PagePath] = page };
+        if (layout != null)
         {
-            Template = Version(page),
-            Layout = layout == null ? null : Version(layout)
-        };
-
-        foreach (var (name, body) in partials ?? new Dictionary<string, string>())
-        {
-            renderSet.Partials[name] = Version(body);
+            files[LayoutPath] = layout;
         }
 
-        foreach (var (name, versionId) in assets ?? new Dictionary<string, Guid>())
+        foreach (var (path, body) in (partials ?? new Dictionary<string, string>()).Concat(assets ?? new Dictionary<string, string>()))
         {
-            renderSet.Assets[name] = versionId;
+            files[path] = body;
         }
 
-        return renderSet;
+        return RenderSet(files, layout == null ? null : LayoutPath);
     }
 
-    public static SiteTemplateVersionDto Version(string body)
+    /// <summary>A theme of <paramref name="files"/> (path to body) with <paramref name="defaultLayout"/>.</summary>
+    public static SiteThemeRenderSet RenderSet(IReadOnlyDictionary<string, string> files, string? defaultLayout = null)
     {
-        return new SiteTemplateVersionDto { Id = Guid.NewGuid(), TemplateId = Guid.NewGuid(), Number = 1, Body = body };
+        return new SiteThemeRenderSet(Snapshot(files, defaultLayout));
+    }
+
+    public static SiteThemeSnapshotDto Snapshot(IReadOnlyDictionary<string, string> files, string? defaultLayout = null)
+    {
+        return new SiteThemeSnapshotDto
+        {
+            DefaultLayout = defaultLayout,
+            Files = files.Select(file => File(file.Key, file.Value)).ToList()
+        };
+    }
+
+    public static SiteThemeSnapshotFileDto File(string path, string body)
+    {
+        return new SiteThemeSnapshotFileDto { Path = path, Body = body, ContentHash = SiteThemePaths.ComputeContentHash(body) };
     }
 
     public static readonly HeadMetadataDto HeadMetadata = new()

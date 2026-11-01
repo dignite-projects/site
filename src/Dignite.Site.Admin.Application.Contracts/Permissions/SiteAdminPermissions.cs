@@ -41,14 +41,16 @@ public class SiteAdminPermissions
         public const string Delete = Default + ".Delete";
     }
 
-    public static class Templates
+    public static class Themes
     {
-        public const string Default = GroupName + ".Templates";
-        public const string Create = Default + ".Create";
+        /// <summary>Reading the working copy, the releases and the check, and previewing.</summary>
+        public const string Default = GroupName + ".Themes";
 
-        /// <summary>Also covers publishing a version (and so rolling back).</summary>
-        public const string Update = Default + ".Update";
-        public const string Delete = Default + ".Delete";
+        /// <summary>Changing the working copy: saving, renaming and deleting files, the default layout, restoring a release into it.</summary>
+        public const string Edit = Default + ".Edit";
+
+        /// <summary>Changing what the site renders: publishing a release, and making an older one live again.</summary>
+        public const string Publish = Default + ".Publish";
     }
 
     public static string[] GetAll()

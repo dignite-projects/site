@@ -1,5 +1,5 @@
 using System;
-using Dignite.Site.Templates;
+using Dignite.Site.Themes;
 using global::Scriban;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -8,18 +8,17 @@ using Volo.Abp.DependencyInjection;
 namespace Dignite.Site.Public.Scriban;
 
 /// <summary>
-/// Parsed templates, so a page view does not re-parse its template and layout every time.
+/// Parsed templates, so a page view does not re-parse its templates every time.
 /// <para>
-/// Keyed by the version's own id. Versions of any state pass through it - the published ones pages render, and
-/// drafts and older versions a template preview renders - which is safe because no version ever changes once
-/// saved (publishing another one only changes which id the render set returns), so an entry never has to be
-/// invalidated. The id is globally unique - no tenant in the key, and a template deleted and re-created under
-/// the same name, whose version numbers start over, can never be served the old one's tree.
+/// Keyed by the file's content hash and its path. A content never changes under its hash, so an entry never has to
+/// be invalidated: the live release, an older one and the working copy all share an entry for a file they have in
+/// common, and saving or publishing simply leads to another key. The path is in the key because a parsed template
+/// carries it into its error messages (<c>path(line,column)</c>), and two files with the same content keep their own.
 /// </para>
 /// <para>
-/// A private <see cref="MemoryCache"/> rather than the application's <see cref="IMemoryCache"/>: a size limit
-/// belongs to the cache instance, and this one has to be bounded - every tenant's templates pass through it -
-/// without imposing sizes on, or competing for, a cache the host configures for its own use.
+/// A private <see cref="MemoryCache"/> rather than the application's <see cref="IMemoryCache"/>: a size limit belongs
+/// to the cache instance, and this one has to be bounded - every tenant's templates pass through it - without imposing
+/// sizes on, or competing for, a cache the host configures for its own use.
 /// </para>
 /// </summary>
 public class ScribanTemplateCache : ISingletonDependency, IDisposable
@@ -33,29 +32,26 @@ public class ScribanTemplateCache : ISingletonDependency, IDisposable
         _cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = options.Value.TemplateCacheSizeLimit });
     }
 
-    /// <summary>
-    /// The parsed <paramref name="version"/>, named <paramref name="name"/> in its error messages
-    /// (<c>name(line,column)</c>).
-    /// </summary>
+    /// <summary>The parsed <paramref name="file"/>, named by its path in its error messages.</summary>
     /// <exception cref="InvalidOperationException">
-    /// The body does not parse - possible only for a version saved before a syntax rule it breaks existed,
-    /// since saving checks the syntax.
+    /// The body does not parse - possible for a working copy file, which may be saved with errors, and for a release
+    /// published before a syntax rule it breaks existed.
     /// </exception>
-    public virtual Template GetOrAdd(SiteTemplateVersionDto version, string name)
+    public virtual Template GetOrAdd(SiteThemeSnapshotFileDto file)
     {
-        var key = (version.Id, name);
+        var key = (file.ContentHash, file.Path);
         if (_cache.TryGetValue(key, out Template? cached) && cached != null)
         {
             return cached;
         }
 
-        var body = version.Body ?? string.Empty;
-        var template = ScribanTemplateSyntax.Parse(body, name);
+        var body = file.Body ?? string.Empty;
+        var template = ScribanTemplateSyntax.Parse(body, file.Path);
         if (template.HasErrors)
         {
             throw new InvalidOperationException(
-                $"The published version {version.Number} of the Scriban template '{name}' does not parse:\n" +
-                ScribanTemplateSyntax.FormatErrors(ScribanTemplateSyntax.GetErrors(body)));
+                $"The Scriban template '{file.Path}' does not parse:\n" +
+                ScribanTemplateSyntax.FormatErrors(ScribanTemplateSyntax.GetErrors(template)));
         }
 
         // Concurrent first requests may both parse; the result is the same, and the later Set simply wins.

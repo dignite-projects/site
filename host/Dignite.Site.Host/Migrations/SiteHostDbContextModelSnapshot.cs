@@ -608,7 +608,80 @@ namespace Dignite.Site.Host.Migrations
                     b.ToTable("SitePages", (string)null);
                 });
 
-            modelBuilder.Entity("Dignite.Site.Templates.SiteTemplate", b =>
+            modelBuilder.Entity("Dignite.Site.Themes.SiteRelease", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ChangedFileCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<string>("DefaultLayout")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("TenantId");
+
+                    b.Property<Guid>("ThemeId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ThemeId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("SiteReleases", (string)null);
+                });
+
+            modelBuilder.Entity("Dignite.Site.Themes.SiteReleaseFile", b =>
+                {
+                    b.Property<Guid>("ReleaseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ReleaseId", "Path");
+
+                    b.ToTable("SiteReleaseFiles", (string)null);
+                });
+
+            modelBuilder.Entity("Dignite.Site.Themes.SiteTheme", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
@@ -628,24 +701,14 @@ namespace Dignite.Site.Host.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("CreatorId");
 
-                    b.Property<Guid?>("DeleterId")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("DeleterId");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("DeletionTime");
+                    b.Property<string>("DefaultLayout")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("ExtraProperties");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false)
-                        .HasColumnName("IsDeleted");
 
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("TEXT")
@@ -655,13 +718,8 @@ namespace Dignite.Site.Host.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("LastModifierId");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(256)
+                    b.Property<Guid?>("LiveReleaseId")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("PublishedVersionNumber")
-                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("TEXT")
@@ -669,14 +727,13 @@ namespace Dignite.Site.Host.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId", "Name")
-                        .IsUnique()
-                        .HasFilter("IsDeleted = 0");
+                    b.HasIndex("TenantId")
+                        .IsUnique();
 
-                    b.ToTable("SiteTemplates", (string)null);
+                    b.ToTable("SiteThemes", (string)null);
                 });
 
-            modelBuilder.Entity("Dignite.Site.Templates.SiteTemplateVersion", b =>
+            modelBuilder.Entity("Dignite.Site.Themes.SiteThemeBlob", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
@@ -685,8 +742,46 @@ namespace Dignite.Site.Host.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Comment")
-                        .HasMaxLength(256)
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("TenantId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "ContentHash")
+                        .IsUnique();
+
+                    b.ToTable("SiteThemeBlobs", (string)null);
+                });
+
+            modelBuilder.Entity("Dignite.Site.Themes.SiteThemeFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreationTime")
@@ -697,22 +792,37 @@ namespace Dignite.Site.Host.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("CreatorId");
 
-                    b.Property<int>("Number")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ExtraProperties");
 
-                    b.Property<Guid>("TemplateId")
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("TEXT")
                         .HasColumnName("TenantId");
 
+                    b.Property<Guid>("ThemeId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("TemplateId", "Number")
+                    b.HasIndex("ThemeId", "Path")
                         .IsUnique();
 
-                    b.ToTable("SiteTemplateVersions", (string)null);
+                    b.ToTable("SiteThemeFiles", (string)null);
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>
@@ -2740,11 +2850,29 @@ namespace Dignite.Site.Host.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("Dignite.Site.Templates.SiteTemplateVersion", b =>
+            modelBuilder.Entity("Dignite.Site.Themes.SiteRelease", b =>
                 {
-                    b.HasOne("Dignite.Site.Templates.SiteTemplate", null)
-                        .WithMany("Versions")
-                        .HasForeignKey("TemplateId")
+                    b.HasOne("Dignite.Site.Themes.SiteTheme", null)
+                        .WithMany()
+                        .HasForeignKey("ThemeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dignite.Site.Themes.SiteReleaseFile", b =>
+                {
+                    b.HasOne("Dignite.Site.Themes.SiteRelease", null)
+                        .WithMany("Files")
+                        .HasForeignKey("ReleaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dignite.Site.Themes.SiteThemeFile", b =>
+                {
+                    b.HasOne("Dignite.Site.Themes.SiteTheme", null)
+                        .WithMany()
+                        .HasForeignKey("ThemeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -2961,9 +3089,9 @@ namespace Dignite.Site.Host.Migrations
                     b.Navigation("ContentTypes");
                 });
 
-            modelBuilder.Entity("Dignite.Site.Templates.SiteTemplate", b =>
+            modelBuilder.Entity("Dignite.Site.Themes.SiteRelease", b =>
                 {
-                    b.Navigation("Versions");
+                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>
