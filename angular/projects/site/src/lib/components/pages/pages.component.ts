@@ -22,6 +22,8 @@ import type { NzTreeNodeOptions } from 'ng-zorro-antd/tree';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import type { GetPageListInput } from '../../proxy/dignite/site/admin/pages/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
+import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
+import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { eSitePolicyNames } from '../../enums/policy-names';
 
 /** Max lengths mirror `PageConsts` (`src/Dignite.Site.Domain.Shared/Pages/PageConsts.cs`). */
@@ -163,6 +165,7 @@ export class PagesComponent {
   private readonly toaster = inject(ToasterService);
   private readonly router = inject(Router);
   private readonly permission = inject(PermissionService);
+  private readonly themeService = inject(SiteThemeAdminService);
 
   readonly policies = eSitePolicyNames;
 
@@ -179,6 +182,8 @@ export class PagesComponent {
 
   readonly isModalOpen = signal(false);
   readonly isModalBusy = signal(false);
+  /** The theme's template paths, suggested under the Template input. */
+  readonly templateOptions = signal<string[]>([]);
   editingPage?: PageDto;
   form?: FormGroup;
 
@@ -226,13 +231,35 @@ export class PagesComponent {
   openCreate(): void {
     this.editingPage = undefined;
     this.form = this.buildForm();
+    this.loadTemplateOptions();
     this.isModalOpen.set(true);
   }
 
   openEdit(page: PageDto): void {
     this.editingPage = page;
     this.form = this.buildForm(page);
+    this.loadTemplateOptions();
     this.isModalOpen.set(true);
+  }
+
+  /**
+   * The theme's templates, offered under the Template input. A suggestion list, not a choice: a page can name a
+   * Razor view instead. Skipped without the Themes permission, and quietly empty when the theme cannot be read.
+   */
+  private loadTemplateOptions(): void {
+    if (!this.permission.getGrantedPolicy(eSitePolicyNames.Themes)) {
+      return;
+    }
+
+    this.themeService.getFiles({ skipHandleError: true }).subscribe({
+      next: files =>
+        this.templateOptions.set(
+          (files.items ?? [])
+            .filter(file => !file.isAsset && file.status !== SiteThemeFileStatus.Deleted)
+            .map(file => file.path ?? ''),
+        ),
+      error: () => this.templateOptions.set([]),
+    });
   }
 
   closeModal(): void {

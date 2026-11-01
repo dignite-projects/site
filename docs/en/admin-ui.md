@@ -54,19 +54,20 @@ apis: {
 
 `provideSite()` registers the menu, the field types and the CKEditor integration, and has to be in the application's configuration rather than in a lazy route: the field types must be registered before anything resolves one.
 
-Because of that, everything `provideSite()` registers is part of the application's initial bundle, CKEditor included: it is downloaded on first paint, whether or not any content type has a rich-text field and whether or not the user opens the Site screens. Measured on a production build of an ABP admin application, registering Site added roughly 950 KB, about 170 KB gzipped. If the application enforces a bundle budget in `angular.json`, it may need to be raised.
+Because of that, everything `provideSite()` registers is part of the application's initial bundle, CKEditor included: it is downloaded on first paint, whether or not any content type has a rich-text field and whether or not the user opens the Site screens. Measured on a production build of an ABP admin application, registering Site added roughly 950 KB, about 170 KB gzipped. If the application enforces a bundle budget in `angular.json`, it may need to be raised. The code editor of the **Theme** screen (CodeMirror) is not part of it: it is loaded with its screen, when a user opens **Theme**.
 
 ## Screens
 
-The **Site** menu has three entries; each is shown to users with its permission:
+The **Site** menu has four entries; each is shown to users with its permission:
 
 | Screen | Permission | What it manages |
 |---|---|---|
 | **Contents** | `SiteAdmin.Contents` | The contents of the site, filtered by page, content type, language, status and slug. Once a page is chosen, its fields marked `ShowInList` become columns, and its searchable fields filters. Creating or editing a content opens the editor, a form built from the content type's fields. |
 | **Pages** | `SiteAdmin.Pages` | The page tree, with each page's route, template and parent. A page's **content types** are reached from here. |
 | **Fields** | `SiteAdmin.Fields` | The field library: each field's type, configuration, description and group. |
+| **Theme** | `SiteAdmin.Themes` | The [Scriban theme](rendering/scriban-templates.md) of the site. On the left, the files of the working copy in a tree of their folders, each marked when it is new, modified or deleted against the live release. In the middle, the open files in tabs, in a code editor that highlights templates as HTML and static files by their extension; **Save** (or Ctrl+S) writes the file to the working copy and asks before overwriting a save someone else made in the meantime. A file can be created, renamed, optionally rewriting what refers to it, and deleted, after being told what uses it. On the right, the result of the [check](rendering/scriban-templates.md#checking-the-theme); clicking a finding opens its file at its line. **Publish** shows the check's errors, which stop it, and the files that will change, and publishes with a comment; **Releases** lists the releases, makes an older one live again or copies one back into the working copy; **Settings** sets the default layout. Editing needs `SiteAdmin.Themes.Edit`, publishing and making a release live `SiteAdmin.Themes.Publish`. |
 
-The site's [Scriban theme](rendering/scriban-templates.md) is managed over the administration API and the MCP tools.
+In the **Pages** screen, the template of a page offers the theme's templates, and still accepts the name of a Razor view.
 
 The menu is hidden while the `Site.Enable` [feature](settings.md#the-site-feature) is off, since the permissions then read as not granted.
 
