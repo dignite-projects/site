@@ -197,12 +197,79 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task The_Check_Should_Say_Which_Templates_Can_Be_The_Default_Layout()
+    {
+        await SaveAsync("layouts/landing", Layout);
+        await SaveAsync("Events", "<p>a page</p>");
+
+        var check = await _themeAppService.CheckAsync();
+
+        check.Layouts.ShouldBe(new[] { "layouts/default", "layouts/landing" });
+    }
+
+    [Fact]
     public async Task Should_Refuse_A_Static_File_As_The_Default_Layout()
     {
         var ex = await Should.ThrowAsync<BusinessException>(() =>
             _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "assets/site.css" }));
 
         ex.Code.ShouldBe(SiteErrorCodes.SiteThemeDefaultLayoutInvalid);
+    }
+
+    [Fact]
+    public async Task Should_Refuse_A_Template_That_Is_Not_There_As_The_Default_Layout()
+    {
+        var ex = await Should.ThrowAsync<BusinessException>(() =>
+            _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "layouts/missing" }));
+
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemeDefaultLayoutNotFound);
+        ex.Data["Layout"].ShouldBe("layouts/missing");
+        (await _themeAppService.GetAsync()).DefaultLayout.ShouldBe("layouts/default");
+    }
+
+    [Theory]
+    [InlineData("<p>a page template</p>")]
+    [InlineData("<html><head>{{ site_head }}</head><body></body></html>")]
+    [InlineData("<html><body>{{ body }}</body></html>")]
+    [InlineData("+++\nlayout = \"layouts/default\"\n+++\n<html><head>{{ site_head }}</head><body>{{ body }}</body></html>")]
+    public async Task Should_Refuse_A_Template_That_Is_Not_A_Layout_As_The_Default_Layout(string body)
+    {
+        await SaveAsync("layouts/not-one", body);
+
+        var ex = await Should.ThrowAsync<BusinessException>(() =>
+            _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "layouts/not-one" }));
+
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemeDefaultLayoutNotALayout);
+        (await _themeAppService.GetAsync()).DefaultLayout.ShouldBe("layouts/default");
+    }
+
+    [Fact]
+    public async Task Should_Take_A_Layout_That_Reaches_Site_Head_Through_An_Include()
+    {
+        await SaveAsync("_head", "{{ site_head }}");
+        await SaveAsync("layouts/landing", "<html><head>{{ include \"_head\" }}</head><body>{{ body }}</body></html>");
+
+        var updated = await _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "layouts/landing" });
+
+        updated.DefaultLayout.ShouldBe("layouts/landing");
+    }
+
+    [Fact]
+    public async Task Should_Leave_A_Template_That_Does_Not_Parse_To_The_Check()
+    {
+        await SaveAsync("layouts/broken", "{{ if }}");
+
+        var updated = await _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "layouts/broken" });
+
+        updated.DefaultLayout.ShouldBe("layouts/broken");
+    }
+
+    [Fact]
+    public async Task Should_Clear_The_Default_Layout_With_An_Empty_Path()
+    {
+        var updated = await _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "" });
+
+        updated.DefaultLayout.ShouldBeNull();
     }
 
     [Fact]

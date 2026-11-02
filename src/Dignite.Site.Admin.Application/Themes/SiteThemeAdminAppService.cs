@@ -151,6 +151,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             Fingerprint = check.Fingerprint,
             Issues = check.Analysis.Issues.Select(MapToDto).ToList(),
             HasErrors = check.Analysis.HasErrors,
+            Layouts = check.Analysis.Layouts.ToList(),
             Changes = check.Changes
                 .Where(change => change.Status != SiteThemeFileStatus.Unchanged)
                 .Select(change => new SiteThemeFileChangeDto { Path = change.Path, Status = change.Status })

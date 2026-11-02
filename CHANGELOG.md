@@ -53,10 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deleted against the live release; open files are tabs in a code editor (CodeMirror) that highlights templates as HTML
   and static files by their extension, saves with Ctrl+S and asks before overwriting someone else's save. Files can be
   created from a starting skeleton, renamed (optionally rewriting what refers to them) and deleted after seeing what uses
-  them. The check runs beside the editor, and a finding opens its file at its line; for a page's template, a Fields tab
-  lists the fields of the page's content types and inserts the Scriban that prints one at the cursor; **Publish** shows the errors and the
+  them. The check runs beside the editor, and a finding opens its file at its line; for a page's template, a Fields panel
+  above it lists the fields of the page's content types and inserts the Scriban that prints one at the cursor; **Publish** shows the errors and the
   changes and publishes with a comment, **Releases** makes an older release live or copies one back into the working
-  copy, and **Settings** sets the default layout. In the Pages screen, a page's template offers the theme's templates
+  copy, and **Set as default layout**, on a layout's own toolbar, sets the default layout. In the Pages screen, a page's template offers the theme's templates
   while still accepting a Razor view's name. The code editor is loaded with the screen, not in the application's initial
   bundle, and `@dignite/ng.site` gains six dependencies: `codemirror`, `@codemirror/lang-html`,
   `@codemirror/lang-css`, `@codemirror/lang-javascript`, `@codemirror/state` and `@codemirror/view`. See

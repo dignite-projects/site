@@ -44,6 +44,32 @@ public class SiteThemeAnalyzer_Tests
         analysis.HasErrors.ShouldBeFalse();
     }
 
+    /// <summary>A layout is told by what it does - body and site_head, no front matter - not by where it lives or who uses it.</summary>
+    [Fact]
+    public void Should_List_The_Templates_That_Can_Be_A_Layout()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                // Not used by anything yet, and not under layouts/: still a layout.
+                ["shell"] = Layout,
+                // site_head comes through an include, body is written here.
+                ["layouts/split"] = "<html><head>{{ include \"_head\" }}</head><body>{{ body }}</body></html>",
+                ["_head"] = "{{ site_head }}",
+                // Each of these is missing one thing.
+                ["no-body"] = "<html><head>{{ site_head }}</head></html>",
+                ["no-head"] = "<html><body>{{ body }}</body></html>",
+                ["front-matter"] = "+++\nlayout = \"layouts/default\"\n+++\n" + Layout,
+                ["broken"] = "{{ if }}" + Layout,
+                ["Events"] = "<p>a page</p>",
+                ["assets/site.css"] = "body { color: red }"
+            },
+            defaultLayout: null);
+
+        analysis.Layouts.ShouldBe(new[] { "layouts/default", "layouts/split", "shell" });
+    }
+
     [Fact]
     public void Should_Report_A_Syntax_Error_At_Its_Position()
     {

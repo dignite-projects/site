@@ -43,10 +43,16 @@ public class SiteTheme : AuditedAggregateRoot<Guid>, IMultiTenant
     /// <exception cref="BusinessException"><see cref="SiteErrorCodes.SiteThemeDefaultLayoutInvalid"/>: not a template path.</exception>
     public virtual void SetDefaultLayout(string? defaultLayout)
     {
+        DefaultLayout = NormalizeDefaultLayout(defaultLayout);
+    }
+
+    /// <summary>The default layout setting as it is stored: a template path, normalized, or null for none.</summary>
+    /// <exception cref="BusinessException"><see cref="SiteErrorCodes.SiteThemeDefaultLayoutInvalid"/>: not a template path.</exception>
+    public static string? NormalizeDefaultLayout(string? defaultLayout)
+    {
         if (string.IsNullOrWhiteSpace(defaultLayout))
         {
-            DefaultLayout = null;
-            return;
+            return null;
         }
 
         var path = SiteThemePaths.Normalize(defaultLayout);
@@ -55,7 +61,7 @@ public class SiteTheme : AuditedAggregateRoot<Guid>, IMultiTenant
             throw new BusinessException(SiteErrorCodes.SiteThemeDefaultLayoutInvalid).WithData("Layout", path);
         }
 
-        DefaultLayout = path;
+        return path;
     }
 
     /// <summary>Makes <paramref name="releaseId"/> the release the site renders - a new one, or an older one to roll back.</summary>

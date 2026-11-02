@@ -93,4 +93,13 @@ public static class SiteErrorCodes
 
     /// <summary>A default layout that is not a template path (it names a static file, or is not a valid path); Data["Layout"].</summary>
     public const string SiteThemeDefaultLayoutInvalid = "Site:090011";
+
+    /// <summary>A default layout that names no template of the working copy; Data["Layout"].</summary>
+    public const string SiteThemeDefaultLayoutNotFound = "Site:090012";
+
+    /// <summary>
+    /// A default layout that is a template of the working copy but not a layout: it writes no <c>body</c>, never calls
+    /// <c>site_head</c>, or has front matter; Data["Layout"].
+    /// </summary>
+    public const string SiteThemeDefaultLayoutNotALayout = "Site:090013";
 }

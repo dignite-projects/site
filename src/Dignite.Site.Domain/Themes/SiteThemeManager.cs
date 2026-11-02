@@ -216,20 +216,56 @@ public class SiteThemeManager : DomainService
         await FileRepository.DeleteAsync(file, cancellationToken: cancellationToken);
     }
 
-    /// <summary>Sets the working copy's default layout; with a <paramref name="concurrencyStamp"/>, the theme must still have it.</summary>
+    /// <summary>
+    /// Sets the working copy's default layout; with a <paramref name="concurrencyStamp"/>, the theme must still have it.
+    /// A layout is told by what it does, as the check tells it - a file has no type: it must be a template of the
+    /// working copy (<see cref="SiteErrorCodes.SiteThemeDefaultLayoutNotFound"/>) that writes the page's <c>body</c>,
+    /// calls <c>site_head</c> (itself or through what it includes) and has no front matter
+    /// (<see cref="SiteErrorCodes.SiteThemeDefaultLayoutNotALayout"/>). A template that does not parse cannot be
+    /// told, and is let through: the check reports its syntax errors.
+    /// </summary>
     public virtual async Task SetDefaultLayoutAsync(
         SiteTheme theme,
         string? defaultLayout,
         string? concurrencyStamp = null,
         CancellationToken cancellationToken = default)
     {
+        // Everything is judged before the theme is touched.
+        var layout = SiteTheme.NormalizeDefaultLayout(defaultLayout);
+        if (layout != null)
+        {
+            await EnsureIsLayoutAsync(theme, layout, cancellationToken);
+        }
+
         if (concurrencyStamp != null)
         {
             theme.ConcurrencyStamp = concurrencyStamp;
         }
 
-        theme.SetDefaultLayout(defaultLayout);
+        theme.SetDefaultLayout(layout);
         await ThemeRepository.UpdateAsync(theme, autoSave: true, cancellationToken: cancellationToken);
+    }
+
+    protected virtual async Task EnsureIsLayoutAsync(SiteTheme theme, string layout, CancellationToken cancellationToken)
+    {
+        var files = await FileRepository.GetListAsync(theme.Id, cancellationToken);
+
+        // The layouts do not depend on the pages.
+        var analysis = SiteThemeAnalyzer.Analyze(
+            files.Select(file => new SiteThemeSourceFile(file.Path, file.Body)),
+            defaultLayout: null,
+            Array.Empty<SiteThemePageTemplate>());
+
+        if (!analysis.Files.TryGetValue(layout, out var layoutFile) || layoutFile.IsAsset)
+        {
+            throw new BusinessException(SiteErrorCodes.SiteThemeDefaultLayoutNotFound).WithData("Layout", layout);
+        }
+
+        // The same list the check gives the admin UI to offer "set as default layout" on.
+        if (layoutFile.SyntaxErrors.Count == 0 && !analysis.Layouts.Contains(layout))
+        {
+            throw new BusinessException(SiteErrorCodes.SiteThemeDefaultLayoutNotALayout).WithData("Layout", layout);
+        }
     }
 
     /// <summary>Checks the whole working copy and compares it with the live release - see <see cref="SiteThemeCheck"/>.</summary>
