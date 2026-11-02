@@ -63,10 +63,10 @@ public class ContentsFunction : SiteScriptFunction
         }
 
         var viewModel = Scope.ViewModel;
-        var pageName = GetString(context, span, options, "page");
+        var pageName = GetOptionString(context, span, options, "page");
         var isCurrentPage = pageName == null;
-        var maxResultCount = Math.Clamp(GetInt(context, span, options, "max") ?? 20, 1, MaxPageSize);
-        var currentPage = Math.Max(1, GetInt(context, span, options, "page_no") ?? 1);
+        var maxResultCount = Math.Clamp(GetOptionInt(context, span, options, "max") ?? 20, 1, MaxPageSize);
+        var currentPage = Math.Max(1, GetOptionInt(context, span, options, "page_no") ?? 1);
 
         PageDto? page = isCurrentPage ? viewModel.Page : await Query.FindPageAsync(pageName!);
         if (page == null)
@@ -78,8 +78,8 @@ public class ContentsFunction : SiteScriptFunction
         {
             Page = page,
             CultureName = viewModel.CultureName,
-            ContentTypeName = GetString(context, span, options, "content_type"),
-            Filter = GetString(context, span, options, "filter"),
+            ContentTypeName = GetOptionString(context, span, options, "content_type"),
+            Filter = GetOptionString(context, span, options, "filter"),
             FieldFilters = isCurrentPage ? viewModel.FieldFilters : null,
             PublishedAfter = isCurrentPage ? viewModel.PublishedAfter : null,
             PublishedBefore = isCurrentPage ? viewModel.PublishedBefore : null,
@@ -106,21 +106,4 @@ public class ContentsFunction : SiteScriptFunction
         return result;
     }
 
-    private static string? GetString(TemplateContext context, SourceSpan span, ScriptObject? options, string name)
-    {
-        if (options == null || !options.TryGetValue(context, span, name, out var value) || value == null)
-        {
-            return null;
-        }
-
-        var text = context.ObjectToString(value);
-        return string.IsNullOrEmpty(text) ? null : text;
-    }
-
-    private static int? GetInt(TemplateContext context, SourceSpan span, ScriptObject? options, string name)
-    {
-        return options != null && options.TryGetValue(context, span, name, out var value) && value != null
-            ? context.ToInt(span, value)
-            : null;
-    }
 }

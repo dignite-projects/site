@@ -44,6 +44,14 @@ public partial class ContentPublicClientProxy : ClientProxyBase<IContentPublicAp
         });
     }
 
+    public virtual async Task<ListResultDto<ContentFieldValueCountDto>> GetCountByFieldAsync(GetContentCountByFieldInput input)
+    {
+        return await RequestAsync<ListResultDto<ContentFieldValueCountDto>>(nameof(GetCountByFieldAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(GetContentCountByFieldInput), input }
+        });
+    }
+
     public virtual async Task<ListResultDto<ContentDto>> GetTranslationsAsync(Guid pageId, Guid contentTypeId, string slug)
     {
         return await RequestAsync<ListResultDto<ContentDto>>(nameof(GetTranslationsAsync), new ClientProxyRequestTypeValue

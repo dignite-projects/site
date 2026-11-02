@@ -35,6 +35,14 @@ public class FakeContentPublicAppService : IContentPublicAppService
         return Task.FromResult(new PagedResultDto<ContentDto>());
     }
 
+    public GetContentCountByFieldInput? LastCountByFieldInput { get; private set; }
+
+    public Task<ListResultDto<ContentFieldValueCountDto>> GetCountByFieldAsync(GetContentCountByFieldInput input)
+    {
+        LastCountByFieldInput = input;
+        return Task.FromResult(new ListResultDto<ContentFieldValueCountDto>());
+    }
+
     public Task<ContentDto> GetAsync(Guid id)
     {
         throw new NotImplementedException();

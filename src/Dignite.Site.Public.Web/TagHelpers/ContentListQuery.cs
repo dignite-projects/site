@@ -52,46 +52,13 @@ public class ContentListQuery : ITransientDependency
 
     public virtual async Task<ContentListRenderViewModel> QueryAsync(ContentListQueryRequest request)
     {
-        var page = request.Page;
-
-        // Non-null here means some earlier read (GetAsync/GetByRouteAsync/FindByNameAsync) already fetched
-        // it - route resolution's own PageDto mapping leaves it null on purpose (总体设计 §2.3). A page found
-        // by name always has it (FindByNameAsync uses includeDetails: true); only a route-resolved Page still
-        // pays for this round trip.
-        var contentTypes = page.ContentTypes ?? (await ContentTypeAppService.GetListByPageAsync(page.Id)).Items;
-        var contentTypesById = contentTypes.ToDictionary(ct => ct.Id);
-
-        var contentTypeId = request.ContentTypeId;
-        if (contentTypeId == null && !string.IsNullOrEmpty(request.ContentTypeName))
+        var prepared = await PrepareAsync(request);
+        if (prepared == null)
         {
-            var named = contentTypes.FirstOrDefault(ct => string.Equals(ct.Name, request.ContentTypeName, StringComparison.Ordinal));
-            if (named == null)
-            {
-                // A content type of that name is not under this page (any more) - nothing of it to list, rather
-                // than silently listing every type instead.
-                return Empty(request);
-            }
-
-            contentTypeId = named.Id;
+            return Empty(request);
         }
 
-        var fieldsById = await GetFieldsByIdAsync(
-            contentTypesById.Values.SelectMany(ct => ct.Fields).Select(f => f.FieldId));
-
-        var input = new GetContentListInput
-        {
-            PageId = page.Id,
-            CultureName = request.CultureName,
-            ContentTypeId = contentTypeId,
-            Filter = request.Filter,
-            PublishedAfter = request.PublishedAfter,
-            PublishedBefore = request.PublishedBefore,
-            MaxResultCount = request.MaxResultCount,
-            SkipCount = (request.CurrentPage - 1) * request.MaxResultCount
-        };
-
-        ApplyFieldFilters(input, request.FieldFilters, contentTypesById.Values, fieldsById);
-
+        var (input, contentTypesById, fieldsById) = prepared;
         var contents = await ContentAppService.GetListAsync(input);
 
         var items = new List<ContentRenderViewModel>(contents.Items.Count);
@@ -118,6 +85,134 @@ public class ContentListQuery : ITransientDependency
             CurrentPage = request.CurrentPage
         };
     }
+
+    /// <summary>
+    /// How many of the contents <see cref="QueryAsync"/> would list carry each value of the field named
+    /// <paramref name="fieldName"/> - the same page, language, content type, text filter, publish window and
+    /// route filters, so a count and the list beside it always speak of the same contents. Paging is not part
+    /// of it: <see cref="ContentListQueryRequest.MaxResultCount"/> and <see cref="ContentListQueryRequest.CurrentPage"/>
+    /// are ignored.
+    /// <para>
+    /// Faceted: a route filter on <paramref name="fieldName"/> itself is left out. On the page
+    /// <c>/blog/{category}</c> the counts of the category sidebar are those of every category under the
+    /// <i>other</i> filters; with the category's own filter applied, every category but the current one would
+    /// count zero and drop out.
+    /// </para>
+    /// <para>
+    /// Empty when the field is unknown to the counted content types, is not opted into <c>Searchable</c>
+    /// (总体设计 §2.3), or is of a type that is not indexed - the same fields a route filter may name.
+    /// </para>
+    /// </summary>
+    public virtual async Task<IReadOnlyList<ContentFieldValueCountDto>> CountByFieldAsync(
+        ContentListQueryRequest request,
+        string fieldName,
+        int maxResultCount = GetContentCountByFieldInput.DefaultMaxResultCount)
+    {
+        var routeFilters = request.FieldFilters?
+            .Where(filter => !string.Equals(FilterFieldName(filter.Key), fieldName, StringComparison.Ordinal))
+            .ToDictionary(filter => filter.Key, filter => filter.Value);
+
+        var prepared = await PrepareAsync(request with { FieldFilters = routeFilters });
+        if (prepared == null)
+        {
+            return Array.Empty<ContentFieldValueCountDto>();
+        }
+
+        var (input, contentTypesById, fieldsById) = prepared;
+
+        var countedTypes = input.ContentTypeId is { } contentTypeId
+            ? contentTypesById.Values.Where(ct => ct.Id == contentTypeId)
+            : contentTypesById.Values;
+
+        var fieldId = countedTypes
+            .SelectMany(ct => ct.Fields)
+            .Where(usage => usage.Searchable)
+            .Select(usage => usage.FieldId)
+            .FirstOrDefault(id => fieldsById.TryGetValue(id, out var field)
+                                  && string.Equals(field.Name, fieldName, StringComparison.Ordinal));
+
+        if (fieldId == Guid.Empty)
+        {
+            return Array.Empty<ContentFieldValueCountDto>();
+        }
+
+        var counts = await ContentAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = fieldId,
+            PageId = input.PageId,
+            CultureName = input.CultureName,
+            ContentTypeId = input.ContentTypeId,
+            Filter = input.Filter,
+            PublishedAfter = input.PublishedAfter,
+            PublishedBefore = input.PublishedBefore,
+            FlexFieldConditions = input.FlexFieldConditions,
+            MaxResultCount = maxResultCount
+        });
+
+        return counts.Items;
+    }
+
+    /// <summary>
+    /// Everything <see cref="QueryAsync"/> and <see cref="CountByFieldAsync"/> have in common: the content type
+    /// the request names, the fields of the page's content types, and the list input with the route filters
+    /// applied. Null when the request names a content type the page does not have - there is nothing to list
+    /// or count of it, rather than silently taking every type instead.
+    /// </summary>
+    protected virtual async Task<PreparedContentQuery?> PrepareAsync(ContentListQueryRequest request)
+    {
+        var page = request.Page;
+
+        // Non-null here means some earlier read (GetAsync/GetByRouteAsync/FindByNameAsync) already fetched
+        // it - route resolution's own PageDto mapping leaves it null on purpose (总体设计 §2.3). A page found
+        // by name always has it (FindByNameAsync uses includeDetails: true); only a route-resolved Page still
+        // pays for this round trip.
+        var contentTypes = page.ContentTypes ?? (await ContentTypeAppService.GetListByPageAsync(page.Id)).Items;
+        var contentTypesById = contentTypes.ToDictionary(ct => ct.Id);
+
+        var contentTypeId = request.ContentTypeId;
+        if (contentTypeId == null && !string.IsNullOrEmpty(request.ContentTypeName))
+        {
+            var named = contentTypes.FirstOrDefault(ct => string.Equals(ct.Name, request.ContentTypeName, StringComparison.Ordinal));
+            if (named == null)
+            {
+                // A content type of that name is not under this page (any more).
+                return null;
+            }
+
+            contentTypeId = named.Id;
+        }
+
+        var fieldsById = await GetFieldsByIdAsync(
+            contentTypesById.Values.SelectMany(ct => ct.Fields).Select(f => f.FieldId));
+
+        var input = new GetContentListInput
+        {
+            PageId = page.Id,
+            CultureName = request.CultureName,
+            ContentTypeId = contentTypeId,
+            Filter = request.Filter,
+            PublishedAfter = request.PublishedAfter,
+            PublishedBefore = request.PublishedBefore,
+            MaxResultCount = request.MaxResultCount,
+            SkipCount = (request.CurrentPage - 1) * request.MaxResultCount
+        };
+
+        ApplyFieldFilters(input, request.FieldFilters, contentTypesById.Values, fieldsById);
+
+        return new PreparedContentQuery(input, contentTypesById, fieldsById);
+    }
+
+    /// <summary>The field a route filter key names: <c>name</c>, or <c>name:FORMAT</c> for a date part.</summary>
+    private static string FilterFieldName(string key)
+    {
+        var colonIndex = key.IndexOf(':');
+        return colonIndex < 0 ? key : key[..colonIndex];
+    }
+
+    protected record PreparedContentQuery(
+        GetContentListInput Input,
+        Dictionary<Guid, ContentTypeDto> ContentTypesById,
+        IReadOnlyDictionary<Guid, FieldDto> FieldsById);
 
     protected virtual async Task<IReadOnlyDictionary<Guid, FieldDto>> GetFieldsByIdAsync(IEnumerable<Guid> fieldIds)
     {

@@ -173,6 +173,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `url path [culture]` | The address of a path in a language. Only a path that starts with `~/` gets the language prefix and the application's path base; anything else is returned unchanged. The language of the request by default. |
 | `file_url url width [height]` | The address of a stored image resized to the given size, from a file field's value. |
 | `contents [options]` | Lists published contents; see below. |
+| `content_counts options` | How many published contents carry each value of a field; see [Counting Contents by a Field](#counting-contents-by-a-field). |
 | `render_field name [show_in_list]` | Renders a field of `content` with the view of its field type, as `<flex-field-view>` does. |
 | `find_page name` | A page by its name, with its content types; see [Pages and Field Definitions](#pages-and-field-definitions). |
 | `field_definitions fields` | The definitions of fields, with their configuration, keyed by field name; see [Pages and Field Definitions](#pages-and-field-definitions). |
@@ -199,6 +200,43 @@ A key that is not in the table is an error, and a `page` that does not exist giv
     <li><a href="{{ item.url }}">{{ item.slug }}</a></li>
 {{ end }}
 </ul>
+````
+
+### Counting Contents by a Field
+
+`content_counts` counts the published contents of a page by the value of one of their fields, such as the number of news items per category. It takes an object with these keys and returns a list of groups, most numerous first, each with `value` and `count`:
+
+| Key | Description |
+|---|---|
+| `field` | Required. The name of the field to group by. |
+| `page` | The name of the page to count. Omit it to count the current page, with the current route's `field_filters`, `published_after` and `published_before` applied. With a `page`, none of the route's filters apply, and all of that page's published contents are counted. |
+| `content_type` | The name of a content type of that page. Omit it to count the contents of all of the page's content types. |
+| `filter` | A text filter over the slug. |
+| `max` | The most groups to return, 100 by default and at most 1000. |
+
+It counts the contents that `contents` lists with the same keys, so a count and the list beside it always speak of the same contents. A layout is shared by every page, so a `content_counts` in a layout without a `page` counts whichever page is being rendered, and gives nothing on a page that lacks the field. Name the `page` there. Three things differ from `contents`:
+
+* The field has to be one that a content type of the page marks **Searchable**, as for a route placeholder. For any other field, an unknown one, or a field of a type that cannot be indexed, such as rich text, the list is empty.
+* On the current page, a route filter on `field` itself is left out. On a page routed `/blog/{category}`, the counts are those of every category, not only of the one being viewed.
+* A content with several values in the field, such as a multiple-choice `Select`, is counted under each of them, so the counts can add up to more than the number of contents. A content with no value is in no group.
+
+`value` is the value as it is stored: the `Value` of a `Select` option, not its `Text`. The text comes from the definition of the field. This extends the menu of the categories in [Pages and Field Definitions](#pages-and-field-definitions) with the number of contents of each:
+
+````
+{{ blog = find_page "blog" }}
+{{ if blog }}
+    {{ fields = field_definitions blog.content_types[0].fields }}
+    {{ if fields.category }}
+        {{ counts = {} }}
+        {{ groups = content_counts { field: "category", page: "blog" } }}
+        {{ for group in groups }}
+            {{ counts[group.value] = group.count }}
+        {{ end }}
+        {{ for option in fields.category.configuration["Select.Options"] }}
+            <a href="/blog/{{ option.Value }}">{{ option.Text }} ({{ counts[option.Value] ?? 0 }})</a>
+        {{ end }}
+    {{ end }}
+{{ end }}
 ````
 
 ### Pages and Field Definitions

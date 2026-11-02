@@ -68,6 +68,26 @@ public abstract class SiteScriptFunction : IScriptCustomFunction
 
     protected static ScriptParameterInfo Optional<T>(string name, object? defaultValue = null) => new(typeof(T), name, defaultValue);
 
+    /// <summary>A string member of an options object, null when missing or empty.</summary>
+    protected static string? GetOptionString(TemplateContext context, SourceSpan span, ScriptObject? options, string name)
+    {
+        if (options == null || !options.TryGetValue(context, span, name, out var value) || value == null)
+        {
+            return null;
+        }
+
+        var text = context.ObjectToString(value);
+        return string.IsNullOrEmpty(text) ? null : text;
+    }
+
+    /// <summary>An integer member of an options object, null when missing.</summary>
+    protected static int? GetOptionInt(TemplateContext context, SourceSpan span, ScriptObject? options, string name)
+    {
+        return options != null && options.TryGetValue(context, span, name, out var value) && value != null
+            ? context.ToInt(span, value)
+            : null;
+    }
+
     /// <summary>A string argument, null when missing or empty.</summary>
     protected static string? OptionalString(ScriptArray arguments, int index)
     {

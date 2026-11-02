@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Published contents can be counted by the value of a field.** `GET api/site-public/contents/count-by-field` and
+  `IContentPublicAppService.GetCountByFieldAsync` return how many contents carry each value of a field - the news per
+  category - among the contents selected by the same filters as the content list (page, language, content type, text
+  filter, publish window, field conditions), grouped in SQL over the field index. A content with several values of the
+  field is counted under each; a field of a type that cannot be indexed gives no groups. Scriban templates call it as
+  `content_counts { field: "category" }`, which on the current page also applies the route's filters except the one
+  on the grouped field. See [Scriban Templates](docs/en/rendering/scriban-templates.md#counting-contents-by-a-field).
+  **A class implementing `IContentRepository` or `IContentPublicAppService` must add `GetCountByFieldValueAsync` /
+  `GetCountByFieldAsync`, and `ContentPublicAppService` now takes `IFieldRepository` and `IFieldTypeResolver`.**
+
 ## [2.0.0] - 2026-10-30
 
 ### Added

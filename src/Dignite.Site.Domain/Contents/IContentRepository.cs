@@ -84,6 +84,32 @@ public interface IContentRepository : IBasicRepository<Content, Guid>
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// How many contents carry each value of one field, among the contents the same filters as
+    /// <see cref="GetListAsync"/> select - "news per category" beside the news list. The grouping runs in SQL
+    /// over the typed index table, like the conditions do.
+    /// <para>
+    /// <paramref name="valueType"/> is the field type's <c>IndexValueType</c>: it names the typed column the
+    /// field's values were indexed into. A content with several values of the field (a multi-select) is
+    /// counted once under each, so the counts can add up to more than <see cref="GetCountAsync"/>; a content
+    /// with no value is in no group. The groups come most numerous first, ties by value, at most
+    /// <paramref name="maxResultCount"/> of them.
+    /// </para>
+    /// </summary>
+    Task<List<ContentFieldValueCount>> GetCountByFieldValueAsync(
+        Guid fieldId,
+        FlexFieldValueType valueType,
+        Guid? pageId = null,
+        string? cultureName = null,
+        Guid? contentTypeId = null,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        DateTime? publishedAfter = null,
+        string? filter = null,
+        IReadOnlyList<FlexFieldQueryCondition>? flexFieldConditions = null,
+        int maxResultCount = int.MaxValue,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The content immediately <i>older</i> than the one at (<paramref name="publishTime"/>,
     /// <paramref name="id"/>) under the same page and language - the "previous" link on a detail page.
     /// <para>

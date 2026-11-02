@@ -21,6 +21,13 @@ public interface IContentPublicAppService : IReadOnlyAppService
     Task<ListResultDto<ContentDto>> GetTranslationsAsync(Guid pageId, Guid contentTypeId, string slug);
 
     /// <summary>
+    /// How many of the contents <c>GetListAsync</c> would
+    /// list carry each value of one field - a news list's count per category. Counts what a list shows
+    /// (published, not scheduled ahead); a content with several values of the field counts under each.
+    /// </summary>
+    Task<ListResultDto<ContentFieldValueCountDto>> GetCountByFieldAsync(GetContentCountByFieldInput input);
+
+    /// <summary>
     /// The previous (older) and next (newer) content by <c>PublishTime</c>, for a detail page's
     /// previous/next links. <paramref name="id"/> itself answers wherever <c>GetAsync</c> would - an archived
     /// one included - but its neighbors are drawn only from what a list would show.

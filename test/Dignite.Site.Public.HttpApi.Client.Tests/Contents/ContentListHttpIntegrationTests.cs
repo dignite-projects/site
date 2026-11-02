@@ -72,6 +72,46 @@ public class ContentListHttpIntegrationTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// The counts take the same conditions as the list they sit beside, over the same query string.
+    /// </summary>
+    [Fact]
+    public async Task GetCountByFieldAsync_delivers_the_field_and_every_FlexFieldCondition_to_the_server_intact()
+    {
+        var fieldId = Guid.NewGuid();
+        var pageId = Guid.NewGuid();
+        var sent = new List<FlexFieldQueryCondition>
+        {
+            new(Guid.NewGuid(), "region", FlexFieldQueryOperator.Equals, "news & views/新闻 +1=?", FlexFieldValueType.String),
+            new(Guid.NewGuid(), "views", FlexFieldQueryOperator.GreaterThan, "10", FlexFieldValueType.Number)
+        };
+
+        await _client.Resolve<ContentPublicClientProxy>().GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = fieldId,
+            PageId = pageId,
+            CultureName = "en",
+            MaxResultCount = 7,
+            FlexFieldConditions = sent
+        });
+
+        var received = _server.Resolve<FakeContentPublicAppService>().LastCountByFieldInput;
+        received.ShouldNotBeNull();
+        received.FieldId.ShouldBe(fieldId);
+        received.PageId.ShouldBe(pageId);
+        received.CultureName.ShouldBe("en");
+        received.MaxResultCount.ShouldBe(7);
+        received.FlexFieldConditions.ShouldNotBeNull();
+        received.FlexFieldConditions.Count.ShouldBe(sent.Count);
+        for (var i = 0; i < sent.Count; i++)
+        {
+            received.FlexFieldConditions[i].FieldId.ShouldBe(sent[i].FieldId);
+            received.FlexFieldConditions[i].Operator.ShouldBe(sent[i].Operator);
+            received.FlexFieldConditions[i].Value.ShouldBe(sent[i].Value);
+            received.FlexFieldConditions[i].ValueType.ShouldBe(sent[i].ValueType);
+        }
+    }
+
     [Fact]
     public async Task GetListAsync_with_an_empty_condition_list_sends_the_other_parameters_untouched()
     {

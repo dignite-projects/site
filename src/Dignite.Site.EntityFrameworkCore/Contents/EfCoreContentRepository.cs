@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Dynamic.Core;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
@@ -121,6 +123,91 @@ public class EfCoreContentRepository : EfCoreRepository<ISiteDbContext, Content,
 
         return await query.CountAsync(GetCancellationToken(cancellationToken));
     }
+
+    public virtual async Task<List<ContentFieldValueCount>> GetCountByFieldValueAsync(
+        Guid fieldId,
+        FlexFieldValueType valueType,
+        Guid? pageId = null,
+        string? cultureName = null,
+        Guid? contentTypeId = null,
+        ContentStatus? status = null,
+        DateTime? publishedBefore = null,
+        DateTime? publishedAfter = null,
+        string? filter = null,
+        IReadOnlyList<FlexFieldQueryCondition>? flexFieldConditions = null,
+        int maxResultCount = int.MaxValue,
+        CancellationToken cancellationToken = default)
+    {
+        // The contents the list would show, as a subquery on the index rows - the same filter, so a count
+        // can never disagree with the list it sits beside about which contents are in play.
+        var contentIds = (await GetFilteredQueryableAsync(
+                pageId, cultureName, contentTypeId, status, publishedBefore, publishedAfter, filter,
+                flexFieldConditions, cancellationToken))
+            .Select(c => c.Id);
+
+        var index = (await GetDbContextAsync()).ContentFlexFieldIndexes
+            .Where(i => i.FieldId == fieldId && i.ValueType == valueType && contentIds.Contains(i.ContentId));
+
+        var token = GetCancellationToken(cancellationToken);
+
+        return valueType switch
+        {
+            FlexFieldValueType.String => await CountByValueAsync(index, i => i.StringValue, v => v, maxResultCount, token),
+            FlexFieldValueType.Number => await CountByValueAsync(
+                index, i => i.NumberValue, v => v == null ? null : FormatNumber(v.Value), maxResultCount, token),
+            FlexFieldValueType.DateTime => await CountByValueAsync(
+                index, i => i.DateTimeValue, v => v?.ToString("O", CultureInfo.InvariantCulture), maxResultCount, token),
+            FlexFieldValueType.Boolean => await CountByValueAsync(
+                index, i => i.BooleanValue, v => v == null ? null : v.Value ? "true" : "false", maxResultCount, token),
+            FlexFieldValueType.Guid => await CountByValueAsync(
+                index, i => i.GuidValue, v => v?.ToString("D"), maxResultCount, token),
+            _ => throw new ArgumentOutOfRangeException(nameof(valueType), valueType, null)
+        };
+    }
+
+    /// <summary>
+    /// A number without the trailing zeros its column's scale may carry: 42 and 42.0 are one value, and the
+    /// group's text is <c>42</c> either way.
+    /// </summary>
+    private static string FormatNumber(decimal number)
+    {
+        return (number / 1.0000000000000000000000000000m).ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Groups one field's index rows by the typed column <paramref name="value"/> names. A distinct count of
+    /// <c>ContentId</c>, not of rows: a content repeating a value is still one content.
+    /// </summary>
+    private static async Task<List<ContentFieldValueCount>> CountByValueAsync<TValue>(
+        IQueryable<ContentFlexFieldIndex> index,
+        Expression<Func<ContentFlexFieldIndex, TValue>> value,
+        Func<TValue, string?> format,
+        int maxResultCount,
+        CancellationToken cancellationToken)
+    {
+        // Ordered before it is projected: EF Core cannot order by a member of a constructor projection.
+        var groups = index
+            .GroupBy(value)
+            .OrderByDescending(g => g.Select(i => i.ContentId).Distinct().Count())
+            .ThenBy(g => g.Key)
+            .Select(g => new ValueGroup<TValue>(g.Key, g.Select(i => i.ContentId).Distinct().Count()));
+
+        var limited = maxResultCount < int.MaxValue ? groups.Take(maxResultCount) : groups;
+
+        var result = new List<ContentFieldValueCount>();
+        foreach (var group in await limited.ToListAsync(cancellationToken))
+        {
+            // A row of this value type always has its column set; a null key is not a value to count.
+            if (format(group.Value) is { } text)
+            {
+                result.Add(new ContentFieldValueCount(text, group.Count));
+            }
+        }
+
+        return result;
+    }
+
+    private sealed record ValueGroup<TValue>(TValue Value, int Count);
 
     public virtual async Task<Content?> FindPreviousAsync(
         Guid pageId,
