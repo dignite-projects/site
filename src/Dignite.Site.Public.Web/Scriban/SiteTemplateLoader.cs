@@ -62,7 +62,7 @@ public class SiteTemplateLoader : ITemplateLoader
             {
                 template = TemplateCache.GetOrAdd(file);
             }
-            catch (InvalidOperationException ex)
+            catch (ScribanRenderException ex)
             {
                 throw new ScriptRuntimeException(callerSpan, ex.Message, ex);
             }

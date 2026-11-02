@@ -74,13 +74,15 @@ public class ScribanPageResult : IActionResult
     }
 
     /// <summary>
-    /// The failures that are the theme's: what <see cref="SiteThemePreviewRenderer"/> reports as such, and a
-    /// <see cref="BusinessException"/> (a page that never reached <c>site_head</c>). A cancellation because the visitor
-    /// went away is not one.
+    /// The failures that are the theme's: what <see cref="SiteThemePreviewRenderer"/> reports as such, and the
+    /// <see cref="BusinessException"/> for a page that never reached <c>site_head</c>. A cancellation because the
+    /// visitor went away is not one, and neither is any other exception a service threw along the way: that is the
+    /// application's failure, left to the host's error handling.
     /// </summary>
     protected virtual bool IsThemeFailure(Exception exception, HttpContext httpContext)
     {
-        return exception is TimeoutException or InvalidOperationException or BusinessException
+        return exception is TimeoutException or ScribanRenderException
+               || exception is BusinessException { Code: SiteErrorCodes.SiteTemplateDidNotRenderSiteHead }
                || (exception is ScriptRuntimeException && !httpContext.RequestAborted.IsCancellationRequested);
     }
 

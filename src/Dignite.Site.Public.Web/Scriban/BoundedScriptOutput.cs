@@ -36,7 +36,7 @@ public class BoundedScriptOutput : IScriptOutput
 
         if ((long)_builder.Length + count > MaxLength)
         {
-            throw new InvalidOperationException(
+            throw new ScribanRenderException(
                 $"The Scriban template '{TemplateName}' wrote more than {MaxLength} characters, the limit set by " +
                 $"{nameof(SiteScribanOptions)}.{nameof(SiteScribanOptions.MaxOutputLength)}.");
         }

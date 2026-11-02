@@ -33,7 +33,7 @@ public class ScribanTemplateCache : ISingletonDependency, IDisposable
     }
 
     /// <summary>The parsed <paramref name="file"/>, named by its path in its error messages.</summary>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="ScribanRenderException">
     /// The body does not parse - possible for a working copy file, which may be saved with errors, and for a release
     /// published before a syntax rule it breaks existed.
     /// </exception>
@@ -49,7 +49,7 @@ public class ScribanTemplateCache : ISingletonDependency, IDisposable
         var template = ScribanTemplateSyntax.Parse(body, file.Path);
         if (template.HasErrors)
         {
-            throw new InvalidOperationException(
+            throw new ScribanRenderException(
                 $"The Scriban template '{file.Path}' does not parse:\n" +
                 ScribanTemplateSyntax.FormatErrors(ScribanTemplateSyntax.GetErrors(template)));
         }

@@ -95,15 +95,20 @@ public class ScribanPageRenderer : ITransientDependency
     /// <param name="renderSet">The theme to render with: the live release, or what a preview renders.</param>
     /// <param name="viewModel">The resolved page.</param>
     /// <param name="actionContext">The request being answered.</param>
+    /// <param name="cancellationToken">
+    /// A caller's own token, besides the request's abort: a preview rendered for an API or MCP call that was
+    /// cancelled. Its cancellation stops the render and propagates as a cancellation, never as a timeout.
+    /// </param>
     /// <exception cref="TimeoutException">The render took longer than <see cref="SiteScribanOptions.RenderTimeout"/>.</exception>
     /// <exception cref="BusinessException"><see cref="SiteErrorCodes.SiteTemplateDidNotRenderSiteHead"/>.</exception>
     /// <exception cref="ScriptRuntimeException">A template failed - its message carries the template path, line and column.</exception>
-    /// <exception cref="InvalidOperationException">A template does not parse, or the layout is not a template of the theme.</exception>
+    /// <exception cref="ScribanRenderException">A template does not parse, the layout is not a template of the theme, or a template wrote past <see cref="SiteScribanOptions.MaxOutputLength"/>.</exception>
     public virtual async Task<ScribanPageRender> RenderAsync(
         string templatePath,
         SiteThemeRenderSet renderSet,
         SiteRenderViewModel viewModel,
-        ActionContext actionContext)
+        ActionContext actionContext,
+        CancellationToken cancellationToken = default)
     {
         var templateFile = renderSet.FindTemplate(templatePath)
                            ?? throw new ArgumentException($"The theme has no template '{templatePath}' to render.", nameof(templatePath));
@@ -113,11 +118,16 @@ public class ScribanPageRenderer : ITransientDependency
         var layoutFile = layoutPath == null
             ? null
             : renderSet.FindTemplate(layoutPath)
-              ?? throw new InvalidOperationException(
+              ?? throw new ScribanRenderException(
                   $"The layout '{layoutPath}' of the Scriban template '{templatePath}' is not a template of the theme.");
+        var layoutTemplate = layoutFile == null ? null : TemplateCache.GetOrAdd(layoutFile);
 
         var options = Options.Value;
-        var requestAborted = actionContext.HttpContext.RequestAborted;
+
+        // What ends the render early for a reason other than the time budget: the visitor going away, or the
+        // caller's own cancellation.
+        using var aborted = CancellationTokenSource.CreateLinkedTokenSource(actionContext.HttpContext.RequestAborted, cancellationToken);
+        var requestAborted = aborted.Token;
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(requestAborted);
         timeout.CancelAfter(options.RenderTimeout);
@@ -127,7 +137,7 @@ public class ScribanPageRenderer : ITransientDependency
         RegisterFunctions(globals, scope);
         var templateLoader = CreateTemplateLoader(renderSet);
 
-        var html = await RenderTemplateAsync(templateFile, globals, templateLoader, timeout.Token, requestAborted);
+        var html = await RenderTemplateAsync(templateFile, template, globals, templateLoader, timeout.Token, requestAborted);
         var documentName = templatePath;
 
         if (layoutFile != null)
@@ -135,7 +145,7 @@ public class ScribanPageRenderer : ITransientDependency
             // The page template's output is already HTML - encoded where it had to be - so the layout writes it
             // as is.
             globals.SetValue(SiteThemeConsts.BodyVariableName, new ScribanRawHtml(html), true);
-            html = await RenderTemplateAsync(layoutFile, globals, templateLoader, timeout.Token, requestAborted);
+            html = await RenderTemplateAsync(layoutFile, layoutTemplate!, globals, templateLoader, timeout.Token, requestAborted);
             documentName = layoutFile.Path;
         }
 
@@ -186,15 +196,22 @@ public class ScribanPageRenderer : ITransientDependency
         return new SiteTemplateLoader(renderSet, TemplateCache);
     }
 
+    /// <summary>Renders one template - the page template, or the layout - into its own bounded output.</summary>
+    /// <param name="file">The template's file, for its path.</param>
+    /// <param name="template">The file parsed (<see cref="ScribanTemplateCache"/>).</param>
+    /// <param name="globals">What both templates see - see the class remarks.</param>
+    /// <param name="templateLoader">What <c>include</c> may pull in.</param>
+    /// <param name="cancellationToken">The time budget, linked to <paramref name="requestAborted"/>.</param>
+    /// <param name="requestAborted">Cancelled when the render ends for a reason other than the time budget: the visitor's request aborted, or the caller's own token.</param>
     protected virtual async Task<string> RenderTemplateAsync(
         SiteThemeSnapshotFileDto file,
+        global::Scriban.Template template,
         ScriptObject globals,
         ITemplateLoader templateLoader,
         CancellationToken cancellationToken,
         CancellationToken requestAborted)
     {
         var name = file.Path;
-        var template = TemplateCache.GetOrAdd(file);
         var output = new BoundedScriptOutput(name, Options.Value.MaxOutputLength);
         var context = Sandbox.CreateContext(cancellationToken, output, templateLoader);
         context.PushGlobal(globals);
