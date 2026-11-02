@@ -77,10 +77,53 @@ public class ScribanDocumentedTemplates_Tests
         {{ end }}
         """;
 
+    public const string CategoryMenuWithCounts = """
+        {{ blog = find_page "blog" }}
+        {{ if blog }}
+            {{ fields = field_definitions blog.content_types[0].fields }}
+            {{ if fields.category }}
+                {{ counts = {} }}
+                {{ groups = content_counts { field: "category", page: "blog" } }}
+                {{ for group in groups }}
+                    {{ counts[group.value] = group.count }}
+                {{ end }}
+                {{ for option in fields.category.configuration["Select.Options"] }}
+                    <a href="/blog/{{ option.Value }}">{{ option.Text }} ({{ counts[option.Value] ?? 0 }})</a>
+                {{ end }}
+            {{ end }}
+        {{ end }}
+        """;
+
     [Fact]
     public async Task The_Category_Menu_Should_List_The_Options_Of_A_Select_Field()
     {
         var renderer = new ScribanTestRenderer();
+        AddBlogWithCategoryField(renderer);
+
+        var html = await renderer.RenderAsync(CategoryMenu, "{{ site_head }}{{ body }}");
+
+        html.ShouldContain("<a href=\"/blog/travel\">Travel</a>");
+        html.ShouldContain("<a href=\"/blog/food\">Food</a>");
+    }
+
+    [Fact]
+    public async Task The_Category_Menu_With_Counts_Should_Show_How_Many_Contents_Each_Option_Has()
+    {
+        var renderer = new ScribanTestRenderer();
+        AddBlogWithCategoryField(renderer);
+        renderer.ContentListQuery.Counts.Add(new Dignite.Site.Public.Contents.ContentFieldValueCountDto { Value = "travel", Count = 3 });
+
+        var html = await renderer.RenderAsync(CategoryMenuWithCounts, "{{ site_head }}{{ body }}");
+
+        html.ShouldContain("<a href=\"/blog/travel\">Travel (3)</a>");
+        html.ShouldContain("<a href=\"/blog/food\">Food (0)</a>");
+
+        var (_, fieldName, _) = renderer.ContentListQuery.CountRequests.ShouldHaveSingleItem();
+        fieldName.ShouldBe("category");
+    }
+
+    private static void AddBlogWithCategoryField(ScribanTestRenderer renderer)
+    {
         var fieldId = Guid.NewGuid();
         renderer.ContentListQuery.PagesByName["blog"] = new PageDto
         {
@@ -118,11 +161,6 @@ public class ScribanDocumentedTemplates_Tests
                 })
             }
         };
-
-        var html = await renderer.RenderAsync(CategoryMenu, "{{ site_head }}{{ body }}");
-
-        html.ShouldContain("<a href=\"/blog/travel\">Travel</a>");
-        html.ShouldContain("<a href=\"/blog/food\">Food</a>");
     }
 
     [Fact]

@@ -6,6 +6,8 @@ using Dignite.Abp.FlexFields.Web;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Public.Contents;
+using Dignite.Site.Public.Scriban.Functions;
 using Dignite.Site.Public.TagHelpers;
 using Dignite.Site.Themes;
 using global::Scriban.Syntax;
@@ -304,6 +306,80 @@ public class ScribanPageRenderer_Tests
 
         ex.ShouldNotBeNull();
         ex.Message.ShouldContain("pagesize");
+    }
+
+    [Fact]
+    public async Task Content_Counts_Without_A_Page_Should_Count_The_Current_Pages_Slice()
+    {
+        var renderer = new ScribanTestRenderer();
+        renderer.ContentListQuery.Counts.Add(new ContentFieldValueCountDto { Value = "travel", Count = 3 });
+        renderer.ContentListQuery.Counts.Add(new ContentFieldValueCountDto { Value = "food", Count = 1 });
+        var viewModel = ScribanTestRenderer.PageViewModel();
+
+        var html = await renderer.RenderAsync(
+            ScribanTestRenderer.RenderSet(
+                "{{ for group in content_counts { field: \"category\" } }}{{ group.value }}={{ group.count }};{{ end }}",
+                HeadOnlyLayout),
+            viewModel);
+
+        html.ShouldEndWith("travel=3;food=1;");
+
+        var (request, fieldName, maxResultCount) = renderer.ContentListQuery.CountRequests.ShouldHaveSingleItem();
+        fieldName.ShouldBe("category");
+        maxResultCount.ShouldBe(100);
+        request.Page.ShouldBeSameAs(viewModel.Page);
+        request.CultureName.ShouldBe("ja");
+        request.FieldFilters.ShouldBeSameAs(viewModel.FieldFilters);
+        request.PublishedAfter.ShouldBe(viewModel.PublishedAfter);
+        request.PublishedBefore.ShouldBe(viewModel.PublishedBefore);
+        renderer.ContentListQuery.PagesLookedUp.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Content_Counts_Of_Another_Page_Should_Not_Carry_The_Current_Routes_Filters()
+    {
+        var renderer = new ScribanTestRenderer();
+        var news = ScribanTestRenderer.Page();
+        renderer.ContentListQuery.PagesByName["news"] = news;
+
+        await renderer.RenderAsync(
+            "{{ content_counts { field: \"category\", page: \"news\", content_type: \"post\", filter: \"trip\", max: 5000 } | array.size }}",
+            HeadOnlyLayout);
+
+        var (request, fieldName, maxResultCount) = renderer.ContentListQuery.CountRequests.ShouldHaveSingleItem();
+        fieldName.ShouldBe("category");
+        maxResultCount.ShouldBe(ContentCountsFunction.MaxGroups);
+        request.Page.ShouldBeSameAs(news);
+        request.ContentTypeName.ShouldBe("post");
+        request.Filter.ShouldBe("trip");
+        request.FieldFilters.ShouldBeNull();
+        request.PublishedAfter.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Content_Counts_Of_A_Page_That_Does_Not_Exist_Should_Count_Nothing()
+    {
+        var renderer = new ScribanTestRenderer();
+
+        var html = await renderer.RenderAsync(
+            "{{ content_counts { field: \"category\", page: \"gone\" } | array.size }}", HeadOnlyLayout);
+
+        html.ShouldEndWith("0");
+        renderer.ContentListQuery.CountRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Content_Counts_Without_A_Field_Or_With_A_Misspelt_Option_Should_Fail()
+    {
+        var noField = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            "{{ content_counts { max: 5 } }}", HeadOnlyLayout));
+        noField.ShouldNotBeNull();
+        noField.Message.ShouldContain("name of the field");
+
+        var misspelt = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            "{{ content_counts { field: \"category\", limit: 5 } }}", HeadOnlyLayout));
+        misspelt.ShouldNotBeNull();
+        misspelt.Message.ShouldContain("limit");
     }
 
     [Fact]

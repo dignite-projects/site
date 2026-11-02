@@ -60,7 +60,7 @@ Contents are managed with the `SiteAdmin.Contents.*` permissions:
 * By an AI client, with the `site_*_content` [MCP tools](mcp/tools.md#contents).
 * With the administration API, `/api/site-admin/contents`.
 
-The public read API, `/api/site-public/contents`, serves published contents only.
+The public read API, `/api/site-public/contents`, serves published contents only. Beside the list, `/api/site-public/contents/count-by-field` counts them by the value of a field, such as the contents per category, under the same filters; a [Scriban template](rendering/scriban-templates.md#counting-contents-by-a-field) does so with `content_counts`.
 
 ## See Also
 

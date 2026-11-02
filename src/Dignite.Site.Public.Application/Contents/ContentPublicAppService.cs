@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dignite.Abp.FlexFields;
 using Dignite.Site.Common;
 using Dignite.Site.Contents;
+using Dignite.Site.Fields;
 using Dignite.Site.Pages;
 using Dignite.Site.Seo;
 using Volo.Abp.Application.Dtos;
@@ -24,13 +26,23 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
 
     protected IPageRepository PageRepository { get; }
 
+    protected IFieldRepository FieldRepository { get; }
+
+    protected IFieldTypeResolver FieldTypeResolver { get; }
+
     protected SiteUrlBuilder UrlBuilder { get; }
 
     public ContentPublicAppService(
-        IContentRepository contentRepository, IPageRepository pageRepository, SiteUrlBuilder urlBuilder)
+        IContentRepository contentRepository,
+        IPageRepository pageRepository,
+        IFieldRepository fieldRepository,
+        IFieldTypeResolver fieldTypeResolver,
+        SiteUrlBuilder urlBuilder)
     {
         ContentRepository = contentRepository;
         PageRepository = pageRepository;
+        FieldRepository = fieldRepository;
+        FieldTypeResolver = fieldTypeResolver;
         UrlBuilder = urlBuilder;
     }
 
@@ -89,6 +101,37 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
         return new PagedResultDto<ContentDto>(
             totalCount,
             contents.Select(c => MapToDto(c, pagesById.GetValueOrDefault(c.PageId), urlContext)).ToList());
+    }
+
+    /// <summary>
+    /// The same visibility as <see cref="GetListAsync"/> - published, never ahead of its <c>PublishTime</c> -
+    /// so a count never includes a content the list beside it would not show. A field whose type is not
+    /// indexed (rich text, files) has no values to group and answers an empty list; an unknown field is
+    /// not found.
+    /// </summary>
+    public virtual async Task<ListResultDto<ContentFieldValueCountDto>> GetCountByFieldAsync(
+        GetContentCountByFieldInput input)
+    {
+        var field = await FieldRepository.GetAsync(input.FieldId);
+
+        if (FieldTypeResolver.Get(field.FieldTypeName).IndexValueType is not { } valueType)
+        {
+            return new ListResultDto<ContentFieldValueCountDto>(new List<ContentFieldValueCountDto>());
+        }
+
+        var asOf = Clock.Now;
+        var effectiveBefore = input.PublishedBefore is { } before && before < asOf ? before : asOf;
+
+        var counts = await ContentRepository.GetCountByFieldValueAsync(
+            field.Id, valueType,
+            pageId: input.PageId, cultureName: input.CultureName, contentTypeId: input.ContentTypeId,
+            status: ContentStatus.Published, publishedBefore: effectiveBefore, publishedAfter: input.PublishedAfter,
+            filter: input.Filter, flexFieldConditions: input.FlexFieldConditions,
+            maxResultCount: Math.Clamp(
+                input.MaxResultCount, 1, GetContentCountByFieldInput.MaxAllowedMaxResultCount));
+
+        return new ListResultDto<ContentFieldValueCountDto>(
+            counts.Select(c => new ContentFieldValueCountDto { Value = c.Value, Count = c.Count }).ToList());
     }
 
     public virtual async Task<ListResultDto<ContentDto>> GetTranslationsAsync(

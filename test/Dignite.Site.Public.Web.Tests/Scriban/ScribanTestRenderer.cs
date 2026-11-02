@@ -11,6 +11,7 @@ using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Public.Contents;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Routing;
@@ -296,6 +297,17 @@ public class FakeContentListQuery : ContentListQuery
     {
         PagesLookedUp.Add(pageName);
         return Task.FromResult<PageDto?>(PagesByName.GetValueOrDefault(pageName));
+    }
+
+    public List<(ContentListQueryRequest Request, string FieldName, int MaxResultCount)> CountRequests { get; } = new();
+
+    public List<ContentFieldValueCountDto> Counts { get; } = new();
+
+    public override Task<IReadOnlyList<ContentFieldValueCountDto>> CountByFieldAsync(
+        ContentListQueryRequest request, string fieldName, int maxResultCount = 100)
+    {
+        CountRequests.Add((request, fieldName, maxResultCount));
+        return Task.FromResult<IReadOnlyList<ContentFieldValueCountDto>>(Counts.ToList());
     }
 
     public override Task<ContentListRenderViewModel> QueryAsync(ContentListQueryRequest request)

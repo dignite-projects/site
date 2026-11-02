@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dignite.Abp.FlexFields;
 using Dignite.Site.Admin.Contents;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
@@ -402,6 +403,160 @@ public class ContentPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
             () => _contentPublicAppService.GetAdjacentAsync(draft.Id, new GetAdjacentContentsInput()));
         await Should.ThrowAsync<EntityNotFoundException>(
             () => _contentPublicAppService.GetAdjacentAsync(scheduled.Id, new GetAdjacentContentsInput()));
+    }
+
+    /// <summary>
+    /// The seed has one published article, in travel and food. A second one in food and tech makes the groups
+    /// uneven (food 2, travel 1, tech 1), and a content in two categories counts under each - so the counts add
+    /// up to more than the contents there are.
+    /// </summary>
+    [Fact]
+    public async Task Should_Count_Published_Contents_Per_Value_Of_A_Field_Most_Numerous_First()
+    {
+        await CreateCategorizedAsync("count-food-tech", new[] { "food", "tech" });
+
+        var counts = await _contentPublicAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.CategoryFieldId,
+            PageId = SiteTestData.BlogPageId
+        });
+
+        counts.Items.Select(c => (c.Value, c.Count)).ShouldBe(new[] { ("food", 2), ("tech", 1), ("travel", 1) });
+    }
+
+    [Fact]
+    public async Task Should_Count_Only_What_The_List_With_The_Same_Filters_Would_Show()
+    {
+        await CreateCategorizedAsync("count-draft", new[] { "tech" }, status: ContentStatus.Draft);
+        await CreateCategorizedAsync("count-archived", new[] { "tech" }, status: ContentStatus.Archived);
+        await CreateCategorizedAsync("count-scheduled", new[] { "tech" }, publishTime: DateTime.UtcNow.AddDays(30));
+        await CreateCategorizedAsync("count-later", new[] { "tech" }, publishTime: SiteTestData.PublishTime.AddDays(5));
+
+        var input = new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.CategoryFieldId,
+            PageId = SiteTestData.BlogPageId,
+            PublishedBefore = SiteTestData.PublishTime.AddDays(1)
+        };
+
+        // Neither the draft, the archived, the scheduled one nor the one past PublishedBefore is counted.
+        (await _contentPublicAppService.GetCountByFieldAsync(input)).Items
+            .Select(c => (c.Value, c.Count)).ShouldBe(new[] { ("food", 1), ("travel", 1) });
+
+        // The one published after the seed counts once the window reaches it - the scheduled one still does not.
+        input.PublishedBefore = SiteTestData.PublishTime.AddDays(10);
+        (await _contentPublicAppService.GetCountByFieldAsync(input)).Items
+            .Select(c => (c.Value, c.Count)).ShouldBe(new[] { ("food", 1), ("tech", 1), ("travel", 1) });
+
+        input.PublishedBefore = null;
+        input.PublishedAfter = SiteTestData.PublishTime.AddDays(1);
+        (await _contentPublicAppService.GetCountByFieldAsync(input)).Items
+            .Select(c => (c.Value, c.Count)).ShouldBe(new[] { ("tech", 1) });
+    }
+
+    [Fact]
+    public async Task Should_Narrow_The_Counted_Contents_By_Field_Conditions_And_Culture()
+    {
+        await CreateCategorizedAsync("count-food-tech", new[] { "food", "tech" });
+        await CreateCategorizedAsync("count-chinese", new[] { "tech" }, culture: SiteTestData.ChineseCulture);
+
+        var featured = await _contentPublicAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.CategoryFieldId,
+            PageId = SiteTestData.BlogPageId,
+            FlexFieldConditions = new List<FlexFieldQueryCondition>
+            {
+                new(SiteTestData.FeaturedFieldId, SiteTestData.FeaturedFieldName,
+                    FlexFieldQueryOperator.Equals, "true", FlexFieldValueType.Boolean)
+            }
+        });
+
+        // Only the seeded trip is featured.
+        featured.Items.Select(c => (c.Value, c.Count)).ShouldBe(new[] { ("food", 1), ("travel", 1) });
+
+        var chinese = await _contentPublicAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.CategoryFieldId,
+            PageId = SiteTestData.BlogPageId,
+            CultureName = SiteTestData.ChineseCulture
+        });
+
+        chinese.Items.Select(c => (c.Value, c.Count)).ShouldBe(new[] { ("tech", 1) });
+
+        var other = await _contentPublicAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.CategoryFieldId,
+            PageId = SiteTestData.AboutPageId
+        });
+
+        other.Items.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_Count_Number_And_Boolean_Fields_By_Their_Invariant_Text()
+    {
+        var views = await _contentPublicAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.ViewsFieldId,
+            PageId = SiteTestData.BlogPageId
+        });
+
+        // The seeded draft has 7 views too, and is not counted.
+        views.Items.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            v => v.Value.ShouldBe("42"),
+            v => v.Count.ShouldBe(1));
+
+        var featured = await _contentPublicAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.FeaturedFieldId,
+            PageId = SiteTestData.BlogPageId
+        });
+
+        featured.Items.ShouldHaveSingleItem().Value.ShouldBe("true");
+    }
+
+    [Fact]
+    public async Task Should_Limit_The_Number_Of_Groups_Returned()
+    {
+        await CreateCategorizedAsync("count-food-tech", new[] { "food", "tech" });
+
+        var counts = await _contentPublicAppService.GetCountByFieldAsync(new GetContentCountByFieldInput
+        {
+            FieldId = SiteTestData.CategoryFieldId,
+            PageId = SiteTestData.BlogPageId,
+            MaxResultCount = 1
+        });
+
+        counts.Items.ShouldHaveSingleItem().Value.ShouldBe("food");
+    }
+
+    [Fact]
+    public async Task Should_Not_Find_The_Counts_Of_A_Field_That_Does_Not_Exist()
+    {
+        await Should.ThrowAsync<EntityNotFoundException>(() => _contentPublicAppService.GetCountByFieldAsync(
+            new GetContentCountByFieldInput { FieldId = Guid.NewGuid() }));
+    }
+
+    private Task<ContentDto> CreateCategorizedAsync(
+        string slug,
+        string[] categories,
+        ContentStatus status = ContentStatus.Published,
+        DateTime? publishTime = null,
+        string culture = SiteTestData.EnglishCulture)
+    {
+        return _contentAdminAppService.CreateAsync(new CreateContentDto
+        {
+            ContentTypeId = SiteTestData.PostArticleTypeId,
+            CultureName = culture,
+            Slug = slug,
+            PublishTime = publishTime ?? SiteTestData.PublishTime,
+            Status = status,
+            FieldValues = new Dictionary<string, object?>
+            {
+                ["title"] = slug,
+                ["category"] = categories.ToList()
+            }
+        });
     }
 
     private Task<ContentDto> CreateAdjacentTestContentAsync(

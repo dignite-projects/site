@@ -196,6 +196,7 @@ A front end in another process or another stack, such as Next.js or Astro, reads
 | `GET /api/site-public/resolve-path?path=...` | What a path resolves to: the page, the content and its content type, the filter values and the language. |
 | `GET /api/site-public/head-metadata?path=...` | The `<head>` metadata of a path. |
 | `GET /api/site-public/contents` | Published contents, filtered and paged. |
+| `GET /api/site-public/contents/count-by-field?fieldId=...` | How many published contents carry each value of a field, such as the contents per category, among the contents the same filters select as `GET /api/site-public/contents`. |
 | `GET /api/site-public/files/...` | The site's [files](../files.md#serving-files). |
 
 The sitemap, the feeds and `robots.txt` are then the front end's to serve as well; their documents are available at `/api/site-public/sitemap`, `/api/site-public/feed` and `/api/site-public/robots`.

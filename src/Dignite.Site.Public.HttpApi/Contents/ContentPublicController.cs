@@ -41,6 +41,13 @@ public class ContentPublicController : SitePublicController, IContentPublicAppSe
     }
 
     [HttpGet]
+    [Route("count-by-field")]
+    public virtual Task<ListResultDto<ContentFieldValueCountDto>> GetCountByFieldAsync(GetContentCountByFieldInput input)
+    {
+        return ContentPublicAppService.GetCountByFieldAsync(input);
+    }
+
+    [HttpGet]
     [Route("translations")]
     public virtual Task<ListResultDto<ContentDto>> GetTranslationsAsync(
         [FromQuery] Guid pageId, [FromQuery] Guid contentTypeId, [FromQuery] string slug)

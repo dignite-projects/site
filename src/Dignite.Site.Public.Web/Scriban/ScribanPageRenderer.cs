@@ -170,6 +170,7 @@ public class ScribanPageRenderer : ITransientDependency
         globals.SetValue(FileUrlFunction.Name, new FileUrlFunction(), true);
         globals.SetValue(AssetUrlFunction.Name, new AssetUrlFunction(scope, UrlHelperFactory), true);
         globals.SetValue(ContentsFunction.Name, new ContentsFunction(scope, ContentListQuery, ModelBuilder), true);
+        globals.SetValue(ContentCountsFunction.Name, new ContentCountsFunction(scope, ContentListQuery), true);
         globals.SetValue(RenderFieldFunction.Name, new RenderFieldFunction(scope, PartialRenderer), true);
         globals.SetValue(FindPageFunction.Name, new FindPageFunction(scope, ContentListQuery, ModelBuilder), true);
         globals.SetValue(FieldDefinitionsFunction.Name, new FieldDefinitionsFunction(scope, FieldAppService, ModelBuilder), true);

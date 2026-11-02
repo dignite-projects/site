@@ -66,6 +66,29 @@
                   }
                 },
                 {
+                  "name": "GetCountByFieldAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Public.Contents.GetContentCountByFieldInput, Dignite.Site.Public.Application.Contracts",
+                      "type": "Dignite.Site.Public.Contents.GetContentCountByFieldInput",
+                      "typeSimple": "Dignite.Site.Public.Contents.GetContentCountByFieldInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Public.Contents.ContentFieldValueCountDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Public.Contents.ContentFieldValueCountDto>",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
                   "name": "GetTranslationsAsync",
                   "parametersOnMethod": [
                     {
@@ -529,6 +552,177 @@
               "allowAnonymous": null,
               "authorizeDatas": [],
               "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<Dignite.Site.Contents.ContentDto,Dignite.Site.Contents.ContentDto,System.Guid,Dignite.Site.Public.Contents.GetContentListInput>",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetCountByFieldAsyncByInput": {
+              "uniqueName": "GetCountByFieldAsyncByInput",
+              "name": "GetCountByFieldAsync",
+              "httpMethod": "GET",
+              "url": "api/site-public/contents/count-by-field",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Public.Contents.GetContentCountByFieldInput, Dignite.Site.Public.Application.Contracts",
+                  "type": "Dignite.Site.Public.Contents.GetContentCountByFieldInput",
+                  "typeSimple": "Dignite.Site.Public.Contents.GetContentCountByFieldInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "FieldId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "PageId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "CultureName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "ContentTypeId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Filter",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "PublishedAfter",
+                  "jsonName": null,
+                  "type": "System.DateTime?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "PublishedBefore",
+                  "jsonName": null,
+                  "type": "System.DateTime?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "FlexFieldConditions",
+                  "jsonName": null,
+                  "type": "System.Collections.Generic.List<Dignite.Abp.FlexFields.FlexFieldQueryCondition>",
+                  "typeSimple": "[Dignite.Abp.FlexFields.FlexFieldQueryCondition]",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "MaxResultCount",
+                  "jsonName": null,
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Public.Contents.ContentFieldValueCountDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Public.Contents.ContentFieldValueCountDto>",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Contents.IContentPublicAppService",
               "summary": null,
               "remarks": null,
               "description": null,
