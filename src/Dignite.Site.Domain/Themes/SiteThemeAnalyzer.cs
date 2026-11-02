@@ -80,12 +80,21 @@ public sealed class SiteThemeAnalysis
     internal SiteThemeAnalysis(
         IReadOnlyDictionary<string, SiteThemeFileAnalysis> files,
         IReadOnlyList<SiteThemeIssue> issues,
-        Dictionary<string, List<SiteThemeUsage>> usages)
+        Dictionary<string, List<SiteThemeUsage>> usages,
+        IReadOnlyList<string> layouts)
     {
         Files = files;
         Issues = issues;
         _usages = usages;
+        Layouts = layouts;
     }
+
+    /// <summary>
+    /// The templates that can serve as a layout, by path: they parse, have no front matter, and write the page's
+    /// <c>body</c> and call <c>site_head</c> - themselves or through what they include. A file has no type, so this is
+    /// read off what it does, whether or not anything uses it as a layout yet. It is what a default layout must be.
+    /// </summary>
+    public IReadOnlyList<string> Layouts { get; }
 
     /// <summary>Every file, by path.</summary>
     public IReadOnlyDictionary<string, SiteThemeFileAnalysis> Files { get; }
@@ -129,7 +138,7 @@ public static class SiteThemeAnalyzer
         var context = new AnalysisContext(analyses, defaultLayout);
         context.Run(pages.ToList());
 
-        return new SiteThemeAnalysis(analyses, context.GetSortedIssues(), context.Usages);
+        return new SiteThemeAnalysis(analyses, context.GetSortedIssues(), context.Usages, context.Layouts);
     }
 
     private static SiteThemeFileAnalysis Parse(SiteThemeSourceFile file)
@@ -173,6 +182,8 @@ public static class SiteThemeAnalyzer
 
         public Dictionary<string, List<SiteThemeUsage>> Usages { get; } = new(StringComparer.Ordinal);
 
+        public List<string> Layouts { get; } = new();
+
         public void Run(List<SiteThemePageTemplate> pages)
         {
             ReportSyntaxAndFrontMatter();
@@ -183,6 +194,22 @@ public static class SiteThemeAnalyzer
             ReportLayouts();
             ReportPagesWithoutLayout();
             ReportUnused();
+            FindLayouts();
+        }
+
+        /// <summary>The templates that could be a layout, whatever uses them now; see <see cref="SiteThemeAnalysis.Layouts"/>.</summary>
+        private void FindLayouts()
+        {
+            foreach (var file in _files.Values.Where(file => !file.IsAsset).OrderBy(file => file.Path, StringComparer.Ordinal))
+            {
+                if (file.SyntaxErrors.Count == 0
+                    && !file.FrontMatter.Exists
+                    && Reaches(file.Path, f => f.CallsSiteHead)
+                    && Reaches(file.Path, f => f.UsesBody))
+                {
+                    Layouts.Add(file.Path);
+                }
+            }
         }
 
         public List<SiteThemeIssue> GetSortedIssues()

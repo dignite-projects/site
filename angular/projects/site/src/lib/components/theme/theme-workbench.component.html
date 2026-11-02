@@ -3,79 +3,28 @@
     <span class="spinner-border" role="status"></span>
   </div>
 } @else {
-  <!-- Toolbar: what is live, and the actions on the theme as a whole. -->
+  <!-- Toolbar: the default layout, and the actions on the theme as a whole. The live release is marked in the history. -->
   <div class="card mb-3">
     <div class="card-body d-flex flex-wrap align-items-center gap-2">
       <div class="me-auto">
         <h5 class="mb-0">{{ 'Site::Theme' | abpLocalization }}</h5>
         <small class="text-muted">
-          @if (theme()?.liveReleaseNumber; as number) {
-            {{ 'Site::LiveRelease' | abpLocalization: number.toString() }}
-          } @else {
-            {{ 'Site::NothingPublished' | abpLocalization }}
-          }
-          ·
           {{ 'Site::DefaultLayout' | abpLocalization }}:
           <code>{{ theme()?.defaultLayout || ('Site::NoDefaultLayout' | abpLocalization) }}</code>
-          @if (defaultLayoutChanged(check())) {
-            <span class="badge text-bg-warning ms-1">{{ 'Site::DefaultLayoutUnpublished' | abpLocalization }}</span>
-          }
         </small>
       </div>
-      <!-- Preview: the home page, or a page the template in front renders. A menu of our own: no dropdown library. -->
-      <div class="btn-group position-relative theme-preview-menu">
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          [title]="'Site::PreviewThemeHint' | abpLocalization"
-          (click)="openPreview()"
-        >
-          <i class="fa fa-eye me-1"></i>{{ 'Site::PreviewTheme' | abpLocalization }}
-        </button>
-        @if (previewPages().length > 0) {
-          <button
-            type="button"
-            class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split"
-            [attr.aria-expanded]="isPreviewMenuOpen()"
-            (click)="isPreviewMenuOpen.set(!isPreviewMenuOpen())"
-          >
-            <span class="visually-hidden">{{ 'Site::PreviewPagesOf' | abpLocalization: activePath() ?? '' }}</span>
-          </button>
-          @if (isPreviewMenuOpen()) {
-            <div class="dropdown-menu dropdown-menu-end show" style="position: absolute; inset: 100% 0 auto auto">
-              <h6 class="dropdown-header">{{ 'Site::PreviewPagesOf' | abpLocalization: activePath() ?? '' }}</h6>
-              @for (page of previewPages(); track $index) {
-                <button
-                  type="button"
-                  class="dropdown-item"
-                  [disabled]="!page.path"
-                  [title]="page.path ? '' : ('Site::PreviewPageNeedsContent' | abpLocalization)"
-                  (click)="openPreview(undefined, page.path ?? undefined)"
-                >
-                  {{ page.name }}
-                  <small class="text-muted ms-1">{{ page.path ?? page.route }}</small>
-                </button>
-              }
-            </div>
-          }
-        }
-      </div>
-      <button type="button" class="btn btn-outline-secondary" (click)="runCheck()" [disabled]="isChecking()">
-        @if (isChecking()) {
-          <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-        } @else {
-          <i class="fa fa-stethoscope me-1"></i>
-        }
-        {{ 'Site::CheckTheme' | abpLocalization }}
+      <!-- Preview of the theme as a whole: the site's home page, from which the author follows the links. -->
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [title]="'Site::PreviewThemeHint' | abpLocalization"
+        (click)="openPreview()"
+      >
+        <i class="fa fa-eye me-1"></i>{{ 'Site::PreviewTheme' | abpLocalization }}
       </button>
       <button type="button" class="btn btn-outline-secondary" (click)="openReleases()">
         <i class="fa fa-history me-1"></i>{{ 'Site::Releases' | abpLocalization }}
       </button>
-      @if (canEdit) {
-        <button type="button" class="btn btn-outline-secondary" (click)="openSettings()">
-          <i class="fa fa-cog me-1"></i>{{ 'Site::ThemeSettings' | abpLocalization }}
-        </button>
-      }
       @if (canPublish) {
         <button type="button" class="btn btn-primary" (click)="openPublish()">
           <i class="fa fa-upload me-1"></i>{{ 'Site::PublishTheme' | abpLocalization }}
@@ -102,36 +51,54 @@
               </button>
             }
           </div>
-          <div class="theme-tree" role="tree">
+          <div class="theme-tree" role="tree" (scroll)="closeRowMenu()">
             @for (row of treeRows(); track row.node.path + row.node.isFolder) {
-              <button
-                type="button"
+              <div
                 class="theme-tree-row"
-                role="treeitem"
                 [class.active]="!row.node.isFolder && row.node.path === activePath()"
                 [class.deleted]="row.node.status === statuses.Deleted"
                 [style.padding-left.rem]="0.25 + row.depth * 1"
-                [title]="row.node.path"
-                (click)="select(row.node)"
               >
-                @if (row.node.isFolder) {
-                  <i class="fa fa-fw" [class.fa-folder]="collapsed().has(row.node.path)" [class.fa-folder-open]="!collapsed().has(row.node.path)"></i>
-                } @else {
-                  <i class="fa fa-fw" [class.fa-file-code]="row.node.isAsset" [class.fa-file-lines]="!row.node.isAsset"></i>
+                <button
+                  type="button"
+                  class="theme-tree-main"
+                  role="treeitem"
+                  [title]="row.node.path"
+                  (click)="select(row.node)"
+                >
+                  @if (row.node.isFolder) {
+                    <i class="fa fa-fw" [class.fa-folder]="collapsed().has(row.node.path)" [class.fa-folder-open]="!collapsed().has(row.node.path)"></i>
+                  } @else {
+                    <i class="fa fa-fw" [class.fa-file-code]="row.node.isAsset" [class.fa-file-lines]="!row.node.isAsset"></i>
+                  }
+                  <span class="name">{{ row.node.name }}</span>
+                  @if (!row.node.isFolder && statusKey(row.node.status); as key) {
+                    <span
+                      class="badge"
+                      [class.text-bg-warning]="row.node.status === statuses.Modified"
+                      [class.text-bg-success]="row.node.status === statuses.Added"
+                      [class.text-bg-secondary]="row.node.status === statuses.Deleted"
+                      [title]="key | abpLocalization"
+                    >{{ (key + ':Short') | abpLocalization }}</span>
+                  } @else if (row.node.isFolder && row.node.hasChanges) {
+                    <span class="text-warning" [title]="'Site::ThemeFolderHasChanges' | abpLocalization">•</span>
+                  }
+                </button>
+                <!-- Renaming and deleting are rare: behind a "more" button on the file, not in the editor's way. -->
+                @if (canEdit && !row.node.isFolder && row.node.status !== statuses.Deleted) {
+                  <button
+                    type="button"
+                    class="theme-tree-more"
+                    [class.open]="rowMenu()?.path === row.node.path"
+                    [attr.aria-label]="'Site::MoreActions' | abpLocalization"
+                    [attr.aria-expanded]="rowMenu()?.path === row.node.path"
+                    [title]="'Site::MoreActions' | abpLocalization"
+                    (click)="toggleRowMenu($event, row.node.path)"
+                  >
+                    <i class="fa fa-ellipsis-vertical"></i>
+                  </button>
                 }
-                <span class="name">{{ row.node.name }}</span>
-                @if (!row.node.isFolder && statusKey(row.node.status); as key) {
-                  <span
-                    class="badge"
-                    [class.text-bg-warning]="row.node.status === statuses.Modified"
-                    [class.text-bg-success]="row.node.status === statuses.Added"
-                    [class.text-bg-secondary]="row.node.status === statuses.Deleted"
-                    [title]="key | abpLocalization"
-                  >{{ (key + ':Short') | abpLocalization }}</span>
-                } @else if (row.node.isFolder && row.node.hasChanges) {
-                  <span class="text-warning" [title]="'Site::ThemeFolderHasChanges' | abpLocalization">•</span>
-                }
-              </button>
+              </div>
             } @empty {
               <p class="text-muted small mb-0">{{ 'Site::ThemeNoFiles' | abpLocalization }}</p>
             }
@@ -152,6 +119,7 @@
                     href="javascript:void(0)"
                     class="nav-link theme-tab"
                     [class.active]="file.path === activePath()"
+                    [class.fst-italic]="!file.pinned && !isDirty(file)"
                     [title]="file.path"
                     (click)="activePath.set(file.path)"
                   >
@@ -172,12 +140,18 @@
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <code class="me-auto">{{ file.path }}</code>
                 @if (canEdit) {
-                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openRename(file.path)">
-                    <i class="fa fa-i-cursor me-1"></i>{{ 'Site::RenameThemeFile' | abpLocalization }}
-                  </button>
-                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteFile(file.path)">
-                    <i class="fa fa-trash me-1"></i>{{ 'AbpUi::Delete' | abpLocalization }}
-                  </button>
+                  <!-- Only for a file the check lists as a layout; there is nothing to do when it already is the default. -->
+                  @if (isLayoutInFront()) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      [disabled]="isDefaultLayoutInFront() || isBusy()"
+                      [title]="(isDefaultLayoutInFront() ? 'Site::IsDefaultLayoutHint' : 'Site::SetAsDefaultLayoutHint') | abpLocalization"
+                      (click)="setAsDefaultLayout()"
+                    >
+                      <i class="fa fa-star me-1"></i>{{ 'Site::SetAsDefaultLayout' | abpLocalization }}
+                    </button>
+                  }
                   <button
                     type="button"
                     class="btn btn-sm btn-primary"
@@ -229,28 +203,14 @@
       </div>
     </div>
 
-    <!-- Right: the check, or the fields of a page the template in front renders. -->
+    <!-- Right: the fields of a page the template in front renders, when it is one; the check below it, always. -->
     <div class="col-lg-3">
       <div class="card h-100">
         <div class="card-body theme-issues">
-          @if (previewPages().length > 0) {
-            <ul class="nav nav-tabs mb-2">
-              <li class="nav-item">
-                <a class="nav-link" href="javascript:void(0)" [class.active]="!showsFields()" (click)="rightPanel.set('check')">
-                  {{ 'Site::ThemeCheck' | abpLocalization }}
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="javascript:void(0)" [class.active]="showsFields()" (click)="rightPanel.set('fields')">
-                  {{ 'Site::ThemeFields' | abpLocalization }}
-                </a>
-              </li>
-            </ul>
-          } @else {
-            <h6>{{ 'Site::ThemeCheck' | abpLocalization }}</h6>
-          }
           @if (showsFields()) {
-            @if (previewPages().length > 1) {
+            <h6>{{ 'Site::ThemeFields' | abpLocalization }}</h6>
+            <div class="theme-fields">
+            @if (templatePages().length > 1) {
               <label class="form-label small mb-1" for="site-theme-fields-page">{{ 'Site::ThemeFieldsPage' | abpLocalization }}</label>
               <select
                 id="site-theme-fields-page"
@@ -258,12 +218,12 @@
                 [ngModel]="fieldsPageId()"
                 (ngModelChange)="chosenFieldsPageId.set($event)"
               >
-                @for (page of previewPages(); track page.id) {
+                @for (page of templatePages(); track page.id) {
                   <option [value]="page.id">{{ page.name }}</option>
                 }
               </select>
             } @else {
-              <p class="small fw-bold mb-1">{{ 'Site::ThemeFieldsOfPage' | abpLocalization: previewPages()[0].name }}</p>
+              <p class="small fw-bold mb-1">{{ 'Site::ThemeFieldsOfPage' | abpLocalization: templatePages()[0].name }}</p>
             }
             <p class="small text-muted mb-2">
               {{ (canEdit ? 'Site::ThemeFieldsHint' : 'Site::ThemeFieldsReadOnlyHint') | abpLocalization }}
@@ -294,7 +254,23 @@
                 <p class="small text-muted mb-0">{{ 'Site::ThemeFieldsNone' | abpLocalization }}</p>
               }
             }
-          } @else {
+            </div>
+            <hr class="my-3" />
+          }
+
+          <!-- The check: runs by itself after every change; the button asks for the result as it is now, for what
+               happened elsewhere (another author, an AI over MCP, the Pages screen). -->
+          <div class="d-flex align-items-center mb-2">
+            <h6 class="mb-0 me-auto">{{ 'Site::ThemeCheck' | abpLocalization }}</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="runCheck()" [disabled]="isChecking()">
+              @if (isChecking()) {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              } @else {
+                <i class="fa fa-stethoscope me-1"></i>
+              }
+              {{ 'Site::CheckTheme' | abpLocalization }}
+            </button>
+          </div>
             @if (check(); as current) {
               @if (current.issues.length === 0) {
                 <p class="text-success small mb-2"><i class="fa fa-check me-1"></i>{{ 'Site::ThemeCheckClean' | abpLocalization }}</p>
@@ -334,10 +310,27 @@
             } @else {
               <p class="text-muted small mb-0">{{ 'Site::ThemeCheckNotRun' | abpLocalization }}</p>
             }
-          }
         </div>
       </div>
     </div>
+  </div>
+}
+
+<!-- The "more" menu of a file in the tree. Fixed, under its button: the tree scrolls and would clip it. -->
+@if (rowMenu(); as menu) {
+  <div
+    class="dropdown-menu show"
+    style="position: fixed"
+    [style.top.px]="menu.top"
+    [style.right.px]="menu.right"
+    (click)="$event.stopPropagation()"
+  >
+    <button type="button" class="dropdown-item" (click)="renameFromMenu()">
+      <i class="fa fa-i-cursor fa-fw me-1"></i>{{ 'Site::RenameThemeFile' | abpLocalization }}
+    </button>
+    <button type="button" class="dropdown-item text-danger" (click)="deleteFromMenu()">
+      <i class="fa fa-trash fa-fw me-1"></i>{{ 'AbpUi::Delete' | abpLocalization }}
+    </button>
   </div>
 }
 
@@ -412,7 +405,7 @@
 </abp-modal>
 
 <!-- Publish. -->
-<abp-modal [visible]="isPublishOpen()" (visibleChange)="isPublishOpen.set($event)" [busy]="isBusy()" size="lg">
+<abp-modal [visible]="isPublishOpen()" (visibleChange)="isPublishOpen.set($event)" [busy]="isBusy()" [options]="{ size: 'lg' }">
   <ng-template #abpHeader>
     <h3>{{ 'Site::PublishThemeTitle' | abpLocalization }}</h3>
   </ng-template>
@@ -495,34 +488,35 @@
 </abp-modal>
 
 <!-- Releases. -->
-<abp-modal [visible]="isReleasesOpen()" (visibleChange)="isReleasesOpen.set($event)" size="lg">
+<abp-modal [visible]="isReleasesOpen()" (visibleChange)="isReleasesOpen.set($event)" [options]="{ size: 'xl' }">
   <ng-template #abpHeader>
     <h3>{{ 'Site::Releases' | abpLocalization }}</h3>
   </ng-template>
   <ng-template #abpBody>
+    <!-- The comment takes the room and wraps; the other columns keep their words on one line. -->
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0">
         <thead>
           <tr>
-            <th>#</th>
-            <th>{{ 'Site::ReleaseComment' | abpLocalization }}</th>
-            <th>{{ 'Site::ReleaseChangedFiles' | abpLocalization }}</th>
-            <th>{{ 'Site::ReleaseTime' | abpLocalization }}</th>
-            <th class="text-end">{{ 'AbpUi::Actions' | abpLocalization }}</th>
+            <th class="text-nowrap">#</th>
+            <th class="w-100">{{ 'Site::ReleaseComment' | abpLocalization }}</th>
+            <th class="text-nowrap">{{ 'Site::ReleaseChangedFiles' | abpLocalization }}</th>
+            <th class="text-nowrap">{{ 'Site::ReleaseTime' | abpLocalization }}</th>
+            <th class="text-end text-nowrap">{{ 'AbpUi::Actions' | abpLocalization }}</th>
           </tr>
         </thead>
         <tbody>
           @for (release of releases(); track release.id) {
             <tr>
-              <td>
+              <td class="text-nowrap">
                 {{ release.number }}
                 @if (release.isLive) {
                   <span class="badge text-bg-success ms-1">{{ 'Site::ReleaseLive' | abpLocalization }}</span>
                 }
               </td>
               <td>{{ release.comment }}</td>
-              <td>{{ release.changedFileCount }}</td>
-              <td>{{ release.creationTime | date: 'short' }}</td>
+              <td class="text-nowrap">{{ release.changedFileCount }}</td>
+              <td class="text-nowrap">{{ release.creationTime | date: 'short' }}</td>
               <td class="text-end text-nowrap">
                 <button
                   type="button"
@@ -555,33 +549,5 @@
   </ng-template>
   <ng-template #abpFooter>
     <button type="button" class="btn btn-secondary" abpClose>{{ 'AbpUi::Close' | abpLocalization }}</button>
-  </ng-template>
-</abp-modal>
-
-<!-- Settings. -->
-<abp-modal [visible]="isSettingsOpen()" (visibleChange)="isSettingsOpen.set($event)" [busy]="isBusy()">
-  <ng-template #abpHeader>
-    <h3>{{ 'Site::ThemeSettings' | abpLocalization }}</h3>
-  </ng-template>
-  <ng-template #abpBody>
-    <label class="form-label" for="site-theme-default-layout">{{ 'Site::DefaultLayout' | abpLocalization }}</label>
-    <select
-      id="site-theme-default-layout"
-      class="form-select"
-      [ngModel]="settingsLayout()"
-      (ngModelChange)="settingsLayout.set($event)"
-    >
-      <option value="">{{ 'Site::NoDefaultLayout' | abpLocalization }}</option>
-      @for (path of templatePaths(); track path) {
-        <option [value]="path">{{ path }}</option>
-      }
-    </select>
-    <small class="form-text text-muted">{{ 'Site::DefaultLayoutHint' | abpLocalization }}</small>
-  </ng-template>
-  <ng-template #abpFooter>
-    <button type="button" class="btn btn-secondary" abpClose>{{ 'AbpUi::Cancel' | abpLocalization }}</button>
-    <abp-button iconClass="fa fa-check" [loading]="isBusy()" (click)="saveSettings()">
-      {{ 'AbpUi::Save' | abpLocalization }}
-    </abp-button>
   </ng-template>
 </abp-modal>

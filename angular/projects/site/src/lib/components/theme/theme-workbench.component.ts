@@ -46,7 +46,6 @@ import {
   languageOf,
   normalizeThemePath,
   pageTemplatePath,
-  routeToPreviewPath,
   skeletonFor,
   themePathProblem,
 } from './theme-workbench.helpers';
@@ -54,22 +53,25 @@ import {
 /** `Site:090003`: the working copy changed since the check the publish was based on. */
 const CHANGED_SINCE_CHECK = 'Site:090003';
 
-/** A file open in a tab: what the editor shows, and what was last saved, to tell whether it has unsaved changes. */
+/**
+ * A file open in a tab: what the editor shows, and what was last saved, to tell whether it has unsaved changes.
+ * A file only looked at is not `pinned`: opening another file replaces its tab. One that was edited, or created, is,
+ * and stays until it is closed.
+ */
 export interface ThemeOpenFile {
   path: string;
   isAsset: boolean;
   body: string;
   savedBody: string;
+  pinned: boolean;
   concurrencyStamp?: string;
   syntaxErrors: SiteThemeSyntaxErrorDto[];
 }
 
-/** A page to open a preview on: its name, and the address, or null when it shows one content and has none of its own. */
-export interface ThemePreviewPage {
+/** A page the template in front renders. */
+export interface ThemeTemplatePage {
   id: string;
   name: string;
-  route: string;
-  path: string | null;
 }
 
 /** A row of the tree as the template renders it: a node and how deep it is. */
@@ -110,19 +112,49 @@ interface ThemeTreeRow {
     .theme-tree-row {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
       width: 100%;
+      padding-right: 0.25rem;
+      border-radius: var(--bs-border-radius-sm, 0.25rem);
+    }
+
+    .theme-tree-main {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: 1 1 auto;
+      min-width: 0;
       border: none;
       background: transparent;
       text-align: start;
-      padding: 0.15rem 0.25rem;
-      border-radius: var(--bs-border-radius-sm, 0.25rem);
+      padding: 0.15rem 0;
       color: inherit;
       white-space: nowrap;
     }
 
     .theme-tree-row:hover {
       background-color: rgba(128, 128, 128, 0.12);
+    }
+
+    /* The "more" button shows on the row that is pointed at, focused or has its menu open - and always on a touch screen. */
+    .theme-tree-more {
+      flex: 0 0 auto;
+      border: none;
+      background: transparent;
+      color: inherit;
+      padding: 0.1rem 0.4rem;
+      opacity: 0;
+    }
+
+    .theme-tree-row:hover .theme-tree-more,
+    .theme-tree-row:focus-within .theme-tree-more,
+    .theme-tree-more.open {
+      opacity: 1;
+    }
+
+    @media (hover: none) {
+      .theme-tree-more {
+        opacity: 1;
+      }
     }
 
     .theme-tree-row.active {
@@ -156,6 +188,12 @@ interface ThemeTreeRow {
 
     .theme-issues {
       max-height: max(20rem, calc(100vh - 17rem));
+      overflow-y: auto;
+    }
+
+    /* The fields scroll inside their own box, so that the check below them stays in reach. */
+    .theme-fields {
+      max-height: max(10rem, 38vh);
       overflow-y: auto;
     }
   `,
@@ -211,9 +249,17 @@ export class ThemeWorkbenchComponent implements OnInit {
 
   readonly activeFile = computed(() => this.openFiles().find(file => file.path === this.activePath()));
 
-  /** The templates of the working copy, for the default layout setting. */
-  readonly templatePaths = computed(() =>
-    this.files().filter(file => !file.isAsset && file.status !== SiteThemeFileStatus.Deleted).map(file => file.path ?? ''));
+  /** Whether the file in front can be the default layout: the last check lists it among the layouts. */
+  readonly isLayoutInFront = computed(() => {
+    const path = this.activePath();
+    return !!path && (this.check()?.layouts ?? []).includes(path);
+  });
+
+  /** Whether the file in front already is the default layout. */
+  readonly isDefaultLayoutInFront = computed(() => {
+    const path = this.activePath();
+    return !!path && path === this.theme()?.defaultLayout;
+  });
 
   readonly hasUnsavedFiles = computed(() => this.openFiles().some(file => isDirty(file)));
 
@@ -239,15 +285,14 @@ export class ThemeWorkbenchComponent implements OnInit {
   readonly isReleasesOpen = signal(false);
   readonly releases = signal<SiteReleaseDto[]>([]);
 
-  readonly isSettingsOpen = signal(false);
-  readonly settingsLayout = signal('');
+  /** The "more" menu of a file in the tree: the file, and where it opens (fixed, so the tree's scrolling does not clip it). */
+  readonly rowMenu = signal<{ path: string; top: number; right: number } | null>(null);
 
-  /** The site's pages, to preview the one the template in front renders; empty without the Pages permission. */
+  /** The site's pages, to find those the template in front renders; empty without the Pages permission. */
   readonly pages = signal<PageDto[]>([]);
-  readonly isPreviewMenuOpen = signal(false);
 
   /** The active pages whose template is the file in front. */
-  readonly previewPages = computed<ThemePreviewPage[]>(() => {
+  readonly templatePages = computed<ThemeTemplatePage[]>(() => {
     const path = this.activePath();
     if (!path || isAssetPath(path)) {
       return [];
@@ -255,18 +300,11 @@ export class ThemeWorkbenchComponent implements OnInit {
 
     return this.pages()
       .filter(page => page.isActive && pageTemplatePath(page.template) === path)
-      .map(page => ({
-        id: page.id ?? '',
-        name: page.displayName || page.name,
-        route: page.route,
-        path: routeToPreviewPath(page.route),
-      }));
+      .map(page => ({ id: page.id ?? '', name: page.displayName || page.name }));
   });
 
   // The field sidebar.
 
-  /** The right column: the check, or the fields of a page the template in front renders. */
-  readonly rightPanel = signal<'check' | 'fields'>('check');
   /** The page the author picked to list the fields of; the first page of the template in front otherwise. */
   readonly chosenFieldsPageId = signal<string | undefined>(undefined);
   /** Pages read in full, with their content types, by id; null for one that could not be read. */
@@ -276,11 +314,11 @@ export class ThemeWorkbenchComponent implements OnInit {
   private fieldLibraryRequested = false;
   private readonly requestedPageIds = new Set<string>();
 
-  /** Whether the fields show: asked for, and the file in front is the template of a page. */
-  readonly showsFields = computed(() => this.rightPanel() === 'fields' && this.previewPages().length > 0);
+  /** Whether the fields show: the file in front is the template of a page. The check shows whatever the file. */
+  readonly showsFields = computed(() => this.templatePages().length > 0);
 
   readonly fieldsPageId = computed(() => {
-    const ids = this.previewPages().map(page => page.id);
+    const ids = this.templatePages().map(page => page.id);
     const chosen = this.chosenFieldsPageId();
     return chosen && ids.includes(chosen) ? chosen : ids[0];
   });
@@ -358,11 +396,41 @@ export class ThemeWorkbenchComponent implements OnInit {
     });
   }
 
-  /** Closes the preview menu on a click anywhere outside it. */
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    if (this.isPreviewMenuOpen() && !(event.target as Element | null)?.closest?.('.theme-preview-menu')) {
-      this.isPreviewMenuOpen.set(false);
+  /** Opens the "more" menu of a file under its button, or closes it when it is already open for that file. */
+  toggleRowMenu(event: MouseEvent, path: string): void {
+    // Not on to the document listener below, which would close the menu at once.
+    event.stopPropagation();
+    if (this.rowMenu()?.path === path) {
+      this.rowMenu.set(null);
+      return;
+    }
+
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.rowMenu.set({ path, top: rect.bottom, right: window.innerWidth - rect.right });
+  }
+
+  /** Closes the "more" menu on a click anywhere, on Escape, and when the tree scrolls from under it. */
+  @HostListener('document:click')
+  @HostListener('document:keydown.escape')
+  closeRowMenu(): void {
+    if (this.rowMenu()) {
+      this.rowMenu.set(null);
+    }
+  }
+
+  renameFromMenu(): void {
+    const path = this.rowMenu()?.path;
+    this.rowMenu.set(null);
+    if (path) {
+      this.openRename(path);
+    }
+  }
+
+  deleteFromMenu(): void {
+    const path = this.rowMenu()?.path;
+    this.rowMenu.set(null);
+    if (path) {
+      this.deleteFile(path);
     }
   }
 
@@ -437,7 +505,8 @@ export class ThemeWorkbenchComponent implements OnInit {
     }
 
     this.themeService.getFile(path).subscribe(file => {
-      this.openFiles.update(files => [...files, toOpenFile(file)]);
+      // The tabs of files that were only looked at give way to this one.
+      this.openFiles.update(files => [...files.filter(f => f.pinned || isDirty(f)), toOpenFile(file)]);
       this.activePath.set(file.path);
       // After the editor has taken the new document.
       setTimeout(() => then?.());
@@ -477,7 +546,8 @@ export class ThemeWorkbenchComponent implements OnInit {
 
   onEdit(body: string): void {
     const path = this.activePath();
-    this.openFiles.update(files => files.map(file => (file.path === path ? { ...file, body } : file)));
+    this.openFiles.update(files =>
+      files.map(file => (file.path === path ? { ...file, body, pinned: file.pinned || body !== file.savedBody } : file)));
   }
 
   save(overwrite = false): void {
@@ -495,7 +565,11 @@ export class ThemeWorkbenchComponent implements OnInit {
       .subscribe({
         next: saved => {
           this.isBusy.set(false);
-          this.replaceOpenFile(file.path, { ...toOpenFile(saved), body: this.bodyOf(file.path) ?? saved.body ?? '' });
+          this.replaceOpenFile(file.path, {
+            ...toOpenFile(saved),
+            body: this.bodyOf(file.path) ?? saved.body ?? '',
+            pinned: true,
+          });
           this.toaster.success('Site::ThemeFileSaved');
           this.refreshFiles();
           this.runCheck();
@@ -555,15 +629,41 @@ export class ThemeWorkbenchComponent implements OnInit {
     this.editor()?.goTo(error.line, error.column);
   }
 
+  /** The number of the check asked for last: only its answer counts, so an older one arriving late cannot overwrite it. */
+  private checkSequence = 0;
+  /** Callbacks waiting for the answer of the check asked for last, including those of checks it took over from. */
+  private pendingAfter: ((check: SiteThemeCheckDto) => void)[] = [];
+
+  /**
+   * Asks for the check of the working copy as it is saved now. Checks run after every change, so one can be asked for
+   * while another is still on its way; only the last one counts - the working copy it read is the newest. `after`
+   * runs with that answer, also when a later check took this one's place.
+   */
   runCheck(after?: (check: SiteThemeCheckDto) => void): void {
+    const sequence = ++this.checkSequence;
+    if (after) {
+      this.pendingAfter.push(after);
+    }
+
     this.isChecking.set(true);
     this.themeService.check().subscribe({
       next: check => {
+        if (sequence !== this.checkSequence) {
+          return;
+        }
+
         this.check.set(check);
         this.isChecking.set(false);
-        after?.(check);
+        const callbacks = this.pendingAfter;
+        this.pendingAfter = [];
+        callbacks.forEach(callback => callback(check));
       },
-      error: () => this.isChecking.set(false),
+      error: () => {
+        if (sequence === this.checkSequence) {
+          this.isChecking.set(false);
+          this.pendingAfter = [];
+        }
+      },
     });
   }
 
@@ -595,7 +695,7 @@ export class ThemeWorkbenchComponent implements OnInit {
         this.isNewFileOpen.set(false);
         this.refreshFiles();
         this.runCheck();
-        this.openFiles.update(files => [...files.filter(f => f.path !== saved.path), toOpenFile(saved)]);
+        this.openFiles.update(files => [...files.filter(f => f.path !== saved.path), { ...toOpenFile(saved), pinned: true }]);
         this.activePath.set(saved.path);
         this.expandTo(saved.path ?? '');
       },
@@ -641,7 +741,7 @@ export class ThemeWorkbenchComponent implements OnInit {
           // The renamed file keeps its tab, under its new path; files whose references were rewritten are reloaded
           // when they have no unsaved changes of their own.
           this.openFiles.update(files =>
-            files.map(file => (file.path === from ? { ...toOpenFile(result.file) } : file)));
+            files.map(file => (file.path === from ? { ...toOpenFile(result.file), pinned: file.pinned } : file)));
           if (this.activePath() === from) {
             this.activePath.set(result.file.path);
           }
@@ -708,12 +808,12 @@ export class ThemeWorkbenchComponent implements OnInit {
   // Preview.
 
   /**
-   * Opens the site in a new tab with the working copy as saved, or with a release, for this browser only. The tab is
-   * opened inside the click, so the browser lets it through, and pointed at the signed link once it arrives; it gets
-   * no handle on this page, since the theme's scripts run in it.
+   * Opens the site's home page in a new tab with the working copy as saved, or with a release, for this browser only;
+   * the author follows the site's links from there. The tab is opened inside the click, so the browser lets it
+   * through, and pointed at the signed link once it arrives; it gets no handle on this page, since the theme's scripts
+   * run in it.
    */
-  openPreview(releaseId?: string, path?: string): void {
-    this.isPreviewMenuOpen.set(false);
+  openPreview(releaseId?: string): void {
     const tab = window.open('', '_blank');
     if (!tab) {
       this.toaster.warn('Site::PreviewPopupBlocked');
@@ -725,7 +825,7 @@ export class ThemeWorkbenchComponent implements OnInit {
       this.toaster.info('Site::PreviewUnsavedNotShown');
     }
 
-    this.themeService.getPreviewLink(path, releaseId).subscribe({
+    this.themeService.getPreviewLink(undefined, releaseId).subscribe({
       next: link => tab.location.replace(link.url!),
       // The error itself is shown by the default handler.
       error: () => tab.close(),
@@ -828,26 +928,32 @@ export class ThemeWorkbenchComponent implements OnInit {
       });
   }
 
-  // Settings.
+  // Default layout.
 
-  openSettings(): void {
-    this.settingsLayout.set(this.theme()?.defaultLayout ?? '');
-    this.isSettingsOpen.set(true);
-  }
+  /**
+   * Makes the file in front the default layout, from its own toolbar: it is offered only for a file the check lists as
+   * a layout, and the server judges again, from what is saved - what it writes and calls, through what it includes.
+   */
+  setAsDefaultLayout(): void {
+    const path = this.activePath();
+    if (!path || this.isBusy() || this.isDefaultLayoutInFront()) {
+      return;
+    }
 
-  saveSettings(): void {
     this.isBusy.set(true);
     this.themeService
-      .update({ defaultLayout: this.settingsLayout() || undefined, concurrencyStamp: this.theme()?.concurrencyStamp })
+      .update({ defaultLayout: path, concurrencyStamp: this.theme()?.concurrencyStamp }, { skipHandleError: true })
       .subscribe({
         next: theme => {
           this.isBusy.set(false);
-          this.isSettingsOpen.set(false);
           this.theme.set(theme);
-          this.toaster.success('AbpUi::SavedSuccessfully');
+          this.toaster.success('Site::DefaultLayoutSet', undefined, { messageLocalizationParams: [path] });
           this.runCheck();
         },
-        error: () => this.isBusy.set(false),
+        error: (response: ApiErrorResponse) => {
+          this.isBusy.set(false);
+          this.toaster.error(errorMessageOf(response) || 'AbpUi::DefaultErrorMessage');
+        },
       });
   }
 
@@ -864,7 +970,7 @@ export class ThemeWorkbenchComponent implements OnInit {
   }
 
   private replaceOpenFile(path: string, file: ThemeOpenFile): void {
-    this.openFiles.update(files => files.map(f => (f.path === path ? file : f)));
+    this.openFiles.update(files => files.map(f => (f.path === path ? { ...file, pinned: file.pinned || f.pinned } : f)));
   }
 
   private bodyOf(path: string): string | undefined {
@@ -891,6 +997,7 @@ function toOpenFile(file: SiteThemeFileDto): ThemeOpenFile {
     isAsset: file.isAsset,
     body: file.body ?? '',
     savedBody: file.body ?? '',
+    pinned: false,
     concurrencyStamp: file.concurrencyStamp,
     syntaxErrors: file.syntaxErrors ?? [],
   };

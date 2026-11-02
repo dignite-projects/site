@@ -48,6 +48,7 @@ export interface SiteThemeCheckDto {
   fingerprint?: string;
   issues: SiteThemeIssueDto[];
   hasErrors: boolean;
+  layouts: string[];
   changes: SiteThemeFileChangeDto[];
   defaultLayout?: string;
   liveDefaultLayout?: string;

@@ -1,7 +1,7 @@
 import { LocalizationService, PermissionService } from '@abp/ng.core';
 import { Confirmation, ConfirmationService, ToasterService } from '@abp/ng.theme.shared';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
@@ -22,6 +22,7 @@ describe('ThemeWorkbenchComponent', () => {
     fingerprint: 'fp',
     issues: [],
     hasErrors: false,
+    layouts: [],
     changes: [{ path: 'Events', status: SiteThemeFileStatus.Modified }],
     hasChanges: true,
     ...overrides,
@@ -240,6 +241,144 @@ describe('ThemeWorkbenchComponent', () => {
     expect(component.defaultLayoutChanged(check({ defaultLayout: 'layouts/landing' }))).toBe(false);
   });
 
+  describe('setting the default layout from its file', () => {
+    const layouts = ['layouts/default', 'layouts/landing'];
+
+    it('is offered for a file the check lists as a layout, unless it already is the default', () => {
+      const { component } = create({ check: vi.fn(() => of(check({ layouts }))) });
+
+      component.openFile('layouts/landing');
+      expect(component.isLayoutInFront()).toBe(true);
+      expect(component.isDefaultLayoutInFront()).toBe(false);
+
+      component.openFile('layouts/default');
+      expect(component.isLayoutInFront()).toBe(true);
+      expect(component.isDefaultLayoutInFront()).toBe(true);
+
+      component.openFile('Events');
+      expect(component.isLayoutInFront()).toBe(false);
+      expect(component.isDefaultLayoutInFront()).toBe(false);
+    });
+
+    it('sets the file as the default layout, says so, and checks again', () => {
+      const update = vi.fn(() => of({ defaultLayout: 'layouts/landing', concurrencyStamp: 's2' }));
+      const { component, service, toaster } = create({ check: vi.fn(() => of(check({ layouts }))), update });
+      component.openFile('layouts/landing');
+      service.check.mockClear();
+
+      component.setAsDefaultLayout();
+
+      expect(update).toHaveBeenCalledWith(
+        { defaultLayout: 'layouts/landing', concurrencyStamp: 's' },
+        { skipHandleError: true },
+      );
+      expect(component.theme()?.defaultLayout).toBe('layouts/landing');
+      expect(component.isDefaultLayoutInFront()).toBe(true);
+      expect(toaster.success).toHaveBeenCalledWith('Site::DefaultLayoutSet', undefined, { messageLocalizationParams: ['layouts/landing'] });
+      expect(service.check).toHaveBeenCalled();
+    });
+
+    it('does nothing for the file that already is the default', () => {
+      const update = vi.fn();
+      const { component } = create({ check: vi.fn(() => of(check({ layouts }))), update });
+      component.openFile('layouts/default');
+
+      component.setAsDefaultLayout();
+
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('shows why the server refuses, and leaves the default layout as it was', () => {
+      const update = vi.fn(() => throwError(() => ({ error: { error: { message: "'layouts/landing' is not a layout" } } })));
+      const { component, toaster } = create({ check: vi.fn(() => of(check({ layouts }))), update });
+      component.openFile('layouts/landing');
+
+      component.setAsDefaultLayout();
+
+      expect(toaster.error).toHaveBeenCalledWith("'layouts/landing' is not a layout");
+      expect(component.theme()?.defaultLayout).toBe('layouts/default');
+      expect(component.isBusy()).toBe(false);
+    });
+  });
+
+  describe('the check', () => {
+    /** A service whose checks answer when the test says so, and in the order it says. */
+    function createWithPendingChecks() {
+      const answers: Subject<SiteThemeCheckDto>[] = [];
+      const check = vi.fn(() => {
+        const answer = new Subject<SiteThemeCheckDto>();
+        answers.push(answer);
+        return answer;
+      });
+      const created = create({ check });
+      // The one asked for on load: answered at once.
+      answers[0].next(check_({ fingerprint: 'load' }));
+      return { ...created, answers };
+    }
+
+    const check_ = (overrides: Partial<SiteThemeCheckDto> = {}) => ({
+      fingerprint: 'fp',
+      issues: [],
+      hasErrors: false,
+      layouts: [],
+      changes: [],
+      hasChanges: false,
+      ...overrides,
+    });
+
+    it('keeps the answer of the last check when an earlier one answers late', () => {
+      const { component, answers } = createWithPendingChecks();
+
+      component.runCheck();
+      component.runCheck();
+      expect(component.isChecking()).toBe(true);
+
+      answers[2].next(check_({ fingerprint: 'newer' }));
+      expect(component.check()?.fingerprint).toBe('newer');
+      expect(component.isChecking()).toBe(false);
+
+      answers[1].next(check_({ fingerprint: 'older' }));
+      expect(component.check()?.fingerprint).toBe('newer');
+    });
+
+    it('stays checking until the last check is answered', () => {
+      const { component, answers } = createWithPendingChecks();
+
+      component.runCheck();
+      component.runCheck();
+      answers[1].next(check_({ fingerprint: 'older' }));
+
+      expect(component.isChecking()).toBe(true);
+      expect(component.check()?.fingerprint).toBe('load');
+    });
+
+    it('hands the answer to a callback whose check a later one took over from', () => {
+      const { component, answers } = createWithPendingChecks();
+      const after = vi.fn();
+
+      component.runCheck(after);
+      component.runCheck();
+      answers[1].next(check_({ fingerprint: 'older' }));
+      expect(after).not.toHaveBeenCalled();
+
+      answers[2].next(check_({ fingerprint: 'newer' }));
+      expect(after).toHaveBeenCalledTimes(1);
+      expect(after).toHaveBeenCalledWith(expect.objectContaining({ fingerprint: 'newer' }));
+    });
+
+    it('stops checking when the last check fails, and drops what waited for it', () => {
+      const { component, answers } = createWithPendingChecks();
+      const after = vi.fn();
+
+      component.runCheck(after);
+      answers[1].error({ status: 500 });
+
+      expect(component.isChecking()).toBe(false);
+      expect(component.check()?.fingerprint).toBe('load');
+      expect(after).not.toHaveBeenCalled();
+    });
+  });
+
   describe('preview', () => {
     afterEach(() => vi.restoreAllMocks());
 
@@ -257,30 +396,35 @@ describe('ThemeWorkbenchComponent', () => {
       expect(tab.location.replace).toHaveBeenCalledWith('https://site.example/?site-preview=t');
     });
 
-    it('offers the active pages the template in front renders, with an address where a page has one', () => {
+    it('previews the theme at the home page whichever file is in front', () => {
       const tab = { opener: {}, location: { replace: vi.fn() }, close: vi.fn() };
       vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
-      const getPreviewLink = vi.fn(() => of({ url: 'https://site.example/events?site-preview=t' }));
+      const getPreviewLink = vi.fn(() => of({ url: 'https://site.example/?site-preview=t' }));
       const { component } = create({ getPreviewLink }, {}, [
+        { id: 'p-events', name: 'events', displayName: 'Events', route: '/events/{slug?}', template: 'Events', isActive: true },
+      ]);
+      component.openFile('Events');
+
+      component.openPreview();
+
+      expect(getPreviewLink).toHaveBeenCalledWith(undefined, undefined);
+    });
+
+    it('finds the active pages the template in front renders', () => {
+      const { component } = create({}, {}, [
         { id: 'p-events', name: 'events', displayName: 'Events', route: '/events/{slug?}', template: 'Events', isActive: true },
         { id: 'p-news', name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events.cshtml', isActive: true },
         { name: 'old', displayName: 'Old', route: '/old', template: 'Events', isActive: false },
         { name: 'about', displayName: 'About', route: '/about', template: 'Default', isActive: true },
       ]);
 
-      expect(component.previewPages()).toEqual([]);
+      expect(component.templatePages()).toEqual([]);
       component.openFile('Events');
 
-      expect(component.previewPages()).toEqual([
-        { id: 'p-events', name: 'Events', route: '/events/{slug?}', path: '/events' },
-        { id: 'p-news', name: 'news', route: '/news/{year}/{slug}', path: null },
+      expect(component.templatePages()).toEqual([
+        { id: 'p-events', name: 'Events' },
+        { id: 'p-news', name: 'news' },
       ]);
-
-      component.isPreviewMenuOpen.set(true);
-      component.openPreview(undefined, '/events');
-
-      expect(getPreviewLink).toHaveBeenCalledWith('/events', undefined);
-      expect(component.isPreviewMenuOpen()).toBe(false);
     });
 
     it('says so when the browser blocks the tab, and asks for no link', () => {
@@ -309,6 +453,109 @@ describe('ThemeWorkbenchComponent', () => {
     });
   });
 
+  describe('tabs', () => {
+    it('gives the tab of a file only looked at to the next one', () => {
+      const { component } = create();
+
+      component.openFile('Events');
+      component.openFile('About');
+      component.openFile('Home');
+
+      expect(component.openFiles().map(f => f.path)).toEqual(['Home']);
+      expect(component.activePath()).toBe('Home');
+    });
+
+    it('keeps the tab of a file once it is edited, until it is closed', () => {
+      const { component } = create();
+      component.openFile('Events');
+      component.onEdit('<p>changed</p>');
+
+      component.openFile('About');
+      component.openFile('Home');
+
+      expect(component.openFiles().map(f => f.path)).toEqual(['Events', 'Home']);
+    });
+
+    it('keeps the tab of an edited file after it is saved', () => {
+      const saveFile = vi.fn(() => of(file('Events', '<p>changed</p>', 'stamp-2')));
+      const { component } = create({ saveFile });
+      component.openFile('Events');
+      component.onEdit('<p>changed</p>');
+      component.save();
+
+      component.openFile('About');
+
+      expect(component.isDirty(component.openFiles()[0])).toBe(false);
+      expect(component.openFiles().map(f => f.path)).toEqual(['Events', 'About']);
+    });
+
+    it('does not keep a file for an edit that changes nothing', () => {
+      const { component } = create();
+      component.openFile('Events');
+
+      component.onEdit('<p>x</p>');
+      component.openFile('About');
+
+      expect(component.openFiles().map(f => f.path)).toEqual(['About']);
+    });
+
+    it('keeps a file that was just created', () => {
+      const saveFile = vi.fn(() => of(file('Fresh')));
+      const { component } = create({ saveFile });
+      component.openFile('Events');
+
+      component.openNewFile();
+      component.newFilePath.set('Fresh');
+      component.createFile();
+      component.openFile('About');
+
+      expect(component.openFiles().map(f => f.path)).toEqual(['Fresh', 'About']);
+    });
+  });
+
+  describe('the more menu of a file', () => {
+    function click(bottom: number, right: number): MouseEvent {
+      const button = document.createElement('button');
+      vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ bottom, right } as DOMRect);
+      return { stopPropagation: vi.fn(), currentTarget: button } as unknown as MouseEvent;
+    }
+
+    it('opens under its button, closes on a second click, another click anywhere and Escape', () => {
+      const { component } = create();
+      const event = click(50, 200);
+
+      component.toggleRowMenu(event, 'Events');
+      expect(component.rowMenu()).toEqual({ path: 'Events', top: 50, right: window.innerWidth - 200 });
+      expect(event.stopPropagation).toHaveBeenCalled();
+
+      component.toggleRowMenu(event, 'Events');
+      expect(component.rowMenu()).toBeNull();
+
+      component.toggleRowMenu(event, 'Events');
+      component.toggleRowMenu(click(80, 200), 'About');
+      expect(component.rowMenu()?.path).toBe('About');
+
+      component.closeRowMenu();
+      expect(component.rowMenu()).toBeNull();
+    });
+
+    it('renames and deletes the file it was opened for, not the one in front', () => {
+      const { component } = create();
+      component.openFile('Events');
+      const openRename = vi.spyOn(component, 'openRename').mockImplementation(() => undefined);
+      const deleteFile = vi.spyOn(component, 'deleteFile').mockImplementation(() => undefined);
+
+      component.toggleRowMenu(click(50, 200), 'About');
+      component.renameFromMenu();
+      component.toggleRowMenu(click(50, 200), 'Contact');
+      component.deleteFromMenu();
+
+      expect(openRename).toHaveBeenCalledWith('About');
+      expect(deleteFile).toHaveBeenCalledWith('Contact');
+      expect(component.rowMenu()).toBeNull();
+    });
+  });
+
   describe('field sidebar', () => {
     const pages = [
       {
@@ -327,8 +574,6 @@ describe('ThemeWorkbenchComponent', () => {
     it('lists the fields of a page the template in front renders, reading each page and the library once', () => {
       const { component, pageService, fieldService } = create({}, {}, pages, library);
       component.openFile('Events');
-
-      component.rightPanel.set('fields');
       TestBed.tick();
 
       expect(component.showsFields()).toBe(true);
@@ -352,9 +597,8 @@ describe('ThemeWorkbenchComponent', () => {
       expect(fieldService.getList).toHaveBeenCalledTimes(1);
     });
 
-    it('shows the check for a file no page renders, and reads nothing', () => {
+    it('shows no fields for a file no page renders, and reads nothing', () => {
       const { component, pageService, fieldService } = create({}, {}, pages, library);
-      component.rightPanel.set('fields');
 
       component.openFile('partials/card');
       TestBed.tick();

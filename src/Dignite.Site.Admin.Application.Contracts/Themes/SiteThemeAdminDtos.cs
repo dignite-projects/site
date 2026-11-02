@@ -170,6 +170,12 @@ public class SiteThemeCheckDto
 
     public bool HasErrors { get; set; }
 
+    /// <summary>
+    /// The templates that can serve as a layout - they write <c>body</c>, call <c>site_head</c> and have no front
+    /// matter - and so can be the default layout. Read off the saved files, whether or not anything uses them yet.
+    /// </summary>
+    public List<string> Layouts { get; set; } = new();
+
     /// <summary>The files that differ from the live release; unchanged ones are left out.</summary>
     public List<SiteThemeFileChangeDto> Changes { get; set; } = new();
 

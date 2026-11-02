@@ -73,7 +73,6 @@ A tenant edits its theme in a **working copy**, and the site renders a **release
 * **Publishing** checks the working copy and, when the check finds no error, freezes it into the next numbered release and makes that release live, in one step. Every file changes at once, so the site never renders a mix of old and new files.
 * **Rolling back** makes an older release live again. The working copy is not touched.
 * **Restoring** a release copies its files and default layout back into the working copy, replacing it, to carry on from there. Nothing goes live.
-
 A release keeps every file as it was published, and the list of releases tells, for each one, its number, its comment, when it was published and by whom, and how many files it changed. Releases are never deleted.
 
 A publish is refused when:
@@ -112,7 +111,7 @@ The site can be seen with the working copy, or with any release, without publish
 
 ### In a Browser
 
-**Preview** in the Theme screen opens the site's home page in a new tab with the working copy; its menu lists the pages whose `Template` is the file you are editing, to open one of them instead. **Releases** has a **Preview** for each release, to look at one before making it live. The link is signed for you and valid for ten minutes. Opening it sets a cookie in that browser, and for the next two hours every page and static file of the site you open there renders with that theme. Visitors keep seeing the live release.
+**Preview** in the Theme screen opens the site's home page in a new tab with the working copy, and you follow the site's links from there as a visitor would. **Releases** has a **Preview** for each release, to look at one before making it live. The link is signed for you and valid for ten minutes. Opening it sets a cookie in that browser, and for the next two hours every page and static file of the site you open there renders with that theme. Visitors keep seeing the live release.
 
 The working copy is read again on every page view: save in the editor, then reload the preview tab to see the change. Unsaved changes are not in the preview.
 
@@ -305,14 +304,14 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | Request | Permission | Description |
 |---|---|---|
 | `GET /` | `SiteAdmin.Themes` | The theme: its default layout, the live release's id and number, and a concurrency stamp. |
-| `PUT /` | `SiteAdmin.Themes.Edit` | Sets the default layout, a template path or empty for none. |
+| `PUT /` | `SiteAdmin.Themes.Edit` | Sets the default layout, the path of a layout of the working copy or empty for none. A template that writes no `body`, never calls `site_head` (itself or through what it includes) or has front matter is refused as not a layout; a template that does not parse is let through, for the check to report. |
 | `GET /files` | `SiteAdmin.Themes` | The files of the working copy, each with its status against the live release: unchanged, modified or added; a file the live release has and the working copy no longer does is listed as deleted. |
 | `GET /files/by-path?path=...` | `SiteAdmin.Themes` | One file with its body, its concurrency stamp and its syntax errors. |
 | `PUT /files` | `SiteAdmin.Themes.Edit` | Creates or overwrites a file, with `path`, `body` and, to detect a change by someone else, the `concurrencyStamp` it was read with. Returns the file with its syntax errors. |
 | `POST /files/rename` | `SiteAdmin.Themes.Edit` | Moves a file, with `path`, `newPath` and `updateReferences`, true by default; see [The Working Copy and Releases](#the-working-copy-and-releases). |
 | `DELETE /files/by-path?path=...` | `SiteAdmin.Themes.Edit` | Removes a file from the working copy. |
 | `GET /files/usages?path=...` | `SiteAdmin.Themes` | The pages, files and setting that use a file. |
-| `GET /check` | `SiteAdmin.Themes` | [Checks](#checking-the-theme) the working copy. Returns the findings, the files that would change, the default layout of the working copy and of the live release, and the `fingerprint` a publish needs. |
+| `GET /check` | `SiteAdmin.Themes` | [Checks](#checking-the-theme) the working copy. Returns the findings, the templates that can be a layout (`layouts`: they write `body`, call `site_head` and have no front matter, whether or not anything uses them yet, so the ones a default layout can be), the files that would change, the default layout of the working copy and of the live release, and the `fingerprint` a publish needs. |
 | `POST /publish` | `SiteAdmin.Themes.Publish` | Publishes the working copy, with the check's `fingerprint` and an optional `comment`. |
 | `GET /releases` | `SiteAdmin.Themes` | The releases, newest first. |
 | `GET /releases/{id}` | `SiteAdmin.Themes` | One release with its file list. |
@@ -322,7 +321,7 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | `GET /preview?path=...&releaseId=...` | `SiteAdmin.Themes` | [Previews](#previewing) the page at the path with the working copy, or with the release when `releaseId` is given. Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` and `layout`. |
 | `GET /preview-link?path=...&releaseId=...` | `SiteAdmin.Themes` | A link that opens the site at the path, the home page by default, [in a browser](#in-a-browser) with the working copy, or with the release when `releaseId` is given. Returns `url`, `path`, `releaseId` and `expiresAt`. |
 
-A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`) are answered as business errors.
+A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`), that is not in the working copy (`Site:090012`) or that is not a layout (`Site:090013`) are answered as business errors.
 
 ### MCP Tools
 
