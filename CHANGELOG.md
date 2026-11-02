@@ -68,8 +68,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a template that fails shows its error. Visitors keep seeing the live release, and the working copy is read only by an
   in-process hook, never over the public API. Several instances serving the site must share one Data Protection key
   ring. See [Scriban Templates](docs/en/rendering/scriban-templates.md#in-a-browser).
+- **A Scriban template can read the content types of any page, and the definitions of their fields.** `find_page`
+  returns a page by its name with its content types, and `field_definitions` the definitions of fields, keyed by field
+  name, with their configuration, named as the field type stored it (`Select.Options`, an option's `Text` and
+  `Value`). `field_definitions` resolves only fields that a content type of the render names, and at most 100 at a
+  time. See [Pages and Field Definitions](docs/en/rendering/scriban-templates.md#pages-and-field-definitions).
 
 ### Changed
+
+- **`SelectFieldOptionsProvider` is removed.** It returned the options of a `Select` field, found through a page by
+  name. A Razor view reads them from `IPagePublicAppService.FindByNameAsync`, for the page's content types, and
+  `IFieldPublicAppService.GetListAsync`, for the field's definition, as `new SelectConfiguration(field.Configuration.ToFieldConfiguration()).Options`
+  (`ToFieldConfiguration` is in `Dignite.Site.Public.Application.Contracts.Routing`); a Scriban template uses
+  `find_page` and `field_definitions`. See [Select Options](docs/en/rendering/template-localization.md#select-options).
 
 - **`Dignite.Site.Public.Web` API changes a host that subclasses or constructs these types must follow.**
   `SiteRenderController` takes a fourth constructor parameter, `SiteLiveThemeProvider`. `ContentListTagHelper`

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using Dignite.Site.Fields;
+using Dignite.Site.Pages;
 using Dignite.Site.Public.Routing;
 using Dignite.Site.Public.Themes;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +19,14 @@ public class ScribanRenderScope
         ViewModel = viewModel;
         ActionContext = actionContext;
         RenderSet = renderSet;
+
+        if (viewModel.Content != null)
+        {
+            foreach (var field in viewModel.Content.ContentType.Fields)
+            {
+                NamedFieldIds.Add(field.FieldId);
+            }
+        }
     }
 
     public SiteRenderViewModel ViewModel { get; }
@@ -32,4 +44,23 @@ public class ScribanRenderScope
     /// <see cref="ScribanPageRenderer"/> refuses.
     /// </summary>
     public bool SiteHeadCalled { get; set; }
+
+    /// <summary>
+    /// The pages <c>find_page</c> has looked up, by name; null for a name no page answers to. A page is fetched
+    /// once per render however often a template asks for it.
+    /// </summary>
+    public Dictionary<string, PageDto?> PagesByName { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The field definitions <c>field_definitions</c> has fetched, by id; null for an id with no field. Like
+    /// <see cref="PagesByName"/>, a definition is fetched once per render.
+    /// </summary>
+    public Dictionary<Guid, FieldDto?> FieldsById { get; } = new();
+
+    /// <summary>
+    /// The ids of the fields a content type this render has seen names: those of the current content's type, and
+    /// those of every page <c>find_page</c> returned. <c>field_definitions</c> resolves only these, because the
+    /// public field service is scoped to ids a content type already named, not to the whole field library.
+    /// </summary>
+    public HashSet<Guid> NamedFieldIds { get; } = new();
 }

@@ -6,16 +6,16 @@ using System.Text.Unicode;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
-using Dignite.Abp.FlexFields.Select;
 using Dignite.Abp.FlexFields.Web;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
+using Dignite.Site.Fields;
 using Dignite.Site.Pages;
+using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Routing;
 using Dignite.Site.Public.Seo;
 using Dignite.Site.Public.TagHelpers;
-using Dignite.Site.Public.Templating;
 using Dignite.Site.Public.Themes;
 using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Http;
@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Localization;
+using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Public.Scriban;
 
@@ -52,7 +53,7 @@ public class ScribanTestRenderer
             new UrlHelperFactory(),
             ContentListQuery,
             PartialRenderer,
-            SelectOptions,
+            FieldService,
             Encoder);
     }
 
@@ -76,7 +77,7 @@ public class ScribanTestRenderer
 
     public FakePartialRenderer PartialRenderer { get; } = new();
 
-    public FakeSelectFieldOptionsProvider SelectOptions { get; } = new();
+    public FakeFieldPublicAppService FieldService { get; } = new();
 
     public ActionContext ActionContext => new(Host.HttpContext, new RouteData(), new ActionDescriptor());
 
@@ -321,22 +322,19 @@ public class FakePartialRenderer : IRazorPartialRenderer
     }
 }
 
-public class FakeSelectFieldOptionsProvider : SelectFieldOptionsProvider
+/// <summary>Answers from <see cref="Fields"/>, and records the ids each call asked for.</summary>
+public class FakeFieldPublicAppService : IFieldPublicAppService
 {
-    public FakeSelectFieldOptionsProvider()
-        : base(null!, null!, null!)
-    {
-    }
+    public Dictionary<Guid, FieldDto> Fields { get; } = new();
 
-    public List<(string Page, string Field)> Calls { get; } = new();
+    public List<IReadOnlyList<Guid>> Calls { get; } = new();
 
-    public override Task<IReadOnlyList<SelectListItem>> GetAsync(string pageName, string fieldName)
+    public Task<FieldDto> GetAsync(Guid id) => Task.FromResult(Fields[id]);
+
+    public Task<ListResultDto<FieldDto>> GetListAsync(IEnumerable<Guid> ids)
     {
-        Calls.Add((pageName, fieldName));
-        return Task.FromResult<IReadOnlyList<SelectListItem>>(new List<SelectListItem>
-        {
-            new("Engineering", "engineering", false),
-            new("Essays", "essays", false)
-        });
+        var requested = ids.ToList();
+        Calls.Add(requested);
+        return Task.FromResult(new ListResultDto<FieldDto>(requested.Where(Fields.ContainsKey).Select(id => Fields[id]).ToList()));
     }
 }

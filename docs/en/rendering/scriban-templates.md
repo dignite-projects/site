@@ -142,7 +142,7 @@ A template is given data, and only data: the page and the content being rendered
 | `page` | The resolved page: `id`, `name`, `display_name`, `route`, `template`, `is_home_page`, `parent_id`, `is_active` and the audit fields. |
 | `content` | The resolved content, or empty when the request names the page itself, such as a list. It has `id`, `page_id`, `content_type_id`, `culture_name`, `slug`, `publish_time`, `status` (a lower-case text such as `"published"`), `url`, `fields`, `field_list` and the audit fields. |
 | `content.fields` | The values of the content, keyed by the field names exactly as the site defined them: `content.fields.title`. A value has its JSON shape, and the members of an object inside a value are in `camelCase`, as over HTTP. |
-| `content_type` | The content type of `content`, or empty when the request names the page itself. It has `id`, `page_id`, `name`, `display_name`, `description` and `fields`, each of which has `field_id`, `required`, `searchable`, `show_in_list`, `display_name` and `order`. |
+| `content_type` | The content type of `content`, or empty when the request names the page itself. It has `id`, `page_id`, `name`, `display_name`, `description` and `fields`, each of which has `field_id`, `required`, `searchable`, `show_in_list`, `display_name` and `order`; the definitions of the fields come from [`field_definitions`](#pages-and-field-definitions). |
 | `field_list` | The fields of `content`, in the content type's order, without the SEO field. Each has `name`, `display_name`, `field_type_name`, `required` and `value`. An empty list when there is no content; the same list as `content.field_list`. |
 | `culture` | The language of the request, such as `en` or `zh-Hans`. |
 | `default_culture` | The site's default language. |
@@ -174,7 +174,8 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `file_url url width [height]` | The address of a stored image resized to the given size, from a file field's value. |
 | `contents [options]` | Lists published contents; see below. |
 | `render_field name [show_in_list]` | Renders a field of `content` with the view of its field type, as `<flex-field-view>` does. |
-| `select_options page field` | The options of a `Select` field, as a list of `{ text, value }`. |
+| `find_page name` | A page by its name, with its content types; see [Pages and Field Definitions](#pages-and-field-definitions). |
+| `field_definitions fields` | The definitions of fields, with their configuration, keyed by field name; see [Pages and Field Definitions](#pages-and-field-definitions). |
 | `html_raw value` | Marks a value as trusted HTML; see [Output Encoding](#output-encoding). |
 | `include path [arguments]` | Renders another template in place; see [Partials](#partials). |
 | `asset_url path` | The address of a [static file](#static-files) of the theme, with the hash of its content, such as `/site-assets/assets/site.css?v=7b58...6970`. |
@@ -199,6 +200,32 @@ A key that is not in the table is an error, and a `page` that does not exist giv
 {{ end }}
 </ul>
 ````
+
+### Pages and Field Definitions
+
+`find_page` returns a page by its name with its content types, the current page as well as any other. It has the members of `page` and `content_types`, each shaped like `content_type`. The `fields` of a content type are its uses of fields (`field_id`, `required`, `searchable`, `show_in_list`, `display_name` and `order`); the definition of a field comes from `field_definitions`. It returns nothing when no active page has the name, and a page is looked up once per render, however often a template asks for it.
+
+`field_definitions` takes the `fields` of a content type, a list of field ids or a single one, and returns an object keyed by field name. Each field has `id`, `name`, `display_name`, `description`, `field_type_name` and `configuration`. A call takes at most 100 fields. Only fields that a content type of the render names are resolved: those of `content_type`, and those of the pages `find_page` returned. Any other id, and an id that no field has, is left out. A definition is fetched once per render.
+
+`configuration` is the configuration of the field type, with its keys and members as they are stored. A key starts with the name of the field type and a dot, such as `Select.Options` and `Select.Multiple`, so it is read with brackets, and the members of an object inside are capitalized, such as the `Text` and `Value` of an option. Each field type's configuration is described in [Field Types](../field-types.md).
+
+For example, a menu of the categories of the blog, from the options of the `Select` field `category`, which is in the first content type of the page `blog`:
+
+````
+{{ blog = find_page "blog" }}
+{{ if blog }}
+    {{ fields = field_definitions blog.content_types[0].fields }}
+    {{ if fields.category }}
+        {{ for option in fields.category.configuration["Select.Options"] }}
+            <a href="/blog/{{ option.Value }}">{{ option.Text }}</a>
+        {{ end }}
+    {{ end }}
+{{ end }}
+````
+
+Reading a member of a field that is not there, as `fields.category.configuration` is when the content type has no field `category`, fails the render, so the example asks first.
+
+The definitions of the fields of the content being rendered need no `find_page`: `field_definitions content_type.fields`.
 
 ## Partials
 

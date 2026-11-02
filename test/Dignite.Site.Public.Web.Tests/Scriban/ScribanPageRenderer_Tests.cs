@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields.Web;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Fields;
+using Dignite.Site.Pages;
 using Dignite.Site.Public.TagHelpers;
 using Dignite.Site.Themes;
 using global::Scriban.Syntax;
@@ -328,16 +332,166 @@ public class ScribanPageRenderer_Tests
     }
 
     [Fact]
-    public async Task Select_Options_Should_List_Text_And_Value()
+    public async Task Find_Page_Should_Return_A_Page_With_Its_Content_Types()
     {
         var renderer = new ScribanTestRenderer();
+        var fieldId = Guid.NewGuid();
+        renderer.ContentListQuery.PagesByName["blog"] = BlogPage(fieldId);
 
         var html = await renderer.RenderAsync(
-            "{{ for o in select_options \"blog\" \"category\" }}{{ o.text }}={{ o.value }};{{ end }}", HeadOnlyLayout);
+            "{{ blog = find_page \"blog\" }}{{ blog.display_name }};{{ for ct in blog.content_types }}{{ ct.name }}:{{ for f in ct.fields }}{{ f.field_id }},{{ f.required }}{{ end }}{{ end }}",
+            HeadOnlyLayout);
 
-        html.ShouldEndWith("Engineering=engineering;Essays=essays;");
-        renderer.SelectOptions.Calls.ShouldHaveSingleItem().ShouldBe(("blog", "category"));
+        html.ShouldEndWith($"Blog;post:{fieldId},true");
     }
+
+    [Fact]
+    public async Task Find_Page_Should_Be_Empty_For_A_Name_No_Page_Has()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync(
+            "[{{ find_page \"nowhere\" }}]{{ if find_page \"nowhere\" }}found{{ end }}", HeadOnlyLayout);
+
+        html.ShouldEndWith("[]");
+    }
+
+    [Fact]
+    public async Task Find_Page_Should_Look_A_Page_Up_Once_Per_Render()
+    {
+        var renderer = new ScribanTestRenderer();
+        renderer.ContentListQuery.PagesByName["blog"] = BlogPage(Guid.NewGuid());
+
+        await renderer.RenderAsync("{{ a = find_page \"blog\" }}{{ b = find_page \"blog\" }}{{ a.name }}{{ b.name }}{{ find_page \"nowhere\" }}{{ find_page \"nowhere\" }}", HeadOnlyLayout);
+
+        renderer.ContentListQuery.PagesLookedUp.ShouldBe(new[] { "blog", "nowhere" });
+    }
+
+    [Fact]
+    public async Task Field_Definitions_Should_Be_Keyed_By_Name_For_The_Current_Content_Type()
+    {
+        var renderer = new ScribanTestRenderer();
+        var viewModel = ScribanTestRenderer.ContentViewModel();
+        var usages = viewModel.Content!.ContentType.Fields;
+        renderer.FieldService.Fields[usages[0].FieldId] = Field(usages[0].FieldId, "Title", "Text", "The title");
+        renderer.FieldService.Fields[usages[1].FieldId] = Field(usages[1].FieldId, "Tags", "Select");
+
+        var html = await renderer.RenderAsync(
+            "{{ defs = field_definitions content_type.fields }}{{ defs.Title.field_type_name }};{{ defs.Title.description }};{{ defs.Tags.display_name }};{{ defs.Gallery }}",
+            HeadOnlyLayout,
+            viewModel);
+
+        html.ShouldEndWith("Text;The title;Tags;");
+
+        var call = renderer.FieldService.Calls.ShouldHaveSingleItem();
+        call.ShouldBe(usages.ConvertAll(usage => usage.FieldId));
+    }
+
+    [Fact]
+    public async Task Field_Definitions_Should_Resolve_The_Fields_Of_A_Found_Page_From_A_List_Page()
+    {
+        var renderer = new ScribanTestRenderer();
+        var fieldId = Guid.NewGuid();
+        renderer.ContentListQuery.PagesByName["blog"] = BlogPage(fieldId);
+        renderer.FieldService.Fields[fieldId] = Field(fieldId, "category", "Select");
+
+        var html = await renderer.RenderAsync(
+            "{{ blog = find_page \"blog\" }}{{ defs = field_definitions blog.content_types[0].fields }}{{ defs.category.field_type_name }};{{ defs.category.id }}",
+            HeadOnlyLayout);
+
+        html.ShouldEndWith($"Select;{fieldId}");
+    }
+
+    [Fact]
+    public async Task Field_Definitions_Should_Take_Ids_As_Well_As_Fields()
+    {
+        var renderer = new ScribanTestRenderer();
+        var viewModel = ScribanTestRenderer.ContentViewModel();
+        var fieldId = viewModel.Content!.ContentType.Fields[0].FieldId;
+        renderer.FieldService.Fields[fieldId] = Field(fieldId, "Title", "Text");
+
+        var html = await renderer.RenderAsync(
+            "{{ a = field_definitions [content_type.fields[0].field_id] }}{{ b = field_definitions content_type.fields[0].field_id }}{{ a.Title.name }}{{ b.Title.name }}",
+            HeadOnlyLayout,
+            viewModel);
+
+        html.ShouldEndWith("TitleTitle");
+    }
+
+    [Fact]
+    public async Task Field_Definitions_Should_Fetch_A_Definition_Once_Per_Render()
+    {
+        var renderer = new ScribanTestRenderer();
+        var viewModel = ScribanTestRenderer.ContentViewModel();
+        var fieldId = viewModel.Content!.ContentType.Fields[0].FieldId;
+        renderer.FieldService.Fields[fieldId] = Field(fieldId, "Title", "Text");
+
+        await renderer.RenderAsync(
+            "{{ a = field_definitions content_type.fields }}{{ b = field_definitions content_type.fields }}{{ c = field_definitions content_type.fields[0] }}",
+            HeadOnlyLayout,
+            viewModel);
+
+        renderer.FieldService.Calls.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task Field_Definitions_Should_Leave_Out_A_Field_No_Content_Type_Names()
+    {
+        var renderer = new ScribanTestRenderer();
+        var stray = Field(Guid.NewGuid(), "stray", "Text");
+        renderer.FieldService.Fields[stray.Id] = stray;
+
+        var html = await renderer.RenderAsync(
+            $"{{{{ defs = field_definitions \"{stray.Id}\" }}}}{{{{ defs | object.keys | array.size }}}};{{{{ field_definitions \"not an id\" | object.keys | array.size }}}}",
+            HeadOnlyLayout,
+            ScribanTestRenderer.ContentViewModel());
+
+        html.ShouldEndWith("0;0");
+        renderer.FieldService.Calls.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Field_Definitions_Should_Take_At_Most_A_Hundred_Fields()
+    {
+        var viewModel = ScribanTestRenderer.ContentViewModel();
+        var usages = viewModel.Content!.ContentType.Fields;
+        while (usages.Count <= 100)
+        {
+            usages.Add(new() { FieldId = Guid.NewGuid() });
+        }
+
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            "{{ field_definitions content_type.fields }}", HeadOnlyLayout, viewModel));
+
+        ex.ShouldBeOfType<ScriptRuntimeException>().Message.ShouldContain("at most 100");
+    }
+
+    private static PageDto BlogPage(params Guid[] fieldIds) => new()
+    {
+        Id = Guid.NewGuid(),
+        Name = "blog",
+        DisplayName = "Blog",
+        Route = "/blog",
+        Template = "Default",
+        IsActive = true,
+        ContentTypes = new List<ContentTypeDto>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "post",
+                DisplayName = "Post",
+                Fields = fieldIds.Select(id => new ContentTypeFieldDto { FieldId = id, Required = true }).ToList()
+            }
+        }
+    };
+
+    private static FieldDto Field(Guid id, string name, string fieldTypeName, string? description = null) => new()
+    {
+        Id = id,
+        Name = name,
+        DisplayName = name,
+        FieldTypeName = fieldTypeName,
+        Description = description
+    };
 
     [Fact]
     public async Task A_Function_Should_Not_Be_Assignable()
