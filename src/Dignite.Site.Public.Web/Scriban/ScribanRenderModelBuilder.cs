@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
+using Dignite.Site.Fields;
 using Dignite.Site.Pages;
 using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Routing;
@@ -77,6 +78,12 @@ public class ScribanRenderModelBuilder : ITransientDependency
     /// so it has the same shape a remote host receives it in over HTTP.
     /// </summary>
     public static readonly JsonSerializerOptions FieldValueJsonOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>
+    /// How a field configuration that is still a CLR object becomes JSON: as the field type stores it, with no
+    /// naming policy, so it has the member names a configuration read back from storage has.
+    /// </summary>
+    public static readonly JsonSerializerOptions ConfigurationJsonOptions = new();
 
     protected SiteLanguageContext LanguageContext { get; }
     protected SiteLanguageSwitcher LanguageSwitcher { get; }
@@ -162,6 +169,68 @@ public class ScribanRenderModelBuilder : ITransientDependency
         var result = FromDto(contentType);
         SetAuditTimes(result, contentType);
         return result;
+    }
+
+    /// <summary>
+    /// A page <c>find_page</c> found, as a template sees it: the members of <c>page</c> and <c>content_types</c>,
+    /// each shaped like <c>content_type</c> - its members and <c>fields</c>, the content type's use of each field
+    /// (<c>field_id</c>, <c>required</c>, ...), whose definitions <c>field_definitions</c> resolves.
+    /// </summary>
+    public virtual ScriptObject BuildPageWithContentTypes(PageDto page)
+    {
+        var result = BuildPage(page);
+
+        var contentTypes = new ScriptArray();
+        foreach (var contentType in page.ContentTypes ?? new List<ContentTypeDto>())
+        {
+            contentTypes.Add(BuildContentType(contentType));
+        }
+
+        result.SetValue("content_types", contentTypes, false);
+        return result;
+    }
+
+    /// <summary>
+    /// Field definitions as <c>field_definitions</c> returns them: an object keyed by field name, each
+    /// <c>{ id, name, display_name, description, field_type_name, configuration }</c>. <c>configuration</c> is
+    /// the field type's own, JSON-shaped and named as the field type stored it - see <see cref="FromConfiguration"/>.
+    /// </summary>
+    public virtual ScriptObject BuildFieldDefinitions(IEnumerable<FieldDto> fields)
+    {
+        var result = new ScriptObject();
+        foreach (var field in fields)
+        {
+            result.SetValue(field.Name, BuildFieldDefinition(field), false);
+        }
+
+        return result;
+    }
+
+    protected virtual ScriptObject BuildFieldDefinition(FieldDto field)
+    {
+        var result = new ScriptObject();
+        result.SetValue("id", field.Id.ToString(), false);
+        result.SetValue("name", field.Name, false);
+        result.SetValue("display_name", field.DisplayName, false);
+        result.SetValue("description", field.Description, false);
+        result.SetValue("field_type_name", field.FieldTypeName, false);
+        result.SetValue("configuration", FromConfiguration(field.Configuration), false);
+        return result;
+    }
+
+    /// <summary>
+    /// A field's configuration as template data, named as the field type stored it: its keys carry the field
+    /// type's name (<c>Select.Options</c>), the members of an object inside are as stored too (<c>Text</c>,
+    /// <c>Value</c>). It arrives from storage as <see cref="JsonElement"/>s, which keep their names; a value that is
+    /// still a CLR object is serialized without a naming policy (<see cref="ConfigurationJsonOptions"/>), so it has
+    /// the same names. Unlike a field value, it is not renamed to camelCase.
+    /// </summary>
+    public static ScriptObject FromConfiguration(IDictionary<string, object?>? configuration)
+    {
+        return configuration == null
+            ? new ScriptObject()
+            : ScribanValues.ObjectFromJson(
+                JsonSerializer.SerializeToElement(configuration, configuration.GetType(), ConfigurationJsonOptions));
     }
 
     protected virtual ScriptArray BuildFieldList(IReadOnlyList<FlexFieldValue> fields)

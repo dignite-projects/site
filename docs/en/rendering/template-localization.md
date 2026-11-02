@@ -102,11 +102,21 @@ Import `Dignite.Site.Public.Localization` for `SiteTemplateResource`, and `Digni
 
 Site does not generate keys: the template chooses them, and maps each option value to its key. The recommended convention is `Field:{fieldName}:{optionValue}`. Use `GetOrDefault`, so that an option the site has not translated still shows the option's own text rather than the key:
 
+The options come from the definition of the field, which is read through a page whose content type uses it:
+
 ````cshtml
-@inject SelectFieldOptionsProvider SelectFieldOptions
+@using Dignite.Abp.FlexFields.Select
+@using Dignite.Site.Public.Application.Contracts.Routing
+@inject IPagePublicAppService PageAppService
+@inject IFieldPublicAppService FieldAppService
 @inject IStringLocalizer<SiteTemplateResource> L
 @{
-    var categories = await SelectFieldOptions.GetAsync("blog-post", "blog_category");
+    var blogPost = await PageAppService.FindByNameAsync("blog-post");
+    var fieldIds = (blogPost?.ContentTypes ?? new()).SelectMany(type => type.Fields).Select(use => use.FieldId).Distinct().ToList();
+    var field = (await FieldAppService.GetListAsync(fieldIds)).Items.FirstOrDefault(f => f.Name == "blog_category");
+    var categories = field == null
+        ? new List<SelectListItem>()
+        : new SelectConfiguration(field.Configuration.ToFieldConfiguration()).Options;
 }
 @foreach (var category in categories)
 {
@@ -115,6 +125,8 @@ Site does not generate keys: the template chooses them, and maps each option val
     </a>
 }
 ````
+
+Import `Dignite.Site.Public.Pages` for `IPagePublicAppService` and `Dignite.Site.Public.Fields` for `IFieldPublicAppService`. A Scriban template reads the same options with `find_page` and `field_definitions`; see [Pages and Field Definitions](scriban-templates.md#pages-and-field-definitions).
 
 On an `IHtmlLocalizer` or `IViewLocalizer`, `GetOrDefault` HTML-encodes the fallback.
 

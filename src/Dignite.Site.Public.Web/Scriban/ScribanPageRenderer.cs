@@ -4,11 +4,11 @@ using System.Text.Encodings.Web;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields.Web;
+using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Localization;
 using Dignite.Site.Public.Routing;
 using Dignite.Site.Public.Scriban.Functions;
 using Dignite.Site.Public.TagHelpers;
-using Dignite.Site.Public.Templating;
 using Dignite.Site.Public.Themes;
 using Dignite.Site.Themes;
 using global::Scriban.Runtime;
@@ -30,7 +30,7 @@ namespace Dignite.Site.Public.Scriban;
 /// <para>
 /// Both templates see the same globals (<see cref="ScribanRenderModelBuilder"/>) and functions
 /// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>file_url</c>, <c>asset_url</c>, <c>contents</c>, <c>render_field</c>,
-/// <c>select_options</c>, <c>html_raw</c>); a variable the page template assigns (<c>{{ title = "..." }}</c>) is visible to the
+/// <c>find_page</c>, <c>field_definitions</c>, <c>html_raw</c>); a variable the page template assigns (<c>{{ title = "..." }}</c>) is visible to the
 /// layout, which is how a page hands its layout a title. Each template renders in its own sandboxed context
 /// (<see cref="ScribanSandbox"/>) with its own output bound; the time budget covers both.
 /// </para>
@@ -59,7 +59,7 @@ public class ScribanPageRenderer : ITransientDependency
     protected IUrlHelperFactory UrlHelperFactory { get; }
     protected ContentListQuery ContentListQuery { get; }
     protected IRazorPartialRenderer PartialRenderer { get; }
-    protected SelectFieldOptionsProvider SelectFieldOptionsProvider { get; }
+    protected IFieldPublicAppService FieldAppService { get; }
     protected HtmlEncoder HtmlEncoder { get; }
 
     public ScribanPageRenderer(
@@ -73,7 +73,7 @@ public class ScribanPageRenderer : ITransientDependency
         IUrlHelperFactory urlHelperFactory,
         ContentListQuery contentListQuery,
         IRazorPartialRenderer partialRenderer,
-        SelectFieldOptionsProvider selectFieldOptionsProvider,
+        IFieldPublicAppService fieldAppService,
         HtmlEncoder htmlEncoder)
     {
         Options = options;
@@ -86,7 +86,7 @@ public class ScribanPageRenderer : ITransientDependency
         UrlHelperFactory = urlHelperFactory;
         ContentListQuery = contentListQuery;
         PartialRenderer = partialRenderer;
-        SelectFieldOptionsProvider = selectFieldOptionsProvider;
+        FieldAppService = fieldAppService;
         HtmlEncoder = htmlEncoder;
     }
 
@@ -171,7 +171,8 @@ public class ScribanPageRenderer : ITransientDependency
         globals.SetValue(AssetUrlFunction.Name, new AssetUrlFunction(scope, UrlHelperFactory), true);
         globals.SetValue(ContentsFunction.Name, new ContentsFunction(scope, ContentListQuery, ModelBuilder), true);
         globals.SetValue(RenderFieldFunction.Name, new RenderFieldFunction(scope, PartialRenderer), true);
-        globals.SetValue(SelectOptionsFunction.Name, new SelectOptionsFunction(SelectFieldOptionsProvider), true);
+        globals.SetValue(FindPageFunction.Name, new FindPageFunction(scope, ContentListQuery, ModelBuilder), true);
+        globals.SetValue(FieldDefinitionsFunction.Name, new FieldDefinitionsFunction(scope, FieldAppService, ModelBuilder), true);
         globals.SetValue(HtmlRawFunction.Name, new HtmlRawFunction(), true);
     }
 

@@ -1,5 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Dignite.Abp.FlexFields.Select;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Fields;
 using global::Scriban.Runtime;
 using Shouldly;
 using Xunit;
@@ -117,6 +122,126 @@ public class ScribanRenderModelBuilder_Tests
 
         Get<ScriptObject>(globals, "filter_values")["publishTime:yyyy"].ShouldBe("2026");
         Get<ScriptObject>(globals, "field_filters")["category"].ShouldBe("engineering");
+    }
+
+    [Fact]
+    public void A_Field_Definition_Should_Be_Keyed_By_Name_With_Snake_Case_Members()
+    {
+        var field = new FieldDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "category",
+            DisplayName = "Category",
+            Description = "What the post is about",
+            FieldTypeName = "Select"
+        };
+
+        var definitions = new ScribanTestRenderer().ModelBuilder.BuildFieldDefinitions(new[] { field });
+
+        definitions.Count.ShouldBe(1);
+        var category = definitions["category"].ShouldBeOfType<ScriptObject>();
+        category["id"].ShouldBe(field.Id.ToString());
+        category["name"].ShouldBe("category");
+        category["display_name"].ShouldBe("Category");
+        category["description"].ShouldBe("What the post is about");
+        category["field_type_name"].ShouldBe("Select");
+        category["configuration"].ShouldBeOfType<ScriptObject>().Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void A_Configuration_Should_Keep_The_Names_It_Was_Stored_With()
+    {
+        // As storage hands it over: JSON, the keys carrying the field type's name, the members as stored.
+        var stored = new FieldDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "category",
+            DisplayName = "Category",
+            FieldTypeName = "Select",
+            Configuration = new Dictionary<string, object?>
+            {
+                [SelectConfigurationNames.Multiple] = true,
+                [SelectConfigurationNames.Options] = JsonSerializer.SerializeToElement(
+                    new[] { new { Text = "Engineering", Value = "engineering", Selected = false } })
+            }
+        };
+
+        var configuration = Configuration(stored);
+
+        configuration["Select.Multiple"].ShouldBe(true);
+        var option = ((ScriptArray)configuration["Select.Options"]!)[0].ShouldBeOfType<ScriptObject>();
+        option["Text"].ShouldBe("Engineering");
+        option["Value"].ShouldBe("engineering");
+        option["Selected"].ShouldBe(false);
+    }
+
+    [Fact]
+    public void A_Configuration_Still_A_Clr_Object_Should_Have_The_Same_Names_As_One_Read_From_Storage()
+    {
+        var clr = new FieldDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "category",
+            DisplayName = "Category",
+            FieldTypeName = "Select",
+            Configuration = new Dictionary<string, object?>
+            {
+                [SelectConfigurationNames.Options] = new List<SelectListItem> { new("Engineering", "engineering", false) }
+            }
+        };
+
+        var option = ((ScriptArray)Configuration(clr)["Select.Options"]!)[0].ShouldBeOfType<ScriptObject>();
+
+        option["Text"].ShouldBe("Engineering");
+        option["Value"].ShouldBe("engineering");
+    }
+
+    private static ScriptObject Configuration(FieldDto field)
+    {
+        var definitions = new ScribanTestRenderer().ModelBuilder.BuildFieldDefinitions(new[] { field });
+        return ((ScriptObject)definitions[field.Name]!)["configuration"].ShouldBeOfType<ScriptObject>();
+    }
+
+    [Fact]
+    public void A_Page_With_Content_Types_Should_List_Them_Under_Content_Types()
+    {
+        var fieldId = Guid.NewGuid();
+        var page = ScribanTestRenderer.Page();
+        page.ContentTypes = new List<ContentTypeDto>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "post",
+                DisplayName = "Post",
+                Fields = new List<ContentTypeFieldDto> { new() { FieldId = fieldId, Required = true, ShowInList = true, Order = 1 } }
+            }
+        };
+
+        var result = new ScribanTestRenderer().ModelBuilder.BuildPageWithContentTypes(page);
+
+        result["display_name"].ShouldBe("About us");
+        result["is_home_page"].ShouldBe(false);
+
+        var contentType = ((ScriptArray)result["content_types"]!).ShouldHaveSingleItem().ShouldBeOfType<ScriptObject>();
+        contentType["name"].ShouldBe("post");
+
+        var usage = ((ScriptArray)contentType["fields"]!).ShouldHaveSingleItem().ShouldBeOfType<ScriptObject>();
+        usage["field_id"].ShouldBe(fieldId.ToString());
+        usage["required"].ShouldBe(true);
+        usage["show_in_list"].ShouldBe(true);
+        usage["order"].ShouldBe(1);
+    }
+
+    [Fact]
+    public void A_Page_Without_Its_Content_Types_Loaded_Should_Have_An_Empty_List()
+    {
+        var page = ScribanTestRenderer.Page();
+        page.ContentTypes = null;
+
+        var result = new ScribanTestRenderer().ModelBuilder.BuildPageWithContentTypes(page);
+
+        ((ScriptArray)result["content_types"]!).Count.ShouldBe(0);
     }
 
     private static Task<ScriptObject> BuildAsync(Routing.SiteRenderViewModel viewModel)

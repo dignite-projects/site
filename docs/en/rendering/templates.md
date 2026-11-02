@@ -164,7 +164,7 @@ Inject the public application services for anything else a template needs:
 * `IContentPublicAppService.GetAdjacentAsync` returns the previous and next contents of the same page and language, by publish time, for "older" and "newer" links.
 * `IContentPublicAppService.GetTranslationsAsync` returns the language versions of a content.
 * `IPagePublicAppService.FindByNameAsync` and `GetListAsync` read pages, for a navigation menu.
-* `SelectFieldOptionsProvider` returns the options of a `Select` field, for a category menu; see [Select Options](template-localization.md#select-options).
+* `IFieldPublicAppService.GetListAsync` returns field definitions by id, with their configuration, such as the options of a `Select` field for a category menu; see [Select Options](template-localization.md#select-options).
 
 ## The Head
 

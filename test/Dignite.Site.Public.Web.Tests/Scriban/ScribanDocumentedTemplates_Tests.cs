@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Fields;
+using Dignite.Site.Pages;
 using Dignite.Site.Public.Routing;
 using Shouldly;
 using Xunit;
@@ -60,6 +64,91 @@ public class ScribanDocumentedTemplates_Tests
         </body>
         </html>
         """;
+
+    public const string CategoryMenu = """
+        {{ blog = find_page "blog" }}
+        {{ if blog }}
+            {{ fields = field_definitions blog.content_types[0].fields }}
+            {{ if fields.category }}
+                {{ for option in fields.category.configuration["Select.Options"] }}
+                    <a href="/blog/{{ option.Value }}">{{ option.Text }}</a>
+                {{ end }}
+            {{ end }}
+        {{ end }}
+        """;
+
+    [Fact]
+    public async Task The_Category_Menu_Should_List_The_Options_Of_A_Select_Field()
+    {
+        var renderer = new ScribanTestRenderer();
+        var fieldId = Guid.NewGuid();
+        renderer.ContentListQuery.PagesByName["blog"] = new PageDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "blog",
+            DisplayName = "Blog",
+            Route = "/blog",
+            Template = "Default",
+            IsActive = true,
+            ContentTypes = new List<ContentTypeDto>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "post",
+                    DisplayName = "Post",
+                    Fields = new List<ContentTypeFieldDto> { new() { FieldId = fieldId } }
+                }
+            }
+        };
+
+        // The way storage hands a Select field's configuration over.
+        renderer.FieldService.Fields[fieldId] = new FieldDto
+        {
+            Id = fieldId,
+            Name = "category",
+            DisplayName = "Category",
+            FieldTypeName = "Select",
+            Configuration = new Dictionary<string, object?>
+            {
+                ["Select.Options"] = JsonSerializer.SerializeToElement(new[]
+                {
+                    new { Text = "Travel", Value = "travel", Selected = false },
+                    new { Text = "Food", Value = "food", Selected = false }
+                })
+            }
+        };
+
+        var html = await renderer.RenderAsync(CategoryMenu, "{{ site_head }}{{ body }}");
+
+        html.ShouldContain("<a href=\"/blog/travel\">Travel</a>");
+        html.ShouldContain("<a href=\"/blog/food\">Food</a>");
+    }
+
+    [Fact]
+    public async Task The_Category_Menu_Should_Be_Empty_Without_The_Page_Or_The_Field()
+    {
+        var withoutPage = await new ScribanTestRenderer().RenderAsync(CategoryMenu, "{{ site_head }}{{ body }}");
+        withoutPage.ShouldNotContain("<a href");
+
+        var renderer = new ScribanTestRenderer();
+        renderer.ContentListQuery.PagesByName["blog"] = new PageDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "blog",
+            DisplayName = "Blog",
+            Route = "/blog",
+            Template = "Default",
+            IsActive = true,
+            ContentTypes = new List<ContentTypeDto>
+            {
+                new() { Id = Guid.NewGuid(), Name = "post", DisplayName = "Post" }
+            }
+        };
+
+        var withoutField = await renderer.RenderAsync(CategoryMenu, "{{ site_head }}{{ body }}");
+        withoutField.ShouldNotContain("<a href");
+    }
 
     [Fact]
     public async Task The_Page_Template_Should_Render_A_Content()
