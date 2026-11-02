@@ -188,7 +188,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `page` | The name of the page to list. Omit it to list the current page, with the current route's `field_filters`, `published_after` and `published_before` applied. |
 | `content_type` | The name of a content type of that page. |
 | `max` | The page size, 20 by default and at most 100. |
-| `page_no` | The 1-based page number, 1 by default. |
+| `page_no` | The 1-based page number, 1 by default. A page past the end gives an empty list. |
 | `filter` | A text filter over the slug. |
 
 A key that is not in the table is an error, and a `page` that does not exist gives an empty list. Contents are listed newest first, and only published ones. Each item has the shape of `content`, except that its `field_list` holds only the fields marked Show In List.

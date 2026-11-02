@@ -32,12 +32,14 @@ namespace Dignite.Site.Public.Scriban;
 /// </para>
 /// <para>
 /// A template that fails at run time (<see cref="ScriptRuntimeException"/>, whose message names template, line and
-/// column), runs out of time (<see cref="TimeoutException"/>) or does not parse (<see cref="InvalidOperationException"/>,
-/// possible for a working copy saved with errors) fails the preview with
-/// <see cref="SiteErrorCodes.SiteTemplatePreviewRenderFailed"/>, carrying that message: as a business exception it reaches
-/// every caller intact - the admin UI over HTTP, a client proxy, an MCP client - where ABP would replace the original
-/// exception with "an internal error occurred". A render that never called <c>site_head</c> already is a business
-/// exception and propagates as it is, and so does a request the client aborted.
+/// column), runs out of time (<see cref="TimeoutException"/>), does not parse, names a layout the theme does not have
+/// or writes past the output limit (<see cref="ScribanRenderException"/>; a working copy may be saved with errors)
+/// fails the preview with <see cref="SiteErrorCodes.SiteTemplatePreviewRenderFailed"/>, carrying that message: as a
+/// business exception it reaches every caller intact - the admin UI over HTTP, a client proxy, an MCP client - where
+/// ABP would replace the original exception with "an internal error occurred". A render that never called
+/// <c>site_head</c> already is a business exception and propagates as it is, and so does a request the client aborted
+/// or a call the caller cancelled - and so does any other failure a service met along the way, which is the
+/// application's, not the theme's.
 /// </para>
 /// <para>
 /// The page is rendered as the site path, not as the administration request it is rendered from:
@@ -135,17 +137,18 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
             using (SiteTemplateDefaultCulture.Use(languages.DefaultCultureName))
             using (CultureHelper.Use(match.CultureName))
             {
-                render = await PageRenderer.RenderAsync(templatePath, renderSet, viewModel, actionContext);
+                render = await PageRenderer.RenderAsync(templatePath, renderSet, viewModel, actionContext, cancellationToken);
             }
         }
         // ScriptAbortException is a ScriptRuntimeException too, and a cancellation Scriban met in an awaited call
-        // may come wrapped in one: when the client went away, it is not the template's failure. An
-        // InvalidOperationException is what BoundedScriptOutput raises past MaxOutputLength, what the cache raises for
-        // a template that does not parse and what the renderer raises for a layout that is not there - all the
-        // theme's failure too.
-        catch (Exception exception) when (exception is TimeoutException or InvalidOperationException
+        // may come wrapped in one: when the client went away, or the caller cancelled, it is not the template's
+        // failure. A ScribanRenderException is what BoundedScriptOutput raises past MaxOutputLength, what the cache
+        // raises for a template that does not parse and what the renderer raises for a layout that is not there - all
+        // the theme's failure too. Any other exception is a service's, and propagates as it is.
+        catch (Exception exception) when (exception is TimeoutException or ScribanRenderException
                                           || (exception is ScriptRuntimeException
-                                              && !httpContext.RequestAborted.IsCancellationRequested))
+                                              && !httpContext.RequestAborted.IsCancellationRequested
+                                              && !cancellationToken.IsCancellationRequested))
         {
             throw new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed, innerException: exception)
                 .WithData("Name", templatePath)

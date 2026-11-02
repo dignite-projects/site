@@ -19,6 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **A class implementing `IContentRepository` or `IContentPublicAppService` must add `GetCountByFieldValueAsync` /
   `GetCountByFieldAsync`, and `ContentPublicAppService` now takes `IFieldRepository` and `IFieldTypeResolver`.**
 
+### Changed
+
+- **A theme preview reports as the template's failure exactly what the renderer found wrong with the theme.** A
+  template that does not parse, a layout that is not a template of the theme and output past
+  `SiteScribanOptions.MaxOutputLength` now raise `ScribanRenderException` (an `InvalidOperationException`); the
+  preview - `SiteThemePreviewRenderer`, and the error page a previewed page shows - reports it, a `TimeoutException`
+  and a `ScriptRuntimeException` as `Site:090008`, and lets any other exception propagate as it is, rather than
+  presenting every `InvalidOperationException` (a disposed service, a `DbContext` used twice at once) and every
+  business exception a service threw as the template's fault. A preview rendered for a call that was cancelled stops
+  rendering: `ISiteThemePreviewRenderer.RenderAsync`'s token now reaches the render. **`ScribanPageRenderer.RenderAsync`
+  takes an optional `CancellationToken`, and its `RenderTemplateAsync` takes the parsed `Template` after the file: a
+  derived renderer that overrides it must add the parameter.**
+
+### Fixed
+
+- `contents` with a `page_no` of more than about twenty-one million no longer fails the render with an invalid-request
+  error from the content service, whose skip count overflowed: the page number is capped where the skip count still
+  fits, and a page past the end lists nothing, as before.
+
 ## [2.0.0] - 2026-10-30
 
 ### Added

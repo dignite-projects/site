@@ -20,7 +20,7 @@ namespace Dignite.Site.Public.Scriban.Functions;
 /// archive or category page lists its own slice. A page of that name not existing lists nothing.</item>
 /// <item><c>content_type</c> - only contents of the page's content type of this name.</item>
 /// <item><c>max</c> - page size, default 20, at most <see cref="MaxPageSize"/>.</item>
-/// <item><c>page_no</c> - 1-based page number, default 1.</item>
+/// <item><c>page_no</c> - 1-based page number, default 1, at most <see cref="MaxPageNumber"/>.</item>
 /// <item><c>filter</c> - a text filter.</item>
 /// </list>
 /// Returns <c>{ items, total_count, max_result_count, current_page }</c>; each item has the shape of
@@ -34,6 +34,14 @@ public class ContentsFunction : SiteScriptFunction
 
     /// <summary>The largest page a template may ask for in one call.</summary>
     public const int MaxPageSize = 100;
+
+    /// <summary>
+    /// The highest <c>page_no</c> a template may ask for: the last page whose skip count,
+    /// <c>(page_no - 1) * max</c>, still fits an <see cref="int"/> at the largest page size. Beyond it the query's
+    /// skip count would overflow into a negative number, which the content service refuses as an invalid request -
+    /// an error that names no template. A page past the end lists nothing either way.
+    /// </summary>
+    public const int MaxPageNumber = int.MaxValue / MaxPageSize;
 
     private static readonly string[] OptionNames = { "page", "content_type", "max", "page_no", "filter" };
 
@@ -66,7 +74,7 @@ public class ContentsFunction : SiteScriptFunction
         var pageName = GetOptionString(context, span, options, "page");
         var isCurrentPage = pageName == null;
         var maxResultCount = Math.Clamp(GetOptionInt(context, span, options, "max") ?? 20, 1, MaxPageSize);
-        var currentPage = Math.Max(1, GetOptionInt(context, span, options, "page_no") ?? 1);
+        var currentPage = Math.Clamp(GetOptionInt(context, span, options, "page_no") ?? 1, 1, MaxPageNumber);
 
         PageDto? page = isCurrentPage ? viewModel.Page : await Query.FindPageAsync(pageName!);
         if (page == null)

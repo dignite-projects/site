@@ -131,7 +131,7 @@ public class ScribanPageRenderer_Tests
     [Fact]
     public async Task A_Layout_That_Is_Not_In_The_Theme_Should_Fail_Naming_It()
     {
-        var ex = await Should.ThrowAsync<InvalidOperationException>(() => new ScribanTestRenderer().RenderPageAsync(
+        var ex = await Should.ThrowAsync<ScribanRenderException>(() => new ScribanTestRenderer().RenderPageAsync(
             ScribanTestRenderer.RenderSet("+++\nlayout = \"layouts/gone\"\n+++\n<p>page</p>", "{{ site_head }}{{ body }}")));
 
         ex.Message.ShouldContain("'layouts/gone'");
@@ -265,6 +265,27 @@ public class ScribanPageRenderer_Tests
         request.PublishedAfter.ShouldBe(viewModel.PublishedAfter);
         request.PublishedBefore.ShouldBe(viewModel.PublishedBefore);
         renderer.ContentListQuery.PagesLookedUp.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A page number whose skip count would overflow an int is capped: the query then asks for a page past the end,
+    /// which lists nothing, rather than for a negative skip count the content service refuses.
+    /// </summary>
+    [Fact]
+    public async Task Contents_With_A_Page_Number_Beyond_The_Cap_Should_Ask_For_The_Last_Page_That_Fits()
+    {
+        var renderer = new ScribanTestRenderer();
+
+        var html = await renderer.RenderAsync(
+            ScribanTestRenderer.RenderSet(
+                "{{ list = contents { max: 100, page_no: 2147483647 } }}{{ list.current_page }}|{{ list.items.size }}",
+                HeadOnlyLayout));
+
+        html.ShouldEndWith(ContentsFunction.MaxPageNumber + "|0");
+
+        var request = renderer.ContentListQuery.Requests.ShouldHaveSingleItem();
+        request.CurrentPage.ShouldBe(ContentsFunction.MaxPageNumber);
+        ((long)(request.CurrentPage - 1) * request.MaxResultCount).ShouldBeLessThanOrEqualTo(int.MaxValue);
     }
 
     [Fact]
