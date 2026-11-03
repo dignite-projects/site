@@ -68,8 +68,10 @@ Like the rest of the administration API, the file library is available only whil
 A file's address is **relative**:
 
 ````text
-/api/site-public/files/{containerName}/{blobName}?__tenant={tenantId}
+/api/site-public/files/{containerName}/{blobName}
 ````
+
+The address names no tenant: the endpoint serves the file of the tenant the request resolves to, by the host name or however the deployment resolves tenants for every other request. An address issued by an earlier version ends in `?__tenant=`; it keeps working.
 
 It is the address that the administration API and the MCP tools return (`FileDescriptorDto.Url`) and the value a field stores. No host name is written into a content, so moving the public site, the API or a gateway to another host leaves every stored address valid. Each consumer puts a host in front of it:
 
@@ -77,7 +79,7 @@ It is the address that the administration API and the MCP tools return (`FileDes
 |---|---|
 | A page of the public site (`<img src>`, `SiteFileUrl.Sized(...)` in a template) | The page's own origin |
 | The `og:image` meta tag | The site's primary domain, the `Site.PrimaryDomain` setting |
-| The Angular admin UI | The host of the `SiteAdmin` API, `environment.apis.SiteAdmin.url` |
+| The Angular admin UI | The host of the `SiteAdmin` API, `environment.apis.SiteAdmin.url`, naming the signed-in tenant with `?__tenant=` (a preview is a plain `<img>` request, which carries no tenant header) |
 
 An absolute address that a user typed into a field, such as the address of an external image, is left as it is.
 
@@ -99,7 +101,7 @@ In a template, build a resized address with `SiteFileUrl.Sized` from the `Dignit
 <img src="@SiteFileUrl.Sized(imageUrl, 400, 300)" alt="" />
 ````
 
-`Sized` replaces a size already on the address and keeps its other query parameters, `__tenant` included.
+`Sized` replaces a size already on the address and keeps its other query parameters.
 
 ### Serving Files from the Public Web Application
 

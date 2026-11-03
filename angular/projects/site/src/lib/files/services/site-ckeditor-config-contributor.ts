@@ -3,7 +3,6 @@ import type { CKEditorConfigContributor } from '@dignite/ng.flex-fields-ckeditor
 // Type-only: a value import from 'ckeditor5' would pull the whole package out of the lazy chunk
 // @dignite/ng.flex-fields-ckeditor loads it in.
 import type { DowncastAttributeEvent, Editor, Emitter, ModelElement, UpcastElementEvent } from 'ckeditor5';
-import { SITE_FILE_PATH } from './site-file-url';
 import { SiteFileUrlService } from './site-file-url.service';
 
 const IMAGE_TYPES = ['imageBlock', 'imageInline'] as const;
@@ -13,7 +12,7 @@ const IMAGE_TYPES = ['imageBlock', 'imageInline'] as const;
  * A stored address is relative (`<img src="/api/site-public/files/...">`, see `SITE_FILE_PATH`), and this
  * admin UI is served from another origin, where it does not resolve.
  *
- * So the editor's **model** holds the absolute address, and only the data the editor hands out is
+ * So the editor's **model** holds the absolute address (naming the signed-in tenant, as the previews do), and only the data the editor hands out is
  * relative: a plugin converts an image's `src` (`imageBlock`/`imageInline`) on the way in (upcast:
  * `setData()`, the initial value, a paste) from relative to absolute, and on the way out (data downcast:
  * `getData()` - the form value that is saved, the Source view, a copy) from absolute back to relative.
@@ -30,15 +29,13 @@ export function siteCKEditorConfigContributor(): CKEditorConfigContributor {
   const fileUrls = inject(SiteFileUrlService);
 
   return config => {
-    const apiBase = fileUrls.apiBase;
-    if (!apiBase) {
-      // The UI shares its API's origin: a relative address already loads.
+    if (!fileUrls.apiBase && !fileUrls.tenantId) {
+      // The UI shares its API's origin and the host's: a relative address already loads.
       return;
     }
 
-    const absolutePrefix = apiBase + SITE_FILE_PATH;
-    const toModel = (src: string) => (src.startsWith(SITE_FILE_PATH) ? apiBase + src : src);
-    const toData = (src: string) => (src.startsWith(absolutePrefix) ? src.substring(apiBase.length) : src);
+    const toModel = (src: string) => fileUrls.toDisplay(src);
+    const toData = (src: string) => fileUrls.toStored(src);
 
     // A CKEditor 5 plugin can be a plain function of the editor.
     function SiteFileAddresses(editor: Editor): void {

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { EnvironmentService } from '@abp/ng.core';
+import { EnvironmentService, SessionStateService } from '@abp/ng.core';
 import type { CKEditorConfigContext } from '@dignite/ng.flex-fields-ckeditor';
 import type { ClassicEditor, EditorConfig } from 'ckeditor5';
 import { siteCKEditorConfigContributor } from './site-ckeditor-config-contributor';
@@ -7,6 +7,14 @@ import { siteCKEditorConfigContributor } from './site-ckeditor-config-contributo
 describe('siteCKEditorConfigContributor', () => {
   const API = 'https://api.example';
   const RELATIVE = '/api/site-public/files/images/abc.png?__tenant=';
+
+  // ABP's real SessionStateService needs the whole core module; the tenant is all this reads from it.
+  let tenant: { id?: string } | undefined;
+
+  beforeEach(() => {
+    tenant = undefined;
+    TestBed.configureTestingModule({ providers: [{ provide: SessionStateService, useValue: { getTenant: () => tenant } }] });
+  });
 
   function contribute(apis: object | undefined, config: EditorConfig): EditorConfig | void {
     if (apis) {
@@ -105,6 +113,48 @@ describe('siteCKEditorConfigContributor', () => {
       expect(modelSources()).toEqual([external]);
       expect(editor.getData()).toContain(`<img src="${external}">`);
       expect(editor.getData()).toContain(`<a href="${RELATIVE}">file</a>`);
+    });
+
+    describe('for a signed-in tenant', () => {
+      const STORED = '/api/site-public/files/images/abc.png';
+
+      beforeEach(() => {
+        // Read on every conversion, so it can be set after the editor exists.
+        tenant = { id: 't1' };
+      });
+
+      it('shows a stored address with the tenant and saves it without', () => {
+        editor.setData(`<figure class="image"><img src="${STORED}"></figure><p>a <img src="${STORED}?Width=80"> b</p>`);
+
+        expect(modelSources()).toEqual([`${API}${STORED}?__tenant=t1`, `${API}${STORED}?Width=80&__tenant=t1`]);
+        expect(editor.editing.view.getDomRoot()!.querySelector('img')!.getAttribute('src')).toBe(`${API}${STORED}?__tenant=t1`);
+        const data = editor.getData();
+        expect(data).toContain(`<img src="${STORED}">`);
+        expect(data).toContain(`<img src="${STORED}?Width=80">`);
+        expect(data).not.toContain('__tenant');
+        expect(data).not.toContain(API);
+      });
+
+      it('saves an uploaded image, which the provider hands out with the tenant, without it', () => {
+        editor.setData('<p>x</p>');
+        editor.model.change(writer => {
+          const image = writer.createElement('imageBlock', { src: `${API}${STORED}?__tenant=t1` });
+          editor.model.insertContent(image, editor.model.document.getRoot()!, 'end');
+        });
+
+        expect(editor.getData()).toContain(`<img src="${STORED}">`);
+      });
+
+      it('keeps the tenant an address already names', () => {
+        editor.setData(
+          `<figure class="image"><img src="${STORED}?__tenant="></figure><figure class="image"><img src="${STORED}?__tenant=t2"></figure>`,
+        );
+
+        expect(modelSources()).toEqual([`${API}${STORED}?__tenant=`, `${API}${STORED}?__tenant=t2`]);
+        const data = editor.getData();
+        expect(data).toContain(`<img src="${STORED}?__tenant=">`);
+        expect(data).toContain(`<img src="${STORED}?__tenant=t2">`);
+      });
     });
   });
 });

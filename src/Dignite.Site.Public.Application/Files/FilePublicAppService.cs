@@ -14,8 +14,8 @@ using Volo.Abp.Threading;
 namespace Dignite.Site.Public.Files;
 
 /// <summary>
-/// The public read endpoint's logic: find the live descriptor in the current tenant (resolved from the
-/// address's <c>__tenant</c>), open its bytes, and optionally resize an image on the way out.
+/// The public read endpoint's logic: find the live descriptor in the current tenant (the request's, resolved
+/// like any other), open its bytes, and optionally resize an image on the way out.
 /// <para>
 /// Anonymous on purpose, and not feature-gated (see <c>SiteFeatures.Enable</c>): it serves a published
 /// site's images to its visitors. What keeps it from serving anything else is the container allow-list -

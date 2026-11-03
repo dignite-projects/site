@@ -10,15 +10,19 @@ public class SiteFileUrl_Tests
     /// Relative, like CmsKit's media addresses: no host is written into the data a field stores.
     /// </summary>
     [Fact]
-    public void Builds_The_Relative_Public_Read_Address_With_The_Tenant()
+    public void Builds_The_Relative_Public_Read_Address_Without_A_Tenant()
     {
-        var tenantId = Guid.Parse("8c6f0e64-6b8f-4c1b-9d5e-1f7d8c4f5a10");
+        SiteFileUrl.Build(SiteFileContainerNames.Images, "abc")
+            .ShouldBe("/api/site-public/files/images/abc");
+        SiteFileUrl.Build(SiteFileContainerNames.Attachments, "2026/abc")
+            .ShouldBe("/api/site-public/files/attachments/2026/abc");
+    }
 
-        SiteFileUrl.Build(SiteFileContainerNames.Images, "abc", tenantId)
-            .ShouldBe($"/api/site-public/files/images/abc?__tenant={tenantId}");
-        // The host has no tenant; __tenant is still there, empty, so the address always names its tenant.
-        SiteFileUrl.Build(SiteFileContainerNames.Attachments, "abc", null)
-            .ShouldBe("/api/site-public/files/attachments/abc?__tenant=");
+    [Fact]
+    public void Sizes_An_Address_That_Has_No_Query()
+    {
+        SiteFileUrl.Sized("/api/site-public/files/images/a.jpg", 1200, 630)
+            .ShouldBe("/api/site-public/files/images/a.jpg?Width=1200&Height=630");
     }
 
     [Fact]

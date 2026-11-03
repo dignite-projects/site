@@ -1,12 +1,19 @@
 import { TestBed } from '@angular/core/testing';
-import { EnvironmentService } from '@abp/ng.core';
+import { EnvironmentService, SessionStateService } from '@abp/ng.core';
 import type { CKEditorDisplayContext } from '@dignite/ng.flex-fields-ckeditor';
 import { siteCKEditorDisplayContributor } from './site-ckeditor-display-contributor';
 
 describe('siteCKEditorDisplayContributor', () => {
   const API = 'https://api.example';
   const PATH = '/api/site-public/files/images/abc.png?__tenant=';
+  // ABP's real SessionStateService needs the whole core module; the tenant is all this reads from it.
+  let tenant: { id?: string } | undefined;
   const apis = { default: { url: 'https://default.example' }, SiteAdmin: { url: `${API}/` } };
+
+  beforeEach(() => {
+    tenant = undefined;
+    TestBed.configureTestingModule({ providers: [{ provide: SessionStateService, useValue: { getTenant: () => tenant } }] });
+  });
 
   function display(html: string, withApis = true): string {
     if (withApis) {
@@ -45,5 +52,21 @@ describe('siteCKEditorDisplayContributor', () => {
     const html = `<img src="${API}${PATH}">`;
 
     expect(display(html)).toBe(html);
+  });
+
+  it('names the signed-in tenant on an address that names none', () => {
+    tenant = { id: 't1' };
+
+    expect(display(`<img src="/api/site-public/files/images/abc.png"><img src='/api/site-public/files/images/b.png?Width=80'>`)).toBe(
+      `<img src="${API}/api/site-public/files/images/abc.png?__tenant=t1"><img src='${API}/api/site-public/files/images/b.png?Width=80&__tenant=t1'>`,
+    );
+  });
+
+  it('names the tenant even when the UI shares its API origin', () => {
+    tenant = { id: 't1' };
+
+    expect(display('<img src="/api/site-public/files/images/abc.png">', false)).toBe(
+      '<img src="/api/site-public/files/images/abc.png?__tenant=t1">',
+    );
   });
 });

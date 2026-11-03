@@ -8,7 +8,7 @@ namespace Dignite.Site.Files;
 /// size. The endpoint resizes an image on request (<c>?Width=&amp;Height=</c>, cropping to fill when both
 /// are given), so a field stores the plain address and each consumer asks for the size it needs.
 /// <para>
-/// An address is <b>relative</b> - <c>/api/site-public/files/{container}/{blob}?__tenant=</c> - the same as
+/// An address is <b>relative</b> - <c>/api/site-public/files/{container}/{blob}</c> - the same as
 /// CmsKit's media addresses (<c>/api/cms-kit/media/{id}</c>): no host is written into stored data, so moving
 /// the site, its API or its gateway to another host leaves every stored address valid. A page on the public
 /// site resolves it against its own origin; a document that must carry an absolute address (<c>og:image</c>)
@@ -44,13 +44,14 @@ public static class SiteFileUrl
 
     /// <summary>
     /// The address of a stored file, relative to whichever host serves the site:
-    /// <c>/api/site-public/files/{containerName}/{blobName}?__tenant={tenantId}</c>. <c>__tenant</c> is always
-    /// present - empty for the host - so the endpoint resolves the file's tenant from the address alone,
-    /// wherever it is embedded.
+    /// <c>/api/site-public/files/{containerName}/{blobName}</c>. It names no tenant: the endpoint finds the
+    /// file's tenant the way every other request does (the host name, a header, ...), so the address stays
+    /// the same for a site that moves to another tenant or domain. Addresses issued before this carry
+    /// <c>?__tenant=</c>, which the endpoint still honours.
     /// </summary>
-    public static string Build(string containerName, string blobName, Guid? tenantId)
+    public static string Build(string containerName, string blobName)
     {
-        return $"/{RoutePrefix}/{containerName}/{blobName}?__tenant={tenantId}";
+        return $"/{RoutePrefix}/{containerName}/{blobName}";
     }
 
     /// <summary>
@@ -114,8 +115,8 @@ public static class SiteFileUrl
 
     /// <summary>
     /// <paramref name="url"/> resized to <paramref name="width"/> (and <paramref name="height"/>, when
-    /// given). A size already on the address is replaced; every other query parameter - <c>__tenant</c> in
-    /// particular - is kept. An address that is not a Site file - an external image, say - is returned as
+    /// given). A size already on the address is replaced; every other query parameter - <c>__tenant</c> on an
+    /// address issued by an earlier version, say - is kept. An address that is not a Site file - an external image, say - is returned as
     /// is, and so is a blank one.
     /// </summary>
     public static string? Sized(string? url, int width, int? height = null)

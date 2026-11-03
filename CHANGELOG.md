@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A file address no longer carries `?__tenant=`.** `FileDescriptorDto.Url`, and so what a file field, the SEO
+  share image, a CKEditor image and a branding logo store, is now `/api/site-public/files/{container}/{blob}`:
+  the endpoint serves the file of the tenant the request resolves to, by the host name or however the
+  deployment resolves tenants, like every other public request. Addresses stored before keep their
+  `?__tenant=` and keep working; nothing is migrated. **`SiteFileUrl.Build` lost its `tenantId` parameter.** The
+  admin UI's previews, which load a file with a plain `<img>` request from the `SiteAdmin` API's host, name the
+  signed-in tenant themselves (`SiteFileUrlService.toDisplay`, and inside the CKEditor field), without saving it;
+  `absoluteFileUrl` takes the tenant as a third parameter and `relativeFileUrl` is its inverse.
+
 ### Added
 
 - **A Scriban theme carries its own texts.** `t` used to read the files a host ships next to its Razor views, so a
