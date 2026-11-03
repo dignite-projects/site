@@ -5,7 +5,7 @@
 }
 ```
 
-# Templates
+# Razor Templates
 
 `Dignite.Site.Public.Web` renders a site in an ASP.NET Core MVC application. Every request that no other endpoint of the application claims is [resolved](../pages-and-routing.md#resolving-a-request) to a page and, where the path names one, a content; the MVC view that the page's `Template` names then renders it.
 

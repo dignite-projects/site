@@ -18,7 +18,7 @@ A page has no "kind". It is not declared as a single page, a list or a detail pa
 | `Name` | A machine name, unique in the site, such as `blog`. The MCP tools and the templates address a page by it. Lowercase letters and digits, with `-` or `_` as separators. |
 | `DisplayName` | The human-readable name, such as "Blog". |
 | `Route` | The route template, starting with `/`. See [Route Templates](#route-templates). Unique in the site. |
-| `Template` | The MVC view that renders the page, such as `Default`. See [Templates](rendering/templates.md). |
+| `Template` | The MVC view that renders the page, such as `Default`. See [Razor Templates](rendering/razor-templates.md). |
 | `ParentId` | The page this one is organized under in the admin UI's tree. Purely organizational: it has no effect on the route, and a child page can have a route unrelated to its parent's. |
 | `IsActive` | An inactive page is not routed and is left out of the sitemap, but keeps its contents. |
 
@@ -113,4 +113,4 @@ Changing a page's route changes the URL of every content beneath it, and old lin
 
 * [Content Types and Fields](content-types-and-fields.md)
 * [Contents](contents.md)
-* [Templates](rendering/templates.md)
+* [Razor Templates](rendering/razor-templates.md)

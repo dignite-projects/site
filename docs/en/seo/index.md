@@ -22,7 +22,7 @@ All of them follow four rules:
 
 ## Head Metadata
 
-A template writes the head metadata with the `site-head-metadata` tag helper; see [The Head](../rendering/templates.md#the-head). For a request, it holds:
+A template writes the head metadata with the `site-head-metadata` tag helper; see [The Head](../rendering/razor-templates.md#the-head). For a request, it holds:
 
 | Tag | Value |
 |---|---|

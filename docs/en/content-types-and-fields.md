@@ -63,7 +63,7 @@ Each entry of a content type's arrangement refers to one field of the library an
 |---|---|
 | `FieldId` | The field. A field can appear only once in a type (`Site:020002`). |
 | `Required` | Whether a content of this type must have a value. |
-| `Searchable` | Whether the value is indexed, so contents can be filtered by it: by a [route placeholder](pages-and-routing.md#field-placeholders), a `content-list` filter in a [template](rendering/templates.md) or the administration API. Field types whose values cannot be indexed, such as rich text, are never indexed. |
+| `Searchable` | Whether the value is indexed, so contents can be filtered by it: by a [route placeholder](pages-and-routing.md#field-placeholders), a `content-list` filter in a [template](rendering/razor-templates.md) or the administration API. Field types whose values cannot be indexed, such as rich text, are never indexed. |
 | `ShowInList` | Whether list views show the field: the admin UI's content list, and the items a `content-list` tag helper hands to its partial view. |
 | `DisplayName` | An optional display name for this type only. |
 | `Order` | The position of the field in the type. |

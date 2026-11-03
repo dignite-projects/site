@@ -25,7 +25,7 @@ Site is the AI-native successor of [Dignite.Cms](https://github.com/dignite-proj
 * **[SEO and discoverability](seo/index.md)**: Head metadata, canonical URLs and hreflang alternates for every page, a sharded sitemap, RSS, Atom and JSON feeds, `robots.txt` with switches for search indexing, AI training and AI search crawlers, and an optional `llms.txt`.
 * **[Multilingual sites](rendering/languages.md)**: The site's languages, with the default one at the root and the others under a language prefix, and helpers for links, a language switcher and [template texts](rendering/template-localization.md).
 * **[Files](files.md)**: A file library for the images and attachments of contents, with upload rules, relative addresses and on-the-fly image resizing.
-* **[Rendering](rendering/templates.md)**: `Dignite.Site.Public.Web` renders a site in an ASP.NET Core MVC application, from the application's Razor templates; each tenant can have templates of its own under `/Sites/{tenantName}/`.
+* **[Rendering](rendering/razor-templates.md)**: `Dignite.Site.Public.Web` renders a site in an ASP.NET Core MVC application, from the application's Razor templates; each tenant can have templates of its own under `/Sites/{tenantName}/`.
 * **[MCP server](mcp/index.md)**: Tools to read the site's schema and to manage its pages, content types, fields, contents and files, authorized by the same permissions as the administration API.
 * **[Angular admin UI](admin-ui.md)**: `@dignite/ng.site` manages the same things in an ABP Angular application.
 

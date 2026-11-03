@@ -41,8 +41,8 @@
       "text": "Rendering",
       "items": [
         {
-          "text": "Templates",
-          "path": "rendering/templates.md"
+          "text": "Razor Templates",
+          "path": "rendering/razor-templates.md"
         },
         {
           "text": "Scriban Templates",

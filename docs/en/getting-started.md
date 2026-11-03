@@ -133,7 +133,7 @@ A page is rendered by the MVC view its `Template` names, `Default` for a new pag
 </html>
 ````
 
-The list is rendered by a partial view, `Views/Shared/_ContentList.cshtml` here. [Templates](rendering/templates.md) explains the view model, the tag helpers, the list partial and how each tenant gets templates of its own.
+The list is rendered by a partial view, `Views/Shared/_ContentList.cshtml` here. [Razor Templates](rendering/razor-templates.md) explains the view model, the tag helpers, the list partial and how each tenant gets templates of its own.
 
 Set the site's primary domain, the `Site.PrimaryDomain` [setting](settings.md), before the site goes public: the canonical URLs, the sitemap and the feeds are built on it.
 
@@ -196,5 +196,5 @@ The client reads the site's schema, creates the fields it needs in the field lib
 ## See Also
 
 * [Pages and Routing](pages-and-routing.md)
-* [Templates](rendering/templates.md)
+* [Razor Templates](rendering/razor-templates.md)
 * [MCP Server](mcp/index.md)

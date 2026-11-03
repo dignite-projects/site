@@ -74,7 +74,7 @@ A `FileExplorer` field holds one or more files from the site's [file library](fi
 | `FileExplorer.FileContainerName` | None; required | The container the picker browses and uploads to: `images` or `attachments`. |
 | `FileExplorer.UploadFileMultiple` | `false` | Whether the field takes more than one file. |
 
-The `url` is the file's relative [address](files.md#addresses). In a template, `GetFileUrl` reads the first file's address of a field; see [Templates](rendering/templates.md#reading-field-values).
+The `url` is the file's relative [address](files.md#addresses). In a template, `GetFileUrl` reads the first file's address of a field; see [Razor Templates](rendering/razor-templates.md#reading-field-values).
 
 ## SEO
 

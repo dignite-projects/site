@@ -9,7 +9,7 @@
 
 # Scriban Templates
 
-A page can be rendered by a [Scriban](https://github.com/scriban/scriban) template instead of a Razor view. Unlike a [Razor template](templates.md), which is compiled with the application and written by its developers, a Scriban template is stored in the database, belongs to one tenant, and is written by the tenant or by an AI client over the [admin API](#managing-the-theme) or the [MCP tools](#mcp-tools). It runs in a sandbox: a template can read the data it is given and call a fixed set of functions, and nothing else.
+A page can be rendered by a [Scriban](https://github.com/scriban/scriban) template instead of a Razor view. Unlike a [Razor template](razor-templates.md), which is compiled with the application and written by its developers, a Scriban template is stored in the database, belongs to one tenant, and is written by the tenant or by an AI client over the [admin API](#managing-the-theme) or the [MCP tools](#mcp-tools). It runs in a sandbox: a template can read the data it is given and call a fixed set of functions, and nothing else.
 
 Scriban templates are available when the application uses `Dignite.Site.Public.Web`. Both engines can be used on the same site, page by page.
 
@@ -40,7 +40,7 @@ By default a file can be at most 256 KiB.
 A page's `Template` is the path of a template, such as `Default` or `blog/post`. When a request is rendered, it is looked up in this order:
 
 1. A template at that path in the **live release** of the request's tenant; see [The Working Copy and Releases](#the-working-copy-and-releases).
-2. Otherwise, the **Razor view** of that name; see [Where Templates Live](templates.md#where-templates-live).
+2. Otherwise, the **Razor view** of that name; see [Where Templates Live](razor-templates.md#where-templates-live).
 
 There is no setting on the page: the engine follows from which of the two exists. Publishing a theme with a template at `blog/post` takes over every page whose template is `blog/post`; publishing one without it returns those pages to the Razor view of the same name. A file that has only been saved in the working copy is not rendered.
 
@@ -173,7 +173,7 @@ A template is given data, and only data: the page and the content being rendered
 | `culture` | The language of the request, such as `en` or `zh-Hans`. |
 | `default_culture` | The site's default language. |
 | `languages` | The site's languages, for a language switcher. Each has `culture_name`, `url`, `is_current` and `is_translation`, whether the current content exists in that language. |
-| `filter_values`, `field_filters` | What the path gave the route's placeholders, with the keys as the route wrote them: `filter_values["publishTime:yyyy"]`. See [The View Model](templates.md#the-view-model). |
+| `filter_values`, `field_filters` | What the path gave the route's placeholders, with the keys as the route wrote them: `filter_values["publishTime:yyyy"]`. See [The View Model](razor-templates.md#the-view-model). |
 | `published_after`, `published_before` | The period that `publishTime` placeholders named, as dates, or empty. |
 | `page_no` | The page of a paged list that the request asks for with `?page=2`, or 1. See [Paging](#paging). |
 | `head` | The head metadata of the request, or empty: `meta_title`, `base_meta_title`, `meta_description`, `canonical_url`, `robots_content`, `og_image_url`, `og_type`, `twitter_card_type`, `hreflang_alternates` (each with `culture_name`, `url` and `path`) and `x_default_url`. |
@@ -522,7 +522,7 @@ Published with these two files, every page whose `Template` is `Default` renders
 
 ## See Also
 
-* [Templates](templates.md)
+* [Razor Templates](razor-templates.md)
 * [Multilingual Sites](languages.md)
 * [Localizing Template Texts](template-localization.md)
 * [SEO](../seo/index.md)
