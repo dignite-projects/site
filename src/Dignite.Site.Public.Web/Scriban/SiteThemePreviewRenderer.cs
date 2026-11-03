@@ -175,7 +175,7 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
             Path = path,
             PageName = match.Page.Name,
             CultureName = match.CultureName,
-            PageTemplate = templatePath,
+            PageTemplate = render.TemplatePath ?? templatePath,
             Layout = render.LayoutPath
         };
     }

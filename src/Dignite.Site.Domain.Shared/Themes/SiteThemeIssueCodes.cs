@@ -58,6 +58,15 @@ public static class SiteThemeIssueCodes
     /// <summary>A page template rendered without a layout calls <c>site_head</c> nowhere.</summary>
     public const string PageWithoutSiteHead = Prefix + "PageWithoutSiteHead";
 
+    /// <summary>A file in <c>locales/</c> is not a valid file of the theme's texts. Data: Message.</summary>
+    public const string TextFileInvalid = Prefix + "TextFileInvalid";
+
+    /// <summary>Two files in <c>locales/</c> hold the texts of the same language. Data: Culture, Other (the file that came first).</summary>
+    public const string TextFileDuplicate = Prefix + "TextFileDuplicate";
+
+    /// <summary>A language version (<c>Default.ja</c>) has no template (<c>Default</c>) to be the version of. Data: Template.</summary>
+    public const string LanguageVersionWithoutTemplate = Prefix + "LanguageVersionWithoutTemplate";
+
     // Warnings: worth a look, but nothing breaks.
 
     /// <summary>Pages whose template is not in the theme; a Razor view renders them. Data: Template, Pages.</summary>

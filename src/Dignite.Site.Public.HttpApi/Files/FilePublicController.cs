@@ -13,7 +13,7 @@ namespace Dignite.Site.Public.Files;
 /// <summary>
 /// The address every Site file is served at: <c>GET|HEAD /api/site-public/files/{containerName}/{blobName}</c>
 /// (optionally <c>?Width=&amp;Height=</c> for an image), and <c>.../download/{containerName}/{blobName}</c> to
-/// save it under its name. Anonymous; the tenant comes from the address's <c>__tenant</c>.
+/// save it under its name. Anonymous; the tenant is the request's, resolved like any other (the host name, a header, ...).
 /// <para>
 /// <b>Caching.</b> A blob name is generated, never reused and never overwritten, so the bytes behind an
 /// address never change: the address plus the requested size is a strong validator. The response carries it

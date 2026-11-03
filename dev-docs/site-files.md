@@ -81,7 +81,7 @@ proxy.
 ## Relative addresses
 
 Since the release after 0.1.0-preview.25 a file address is relative: `SiteFileUrl.Build` composes
-`/api/site-public/files/{container}/{blob}?__tenant=` with no scheme or host, and the application service's
+`/api/site-public/files/{container}/{blob}` with no scheme, host or tenant, and the application service's
 mapper puts it on `FileDescriptorDto.Url` - so the admin API, the MCP tools and an in-process caller all hand
 out the same address, whichever host the request came in on. It is what CmsKit does with its media
 (`MediaDescriptorDto` carries no URL; the editor inserts `/api/cms-kit/media/{id}`, and pages render it
@@ -91,7 +91,10 @@ relative).
   (`SiteFileUrl.Absolutize`), the origin the canonical URL already uses; with no primary domain configured
   the head metadata fails the same way canonical does (`PrimaryDomainNotConfiguredException`, unless the host
   adds a request fallback).
-- The admin UI: `SiteFileUrlService` resolves against `environment.apis.SiteAdmin.url`.
+- The admin UI: `SiteFileUrlService` resolves against `environment.apis.SiteAdmin.url` and adds the signed-in
+  tenant (`?__tenant=`, from `SessionStateService`) to an address that names none: a preview is a plain `<img>`
+  request, which cannot carry the header the UI's API calls use. The CKEditor field's model holds that address
+  and its data downcast takes both off again (`relativeFileUrl`), so nothing saved names a host or tenant.
 - Feeds, `llms.txt` and the sitemap carry no file addresses (a feed item's summary is text), so nothing else
   needs one made absolute.
 

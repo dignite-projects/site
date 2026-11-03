@@ -60,6 +60,9 @@ public sealed class SiteThemeFileAnalysis
     /// <summary>The parsed template; null for a static file.</summary>
     public Scriban.Template? Template { get; internal set; }
 
+    /// <summary>What a file of the theme's texts (<c>locales/ja.json</c>) holds; null for any other file.</summary>
+    public SiteThemeTextFileReadResult? TextFile { get; internal set; }
+
     public IReadOnlyList<ScribanTemplateError> SyntaxErrors { get; internal set; } = Array.Empty<ScribanTemplateError>();
 
     public SiteTemplateFrontMatter FrontMatter { get; internal set; } = SiteTemplateFrontMatter.Empty;
@@ -146,6 +149,11 @@ public static class SiteThemeAnalyzer
         var analysis = new SiteThemeFileAnalysis(file.Path, file.Body);
         if (analysis.IsAsset)
         {
+            if (SiteThemeTextFiles.IsTextFile(file.Path))
+            {
+                analysis.TextFile = SiteThemeTextFiles.Read(file.Path, file.Body);
+            }
+
             return analysis;
         }
 
@@ -174,10 +182,26 @@ public static class SiteThemeAnalyzer
         private readonly HashSet<string> _included = new(StringComparer.Ordinal);
         private readonly HashSet<string> _layouts = new(StringComparer.Ordinal);
 
+        // A template's path to the paths of its language versions (Default to Default.ja, Default.zh-Hant).
+        private readonly Dictionary<string, List<string>> _languageVersions = new(StringComparer.Ordinal);
+
         public AnalysisContext(Dictionary<string, SiteThemeFileAnalysis> files, string? defaultLayout)
         {
             _files = files;
             _defaultLayout = string.IsNullOrWhiteSpace(defaultLayout) ? null : SiteThemePaths.Normalize(defaultLayout);
+
+            foreach (var path in files.Keys.OrderBy(path => path, StringComparer.Ordinal))
+            {
+                if (SiteThemePaths.TryGetLanguageVersion(path, out var templatePath, out _))
+                {
+                    if (!_languageVersions.TryGetValue(templatePath, out var versions))
+                    {
+                        _languageVersions[templatePath] = versions = new List<string>();
+                    }
+
+                    versions.Add(path);
+                }
+            }
         }
 
         public Dictionary<string, List<SiteThemeUsage>> Usages { get; } = new(StringComparer.Ordinal);
@@ -187,9 +211,12 @@ public static class SiteThemeAnalyzer
         public void Run(List<SiteThemePageTemplate> pages)
         {
             ReportSyntaxAndFrontMatter();
+            ReportTextFiles();
+            ReportLanguageVersionsWithoutTemplate();
             ReadPages(pages);
             ReadDefaultLayout();
             ReadReferences();
+            ReadLanguageVersions();
             ReportIncludeCycles();
             ReportLayouts();
             ReportPagesWithoutLayout();
@@ -200,7 +227,10 @@ public static class SiteThemeAnalyzer
         /// <summary>The templates that could be a layout, whatever uses them now; see <see cref="SiteThemeAnalysis.Layouts"/>.</summary>
         private void FindLayouts()
         {
-            foreach (var file in _files.Values.Where(file => !file.IsAsset).OrderBy(file => file.Path, StringComparer.Ordinal))
+            // A language version is offered by its template, never on its own: it is not a layout to choose.
+            foreach (var file in _files.Values
+                         .Where(file => !file.IsAsset && !SiteThemePaths.IsLanguageVersion(file.Path))
+                         .OrderBy(file => file.Path, StringComparer.Ordinal))
             {
                 if (file.SyntaxErrors.Count == 0
                     && !file.FrontMatter.Exists
@@ -236,6 +266,105 @@ public static class SiteThemeAnalyzer
                     Error(SiteThemeIssueCodes.FrontMatterInvalid, file.Path, error.Line, error.Column, ("Message", error.Message));
                 }
             }
+        }
+
+        /// <summary>
+        /// The theme's texts: a file that is not valid would be skipped by the renderer, so it is an error here, and
+        /// so is a second file for a language the first already covers (<c>locales/ja.json</c> and
+        /// <c>locales/JA.json</c>), of which the renderer could keep only one.
+        /// </summary>
+        private void ReportTextFiles()
+        {
+            var covered = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var file in _files.Values
+                         .Where(file => file.TextFile != null)
+                         .OrderBy(file => file.Path, StringComparer.Ordinal))
+            {
+                var result = file.TextFile!;
+                if (!result.IsValid)
+                {
+                    Error(SiteThemeIssueCodes.TextFileInvalid, file.Path, null, null, ("Message", result.Error!));
+                    continue;
+                }
+
+                if (covered.TryGetValue(result.CultureName!, out var first))
+                {
+                    Error(SiteThemeIssueCodes.TextFileDuplicate, file.Path, null, null,
+                        ("Culture", result.CultureName!), ("Other", first));
+                    continue;
+                }
+
+                covered[result.CultureName!] = file.Path;
+            }
+        }
+
+        /// <summary>
+        /// A language version (<c>Default.ja</c>) is rendered in place of its template, so it needs one: without
+        /// <c>Default</c>, a page in Japanese would render by Scriban and the others by the Razor view of that name.
+        /// </summary>
+        private void ReportLanguageVersionsWithoutTemplate()
+        {
+            foreach (var path in _files.Keys.OrderBy(path => path, StringComparer.Ordinal))
+            {
+                if (SiteThemePaths.TryGetLanguageVersion(path, out var templatePath, out _)
+                    && !IsTemplate(templatePath))
+                {
+                    Error(SiteThemeIssueCodes.LanguageVersionWithoutTemplate, path, null, null, ("Template", templatePath));
+                }
+            }
+        }
+
+        /// <summary>
+        /// What a template is used as, its language versions are used as too: a page template's versions are page
+        /// templates (and choose their own layout by their own front matter), an included template's are included,
+        /// and the versions of every layout a page ends up in are layouts, so each is held to what a layout must do.
+        /// Run once every role has been read.
+        /// </summary>
+        private void ReadLanguageVersions()
+        {
+            foreach (var pageTemplate in _pageTemplates.ToList())
+            {
+                foreach (var version in GetLanguageVersions(pageTemplate))
+                {
+                    _pageTemplates.Add(version);
+                }
+            }
+
+            foreach (var pageTemplate in _pageTemplates)
+            {
+                if (GetEffectiveLayout(pageTemplate) is { } layout && IsTemplate(layout))
+                {
+                    _layouts.Add(layout);
+                }
+            }
+
+            foreach (var included in _included.ToList())
+            {
+                foreach (var version in GetLanguageVersions(included))
+                {
+                    _included.Add(version);
+                }
+            }
+
+            foreach (var layout in _layouts.ToList())
+            {
+                foreach (var version in GetLanguageVersions(layout))
+                {
+                    _layouts.Add(version);
+                }
+            }
+        }
+
+        /// <summary>The templates that are a language version of <paramref name="templatePath"/>.</summary>
+        private IEnumerable<string> GetLanguageVersions(string templatePath)
+        {
+            if (!_languageVersions.TryGetValue(templatePath, out var versions))
+            {
+                return Array.Empty<string>();
+            }
+
+            return versions.Where(IsTemplate);
         }
 
         private void ReadPages(List<SiteThemePageTemplate> pages)
@@ -450,7 +579,9 @@ public static class SiteThemeAnalyzer
         {
             foreach (var path in _files.Keys.OrderBy(path => path, StringComparer.Ordinal))
             {
-                if (!Usages.ContainsKey(path))
+                // The theme's texts are read by `t`, and a language version is picked by its template: neither is
+                // referred to by name. A language version of an unused template is not reported apart from it.
+                if (!Usages.ContainsKey(path) && _files[path].TextFile == null && !SiteThemePaths.IsLanguageVersion(path))
                 {
                     Warning(SiteThemeIssueCodes.UnusedFile, path, null, null);
                 }

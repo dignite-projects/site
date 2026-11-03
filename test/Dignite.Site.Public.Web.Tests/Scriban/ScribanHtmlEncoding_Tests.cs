@@ -87,9 +87,10 @@ public class ScribanHtmlEncoding_Tests
     [Fact]
     public async Task Html_Raw_Should_Write_A_Value_As_It_Is()
     {
-        var html = await new ScribanTestRenderer().RenderAsync(
+        var html = await new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
             "[{{ \"<b>x</b>\" | html_raw }}][{{ html_raw \"<i>y</i>\" }}][{{ \"<b>x</b>\" }}][{{ t \"Emphasis\" }}][{{ t \"Emphasis\" | html_raw }}]",
-            HeadOnlyLayout);
+            HeadOnlyLayout,
+            assets: ScribanTestRenderer.JapaneseTexts));
 
         html.ShouldEndWith("[<b>x</b>][<i>y</i>][&lt;b&gt;x&lt;/b&gt;][&lt;em&gt;Read&lt;/em&gt;][<em>Read</em>]");
     }

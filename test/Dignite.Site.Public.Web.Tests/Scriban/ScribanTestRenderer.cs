@@ -24,7 +24,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Localization;
 using Volo.Abp.Application.Dtos;
 
 namespace Dignite.Site.Public.Scriban;
@@ -43,12 +42,11 @@ public class ScribanTestRenderer
         var switcher = new SiteLanguageSwitcher(Host.LanguageContext, new HttpContextAccessor { HttpContext = Host.HttpContext });
         ModelBuilder = new ScribanRenderModelBuilder(Host.LanguageContext, switcher);
 
-        Renderer = new ScribanPageRenderer(
+        Renderer = new ScopeRecordingRenderer(
             Options,
             new ScribanSandbox(Options, Encoder),
             new ScribanTemplateCache(Options),
             ModelBuilder,
-            Localizer,
             Host.LanguageContext,
             Host.Options,
             new UrlHelperFactory(),
@@ -72,7 +70,8 @@ public class ScribanTestRenderer
 
     public ScribanPageRenderer Renderer { get; }
 
-    public FakeTemplateLocalizer Localizer { get; } = new();
+    /// <summary>The scope of the last render: what the renderer handed its functions.</summary>
+    public ScribanRenderScope? LastScope => ((ScopeRecordingRenderer)Renderer).LastScope;
 
     public FakeContentListQuery ContentListQuery { get; } = new();
 
@@ -136,6 +135,16 @@ public class ScribanTestRenderer
         return RenderSet(files, layout == null ? null : LayoutPath);
     }
 
+    /// <summary>
+    /// The test theme's texts for the page's language (<c>locales/ja.json</c>), for the <c>assets</c> of
+    /// <see cref="RenderSet(string, string?, IReadOnlyDictionary{string, string}?, IReadOnlyDictionary{string, string}?)"/>.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> JapaneseTexts = new Dictionary<string, string>
+    {
+        ["locales/ja.json"] =
+            "{ \"culture\": \"ja\", \"texts\": { \"Blog:Name\": \"ブログ\", \"Emphasis\": \"<em>Read</em>\" } }"
+    };
+
     /// <summary>A theme of <paramref name="files"/> (path to body) with <paramref name="defaultLayout"/>.</summary>
     public static SiteThemeRenderSet RenderSet(IReadOnlyDictionary<string, string> files, string? defaultLayout = null)
     {
@@ -182,10 +191,10 @@ public class ScribanTestRenderer
 
     /// <summary>A page (list/index) match: no content.</summary>
     /// <param name="currentPage">The page of a paged list the request asked for.</param>
-    public static SiteRenderViewModel PageViewModel(int currentPage = 1) => new()
+    public static SiteRenderViewModel PageViewModel(int currentPage = 1, string cultureName = "ja") => new()
     {
         Page = Page(),
-        CultureName = "ja",
+        CultureName = cultureName,
         FilterValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["category"] = "engineering",
@@ -259,22 +268,33 @@ public class ScribanTestRenderer
     }
 }
 
-public class FakeTemplateLocalizer : IStringLocalizer<SiteTemplateResource>
+/// <summary>A <see cref="ScribanPageRenderer"/> that keeps the scope it registered its functions with.</summary>
+public class ScopeRecordingRenderer : ScribanPageRenderer
 {
-    public Dictionary<string, string> Texts { get; } = new()
+    public ScopeRecordingRenderer(
+        Microsoft.Extensions.Options.IOptions<SiteScribanOptions> options,
+        ScribanSandbox sandbox,
+        ScribanTemplateCache templateCache,
+        ScribanRenderModelBuilder modelBuilder,
+        SiteLanguageContext languageContext,
+        Microsoft.Extensions.Options.IOptions<SiteLanguageOptions> languageOptions,
+        IUrlHelperFactory urlHelperFactory,
+        ContentListQuery contentListQuery,
+        IRazorPartialRenderer partialRenderer,
+        IFieldPublicAppService fieldAppService,
+        HtmlEncoder htmlEncoder)
+        : base(options, sandbox, templateCache, modelBuilder, languageContext, languageOptions, urlHelperFactory,
+            contentListQuery, partialRenderer, fieldAppService, htmlEncoder)
     {
-        ["Blog:Name"] = "ブログ",
-        ["Emphasis"] = "<em>Read</em>"
-    };
+    }
 
-    public LocalizedString this[string name] =>
-        Texts.TryGetValue(name, out var value)
-            ? new LocalizedString(name, value)
-            : new LocalizedString(name, name, resourceNotFound: true);
+    public ScribanRenderScope? LastScope { get; private set; }
 
-    public LocalizedString this[string name, params object[] arguments] => this[name];
-
-    public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Array.Empty<LocalizedString>();
+    protected override void RegisterFunctions(global::Scriban.Runtime.ScriptObject globals, ScribanRenderScope scope)
+    {
+        LastScope = scope;
+        base.RegisterFunctions(globals, scope);
+    }
 }
 
 /// <summary>Records each request; answers with <see cref="Result"/>. Never touches the app services it would otherwise call.</summary>

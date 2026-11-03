@@ -23,8 +23,8 @@ public class FileDescriptorDto : CreationAuditedEntityDto<Guid>, IMultiTenant
 
     /// <summary>
     /// The address the public read endpoint serves the file at, relative to whichever host serves the site
-    /// (<c>/api/site-public/files/{container}/{blob}?__tenant=</c>) - what a file field stores. Not stored on
-    /// the file itself: composed from its container, blob name and tenant.
+    /// (<c>/api/site-public/files/{container}/{blob}</c>) - what a file field stores. Not stored on
+    /// the file itself: composed from its container and blob name.
     /// </summary>
     public string? Url { get; set; }
 

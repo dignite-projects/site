@@ -8,9 +8,11 @@ namespace Dignite.Site.Themes;
 /// Limits and the few names the theme relies on. Mutable statics (like <see cref="PageConsts"/>) where a host
 /// may widen a limit before its model is built.
 /// <para>
-/// No directory is reserved. A file is a static file when its name has an extension (<c>site.css</c>) and a
-/// Scriban template when it has none (<c>Events</c>, <c>_card</c>, <c>layouts/default</c>); what a template does
-/// in a render - page, partial or layout - follows from what refers to it. See <see cref="SiteThemePaths"/>.
+/// No directory is reserved for templates. A file is a static file when its name has an extension (<c>site.css</c>)
+/// and a Scriban template when it has none (<c>Events</c>, <c>_card</c>, <c>layouts/default</c>); what a template does
+/// in a render - page, partial or layout - follows from what refers to it. See <see cref="SiteThemePaths"/>. The one
+/// folder with a meaning of its own is <see cref="TextFilesFolder"/>, which holds the theme's texts
+/// (<see cref="SiteThemeTextFiles"/>).
 /// </para>
 /// </summary>
 public static class SiteThemeConsts
@@ -49,6 +51,12 @@ public static class SiteThemeConsts
     {
         "css", "js", "mjs", "json", "map", "txt", "svg", "xml", "webmanifest", "ics", "csv"
     };
+
+    /// <summary>
+    /// The folder of the theme's texts, one <c>{culture}.json</c> file per language: <c>locales/ja.json</c>.
+    /// See <see cref="SiteThemeTextFiles"/>.
+    /// </summary>
+    public const string TextFilesFolder = "locales";
 
     /// <summary>The default layout a new theme starts with; a setting of the theme, which the author may change or clear.</summary>
     public const string InitialDefaultLayout = "layouts/default";

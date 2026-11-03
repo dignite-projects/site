@@ -15,6 +15,7 @@ A site's languages are the `Site.EnabledLanguages` setting, in order. The first 
 * A [language switcher](#language-switcher) links to the page's translations.
 * The home page can [redirect to the visitor's language](#redirecting-the-home-page).
 * [Template texts](template-localization.md) fall back to the site's default language.
+* A Scriban template can have a [version for one language](scriban-templates.md#templates-for-one-language), for the language whose page needs a different structure.
 
 ## Setup
 

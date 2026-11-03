@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Threading;
@@ -15,7 +16,6 @@ using global::Scriban.Runtime;
 using global::Scriban.Syntax;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -54,7 +54,6 @@ public class ScribanPageRenderer : ITransientDependency
     protected ScribanSandbox Sandbox { get; }
     protected ScribanTemplateCache TemplateCache { get; }
     protected ScribanRenderModelBuilder ModelBuilder { get; }
-    protected IStringLocalizer<SiteTemplateResource> TemplateLocalizer { get; }
     protected SiteLanguageContext LanguageContext { get; }
     protected IOptions<SiteLanguageOptions> LanguageOptions { get; }
     protected IUrlHelperFactory UrlHelperFactory { get; }
@@ -68,7 +67,6 @@ public class ScribanPageRenderer : ITransientDependency
         ScribanSandbox sandbox,
         ScribanTemplateCache templateCache,
         ScribanRenderModelBuilder modelBuilder,
-        IStringLocalizer<SiteTemplateResource> templateLocalizer,
         SiteLanguageContext languageContext,
         IOptions<SiteLanguageOptions> languageOptions,
         IUrlHelperFactory urlHelperFactory,
@@ -81,7 +79,6 @@ public class ScribanPageRenderer : ITransientDependency
         Sandbox = sandbox;
         TemplateCache = templateCache;
         ModelBuilder = modelBuilder;
-        TemplateLocalizer = templateLocalizer;
         LanguageContext = languageContext;
         LanguageOptions = languageOptions;
         UrlHelperFactory = urlHelperFactory;
@@ -111,14 +108,19 @@ public class ScribanPageRenderer : ITransientDependency
         ActionContext actionContext,
         CancellationToken cancellationToken = default)
     {
-        var templateFile = renderSet.FindTemplate(templatePath)
+        // The page's language and its parents: a template, its layout and what it includes are each looked up for a
+        // version in one of them first (Default.ja for Default), then as they are. The site's default language is not
+        // among them: its version is the template itself.
+        var cultureChain = SiteTemplateCultureChain.Create(viewModel.CultureName, null);
+
+        var templateFile = renderSet.FindTemplate(templatePath, cultureChain)
                            ?? throw new ArgumentException($"The theme has no template '{templatePath}' to render.", nameof(templatePath));
 
         var template = TemplateCache.GetOrAdd(templateFile);
         var layoutPath = GetLayoutPath(template, renderSet);
         var layoutFile = layoutPath == null
             ? null
-            : renderSet.FindTemplate(layoutPath)
+            : renderSet.FindTemplate(layoutPath, cultureChain)
               ?? throw new ScribanRenderException(
                   $"The layout '{layoutPath}' of the Scriban template '{templatePath}' is not a template of the theme.");
         var layoutTemplate = layoutFile == null ? null : TemplateCache.GetOrAdd(layoutFile);
@@ -133,13 +135,14 @@ public class ScribanPageRenderer : ITransientDependency
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(requestAborted);
         timeout.CancelAfter(options.RenderTimeout);
 
-        var scope = new ScribanRenderScope(viewModel, actionContext, renderSet);
+        var languages = await LanguageContext.GetLanguagesAsync();
+        var scope = new ScribanRenderScope(viewModel, actionContext, renderSet, languages.DefaultCultureName);
         var globals = await ModelBuilder.BuildGlobalsAsync(viewModel);
         RegisterFunctions(globals, scope);
-        var templateLoader = CreateTemplateLoader(renderSet);
+        var templateLoader = CreateTemplateLoader(renderSet, cultureChain);
 
         var html = await RenderTemplateAsync(templateFile, template, globals, templateLoader, timeout.Token, requestAborted);
-        var documentName = templatePath;
+        var documentName = templateFile.Path;
 
         if (layoutFile != null)
         {
@@ -156,7 +159,7 @@ public class ScribanPageRenderer : ITransientDependency
                 .WithData("Name", documentName);
         }
 
-        return new ScribanPageRender(html, layoutFile?.Path);
+        return new ScribanPageRender(html, layoutFile?.Path, templateFile.Path);
     }
 
     /// <summary>
@@ -178,7 +181,10 @@ public class ScribanPageRenderer : ITransientDependency
         var pageQueryKey = Options.Value.PageQueryKey;
 
         globals.SetValue(SiteHeadFunction.Name, new SiteHeadFunction(scope, HtmlEncoder, pageQueryKey), true);
-        globals.SetValue(TextFunction.Name, new TextFunction(TemplateLocalizer), true);
+        globals.SetValue(
+            TextFunction.Name,
+            new TextFunction(scope.RenderSet.Texts, scope.ViewModel.CultureName, scope.DefaultCultureName),
+            true);
         globals.SetValue(UrlFunction.Name, new UrlFunction(scope, LanguageContext, LanguageOptions, UrlHelperFactory), true);
         globals.SetValue(PageUrlFunction.Name, new PageUrlFunction(scope, LanguageContext, UrlHelperFactory, pageQueryKey), true);
         globals.SetValue(FileUrlFunction.Name, new FileUrlFunction(), true);
@@ -193,11 +199,13 @@ public class ScribanPageRenderer : ITransientDependency
 
     /// <summary>
     /// What <c>include</c> may pull in during this render: the theme's templates, which came with the render set -
-    /// an include costs no query.
+    /// an include costs no query - in the version for the page's language where there is one.
     /// </summary>
-    protected virtual ITemplateLoader CreateTemplateLoader(SiteThemeRenderSet renderSet)
+    /// <param name="renderSet">The theme being rendered.</param>
+    /// <param name="cultureChain">The page's language and its parents, most specific first.</param>
+    protected virtual ITemplateLoader CreateTemplateLoader(SiteThemeRenderSet renderSet, IReadOnlyList<string> cultureChain)
     {
-        return new SiteTemplateLoader(renderSet, TemplateCache);
+        return new SiteTemplateLoader(renderSet, TemplateCache, cultureChain);
     }
 
     /// <summary>Renders one template - the page template, or the layout - into its own bounded output.</summary>

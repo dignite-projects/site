@@ -7,7 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A file address no longer carries `?__tenant=`.** `FileDescriptorDto.Url`, and so what a file field, the SEO
+  share image, a CKEditor image and a branding logo store, is now `/api/site-public/files/{container}/{blob}`:
+  the endpoint serves the file of the tenant the request resolves to, by the host name or however the
+  deployment resolves tenants, like every other public request. Addresses stored before keep their
+  `?__tenant=` and keep working; nothing is migrated. **`SiteFileUrl.Build` lost its `tenantId` parameter.** The
+  admin UI's previews, which load a file with a plain `<img>` request from the `SiteAdmin` API's host, name the
+  signed-in tenant themselves (`SiteFileUrlService.toDisplay`, and inside the CKEditor field), without saving it;
+  `absoluteFileUrl` takes the tenant as a third parameter and `relativeFileUrl` is its inverse.
+
 ### Added
+
+- **A Scriban theme carries its own texts.** `t` used to read the files a host ships next to its Razor views, so a
+  tenant could not write the texts of a theme without a deployment, and a rollback or a preview left them behind.
+  A theme's `locales/{culture}.json` files, in ABP's localization format, are now published, previewed and rolled
+  back with the theme, and `t` reads them and nothing else, in the page's language, its parent languages and the
+  site's default language. Razor views keep reading the host's files, as before. `locales/` is the one folder a
+  theme gives a meaning to; the check before a publish reports a file in it that is not valid, that says another
+  language than its name does, or that repeats a language, as errors (`ThemeIssue:TextFileInvalid`,
+  `ThemeIssue:TextFileDuplicate`), and never as unused. The files are static files too, so they are served at
+  `/site-assets/locales/{culture}.json`. See
+  [Texts in a Scriban Theme](docs/en/rendering/template-localization.md#texts-in-a-scriban-theme).
+- **A Scriban template can have a version for one language.** `Default.ja` is the Japanese version of `Default`,
+  `blog/post.zh-Hant` the Traditional Chinese version of `blog/post`: when a language needs a structure of its own, the
+  page is rendered by the version for its language, else for its parent languages (`zh-Hant-TW` tries
+  `.zh-Hant-TW`, `.zh-Hant`, `.zh`), else by the template itself. The page template, its layout and every template it
+  includes are looked up this way, each for its own version, and a version has its own front matter. A theme with no
+  versions looks every template up once, as before. The extension must be a language the runtime knows, spelled the
+  way it spells it, and is the one extension besides a static file's that a theme file may have: `post.tpl` is still
+  refused. The check before a publish holds the versions to what their template is used as, and reports a version
+  without its template as an error (`ThemeIssue:LanguageVersionWithoutTemplate`); renaming a template renames its
+  versions; a preview reports the template it rendered. See
+  [Templates for One Language](docs/en/rendering/scriban-templates.md#templates-for-one-language). **`CreateTemplateLoader`
+  of `ScribanPageRenderer` takes the page's languages, `SiteTemplateLoader` takes them as an optional third argument,
+  and `ScribanPageRender` has a `TemplatePath`: a derived class must adjust.**
+  **`ScribanPageRenderer` no longer takes `IStringLocalizer<SiteTemplateResource>`, `TextFunction` takes the
+  theme's `SiteThemeTextCatalog`, the page's language and the site's default language, and `ScribanRenderScope`
+  takes the default language: a derived class must adjust its constructor.**
 
 - **Published contents can be counted by the value of a field.** `GET api/site-public/contents/count-by-field` and
   `IContentPublicAppService.GetCountByFieldAsync` return how many contents carry each value of a field - the news per

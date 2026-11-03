@@ -14,11 +14,16 @@ namespace Dignite.Site.Public.Scriban;
 /// </summary>
 public class ScribanRenderScope
 {
-    public ScribanRenderScope(SiteRenderViewModel viewModel, ActionContext actionContext, SiteThemeRenderSet renderSet)
+    public ScribanRenderScope(
+        SiteRenderViewModel viewModel,
+        ActionContext actionContext,
+        SiteThemeRenderSet renderSet,
+        string? defaultCultureName)
     {
         ViewModel = viewModel;
         ActionContext = actionContext;
         RenderSet = renderSet;
+        DefaultCultureName = defaultCultureName;
 
         if (viewModel.Content != null)
         {
@@ -38,6 +43,12 @@ public class ScribanRenderScope
     /// <c>include</c> reads and whose static files' hashes <c>asset_url</c> puts in an address. Fixed for the whole render.
     /// </summary>
     public SiteThemeRenderSet RenderSet { get; }
+
+    /// <summary>
+    /// The site's default language, the last one <c>t</c> tries. Handed in by the renderer, which loads the site's
+    /// languages for the render, so that no function depends on someone else having loaded them first.
+    /// </summary>
+    public string? DefaultCultureName { get; }
 
     /// <summary>
     /// Set by <c>site_head</c>. A render that never set it shipped a page without its SEO head tags, which

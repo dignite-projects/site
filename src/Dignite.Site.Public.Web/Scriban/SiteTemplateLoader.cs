@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dignite.Site.Public.Themes;
 using Dignite.Site.Themes;
@@ -30,30 +31,48 @@ namespace Dignite.Site.Public.Scriban;
 /// </summary>
 public class SiteTemplateLoader : ITemplateLoader
 {
-    public SiteTemplateLoader(SiteThemeRenderSet renderSet, ScribanTemplateCache templateCache)
+    /// <param name="renderSet">The theme being rendered.</param>
+    /// <param name="templateCache">Parsed templates, shared across requests.</param>
+    /// <param name="cultureChain">
+    /// The page's language and its parents, most specific first, in which an included template is looked up for a
+    /// version of its own (<c>_card.ja</c> for <c>_card</c>); null or empty for none.
+    /// </param>
+    public SiteTemplateLoader(SiteThemeRenderSet renderSet, ScribanTemplateCache templateCache, IReadOnlyList<string>? cultureChain = null)
     {
         RenderSet = renderSet;
         TemplateCache = templateCache;
+        CultureChain = cultureChain;
     }
 
     protected SiteThemeRenderSet RenderSet { get; }
 
     protected ScribanTemplateCache TemplateCache { get; }
 
-    /// <summary>The normalized path, once the template's parsed tree is in <see cref="TemplateContext.CachedTemplates"/>.</summary>
+    protected IReadOnlyList<string>? CultureChain { get; }
+
+    /// <summary>
+    /// The path of the template that is included - the version for the page's language when the named template has one,
+    /// else the named template - once its parsed tree is in <see cref="TemplateContext.CachedTemplates"/>.
+    /// </summary>
     /// <exception cref="ScriptRuntimeException">No file at that path, a static file, or a template that does not parse.</exception>
     public virtual string GetPath(TemplateContext context, SourceSpan callerSpan, string templateName)
     {
-        var path = SiteThemePaths.Normalize(templateName);
-        var file = RenderSet.FindFile(path)
-                   ?? throw new ScriptRuntimeException(callerSpan, $"No template '{path}' in the theme to include.");
+        var named = SiteThemePaths.Normalize(templateName);
+        if (RenderSet.FindFile(named) == null)
+        {
+            throw new ScriptRuntimeException(callerSpan, $"No template '{named}' in the theme to include.");
+        }
 
-        if (SiteThemePaths.IsAsset(path))
+        if (SiteThemePaths.IsAsset(named))
         {
             throw new ScriptRuntimeException(
                 callerSpan,
-                $"'{path}' is a static file; only a template - a name without an extension - can be included.");
+                $"'{named}' is a static file; only a template - a name without an extension - can be included.");
         }
+
+        // Cached under the path of the file actually included, which is what the engine looks up next.
+        var file = RenderSet.FindTemplate(named, CultureChain)!;
+        var path = file.Path;
 
         if (!context.CachedTemplates.ContainsKey(path))
         {

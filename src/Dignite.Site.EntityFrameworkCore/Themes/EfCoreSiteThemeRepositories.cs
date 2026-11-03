@@ -123,12 +123,12 @@ public class EfCoreSiteReleaseRepository
 
         // A static file's body is cut here rather than in SQL: telling a path with an extension from one without
         // is not something every provider translates, and a theme's static files are few and small next to a
-        // page render's other reads.
+        // page render's other reads. The theme's texts are the static files a render does read.
         return rows
             .Select(row => new SiteReleaseFileContent(
                 row.Path,
                 row.ContentHash,
-                includeAssetBodies || SiteThemePaths.IsTemplate(row.Path) ? row.Body : null))
+                includeAssetBodies || SiteThemePaths.IsTemplate(row.Path) || SiteThemeTextFiles.IsTextFile(row.Path) ? row.Body : null))
             .OrderBy(row => row.Path, StringComparer.Ordinal)
             .ToList();
     }

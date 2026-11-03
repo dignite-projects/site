@@ -45,7 +45,7 @@ public class FileTools_Tests
                 BlobName = "2026/cover.png",
                 Name = callInfo.Arg<CreateFileInput>().File.FileName!,
                 // The application service composes it (FileDescriptorToDtoMapper); the tool hands it on as is.
-                Url = SiteFileUrl.Build(callInfo.Arg<CreateFileInput>().ContainerName, "2026/cover.png", null)
+                Url = SiteFileUrl.Build(callInfo.Arg<CreateFileInput>().ContainerName, "2026/cover.png")
             });
 
         var options = Options.Create(_options);
@@ -64,7 +64,7 @@ public class FileTools_Tests
         _created.File.FileName.ShouldBe("cover.png");
         Encoding.UTF8.GetString(_createdBytes!).ShouldBe("hello");
         // Relative: no host is written into the content field the model puts it in.
-        file.Url.ShouldBe($"/api/site-public/files/{Container}/2026/cover.png?__tenant=");
+        file.Url.ShouldBe($"/api/site-public/files/{Container}/2026/cover.png");
     }
 
     [Fact]

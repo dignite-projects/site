@@ -266,6 +266,163 @@ public class SiteThemeAnalyzer_Tests
         analysis.HasErrors.ShouldBeFalse();
     }
 
+    /// <summary>`t` reads the theme's texts by language; nothing refers to the file by name.</summary>
+    [Fact]
+    public void Should_Not_Call_The_Themes_Texts_Unused()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["locales/en.json"] = "{ \"culture\": \"en\", \"texts\": { \"A\": \"a\" } }",
+            ["locales/ja.json"] = "{ \"culture\": \"ja\", \"texts\": { \"A\": \"あ\" } }"
+        });
+
+        analysis.Issues.ShouldBeEmpty();
+        analysis.Files["locales/ja.json"].TextFile!.CultureName.ShouldBe("ja");
+        analysis.Files["layouts/default"].TextFile.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Should_Report_A_Text_File_That_Is_Not_Valid()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["locales/en.json"] = "{ \"culture\": \"en\", \"texts\": { \"A\": \"a\" } }",
+            ["locales/ja.json"] = "{ not json",
+            ["locales/fr.json"] = "{ \"culture\": \"en\", \"texts\": {} }"
+        });
+
+        var issues = analysis.Issues.Where(i => i.Code == SiteThemeIssueCodes.TextFileInvalid).ToList();
+
+        issues.Select(i => i.Path).ShouldBe(new[] { "locales/fr.json", "locales/ja.json" });
+        issues.ShouldAllBe(i => i.Severity == SiteThemeIssueSeverity.Error);
+        issues[1].Data["Message"].ShouldContain("not valid JSON");
+        analysis.HasErrors.ShouldBeTrue();
+        Codes(analysis).ShouldNotContain(SiteThemeIssueCodes.UnusedFile);
+    }
+
+    [Fact]
+    public void Should_Report_Two_Files_For_One_Language_Once_On_The_Later_One()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["locales/ja.json"] = "{ \"culture\": \"ja\", \"texts\": {} }",
+            ["locales/JA.json"] = "{ \"culture\": \"JA\", \"texts\": {} }"
+        });
+
+        var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.TextFileDuplicate);
+
+        issue.Path.ShouldBe("locales/ja.json");
+        issue.Data["Other"].ShouldBe("locales/JA.json");
+        issue.Data["Culture"].ShouldBe("ja");
+    }
+
+    /// <summary>Outside locales/ a .json file is a static file like any other.</summary>
+    [Fact]
+    public void Should_Treat_A_Json_File_Elsewhere_As_A_Static_File()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["assets/ja.json"] = "{ not json" });
+
+        Codes(analysis).ShouldBe(new[] { SiteThemeIssueCodes.UnusedFile });
+        analysis.Files["assets/ja.json"].TextFile.ShouldBeNull();
+    }
+
+    /// <summary>The version of a template for a language is used as the template is: nothing refers to it by name.</summary>
+    [Fact]
+    public void Should_Find_Nothing_Wrong_With_The_Language_Versions_Of_A_Healthy_Theme()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                ["layouts/default.ja"] = Layout,
+                ["Events"] = "<h1>{{ page.display_name }}</h1>{{ include \"blog/_card\" }}",
+                ["Events.ja"] = "<h1>{{ page.display_name }}</h1>{{ include \"blog/_card\" }}",
+                ["blog/_card"] = "<div>{{ content.slug }}</div>",
+                ["blog/_card.ja"] = "<div>{{ content.slug }}様</div>"
+            },
+            pages: new[] { ("events", "Events") });
+
+        analysis.Issues.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Not_Offer_A_Language_Version_As_A_Layout()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["layouts/default.ja"] = Layout });
+
+        analysis.Layouts.ShouldBe(new[] { "layouts/default" });
+    }
+
+    [Fact]
+    public void Should_Report_A_Language_Version_Without_Its_Template()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["Events.ja"] = "<p>x</p>", ["assets/site.css.ja"] = "" });
+
+        var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.LanguageVersionWithoutTemplate);
+        issue.Path.ShouldBe("Events.ja");
+        issue.Severity.ShouldBe(SiteThemeIssueSeverity.Error);
+        issue.Data["Template"].ShouldBe("Events");
+        analysis.HasErrors.ShouldBeTrue();
+    }
+
+    /// <summary>A page in Japanese renders in the Japanese layout, so that one has to be a layout too.</summary>
+    [Fact]
+    public void Should_Hold_The_Language_Versions_Of_A_Layout_To_What_A_Layout_Must_Do()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["layouts/default.ja"] = "<body>{{ body }}</body>"
+        });
+
+        analysis.Issues.ShouldContain(i => i.Code == SiteThemeIssueCodes.LayoutWithoutSiteHead && i.Path == "layouts/default.ja");
+    }
+
+    /// <summary>A language version has its own front matter, and so may choose a layout of its own - which must exist.</summary>
+    [Fact]
+    public void Should_Check_The_Layout_A_Language_Version_Chooses()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                ["Events"] = "<p>x</p>",
+                ["Events.ja"] = "+++\nlayout = \"layouts/missing\"\n+++\n<p>x</p>"
+            },
+            pages: new[] { ("events", "Events") });
+
+        analysis.Issues.ShouldContain(i =>
+            i.Code == SiteThemeIssueCodes.ReferenceMissing && i.Path == "Events.ja" && i.Data["Target"] == "layouts/missing");
+    }
+
+    [Fact]
+    public void Should_Check_What_A_Language_Version_Includes()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                ["Events"] = "<p>x</p>",
+                ["Events.ja"] = "{{ include \"blog/_gone\" }}"
+            },
+            pages: new[] { ("events", "Events") });
+
+        analysis.Issues.ShouldContain(i =>
+            i.Code == SiteThemeIssueCodes.ReferenceMissing && i.Path == "Events.ja" && i.Data["Target"] == "blog/_gone");
+    }
+
+    [Fact]
+    public void Should_Report_An_Unused_Template_But_Not_Its_Language_Versions_Apart()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["_orphan"] = "", ["_orphan.ja"] = "" });
+
+        analysis.Issues.Where(i => i.Code == SiteThemeIssueCodes.UnusedFile).Select(i => i.Path)
+            .ShouldBe(new[] { "_orphan" });
+    }
+
     [Fact]
     public void Should_Warn_About_A_Layout_Used_Another_Way_Too()
     {

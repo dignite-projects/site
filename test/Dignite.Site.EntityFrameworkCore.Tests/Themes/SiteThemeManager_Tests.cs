@@ -206,6 +206,116 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
         (await ThemeAsync()).LiveReleaseId.ShouldBeNull();
     }
 
+    /// <summary>A text file that is not valid would be skipped by the renderer, so it stops the publish instead.</summary>
+    [Fact]
+    public async Task Should_Refuse_To_Publish_A_Text_File_That_Is_Not_Valid()
+    {
+        await SaveAsync("locales/ja.json", "{ not json");
+
+        var check = await CheckAsync();
+        check.Analysis.Issues.ShouldContain(i => i.Code == SiteThemeIssueCodes.TextFileInvalid && i.Path == "locales/ja.json");
+
+        var ex = await Should.ThrowAsync<BusinessException>(() => PublishAsync());
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemeHasErrors);
+    }
+
+    /// <summary>
+    /// A static file comes to a render with its hash only - except the theme's texts, which `t` reads out of the
+    /// release the page renders with.
+    /// </summary>
+    [Fact]
+    public async Task A_Render_Should_Be_Given_The_Themes_Texts_And_No_Other_Static_Body()
+    {
+        const string ja = "{ \"culture\": \"ja\", \"texts\": { \"Blog:Name\": \"ブログ\" } }";
+        await SaveAsync("locales/ja.json", ja);
+
+        var release = await PublishAsync();
+
+        var forRender = await WithUnitOfWorkAsync(() => _releaseRepository.GetContentsAsync(release.Id));
+        forRender.Single(c => c.Path == "locales/ja.json").Body.ShouldBe(ja);
+        forRender.Single(c => c.Path == "css/site.css").Body.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Should_Save_The_Version_Of_A_Template_For_One_Language_As_A_Template()
+    {
+        var saved = await SaveAsync("Events.ja", "<p>こんにちは</p>");
+
+        saved.IsAsset.ShouldBeFalse();
+        saved.Path.ShouldBe("Events.ja");
+    }
+
+    /// <summary>`post.tpl` is a typo, not a language: refused like any extension no static file may have.</summary>
+    [Fact]
+    public async Task Should_Refuse_An_Extension_That_Is_Not_A_Language()
+    {
+        var ex = await Should.ThrowAsync<BusinessException>(() => SaveAsync("post.tpl", "<p>x</p>"));
+
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemeFileExtensionNotAllowed);
+    }
+
+    [Fact]
+    public async Task Should_Refuse_To_Publish_A_Language_Version_Without_Its_Template()
+    {
+        await SaveAsync("Events.ja", "<p>x</p>");
+
+        var check = await CheckAsync();
+        check.Analysis.Issues.ShouldContain(i =>
+            i.Code == SiteThemeIssueCodes.LanguageVersionWithoutTemplate && i.Path == "Events.ja");
+
+        var ex = await Should.ThrowAsync<BusinessException>(() => PublishAsync());
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemeHasErrors);
+    }
+
+    /// <summary>A page renders with the release's templates, language versions among them.</summary>
+    [Fact]
+    public async Task A_Render_Should_Be_Given_The_Language_Versions_Of_A_Template()
+    {
+        await SaveAsync("Events", "<p>base</p>");
+        await SaveAsync("Events.ja", "<p>ja</p>");
+
+        var release = await PublishAsync();
+
+        var forRender = await WithUnitOfWorkAsync(() => _releaseRepository.GetContentsAsync(release.Id));
+        forRender.Single(c => c.Path == "Events.ja").Body.ShouldBe("<p>ja</p>");
+    }
+
+    [Fact]
+    public async Task Renaming_A_Template_Should_Rename_Its_Language_Versions_With_It()
+    {
+        await SaveAsync("Events", "<p>base</p>");
+        await SaveAsync("Events.ja", "<p>ja</p>");
+        await SaveAsync("Events.zh-Hant", "<p>hant</p>");
+
+        await WithUnitOfWorkAsync(async () =>
+            await _manager.RenameFileAsync(await _manager.GetOrCreateAsync(), "Events", "blog/Home", updateReferences: false));
+
+        var theme = await ThemeAsync();
+        var files = await WithUnitOfWorkAsync(() => _fileRepository.GetListAsync(theme.Id));
+        files.Select(f => f.Path).ShouldBe(
+            new[] { "blog/Home", "blog/Home.ja", "blog/Home.zh-Hant", "css/site.css", "layouts/default" }, ignoreOrder: true);
+        files.Single(f => f.Path == "blog/Home.ja").Body.ShouldBe("<p>ja</p>");
+    }
+
+    /// <summary>Nothing moves when one of the new paths is taken.</summary>
+    [Fact]
+    public async Task Renaming_Should_Refuse_And_Move_Nothing_When_A_Version_Would_Land_On_A_File()
+    {
+        await SaveAsync("Events", "<p>base</p>");
+        await SaveAsync("Events.ja", "<p>ja</p>");
+        await SaveAsync("Home.ja", "<p>taken</p>");
+
+        var ex = await Should.ThrowAsync<BusinessException>(() => WithUnitOfWorkAsync(async () =>
+            await _manager.RenameFileAsync(await _manager.GetOrCreateAsync(), "Events", "Home", updateReferences: false)));
+
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemeFileAlreadyExists);
+        var theme = await ThemeAsync();
+        var files = await WithUnitOfWorkAsync(() => _fileRepository.GetListAsync(theme.Id));
+        files.Select(f => f.Path).ShouldContain("Events");
+        files.Select(f => f.Path).ShouldContain("Events.ja");
+        files.Select(f => f.Path).ShouldNotContain("Home");
+    }
+
     [Fact]
     public async Task Should_Refuse_To_Publish_What_Changed_Since_The_Check()
     {
