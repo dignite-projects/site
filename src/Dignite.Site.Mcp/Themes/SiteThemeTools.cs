@@ -44,6 +44,20 @@ public class SiteThemeTools : ITransientDependency
         ThemeAppService = themeAppService;
     }
 
+    [McpServerTool(Name = "site_get_theme_guide", Title = "Get the theme guide", ReadOnly = true)]
+    [Description(
+        "Returns how to write this site's theme, as Markdown: the variables a template sees (page, content, " +
+        "content.fields, languages, head, body ...), every function it can call (site_head, url, asset_url, " +
+        "file_url, contents, render_field, include ...), layouts and front matter, partials, paging, static " +
+        "files and the limits of the sandbox. A template reaches nothing else, so read this before writing one " +
+        "- a template written from what Liquid or Handlebars would allow fails the check. The same document as " +
+        "the site://theme-guide resource.")]
+    [Authorize(SiteAdminPermissions.Themes.Default)]
+    public virtual Task<string> GetThemeGuideAsync()
+    {
+        return Task.FromResult(SiteThemeGuide.Text);
+    }
+
     [McpServerTool(Name = "site_list_theme_files", Title = "List theme files", ReadOnly = true)]
     [Description(
         "Lists the files of the site's theme (its working copy), with how each stands against the live release: " +

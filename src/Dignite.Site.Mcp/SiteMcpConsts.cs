@@ -36,8 +36,10 @@ public static class SiteMcpConsts
         "with an extension (`css/site.css`) is a static file served as it is. A page renders through the " +
         "template whose path equals its `template` value, and through the Razor view of that name when the " +
         "theme has none. Saving a file changes only the working copy - the site does not change until " +
-        "`site_publish_theme` publishes the whole working copy as a release. Work in this order: " +
-        "`site_save_theme_file`, then `site_check_theme` and fix every error it lists, then `site_preview` on a " +
+        "`site_publish_theme` publishes the whole working copy as a release. Before writing a template, read the " +
+        "`site://theme-guide` resource (or call `site_get_theme_guide`): a template sees only the variables and " +
+        "functions listed there, so what you remember of Liquid or Handlebars does not carry over. Work in this " +
+        "order: `site_save_theme_file`, then `site_check_theme` and fix every error it lists, then `site_preview` on a " +
         "path and read the HTML, then `site_publish_theme` with the check's fingerprint. To undo a release, " +
         "`site_set_live_release` with an older one. A page template picks its layout in front matter - a first " +
         "line `+++`, then `layout = \"layouts/landing\"` (or `\"none\"`), then `+++` - else it uses the theme's " +

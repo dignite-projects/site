@@ -7,7 +7,7 @@
 
 # Tools
 
-Every tool of Site is named `site_*`, and its one resource is `site://schema`, so they never collide with the tools of other modules on the same server. Pages, content types, fields and contents are addressed by their names, from the schema; files and directories by the ids the file tools return.
+Every tool of Site is named `site_*`, and its resources, `site://schema` and `site://theme-guide`, use the `site://` scheme, so they never collide with the tools of other modules on the same server. Pages, content types, fields and contents are addressed by their names, from the schema; files and directories by the ids the file tools return.
 
 The descriptions below are summaries; a client reads the full description of each tool and parameter from `tools/list`. Parameters marked optional can be left out; for the update tools, a parameter left out keeps its current value.
 
@@ -116,6 +116,7 @@ It sees only what is published, so a match means something is live at that addre
 
 | Tool | Permission | Description |
 |---|---|---|
+| `site_get_theme_guide` | `SiteAdmin.Themes` | Returns [how to write the theme](../rendering/scriban-templates.md) as Markdown: the variables a template sees, every function it can call, layouts, partials, static files and the limits of the sandbox. The `site://theme-guide` resource returns the same document. A client should read one of them before it writes a template. |
 | `site_list_theme_files` | `SiteAdmin.Themes` | Lists the files of the [theme](../rendering/scriban-templates.md#the-theme)'s working copy, each with its status against the live release, and returns the default layout and the live release's number. |
 | `site_get_theme_file` | `SiteAdmin.Themes` | Reads one file, with its syntax errors. Takes `path` and an optional `release`, a release number, to read the file as that release has it. |
 | `site_save_theme_file` | `SiteAdmin.Themes.Edit` | Creates or overwrites a file of the working copy, with `path` and `body`, and returns its syntax errors. The site does not change. |

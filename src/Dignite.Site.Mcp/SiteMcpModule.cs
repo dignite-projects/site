@@ -57,6 +57,7 @@ public class SiteMcpModule : AbpModule
             .AddTools<FileTools>()
             .AddTools<SiteThemeTools>()
             .AddResources<SiteSchemaResources>()
+            .AddResources<SiteThemeResources>()
             .AddInstructions(SiteMcpConsts.Instructions)
             .AddInstructions(SiteMcpConsts.FileInstructions));
 
