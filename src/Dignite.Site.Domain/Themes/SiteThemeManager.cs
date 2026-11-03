@@ -135,7 +135,8 @@ public class SiteThemeManager : DomainService
     /// <summary>
     /// Moves a file to <paramref name="newPath"/>. With <paramref name="updateReferences"/>, every literal
     /// <c>include</c>, <c>asset_url</c> and front matter <c>layout</c> naming the old path is rewritten to the new
-    /// one, and so is the default layout setting. Pages whose <c>Template</c> names the old path are not changed.
+    /// one, and so is the default layout setting. Pages whose <c>Template</c> names the old path are not changed. The
+    /// language versions of a template (<c>Default.ja</c>) are renamed with it, whether or not references are updated.
     /// </summary>
     public virtual async Task<SiteThemeRename> RenameFileAsync(
         SiteTheme theme,
@@ -158,14 +159,44 @@ public class SiteThemeManager : DomainService
             throw new BusinessException(SiteErrorCodes.SiteThemeFileAlreadyExists).WithData("Path", targetPath);
         }
 
+        var files = await FileRepository.GetListAsync(theme.Id, cancellationToken);
+
+        // The language versions of a template move with it: Default.ja follows Default to Home.ja. Every new path is
+        // checked before anything moves.
+        var movedVersions = new List<(SiteThemeFile File, string NewPath)>();
+        if (SiteThemePaths.IsTemplate(oldPath) && SiteThemePaths.IsTemplate(targetPath) && !SiteThemePaths.IsLanguageVersion(targetPath))
+        {
+            foreach (var candidate in files)
+            {
+                if (SiteThemePaths.TryGetLanguageVersion(candidate.Path, out var templatePath, out var cultureName)
+                    && templatePath == oldPath)
+                {
+                    movedVersions.Add((candidate, SiteThemePaths.GetLanguageVersionPath(targetPath, cultureName)));
+                }
+            }
+
+            foreach (var moved in movedVersions)
+            {
+                if (await FileRepository.PathExistsAsync(theme.Id, moved.NewPath, cancellationToken))
+                {
+                    throw new BusinessException(SiteErrorCodes.SiteThemeFileAlreadyExists).WithData("Path", moved.NewPath);
+                }
+            }
+        }
+
         file.SetPath(targetPath);
+
+        foreach (var moved in movedVersions)
+        {
+            moved.File.SetPath(moved.NewPath);
+            await FileRepository.UpdateAsync(moved.File, cancellationToken: cancellationToken);
+        }
 
         var updatedPaths = new List<string>();
         var defaultLayoutUpdated = false;
 
         if (updateReferences)
         {
-            var files = await FileRepository.GetListAsync(theme.Id, cancellationToken);
             foreach (var source in files.Where(f => !f.IsAsset))
             {
                 var template = ScribanTemplateSyntax.Parse(source.Body, source.Path);

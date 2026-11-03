@@ -66,6 +66,7 @@
 |---|---|---|
 | 不带扩展名，如 `Events`、`_card`、`layouts/default` | Scriban 模板 | 按被谁引用决定怎么渲染，见下 |
 | 带静态资源白名单里的扩展名，如 `site.css`、`menu.min.js` | 静态资源 | 不当 Scriban 解析，由 `/site-assets/{完整路径}` 原样输出，`Content-Type` 按扩展名 |
+| 扩展名是一种语言，如 `Events.ja`、`blog/post.zh-Hant` | 某个模板的语言版本 | 是 Scriban 模板，见 4.5 |
 | 带其他扩展名 | — | 保存时拒绝 |
 
 模板不带扩展名，引用时写的名字就是文件名，`Page.Template` 也不用改。代价是以后若要把主题导出到磁盘或与 git 同步，
@@ -141,6 +142,28 @@ layout = "layouts/landing"
 - **公开。** 它们仍是静态资源，会出现在 `/site-assets/locales/…`；文档里提醒不要放私密内容，也算一个小收益：前端脚本可以直接取。
 - **没做的。** 校验不检查模板里 `t "Key"` 的 key 是否在文本里（可以以后加一条警告）；`render_field` 在 Scriban 渲染里调到的 Razor 片段读的是宿主文件，
   不是主题文本。
+
+### 4.5 模板的语言版本：`Default.ja`
+
+多数页面一份模板够用：文本走内容和 `t`，结构相同。某种语言的页面结构和其他语言不一样时，才需要为它单独做模板。
+
+- **命名。** 后缀 `{模板路径}.{语言}`，与 ASP.NET Core 的 `Index.fr.cshtml` 同一个思路。这与"扩展名决定类型"冲突，所以规则加一条：
+  最后一段只有一个点、扩展名是运行时认识的语言且拼写与 `CultureInfo.Name` 一致、又不在静态资源白名单里，就是语言版本，是模板。
+  其余照旧：`post.tpl`、`Default.zh-hans` 保存时拒绝，不会存下一个永远找不到的文件。判断都在 `SiteThemePaths.TryGetLanguageVersion`，
+  `IsAsset`、`IsAllowed` 经过它；前端的 `isLanguageVersionPath` 用 `Intl.DisplayNames` 近似，以服务端为准。
+- **没选目录方案（`locales/ja/Default`）。** 语言版本离原模板很远；`Page.Template` 能直接写到它；`locales/` 里混放文本和模板。
+  后缀方案下 `Page.Template` 本来不允许点，页面天然够不着版本。
+- **查找。** `SiteThemeRenderSet.FindTemplate(path, 语言链)`：语言链是 `SiteTemplateCultureChain.Create(页面语言, null)`，
+  **不含站点默认语言**，默认语言的版本就是模板本身。先要有模板本身，只有版本没有模板时返回 null，免得一种语言走 Scriban、其余走 Razor。
+  三个入口：页面模板和 layout（`ScribanPageRenderer.RenderAsync`）、include（`SiteTemplateLoader.GetPath`，缓存键用解析后的路径）。
+  `SiteRenderController` 判断 Scriban 还是 Razor，仍只看模板本身。版本是整体替换，有自己的 front matter，可以另选 layout。
+- **开销。** 渲染集构造时记下"有语言版本的模板"，没有版本的主题查找和原来一模一样（一次字典查询）；有的，只对这些模板多查至多语言链长度次。
+  解析缓存按（哈希，路径），版本是独立文件，不受影响。
+- **检查。** 版本继承模板的角色：模板是页面模板、被 include、或是 layout，它的版本也按同样的要求检查（front matter、`site_head` 与 `body`、
+  include 引用）。缺模板是错误（`ThemeIssue:LanguageVersionWithoutTemplate`）；不报"未使用"；不会被当作可选的默认 layout。
+  没有新增"使用情况"枚举值，因为它会牵动管理端 DTO 和前端的本地化键，改在"未使用"检查里豁免。
+- **改名与删除。** 改名带走版本（先检查所有新路径，冲突就整体不动）；删除不处理，留下的版本由检查报缺模板。改名的返回值没有列出被带走的版本。
+- **没做的。** 站点没启用的语言的版本不报警（分析器是纯函数，不读站点设置）；改名时不改写对版本的字面引用（`include "_card.ja"`）。
 
 ## 5. 编辑、校验与发布
 
@@ -302,6 +325,7 @@ AI 先写文件、再检查、再预览、最后发布，正好是工作副本�
 
 | 事项 | 结论 |
 |---|---|
+| 语言版本 | 后缀命名 `Default.ja`；页面模板、layout、include 三处都按页面语言解析；语言链为"语言 → 父语言 → 模板本身"，不含站点默认语言（用户 2026-11-03，见 4.5） |
 | 主题文本 | 固定 `locales/{culture}.json`，是程序认的唯一目录；Scriban 的 `t` 只读主题自带的文本，不兜底到宿主文件，Razor 仍读宿主文件（用户 2026-11-03，见 4.4） |
 | 目录 | 模板和样式脚本不认任何目录；新主题默认建 `layouts/`、`css/` 作为推荐（用户 2026-11-01；2026-11-03 由 `assets/` 改为按类型分的 `css/`、`js/`，地址不再出现两段 `assets`，也便于本地静态页的目录原样搬进来） |
 | 类型 | 带扩展名为静态资源，扩展名有白名单；其余为 Scriban 模板，角色由引用决定，界面不标类型；`_` 开头表示片段只是推荐（用户 2026-11-01） |

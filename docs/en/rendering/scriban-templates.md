@@ -18,7 +18,8 @@ A tenant's Scriban templates, together with the CSS, JavaScript and other text f
 | File | Example | What it is |
 |---|---|---|
 | A path whose last segment has no extension | `Default`, `blog/post`, `_card`, `layouts/default` | A Scriban template. |
-| A path whose last segment has an extension | `css/site.css`, `js/menu.min.js` | A [static file](#static-files), served as it is. |
+| A path whose last segment ends in a language | `Default.ja`, `blog/post.zh-Hant` | A Scriban template for [one language](#templates-for-one-language). |
+| A path whose last segment has any other extension | `css/site.css`, `js/menu.min.js` | A [static file](#static-files), served as it is. |
 
 No folder is reserved for templates. A new theme starts with two files, `layouts/default` and `css/site.css`, and the folders they are in are only a suggestion: arrange the files as you like. The one folder with a meaning of its own is `locales/`, which holds the theme's [texts](template-localization.md#texts-in-a-scriban-theme), one `{culture}.json` file per language. What a template is used for follows from what refers to it:
 
@@ -28,7 +29,7 @@ No folder is reserved for templates. A new theme starts with two files, `layouts
 
 The same template can play more than one part.
 
-A path is made of segments separated by `/`. A segment is letters, digits, `_` and `-`, starting with a letter, a digit or `_`; only the last segment may have an extension, as in `menu.min.js`. A leading slash and surrounding spaces are removed when a path is saved or looked up. The extension of a static file must be one of `css`, `js`, `mjs`, `json`, `map`, `txt`, `svg`, `xml`, `webmanifest`, `ics` and `csv`; a file with any other extension is refused, so that a template is not saved as `post.html` by mistake.
+A path is made of segments separated by `/`. A segment is letters, digits, `_` and `-`, starting with a letter, a digit or `_`; only the last segment may have an extension, as in `menu.min.js`. A leading slash and surrounding spaces are removed when a path is saved or looked up. The extension of a static file must be one of `css`, `js`, `mjs`, `json`, `map`, `txt`, `svg`, `xml`, `webmanifest`, `ics` and `csv`; a file with any other extension is refused, so that a template is not saved as `post.html` by mistake. The one other extension is a language, which makes the file the template's [version for that language](#templates-for-one-language).
 
 By default a file can be at most 256 KiB.
 
@@ -65,6 +66,25 @@ A page must call `site_head`, which writes the head metadata of the page: the ti
 
 `site_head` writes the same tags as the `<site-head-metadata>` tag helper of a Razor view. It takes two optional arguments, a title and a description: the title overrides the Open Graph title, and the description is used only when the content has none of its own. For example, `{{ site_head "Archive" }}`. On the second page of a paged list and beyond, the canonical URL and the alternates carry the page number; see [Paging](#paging).
 
+## Templates for One Language
+
+Most pages need a single template for every language: the text comes from the content and from [`t`](template-localization.md#texts-in-a-scriban-theme), and the structure is the same. When a language needs a different structure, give the template a **version for that language**: a file with the template's path and the language as its extension.
+
+````
+Default             the template, for every language
+Default.ja          the Japanese version of Default
+blog/post.zh-Hant   the Traditional Chinese version of blog/post
+````
+
+* A version is looked up for the page's language, then for each of its parent languages: on a page in `zh-Hant-TW`, `Default.zh-Hant-TW`, then `Default.zh-Hant`, then `Default.zh`. The first that exists is rendered. If none does, the template itself is, so a language without a version is never left without a page. The site's default language is not looked for: its version is the template itself.
+* The page template, its layout and every template it includes are looked up this way, each for its own version. A page in Japanese is rendered by `Default.ja` if there is one, in `layouts/default.ja` if there is one, and an `{{ include "_card" }}` in either includes `_card.ja` if there is one.
+* A version replaces the template; it does not add to it. It has its own front matter, so it can choose a layout of its own, or `layout = "none"`.
+* The extension has to be a language the runtime knows, spelled the way it spells it: `ja`, `zh-Hant`, `en-GB`. A file named `post.tpl` or `Default.zh-hans` is refused when it is saved, like any extension no static file may have.
+* A version needs its template. A page's `Template` and the default layout name the template, a path without a dot, never a version, and the [check](#checking-the-theme) reports a version whose template is missing. Naming a version in full, as in `{{ include "_card.ja" }}`, includes exactly that file in every language.
+* Renaming a template renames its versions with it.
+
+A [preview](#previewing) reports the template it rendered as `pageTemplate`, which is the version when there was one.
+
 ## The Working Copy and Releases
 
 A tenant edits its theme in a **working copy**, and the site renders a **release**: a frozen copy of the whole theme, files and default layout together.
@@ -96,13 +116,16 @@ These are errors, and a theme with any of them cannot be published:
 * Templates include each other in a circle.
 * A layout, or a page template rendered without a layout, never calls `site_head`, not even in what it includes.
 * A file in `locales/` is not a valid file of the theme's [texts](template-localization.md#texts-in-a-scriban-theme), or two files hold the texts of the same language.
+* A [version for one language](#templates-for-one-language) has no template to be the version of.
+
+The versions of a template are checked as the template is: the versions of a layout must write `body` and call `site_head`, those of a page template have their front matter and their layout checked, and those of an included template have their `include`s followed.
 
 These are warnings:
 
 * A page's `Template` is not a template of the theme, so a Razor view renders it.
 * A layout never writes `{{ body }}`.
 * A layout is also a page template, or is included.
-* Nothing uses a file: no page, template or setting refers to it. The files in `locales/` are never reported, since `t` reads them by language.
+* Nothing uses a file: no page, template or setting refers to it. The files in `locales/` are never reported, since `t` reads them by language, and a version for one language is never reported apart from its template.
 
 Each finding names its file and, where it has one, the line and the column, with a message in the user's language.
 
@@ -405,7 +428,7 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | `GET /releases/{id}/files/by-path?path=...` | `SiteAdmin.Themes` | One file of a release with its body. |
 | `POST /releases/{id}/set-live` | `SiteAdmin.Themes.Publish` | Makes a release live; an older one is the rollback. |
 | `POST /releases/{id}/restore` | `SiteAdmin.Themes.Edit` | Copies a release back into the working copy. |
-| `GET /preview?path=...&releaseId=...` | `SiteAdmin.Themes` | [Previews](#previewing) the page at the path with the working copy, or with the release when `releaseId` is given. Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` and `layout`. |
+| `GET /preview?path=...&releaseId=...` | `SiteAdmin.Themes` | [Previews](#previewing) the page at the path with the working copy, or with the release when `releaseId` is given. Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` (the template rendered, a [version for the page's language](#templates-for-one-language) when it has one) and `layout`. |
 | `GET /preview-link?path=...&releaseId=...` | `SiteAdmin.Themes` | A link that opens the site at the path, the home page by default, [in a browser](#in-a-browser) with the working copy, or with the release when `releaseId` is given. Returns `url`, `path`, `releaseId` and `expiresAt`. |
 
 A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`), that is not in the working copy (`Site:090012`) or that is not a layout (`Site:090013`) are answered as business errors.

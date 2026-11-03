@@ -64,6 +64,9 @@ public static class SiteThemeIssueCodes
     /// <summary>Two files in <c>locales/</c> hold the texts of the same language. Data: Culture, Other (the file that came first).</summary>
     public const string TextFileDuplicate = Prefix + "TextFileDuplicate";
 
+    /// <summary>A language version (<c>Default.ja</c>) has no template (<c>Default</c>) to be the version of. Data: Template.</summary>
+    public const string LanguageVersionWithoutTemplate = Prefix + "LanguageVersionWithoutTemplate";
+
     // Warnings: worth a look, but nothing breaks.
 
     /// <summary>Pages whose template is not in the theme; a Razor view renders them. Data: Template, Pages.</summary>

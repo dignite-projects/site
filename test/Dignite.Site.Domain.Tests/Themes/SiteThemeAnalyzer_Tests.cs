@@ -329,6 +329,100 @@ public class SiteThemeAnalyzer_Tests
         analysis.Files["assets/ja.json"].TextFile.ShouldBeNull();
     }
 
+    /// <summary>The version of a template for a language is used as the template is: nothing refers to it by name.</summary>
+    [Fact]
+    public void Should_Find_Nothing_Wrong_With_The_Language_Versions_Of_A_Healthy_Theme()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                ["layouts/default.ja"] = Layout,
+                ["Events"] = "<h1>{{ page.display_name }}</h1>{{ include \"blog/_card\" }}",
+                ["Events.ja"] = "<h1>{{ page.display_name }}</h1>{{ include \"blog/_card\" }}",
+                ["blog/_card"] = "<div>{{ content.slug }}</div>",
+                ["blog/_card.ja"] = "<div>{{ content.slug }}様</div>"
+            },
+            pages: new[] { ("events", "Events") });
+
+        analysis.Issues.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Not_Offer_A_Language_Version_As_A_Layout()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["layouts/default.ja"] = Layout });
+
+        analysis.Layouts.ShouldBe(new[] { "layouts/default" });
+    }
+
+    [Fact]
+    public void Should_Report_A_Language_Version_Without_Its_Template()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["Events.ja"] = "<p>x</p>", ["assets/site.css.ja"] = "" });
+
+        var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.LanguageVersionWithoutTemplate);
+        issue.Path.ShouldBe("Events.ja");
+        issue.Severity.ShouldBe(SiteThemeIssueSeverity.Error);
+        issue.Data["Template"].ShouldBe("Events");
+        analysis.HasErrors.ShouldBeTrue();
+    }
+
+    /// <summary>A page in Japanese renders in the Japanese layout, so that one has to be a layout too.</summary>
+    [Fact]
+    public void Should_Hold_The_Language_Versions_Of_A_Layout_To_What_A_Layout_Must_Do()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["layouts/default.ja"] = "<body>{{ body }}</body>"
+        });
+
+        analysis.Issues.ShouldContain(i => i.Code == SiteThemeIssueCodes.LayoutWithoutSiteHead && i.Path == "layouts/default.ja");
+    }
+
+    /// <summary>A language version has its own front matter, and so may choose a layout of its own - which must exist.</summary>
+    [Fact]
+    public void Should_Check_The_Layout_A_Language_Version_Chooses()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                ["Events"] = "<p>x</p>",
+                ["Events.ja"] = "+++\nlayout = \"layouts/missing\"\n+++\n<p>x</p>"
+            },
+            pages: new[] { ("events", "Events") });
+
+        analysis.Issues.ShouldContain(i =>
+            i.Code == SiteThemeIssueCodes.ReferenceMissing && i.Path == "Events.ja" && i.Data["Target"] == "layouts/missing");
+    }
+
+    [Fact]
+    public void Should_Check_What_A_Language_Version_Includes()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                ["Events"] = "<p>x</p>",
+                ["Events.ja"] = "{{ include \"blog/_gone\" }}"
+            },
+            pages: new[] { ("events", "Events") });
+
+        analysis.Issues.ShouldContain(i =>
+            i.Code == SiteThemeIssueCodes.ReferenceMissing && i.Path == "Events.ja" && i.Data["Target"] == "blog/_gone");
+    }
+
+    [Fact]
+    public void Should_Report_An_Unused_Template_But_Not_Its_Language_Versions_Apart()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["_orphan"] = "", ["_orphan.ja"] = "" });
+
+        analysis.Issues.Where(i => i.Code == SiteThemeIssueCodes.UnusedFile).Select(i => i.Path)
+            .ShouldBe(new[] { "_orphan" });
+    }
+
     [Fact]
     public void Should_Warn_About_A_Layout_Used_Another_Way_Too()
     {

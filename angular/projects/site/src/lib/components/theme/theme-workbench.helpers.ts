@@ -27,9 +27,44 @@ export function extensionOf(path: string): string | null {
   return dot <= 0 || dot === name.length - 1 ? null : name.slice(dot + 1).toLowerCase();
 }
 
+/**
+ * Whether `name` is a language the browser knows, spelled the way it spells it (`ja`, `zh-Hans`; not `zh-hans`) -
+ * the server's check for the extension of a language version, which it makes with the runtime's cultures.
+ */
+function isLanguageName(name: string): boolean {
+  if (!/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(name)) {
+    return false;
+  }
+
+  try {
+    return (
+      Intl.getCanonicalLocales(name)[0] === name &&
+      new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' }).of(name) !== undefined
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether the path names the version of a template for one language - `blog/post.ja` is the Japanese version of
+ * `blog/post` - which is a template, not a static file: the last segment has exactly one dot, followed by a language
+ * that is not a static file's extension. Mirrors the server's `SiteThemePaths.TryGetLanguageVersion`.
+ */
+export function isLanguageVersionPath(path: string): boolean {
+  const name = path.slice(path.lastIndexOf('/') + 1);
+  const dot = name.indexOf('.');
+  if (dot <= 0 || dot !== name.lastIndexOf('.') || dot === name.length - 1) {
+    return false;
+  }
+
+  const extension = name.slice(dot + 1);
+  return !THEME_ASSET_EXTENSIONS.includes(extension.toLowerCase()) && isLanguageName(extension);
+}
+
 /** Whether the path names a static file (its last segment has an extension) rather than a Scriban template. */
 export function isAssetPath(path: string): boolean {
-  return extensionOf(path) !== null;
+  return extensionOf(path) !== null && !isLanguageVersionPath(path);
 }
 
 /**
@@ -43,7 +78,7 @@ export function themePathProblem(path: string): string | null {
   }
 
   const extension = extensionOf(normalized);
-  if (extension !== null && !THEME_ASSET_EXTENSIONS.includes(extension)) {
+  if (extension !== null && !THEME_ASSET_EXTENSIONS.includes(extension) && !isLanguageVersionPath(normalized)) {
     return 'Site::ThemePathExtensionNotAllowed';
   }
 
@@ -54,6 +89,10 @@ export function themePathProblem(path: string): string | null {
 export type ThemeEditorLanguage = 'html' | 'css' | 'javascript' | 'text';
 
 export function languageOf(path: string): ThemeEditorLanguage {
+  if (isLanguageVersionPath(path)) {
+    return 'html';
+  }
+
   switch (extensionOf(path)) {
     case null:
     case 'svg':

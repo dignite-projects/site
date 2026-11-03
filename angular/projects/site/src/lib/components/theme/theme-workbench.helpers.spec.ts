@@ -6,6 +6,7 @@ import {
   fieldGroupsFor,
   foldersOf,
   isAssetPath,
+  isLanguageVersionPath,
   languageOf,
   normalizeThemePath,
   pageTemplatePath,
@@ -28,10 +29,25 @@ describe('theme workbench helpers', () => {
       expect(isAssetPath('_card')).toBe(false);
     });
 
+    it('tells the version of a template for one language from a static file', () => {
+      expect(isLanguageVersionPath('Events.ja')).toBe(true);
+      expect(isLanguageVersionPath('blog/post.zh-Hant')).toBe(true);
+      expect(isLanguageVersionPath('blog/post.zh-hant')).toBe(false);
+      expect(isLanguageVersionPath('assets/site.css')).toBe(false);
+      expect(isLanguageVersionPath('js/menu.min.js')).toBe(false);
+      expect(isLanguageVersionPath('image.png')).toBe(false);
+      expect(isLanguageVersionPath('Events')).toBe(false);
+      expect(isAssetPath('Events.ja')).toBe(false);
+      expect(isAssetPath('assets/site.css')).toBe(true);
+    });
+
     it.each([
       ['Events', null],
       ['blog/_card', null],
       ['assets/site.css', null],
+      ['Events.ja', null],
+      ['blog/post.zh-Hant', null],
+      ['blog/post.zh-hant', 'Site::ThemePathExtensionNotAllowed'],
       ['', 'Site::ThemePathInvalid'],
       ['a//b', 'Site::ThemePathInvalid'],
       ['../x', 'Site::ThemePathInvalid'],
@@ -51,6 +67,7 @@ describe('theme workbench helpers', () => {
   describe('editor language', () => {
     it.each([
       ['Events', 'html'],
+      ['Events.ja', 'html'],
       ['icons/logo.svg', 'html'],
       ['assets/site.css', 'css'],
       ['js/site.js', 'javascript'],

@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ThemeIssue:TextFileDuplicate`), and never as unused. The files are static files too, so they are served at
   `/site-assets/locales/{culture}.json`. See
   [Texts in a Scriban Theme](docs/en/rendering/template-localization.md#texts-in-a-scriban-theme).
+- **A Scriban template can have a version for one language.** `Default.ja` is the Japanese version of `Default`,
+  `blog/post.zh-Hant` the Traditional Chinese version of `blog/post`: when a language needs a structure of its own, the
+  page is rendered by the version for its language, else for its parent languages (`zh-Hant-TW` tries
+  `.zh-Hant-TW`, `.zh-Hant`, `.zh`), else by the template itself. The page template, its layout and every template it
+  includes are looked up this way, each for its own version, and a version has its own front matter. A theme with no
+  versions looks every template up once, as before. The extension must be a language the runtime knows, spelled the
+  way it spells it, and is the one extension besides a static file's that a theme file may have: `post.tpl` is still
+  refused. The check before a publish holds the versions to what their template is used as, and reports a version
+  without its template as an error (`ThemeIssue:LanguageVersionWithoutTemplate`); renaming a template renames its
+  versions; a preview reports the template it rendered. See
+  [Templates for One Language](docs/en/rendering/scriban-templates.md#templates-for-one-language). **`CreateTemplateLoader`
+  of `ScribanPageRenderer` takes the page's languages, `SiteTemplateLoader` takes them as an optional third argument,
+  and `ScribanPageRender` has a `TemplatePath`: a derived class must adjust.**
   **`ScribanPageRenderer` no longer takes `IStringLocalizer<SiteTemplateResource>`, `TextFunction` takes the
   theme's `SiteThemeTextCatalog`, the page's language and the site's default language, and `ScribanRenderScope`
   takes the default language: a derived class must adjust its constructor.**

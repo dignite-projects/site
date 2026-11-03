@@ -191,10 +191,10 @@ public class ScribanTestRenderer
 
     /// <summary>A page (list/index) match: no content.</summary>
     /// <param name="currentPage">The page of a paged list the request asked for.</param>
-    public static SiteRenderViewModel PageViewModel(int currentPage = 1) => new()
+    public static SiteRenderViewModel PageViewModel(int currentPage = 1, string cultureName = "ja") => new()
     {
         Page = Page(),
-        CultureName = "ja",
+        CultureName = cultureName,
         FilterValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["category"] = "engineering",
