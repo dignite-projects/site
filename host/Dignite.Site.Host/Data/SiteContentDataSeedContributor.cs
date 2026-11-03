@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.CKEditor;
 using Dignite.Abp.FlexFields.Matrix;
+using Dignite.Abp.FlexFields.Select;
 using Dignite.Abp.FlexFields.Table;
 using Dignite.FlexFields.Site.Files;
 using Dignite.FlexFields.Site.Seo;
@@ -21,15 +22,29 @@ namespace Dignite.Site.Host.Data;
 
 /// <summary>
 /// Local-testing convenience: gives a fresh host database a small but coherent "company site" out of the
-/// box - Home / About / Events / News / Contact - the same shape 总体设计 §2.6's worked example describes,
-/// so there is something to click through and demo without hand-building pages first.
+/// box - Home / About / News / Events / Contact and two legal pages - with enough content to try every part
+/// of the rendering side by hand, together with the Scriban theme that <see cref="SiteThemeDataSeedContributor"/>
+/// publishes for it:
+/// <list type="bullet">
+/// <item><b>Paging</b>: <c>/news</c> (15 published items, 10 a page) and <c>/events</c> (22, so three pages).</item>
+/// <item><b>Route filters and counts per field</b>: news items carry a <c>Select</c> category the page's route
+/// has a placeholder for (<c>/news/product</c>, <c>/news/product/2026-08</c>), and the theme counts the
+/// contents of each category and reads the labels from the field's own configuration.</item>
+/// <item><b>What a list must leave out</b>: a draft, a scheduled and an archived news item, and drafts among
+/// the events, none of which may appear in a list, a count or a sitemap.</item>
+/// <item><b>Field types</b>: <c>Text</c>, <c>Select</c>, <c>Boolean</c>, <c>DateTime</c>, rich text, the composite
+/// <c>Matrix</c> and <c>Table</c>, a file field, and the SEO field.</item>
+/// <item><b>Routes</b>: a required slug, an optional placeholder, a regular expression on a slug that gives two
+/// contents root-level addresses, a page hierarchy, and a second language (a few contents have a
+/// <c>zh-Hans</c> version, most do not, which shows the language switcher's untranslated state).</item>
+/// </list>
 /// <para>
 /// Idempotent by name, not by a run-once flag, the same way <see cref="Dignite.Site.Seo.SeoFieldPresetSeedContributor"/>
 /// and <c>OpenIddictDataSeedContributor</c> are: every page, field and content type is looked up by its
 /// unique name first and only created if missing, and every content by its slug. That means this never
-/// touches an already-populated database - including this repo's own dev <c>Host.db</c>, which already has
-/// pages with these same names from manual testing - and only fills in what a genuinely fresh database is
-/// missing.
+/// touches an already-populated database - and also that it does not reshape one: a database seeded by an
+/// older version keeps its old pages and routes, and only a fresh database (delete <c>SiteHost.db</c>) gets the
+/// shape described here.
 /// </para>
 /// <para>
 /// Builds entities directly and inserts through the repositories with <c>autoSave: true</c>, the same way
@@ -51,6 +66,8 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
 {
     private const string EnglishCulture = "en";
     private const string ChineseCulture = "zh-Hans";
+
+    private static readonly DateTime Jan2026 = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private readonly IFieldRepository _fieldRepository;
     private readonly IPageRepository _pageRepository;
@@ -98,37 +115,22 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
         var titleFieldId = await GetOrCreateFieldAsync("title", "Title", "Text");
         var bodyFieldId = await GetOrCreateFieldAsync("body", "Body", CKEditorFieldType.ControlName);
 
-        var companyNameFieldId = await GetOrCreateFieldAsync(
-            "company_name", "公司名称", "Text", "联系页面展示的公司或组织名称。");
-        var companyAddressFieldId = await GetOrCreateFieldAsync(
-            "company_address", "公司地址", "Text", "公司的办公地址或联系地址。");
-        var companyPhoneFieldId = await GetOrCreateFieldAsync(
-            "company_phone", "公司电话", "Text", "公司对外联系使用的电话号码。");
-        var companyEmailFieldId = await GetOrCreateFieldAsync(
-            "company_email", "公司邮箱", "Text", "公司对外联系使用的电子邮箱地址。");
-        var companyWechatQrFieldId = await GetOrCreateFieldAsync(
-            "company_wechat_qr", "公司微信二维码", FileFieldType.ControlName,
-            "公司官方微信或客服微信的二维码图片。",
-            new FileFieldConfiguration { FileContainerName = SiteFileContainerNames.Images, UploadFileMultiple = false }
-                .ConfigurationDictionary);
-
         // The platform's SEO field is seeded separately (SeoFieldPresetSeedContributor, host-side, ahead
         // of this contributor in the same pass) - looked up rather than created here, and simply left out
         // of the Contact type below on the off chance this ever ran first.
         var seoField = await _fieldRepository.FindByNameAsync(SeoFieldNames.FieldName);
 
         await SeedHomeAsync(titleFieldId, bodyFieldId);
-        await SeedAboutAsync(titleFieldId, bodyFieldId);
-        await SeedEventsAsync(titleFieldId, bodyFieldId);
+        var aboutPage = await SeedAboutAsync(titleFieldId, bodyFieldId);
         await SeedNewsAsync(titleFieldId, bodyFieldId);
-        await SeedContactAsync(
-            seoField?.Id, companyNameFieldId, companyAddressFieldId, companyPhoneFieldId, companyEmailFieldId,
-            companyWechatQrFieldId);
+        await SeedEventsAsync(titleFieldId, bodyFieldId);
+        await SeedContactAsync(aboutPage.Id, titleFieldId, seoField?.Id);
+        await SeedLegalAsync(titleFieldId, bodyFieldId);
     }
 
     private async Task SeedHomeAsync(Guid titleFieldId, Guid bodyFieldId)
     {
-        var page = await GetOrCreatePageAsync("home", "Home", "/");
+        var page = await GetOrCreatePageAsync("home", "Home", "/", SeedTheme.HomeTemplate);
         var contentType = await GetOrCreateContentTypeAsync(
             page.Id, "home", "Home",
             new[]
@@ -138,11 +140,21 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
             });
 
         await EnsureContentAsync(
-            contentType.Id, page.Id, EnglishCulture, "", new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            contentType.Id, page.Id, EnglishCulture, "", Jan2026,
             new Dictionary<string, object?>
             {
                 ["title"] = "Welcome to Dignite",
-                ["body"] = "<p>Dignite is a small headless CMS for building and running content-driven websites.</p>"
+                ["body"] = "<p>Dignite is a small headless CMS for building and running content-driven websites. " +
+                           "This is the demo site of the local host: change anything, it is only seed data.</p>"
+            });
+
+        await EnsureContentAsync(
+            contentType.Id, page.Id, ChineseCulture, "", Jan2026,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "欢迎来到 Dignite",
+                ["body"] = "<p>Dignite 是一个小型的无头 CMS，用来搭建和运营内容驱动的网站。这是本地 Host 的演示站点，" +
+                           "可以随意修改，它只是种子数据。</p>"
             });
     }
 
@@ -162,7 +174,7 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
     /// into the canonical camelCase wire shape every reader downstream expects.
     /// </para>
     /// </summary>
-    private async Task SeedAboutAsync(Guid titleFieldId, Guid bodyFieldId)
+    private async Task<Page> SeedAboutAsync(Guid titleFieldId, Guid bodyFieldId)
     {
         var page = await GetOrCreatePageAsync("about", "About", "/about");
 
@@ -218,7 +230,7 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
             });
 
         await EnsureContentAsync(
-            contentType.Id, page.Id, EnglishCulture, "", new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            contentType.Id, page.Id, EnglishCulture, "", Jan2026,
             new Dictionary<string, object?>
             {
                 ["title"] = "About Us",
@@ -238,136 +250,274 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
                     new()
                     {
                         BlockTypeName = "stat",
-                        Values = new FlexFieldDictionary { ["value"] = "7", ["label"] = "Field types out of the box" }
+                        Values = new FlexFieldDictionary { ["value"] = "12", ["label"] = "Field types out of the box" }
                     },
                     new()
                     {
                         BlockTypeName = "stat",
-                        Values = new FlexFieldDictionary { ["value"] = "4", ["label"] = "Languages shipped" }
+                        Values = new FlexFieldDictionary { ["value"] = "2", ["label"] = "Languages in this demo" }
                     }
                 },
                 ["about_milestones"] = new List<TableRow>
                 {
                     new() { Values = new FlexFieldDictionary { ["year"] = "2024", ["event"] = "First internal build" } },
                     new() { Values = new FlexFieldDictionary { ["year"] = "2025", ["event"] = "Flexible fields land" } },
-                    new() { Values = new FlexFieldDictionary { ["year"] = "2026", ["event"] = "Composite field types" } }
+                    new() { Values = new FlexFieldDictionary { ["year"] = "2026", ["event"] = "Themes in Scriban" } }
                 }
             });
+
+        return page;
     }
 
+    private sealed record NewsSeed(
+        string Slug,
+        string Category,
+        DateTime PublishTime,
+        string Title,
+        string Summary,
+        string Detail,
+        bool Featured = false,
+        ContentStatus Status = ContentStatus.Published,
+        (string Title, string Summary, string Detail)? Chinese = null);
+
+    /// <summary>
+    /// The page that exercises the most: the route carries two field placeholders, <c>category</c> (a
+    /// <c>Select</c> the content type marks Searchable, so a request can filter by it and the theme can count
+    /// by it) and <c>publishTime</c> (a month), and the slug. So <c>/news</c> lists everything,
+    /// <c>/news/product</c> one category, <c>/news/product/2026-08</c> one category in one month, and
+    /// <c>/news/product/2026-08/scriban-templates-sandbox</c> an item.
+    /// <para>
+    /// Besides the 15 items a list shows, there are three that it must not: a draft, one scheduled for the
+    /// future, and an archived one. No list, count or sitemap includes them, which is what to look at when
+    /// checking the numbers next to the categories. A draft and a scheduled item are not served at their own
+    /// address either; an archived item still answers there, so that a link already indexed does not go dead
+    /// (<see cref="Content.IsPubliclyAccessible"/>).
+    /// </para>
+    /// </summary>
+    private async Task SeedNewsAsync(Guid titleFieldId, Guid bodyFieldId)
+    {
+        var page = await GetOrCreatePageAsync(
+            "news", "News",
+            @"/news/{category:^(company|product|industry|tutorials)$}/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}",
+            SeedTheme.NewsTemplate);
+
+        var categoryFieldId = await GetOrCreateFieldAsync(
+            "category", "Category", "Select",
+            "The news category. The News page's route filters by it and the theme counts by it.",
+            new SelectConfiguration
+            {
+                Multiple = false,
+                Options = new List<SelectListItem>
+                {
+                    new() { Text = "Company", Value = "company" },
+                    new() { Text = "Product", Value = "product" },
+                    new() { Text = "Industry", Value = "industry" },
+                    new() { Text = "Tutorials", Value = "tutorials" }
+                }
+            }.ConfigurationDictionary);
+        var summaryFieldId = await GetOrCreateFieldAsync(
+            "summary", "Summary", "Text", "One sentence for lists and link previews.");
+        var featuredFieldId = await GetOrCreateFieldAsync(
+            "featured", "Featured", "Boolean", "Shown with a badge.");
+
+        var contentType = await GetOrCreateContentTypeAsync(
+            page.Id, "news-item", "News item",
+            new[]
+            {
+                Usage(titleFieldId, required: true, showInList: true, order: 0),
+                Usage(categoryFieldId, required: true, searchable: true, showInList: true, order: 1),
+                Usage(summaryFieldId, showInList: true, order: 2),
+                Usage(featuredFieldId, searchable: true, showInList: true, order: 3),
+                Usage(bodyFieldId, order: 4)
+            });
+
+        static DateTime At(int month, int day) => new(2026, month, day, 9, 0, 0, DateTimeKind.Utc);
+
+        var items = new NewsSeed[]
+        {
+            // company: 4 published
+            new("dignite-opens-tokyo-office", "company", At(6, 12), "Dignite Opens a New Office in Tokyo",
+                "The team now has a home in Marunouchi, a short walk from the people who use the product every day.",
+                "The office will host the monthly meetups and the open office hours for customers.",
+                Chinese: ("Dignite 在东京开设新办公室",
+                    "团队在丸之内有了新的办公室，离每天使用产品的用户只有几步之遥。",
+                    "办公室将用于举办每月的线下聚会和面向客户的开放答疑时间。")),
+            new("dignite-closes-seed-round", "company", At(8, 5), "Dignite Closes Its Seed Round",
+                "The funding will go to the theme tooling and to a second engineer for the editor.",
+                "The round was led by two investors who have run content-heavy sites themselves."),
+            new("dignite-joins-open-source-fund", "company", At(8, 21), "Dignite Joins an Open Source Fund",
+                "A share of every subscription now goes to the libraries the product is built on.",
+                "The first payments went out this month, split by how much of the code each library accounts for.",
+                Featured: true),
+            new("dignite-hires-head-of-design", "company", At(10, 2), "Dignite Hires Its First Head of Design",
+                "Themes and the admin UI will get the same designer, and the same standards.",
+                "Expect a calmer editor and fewer settings that nobody understands."),
+
+            // product: 5 published
+            new("site-2-0-released", "product", At(7, 8), "Dignite Site 2.0: Themes, Releases and Rollbacks",
+                "A whole theme is now published as one release, and any release can be made live again.",
+                "Editors change the working copy, check it, preview it in a browser and publish it in one step.",
+                Featured: true,
+                Chinese: ("Dignite Site 2.0：主题、发布与回滚",
+                    "整套主题现在作为一个版本发布，任何一个旧版本都可以重新设为线上版本。",
+                    "编辑在工作副本里修改，检查，在浏览器里预览，然后一步发布。")),
+            new("scriban-templates-sandbox", "product", At(8, 12), "Write Your Theme in Scriban",
+                "Templates are stored in the database and run in a sandbox, so a tenant or an AI client can write them.",
+                "The sandbox limits loops, output and time, and only lets a template read the data it is given."),
+            new("mcp-tools-for-themes", "product", At(9, 9), "Edit Your Theme from an AI Client",
+                "Twelve new MCP tools save, check, preview and publish the files of a theme.",
+                "The recommended flow is to save, check, fix every error, preview and then publish."),
+            new("content-counts-arrive", "product", At(10, 28), "Count Contents by Any Field",
+                "A template can now show how many news items each category has, next to the list itself.",
+                "The counts follow the same filters as the list, so the numbers and the list never disagree.",
+                Featured: true),
+            new("url-paging-for-lists", "product", At(11, 1), "Turn the Pages of a List from the Address",
+                "Add ?page=2 to the address of a list and the template follows it.",
+                "Each page of a list is indexed as its own, with the page number in the canonical address."),
+
+            // industry: 3 published
+            new("headless-cms-market-2026", "industry", At(6, 28), "The Headless CMS Market in 2026",
+                "More sites are separating where content is written from where it is shown.",
+                "The interesting question has moved from whether to go headless to who writes the templates."),
+            new("ai-agents-edit-websites", "industry", At(8, 30), "AI Agents Start Editing Websites",
+                "Teams are letting agents draft pages and themes, as long as a person publishes them.",
+                "The work that remains for people is review, which is why previews and rollbacks matter."),
+            new("static-or-dynamic-rendering", "industry", At(9, 18), "Static or Dynamic: A Rendering Checklist",
+                "Most sites are neither fully one nor the other, and that is fine.",
+                "A page that changes with the visitor is dynamic; everything else can be cached a long time."),
+
+            // tutorials: 3 published
+            new("build-a-news-page", "tutorials", At(7, 22), "Build a News Page with Category Filters",
+                "A route with a category placeholder is all it takes to give every category its own address.",
+                "Mark the field Searchable on the content type, put {category} in the route, and the list filters itself.",
+                Chinese: ("用分类筛选搭建新闻页",
+                    "只要在路由里放一个分类占位符，每个分类就有了自己的地址。",
+                    "在内容类型上把字段标记为可搜索，在路由里写上 {category}，列表就会自动筛选。")),
+            new("add-paging-to-a-list", "tutorials", At(9, 25), "Add Paging to a List",
+                "Pass the request's page number to the list and write a pager with page_url.",
+                "Keep the page size small while testing, so there is more than one page to turn to."),
+            new("localize-your-theme", "tutorials", At(10, 14), "Localize Your Theme",
+                "Translate the texts a template writes with t, and the contents with their own language.",
+                "A content that is not translated is simply not served in the other language."),
+
+            // not shown anywhere: a draft, one scheduled for the future, an archived one
+            new("roadmap-2027", "product", At(10, 30), "Roadmap 2027 (draft)",
+                "Not ready to share.", "A draft is never served, listed or counted.", Status: ContentStatus.Draft),
+            new("year-end-party", "company", new DateTime(2026, 12, 24, 9, 0, 0, DateTimeKind.Utc),
+                "Year-End Party", "Scheduled for the future.",
+                "Published, but its publish time has not come, so nothing shows it yet."),
+            new("legacy-announcement", "industry", At(5, 1), "A Withdrawn Announcement",
+                "Withdrawn from the lists.", "An archived content is kept, and still answers at its own address, but no list shows it.",
+                Status: ContentStatus.Archived)
+        };
+
+        foreach (var item in items)
+        {
+            await EnsureContentAsync(
+                contentType.Id, page.Id, EnglishCulture, item.Slug, item.PublishTime,
+                NewsValues(item.Title, item.Category, item.Summary, item.Detail, item.Featured), item.Status);
+
+            if (item.Chinese is { } zh)
+            {
+                await EnsureContentAsync(
+                    contentType.Id, page.Id, ChineseCulture, item.Slug, item.PublishTime,
+                    NewsValues(zh.Title, item.Category, zh.Summary, zh.Detail, item.Featured), item.Status);
+            }
+        }
+    }
+
+    private static Dictionary<string, object?> NewsValues(
+        string title, string category, string summary, string detail, bool featured)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["title"] = title,
+            ["category"] = category,
+            ["summary"] = summary,
+            ["featured"] = featured,
+            ["body"] = $"<p>{detail}</p>"
+        };
+    }
+
+    /// <summary>
+    /// A long plain list, to turn the pages of: 21 events and the Winter Fest are published (three pages of
+    /// ten), and every eighth one is a draft. The route has a required slug, so <c>/events</c> is the page
+    /// itself and every event, in either language, has its own address.
+    /// </summary>
     private async Task SeedEventsAsync(Guid titleFieldId, Guid bodyFieldId)
     {
-        var page = await GetOrCreatePageAsync("events", "Events", "/events/{slug?}");
+        var page = await GetOrCreatePageAsync("events", "Events", "/events/{slug}", SeedTheme.EventsTemplate);
+
+        var dateFieldId = await GetOrCreateFieldAsync(
+            "event_date", "Event date", "DateTime", "The day the event takes place.");
+        var locationFieldId = await GetOrCreateFieldAsync(
+            "location", "Location", "Text", "Where the event takes place.");
+
         var contentType = await GetOrCreateContentTypeAsync(
             page.Id, "events", "Events",
             new[]
             {
                 Usage(titleFieldId, required: true, showInList: true, order: 0),
-                Usage(bodyFieldId, order: 1)
+                Usage(dateFieldId, required: true, searchable: true, showInList: true, order: 1),
+                Usage(locationFieldId, showInList: true, order: 2),
+                Usage(bodyFieldId, order: 3)
             });
 
         await EnsureContentAsync(
-            contentType.Id, page.Id, EnglishCulture, "", new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            new Dictionary<string, object?>
-            {
-                ["title"] = "Events",
-                ["body"] = "<p>Upcoming talks and meetups from the Dignite team.</p>"
-            });
-
+            contentType.Id, page.Id, EnglishCulture, "winter-fest", new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
+            EventValues("Winter Fest", new DateTime(2026, 12, 12), "Tokyo",
+                "<p>Join us for an afternoon of lightning talks and demos from the community.</p>"));
         await EnsureContentAsync(
-            contentType.Id, page.Id, EnglishCulture, "summer-fest", new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
-            new Dictionary<string, object?>
-            {
-                ["title"] = "Summer Fest",
-                ["body"] = "<p>Join us for an afternoon of lightning talks and demos from the community.</p>"
-            });
+            contentType.Id, page.Id, ChineseCulture, "winter-fest", new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
+            EventValues("冬季盛会", new DateTime(2026, 12, 12), "东京",
+                "<p>欢迎来参加社区的闪电演讲和演示下午场。</p>"));
+
+        var kinds = new[] { "Meetup", "Workshop", "Lightning Talks", "Office Hours", "Hackathon" };
+        var cities = new[] { "Tokyo", "Osaka", "Online", "Shanghai", "Singapore" };
+
+        for (var i = 1; i <= 24; i++)
+        {
+            var kind = kinds[i % kinds.Length];
+            var city = cities[(i * 2) % cities.Length];
+            var status = i % 8 == 0 ? ContentStatus.Draft : ContentStatus.Published;
+
+            await EnsureContentAsync(
+                contentType.Id, page.Id, EnglishCulture, $"event-{i:00}", new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(i),
+                EventValues($"Dignite {kind} #{i:00}", new DateTime(2026, 12, 15).AddDays(i * 3), city,
+                    $"<p>The {kind.ToLowerInvariant()} in {city}. Bring a laptop and a question.</p>"),
+                status);
+        }
     }
 
-    /// <summary>
-    /// A parent/child pair of pages, so the routing table demonstrates both a page hierarchy that is
-    /// purely organizational (总体设计 §3.1 - <see cref="Page.ParentId"/> plays no part in route
-    /// resolution) and a route placeholder with an embedded validation regex
-    /// (<c>{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}</c>): <c>news-home</c> lists a given month,
-    /// <c>news</c> is where an individual item's own address lives.
-    /// <para>
-    /// Both render through <c>Default</c>, the one template this Host actually ships
-    /// (<c>Views/Shared/Default.cshtml</c>) - the live dev database had <c>news</c> pointing at a
-    /// <c>news/details</c> view that was never built, which 500s the moment it is requested (confirmed
-    /// while verifying this seed). Point a real <c>news/details.cshtml</c> at this page's <c>Template</c>
-    /// later if one gets built; until then, a template naming a view that does not exist is not something
-    /// to carry into seed data.
-    /// </para>
-    /// </summary>
-    private async Task SeedNewsAsync(Guid titleFieldId, Guid bodyFieldId)
+    private static Dictionary<string, object?> EventValues(string title, DateTime date, string location, string body)
     {
-        const string monthRoute = @"/news/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}";
-
-        var newsHomePage = await GetOrCreatePageAsync("news-home", "News Home", monthRoute);
-        var newsPage = await GetOrCreatePageAsync(
-            "news", "News", monthRoute + "/{slug}", parentId: newsHomePage.Id);
-
-        var contentType = await GetOrCreateContentTypeAsync(
-            newsPage.Id, "news-item", "News item",
-            new[]
-            {
-                Usage(titleFieldId, required: true, showInList: true, order: 0),
-                Usage(bodyFieldId, order: 1)
-            });
-
-        const string slug = "aurora-robotics-unveils-warehousepilot-to-cut";
-        var publishTime = new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc);
-
-        await EnsureContentAsync(
-            contentType.Id, newsPage.Id, EnglishCulture, slug, publishTime,
-            new Dictionary<string, object?>
-            {
-                ["title"] = "Aurora Robotics Unveils WarehousePilot to Cut Fulfillment Errors by Half",
-                ["body"] =
-                    "<p>Aurora Robotics today announced the general availability of WarehousePilot, an " +
-                    "autonomous inventory-scanning platform the company says reduced pick-and-pack errors " +
-                    "by 52% across a six-month pilot with three mid-size logistics partners.</p>\n" +
-                    "<p>“We built WarehousePilot because most warehouse errors happen in the last ten " +
-                    "feet between a shelf and a shipping box, not in the routing software,” said Priya " +
-                    "Nakamura, Aurora's co-founder and CTO. “Getting that number down by half, without " +
-                    "adding headcount, is the part our pilot partners actually cared about.”</p>\n" +
-                    "<p>The platform combines a fleet of camera-equipped scanning robots with a lightweight " +
-                    "reconciliation service that cross-checks physical counts against warehouse-management " +
-                    "records every fifteen minutes, flagging mismatches to floor staff before an order ships " +
-                    "rather than after a customer complains.</p>\n" +
-                    "<p>Aurora says WarehousePilot will roll out to its full partner network starting next " +
-                    "quarter, with pricing based on warehouse square footage rather than per-robot " +
-                    "licensing — a model the company argues better matches how fulfillment operators " +
-                    "already budget for space and labor.</p>"
-            });
-
-        await EnsureContentAsync(
-            contentType.Id, newsPage.Id, ChineseCulture, slug, publishTime,
-            new Dictionary<string, object?>
-            {
-                ["title"] = "Aurora Robotics 发布 WarehousePilot，将仓储履约错误率降低一半",
-                ["body"] =
-                    "<p>Aurora Robotics 今日宣布其自主库存扫描平台 WarehousePilot 正式全面上市。该公司表示，" +
-                    "在与三家中型物流合作伙伴进行的为期六个月的试点中，拣货与打包错误率降低了 52%。</p>\n" +
-                    "<p>“我们打造 WarehousePilot，是因为大多数仓库错误发生在货架与货箱之间最后的十英尺，" +
-                    "而不是在路径规划软件里，” Aurora 联合创始人兼首席技术官 Priya Nakamura 表示。" +
-                    "“在不增加人手的情况下把这个数字降低一半，才是试点合作伙伴真正在意的部分。”</p>\n" +
-                    "<p>该平台将一支配备摄像头的扫描机器人机队，与一项轻量级的核对服务结合在一起，每十五分钟将" +
-                    "实物库存与仓库管理系统记录进行交叉核对，在订单发出前而不是客户投诉后，就把不一致之处提示" +
-                    "给一线员工。</p>\n" +
-                    "<p>Aurora 表示，WarehousePilot 将于下季度开始向其全部合作伙伴网络推广，定价将基于仓库面积" +
-                    "而非按机器人数量收费——公司认为这一模式更符合履约运营商现有的空间和人力预算方式。</p>"
-            });
+        return new Dictionary<string, object?>
+        {
+            ["title"] = title,
+            ["event_date"] = date,
+            ["location"] = location,
+            ["body"] = body
+        };
     }
 
-    private async Task SeedContactAsync(
-        Guid? seoFieldId,
-        Guid companyNameFieldId,
-        Guid companyAddressFieldId,
-        Guid companyPhoneFieldId,
-        Guid companyEmailFieldId,
-        Guid companyWechatQrFieldId)
+    private async Task SeedContactAsync(Guid parentPageId, Guid titleFieldId, Guid? seoFieldId)
     {
-        var page = await GetOrCreatePageAsync("contact", "联系我们", "/contact");
+        var companyNameFieldId = await GetOrCreateFieldAsync(
+            "company_name", "公司名称", "Text", "联系页面展示的公司或组织名称。");
+        var companyAddressFieldId = await GetOrCreateFieldAsync(
+            "company_address", "公司地址", "Text", "公司的办公地址或联系地址。");
+        var companyPhoneFieldId = await GetOrCreateFieldAsync(
+            "company_phone", "公司电话", "Text", "公司对外联系使用的电话号码。");
+        var companyEmailFieldId = await GetOrCreateFieldAsync(
+            "company_email", "公司邮箱", "Text", "公司对外联系使用的电子邮箱地址。");
+        var companyWechatQrFieldId = await GetOrCreateFieldAsync(
+            "company_wechat_qr", "公司微信二维码", FileFieldType.ControlName,
+            "公司官方微信或客服微信的二维码图片。",
+            new FileFieldConfiguration { FileContainerName = SiteFileContainerNames.Images, UploadFileMultiple = false }
+                .ConfigurationDictionary);
+
+        // A child of About in the admin UI's tree: the hierarchy is purely organizational, the route is /contact.
+        var page = await GetOrCreatePageAsync("contact", "联系我们", "/contact", parentId: parentPageId);
 
         var fields = new List<ContentTypeField>();
         var order = 0;
@@ -384,10 +534,8 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
 
         var contentType = await GetOrCreateContentTypeAsync(page.Id, "contact", "联系我们", fields);
 
-        var publishTime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
         await EnsureContentAsync(
-            contentType.Id, page.Id, EnglishCulture, "", publishTime,
+            contentType.Id, page.Id, EnglishCulture, "", Jan2026,
             new Dictionary<string, object?>
             {
                 [SeoFieldNames.FieldName] = new SeoFieldValue
@@ -405,7 +553,7 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
             });
 
         await EnsureContentAsync(
-            contentType.Id, page.Id, ChineseCulture, "", publishTime,
+            contentType.Id, page.Id, ChineseCulture, "", Jan2026,
             new Dictionary<string, object?>
             {
                 [SeoFieldNames.FieldName] = new SeoFieldValue
@@ -419,6 +567,39 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
                 ["company_address"] = "日本东京都千代田区丸之内1-1-1",
                 ["company_phone"] = "+81 3-1234-5678",
                 ["company_email"] = "contact@example.com"
+            });
+    }
+
+    /// <summary>
+    /// Two contents at the root of the site, <c>/privacy-policy</c> and <c>/terms-of-service</c>, from one page
+    /// whose slug carries a regular expression: any other root-level path is still a 404, and the home page
+    /// at <c>/</c> is not disturbed.
+    /// </summary>
+    private async Task SeedLegalAsync(Guid titleFieldId, Guid bodyFieldId)
+    {
+        var page = await GetOrCreatePageAsync(
+            "legal", "Legal", "/{slug:^(privacy-policy|terms-of-service)$}", SeedTheme.DefaultTemplate);
+        var contentType = await GetOrCreateContentTypeAsync(
+            page.Id, "legal", "Legal",
+            new[]
+            {
+                Usage(titleFieldId, required: true, showInList: true, order: 0),
+                Usage(bodyFieldId, order: 1)
+            });
+
+        await EnsureContentAsync(
+            contentType.Id, page.Id, EnglishCulture, "privacy-policy", Jan2026,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "Privacy Policy",
+                ["body"] = "<p>This demo site collects nothing about you.</p>"
+            });
+        await EnsureContentAsync(
+            contentType.Id, page.Id, EnglishCulture, "terms-of-service", Jan2026,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "Terms of Service",
+                ["body"] = "<p>This demo site is provided as it is, for trying things out.</p>"
             });
     }
 
@@ -542,18 +723,20 @@ public class SiteContentDataSeedContributor : IDataSeedContributor, ITransientDe
         string cultureName,
         string slug,
         DateTime publishTime,
-        Dictionary<string, object?> fieldValues)
+        Dictionary<string, object?> fieldValues,
+        ContentStatus status = ContentStatus.Published)
     {
         if (await _contentRepository.SlugExistsAsync(pageId, cultureName, slug))
         {
             return;
         }
 
-        await _contentManager.CreateAsync(contentTypeId, cultureName, slug, publishTime, ContentStatus.Published, fieldValues);
+        await _contentManager.CreateAsync(contentTypeId, cultureName, slug, publishTime, status, fieldValues);
     }
 
-    private static ContentTypeField Usage(Guid fieldId, bool required = false, bool showInList = false, int order = 0)
+    private static ContentTypeField Usage(
+        Guid fieldId, bool required = false, bool searchable = false, bool showInList = false, int order = 0)
     {
-        return new ContentTypeField(fieldId, required, searchable: false, showInList: showInList, order: order);
+        return new ContentTypeField(fieldId, required, searchable: searchable, showInList: showInList, order: order);
     }
 }

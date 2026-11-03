@@ -148,15 +148,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Pages\**\*.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Pages\**\*.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="**\*.abppkg" />
     <None Remove="**\*.abppkg.analyze.json" />
     <Content Remove="$(UserProfile)\.nuget\packages\*\*\contentFiles\any\*\*.abppkg*" />
