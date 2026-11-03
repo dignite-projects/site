@@ -9,6 +9,7 @@ using Dignite.Site.Public.Themes;
 using Dignite.Site.Seo;
 using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -91,11 +92,17 @@ public class SiteRenderController : AbpController
         // completed".
         var headMetadata = await HeadMetadataAppService.ResolveAsync(new ResolveHeadMetadataInput { Path = rawPath });
 
+        // The page of a paged list the request asks for (?page=2): a visitor's value, read leniently - see
+        // SiteRenderPageNumber - and handed to the template as the model's CurrentPage, never applied here.
+        var currentPage = SiteRenderPageNumber.Parse(
+            HttpContext.Request.Query,
+            LazyServiceProvider.LazyGetRequiredService<IOptions<SiteScribanOptions>>().Value.PageQueryKey);
+
         SiteRenderViewModel? viewModel = match.Kind switch
         {
-            RouteMatchKindDto.Page => BuildPageViewModel(match, headMetadata),
+            RouteMatchKindDto.Page => BuildPageViewModel(match, headMetadata, currentPage),
             RouteMatchKindDto.ContentOfPage or RouteMatchKindDto.Content
-                => await BuildContentViewModelAsync(match, headMetadata),
+                => await BuildContentViewModelAsync(match, headMetadata, currentPage),
             _ => null
         };
 
@@ -207,15 +214,21 @@ public class SiteRenderController : AbpController
         return SiteRenderViewModelBuilder.ResolveTemplateName(template);
     }
 
-    protected virtual SiteRenderViewModel BuildPageViewModel(RouteMatchDto match, HeadMetadataDto? headMetadata)
+    /// <param name="match">The resolved route.</param>
+    /// <param name="headMetadata">The page's head metadata.</param>
+    /// <param name="currentPage">The request's page number - <see cref="SiteRenderViewModel.CurrentPage"/>.</param>
+    protected virtual SiteRenderViewModel BuildPageViewModel(RouteMatchDto match, HeadMetadataDto? headMetadata, int currentPage)
     {
-        return SiteRenderViewModelBuilder.BuildPage(match, headMetadata);
+        return SiteRenderViewModelBuilder.BuildPage(match, headMetadata, currentPage);
     }
 
     /// <summary>Fetches the field definitions through <see cref="GetFieldsByIdAsync"/>, so an override of it still applies.</summary>
-    protected virtual Task<SiteRenderViewModel?> BuildContentViewModelAsync(RouteMatchDto match, HeadMetadataDto? headMetadata)
+    /// <param name="match">The resolved route.</param>
+    /// <param name="headMetadata">The page's head metadata.</param>
+    /// <param name="currentPage">The request's page number - <see cref="SiteRenderViewModel.CurrentPage"/>.</param>
+    protected virtual Task<SiteRenderViewModel?> BuildContentViewModelAsync(RouteMatchDto match, HeadMetadataDto? headMetadata, int currentPage)
     {
-        return SiteRenderViewModelBuilder.BuildContentAsync(match, headMetadata, GetFieldsByIdAsync);
+        return SiteRenderViewModelBuilder.BuildContentAsync(match, headMetadata, GetFieldsByIdAsync, currentPage);
     }
 
     protected virtual Task<IReadOnlyDictionary<Guid, FieldDto>> GetFieldsByIdAsync(IEnumerable<Guid> fieldIds)

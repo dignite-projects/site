@@ -52,4 +52,12 @@ public class SiteScribanOptions
     /// tree takes a multiple of that in memory). Default: 16 Mi characters.
     /// </summary>
     public long TemplateCacheSizeLimit { get; set; } = 16L * 1024 * 1024;
+
+    /// <summary>
+    /// The query parameter that carries the page number of a paged list, <c>?page=2</c>. Default: <c>page</c>, the
+    /// default of the <c>&lt;site-head-metadata&gt;</c> tag helper's <c>page-query-key</c>. What the request says
+    /// under it is <c>SiteRenderViewModel.CurrentPage</c>, a template's <c>page_no</c>, the page number
+    /// <c>site_head</c> puts in the canonical URL and the alternates, and what <c>page_url</c> writes a link with.
+    /// </summary>
+    public string PageQueryKey { get; set; } = "page";
 }

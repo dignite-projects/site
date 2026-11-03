@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Localization;
@@ -59,6 +60,7 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
     protected ScribanPageRenderer PageRenderer { get; }
     protected SiteLanguageContext LanguageContext { get; }
     protected IHttpContextAccessor HttpContextAccessor { get; }
+    protected IOptions<SiteScribanOptions> Options { get; }
 
     public SiteThemePreviewRenderer(
         IRoutingPublicAppService routingAppService,
@@ -66,7 +68,8 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
         IHeadMetadataPublicAppService headMetadataAppService,
         ScribanPageRenderer pageRenderer,
         SiteLanguageContext languageContext,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IOptions<SiteScribanOptions> options)
     {
         RoutingAppService = routingAppService;
         FieldAppService = fieldAppService;
@@ -74,6 +77,7 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
         PageRenderer = pageRenderer;
         LanguageContext = languageContext;
         HttpContextAccessor = httpContextAccessor;
+        Options = options;
     }
 
     public virtual async Task<SiteThemePreviewDto> RenderAsync(
@@ -90,7 +94,10 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
                               "Previewing a theme renders a page of the site, which needs an HTTP request to " +
                               "render it in; there is none on this call.");
 
-        var path = NormalizePath(request.Path);
+        // The path may carry a query string, for the page of a paged list (/ja/blog?page=2): the path is what is
+        // resolved and rendered as, the query string what the page number is read from, as a visitor's request's is.
+        var (path, queryString) = SplitQueryString(request.Path);
+        path = NormalizePath(path);
 
         var match = await RoutingAppService.ResolveAsync(new ResolvePathInput { Path = path });
         if (!match.Matched || match.Page == null)
@@ -101,7 +108,8 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
         // Sequential, for the same one-DbContext reason as SiteRenderController.
         var headMetadata = await HeadMetadataAppService.ResolveAsync(new ResolveHeadMetadataInput { Path = path });
 
-        var viewModel = await SiteRenderViewModelBuilder.BuildAsync(match, headMetadata, FieldAppService)
+        var currentPage = SiteRenderPageNumber.Parse(queryString, Options.Value.PageQueryKey);
+        var viewModel = await SiteRenderViewModelBuilder.BuildAsync(match, headMetadata, FieldAppService, currentPage)
                         ?? throw PathNotFound(path); // a content match with nothing to render - a 404 live, too
 
         var renderSet = new SiteThemeRenderSet(request.Snapshot);
@@ -170,6 +178,13 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
             PageTemplate = templatePath,
             Layout = render.LayoutPath
         };
+    }
+
+    /// <summary>The path before the first <c>?</c>, and the query string from it on (null when there is none).</summary>
+    protected virtual (string? Path, string? QueryString) SplitQueryString(string? path)
+    {
+        var queryIndex = path?.IndexOf('?') ?? -1;
+        return queryIndex < 0 ? (path, null) : (path![..queryIndex], path[queryIndex..]);
     }
 
     /// <summary>Null or empty is the home page; a missing leading slash is added.</summary>

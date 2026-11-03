@@ -62,7 +62,8 @@ public class SiteThemePreviewRenderer_Tests
                 HeadMetadata,
                 Scriban.Renderer,
                 Scriban.Host.LanguageContext,
-                new HttpContextAccessor { HttpContext = Scriban.Host.HttpContext });
+                new HttpContextAccessor { HttpContext = Scriban.Host.HttpContext },
+                Scriban.Options);
         }
 
         public ScribanTestRenderer Scriban { get; }
@@ -142,6 +143,24 @@ public class SiteThemePreviewRenderer_Tests
         fixture.Routing.RequestedPaths.ShouldBe(new[] { expected });
         fixture.HeadMetadata.RequestedPaths.ShouldBe(new[] { expected });
         preview.Path.ShouldBe(expected);
+    }
+
+    /// <summary>
+    /// A query string on the path is the page of a paged list, as on a visitor's request: the path alone is resolved
+    /// and rendered as, and the page number reaches the template, site_head and page_url.
+    /// </summary>
+    [Fact]
+    public async Task A_Query_String_On_The_Path_Should_Give_The_Page_Number()
+    {
+        var fixture = new Fixture(PageMatch());
+
+        var preview = await fixture.RenderAsync(
+            Theme("<p>{{ page_no }}|{{ page_url 1 }}|{{ page_url 3 }}</p>"), "/ja/about?page=2&x=1");
+
+        fixture.Routing.RequestedPaths.ShouldBe(new[] { "/ja/about" });
+        preview.Path.ShouldBe("/ja/about");
+        preview.Html.ShouldContain("<link href=\"https://acme.example/ja/about?page=2\" rel=\"canonical\">");
+        preview.Html.ShouldEndWith("<p>2|/ja/about|/ja/about?page=3</p></body></html>");
     }
 
     [Fact]

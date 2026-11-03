@@ -56,6 +56,7 @@ Every template receives a `SiteRenderViewModel`:
 | `FilterValues` | Every value the path gave the route's placeholders, as written, such as `{"publishTime:yyyy": "2026"}`. |
 | `FieldFilters` | The values of field placeholders, keyed by field name, ready to filter a list. |
 | `PublishedAfter`, `PublishedBefore` | The period that `publishTime` placeholders named, such as the whole of August 2026 for `/news/2026/08`. |
+| `CurrentPage` | The page of a paged list that the request asks for with `?page=2`, or 1; for `<content-list current-page>` and `<site-head-metadata current-page>`. |
 | `HeadMetadata` | The `<head>` metadata of the request; see [The Head](#the-head). |
 
 One template serves the page and the contents beneath it, and branches on `Content`:
@@ -140,7 +141,7 @@ A request for the page itself carries no list: the template asks for one with th
 | `published-after`, `published-before` | Bounds on the publish time. |
 | `filter` | A text filter over the slug. |
 | `max-result-count` | The page size, 20 by default. |
-| `current-page` | The 1-based page number, 1 by default. |
+| `current-page` | The 1-based page number, 1 by default. `Model.CurrentPage` is the one the request's `page` query parameter asks for. |
 | `partial-name` | The partial view that renders the list. Required. |
 
 Contents are listed newest first. The partial receives a `ContentListRenderViewModel`, with `Items`, `TotalCount`, `MaxResultCount` and `CurrentPage`. Each item has the shape of `Model.Content`, with only the fields the content type marks `ShowInList`:

@@ -32,25 +32,28 @@ public static class SiteRenderViewModelBuilder
 
     /// <summary>
     /// The model for any match <see cref="SiteRenderController"/> renders: <see cref="BuildPage"/> for a
-    /// <see cref="RouteMatchKindDto.Page"/>, <see cref="BuildContentAsync(RouteMatchDto, HeadMetadataDto?, IFieldPublicAppService)"/>
+    /// <see cref="RouteMatchKindDto.Page"/>, <see cref="BuildContentAsync(RouteMatchDto, HeadMetadataDto?, IFieldPublicAppService, int)"/>
     /// for a <see cref="RouteMatchKindDto.ContentOfPage"/> or <see cref="RouteMatchKindDto.Content"/>; null for
     /// any other kind, or for a content match that has nothing to render.
     /// </summary>
+    /// <param name="currentPage">The request's page number - <see cref="SiteRenderViewModel.CurrentPage"/>.</param>
     public static async Task<SiteRenderViewModel?> BuildAsync(
         RouteMatchDto match,
         HeadMetadataDto? headMetadata,
-        IFieldPublicAppService fieldAppService)
+        IFieldPublicAppService fieldAppService,
+        int currentPage = 1)
     {
         return match.Kind switch
         {
-            RouteMatchKindDto.Page => BuildPage(match, headMetadata),
+            RouteMatchKindDto.Page => BuildPage(match, headMetadata, currentPage),
             RouteMatchKindDto.ContentOfPage or RouteMatchKindDto.Content
-                => await BuildContentAsync(match, headMetadata, fieldAppService),
+                => await BuildContentAsync(match, headMetadata, fieldAppService, currentPage),
             _ => null
         };
     }
 
-    public static SiteRenderViewModel BuildPage(RouteMatchDto match, HeadMetadataDto? headMetadata)
+    /// <param name="currentPage">The request's page number - <see cref="SiteRenderViewModel.CurrentPage"/>.</param>
+    public static SiteRenderViewModel BuildPage(RouteMatchDto match, HeadMetadataDto? headMetadata, int currentPage = 1)
     {
         var (fieldFilters, publishedAfter, publishedBefore) = SiteRenderFilterValueMapper.Build(match.FilterValues);
         return new SiteRenderViewModel
@@ -61,16 +64,19 @@ public static class SiteRenderViewModelBuilder
             FieldFilters = fieldFilters,
             PublishedAfter = publishedAfter,
             PublishedBefore = publishedBefore,
-            HeadMetadata = headMetadata
+            HeadMetadata = headMetadata,
+            CurrentPage = currentPage
         };
     }
 
+    /// <param name="currentPage">The request's page number - <see cref="SiteRenderViewModel.CurrentPage"/>.</param>
     public static Task<SiteRenderViewModel?> BuildContentAsync(
         RouteMatchDto match,
         HeadMetadataDto? headMetadata,
-        IFieldPublicAppService fieldAppService)
+        IFieldPublicAppService fieldAppService,
+        int currentPage = 1)
     {
-        return BuildContentAsync(match, headMetadata, fieldIds => GetFieldsByIdAsync(fieldIds, fieldAppService));
+        return BuildContentAsync(match, headMetadata, fieldIds => GetFieldsByIdAsync(fieldIds, fieldAppService), currentPage);
     }
 
     /// <summary>
@@ -78,10 +84,12 @@ public static class SiteRenderViewModelBuilder
     /// <see cref="SiteRenderController"/> keeps fetching them through its own overridable
     /// <c>GetFieldsByIdAsync</c>.
     /// </summary>
+    /// <param name="currentPage">The request's page number - <see cref="SiteRenderViewModel.CurrentPage"/>.</param>
     public static async Task<SiteRenderViewModel?> BuildContentAsync(
         RouteMatchDto match,
         HeadMetadataDto? headMetadata,
-        Func<IEnumerable<Guid>, Task<IReadOnlyDictionary<Guid, FieldDto>>> getFieldsByIdAsync)
+        Func<IEnumerable<Guid>, Task<IReadOnlyDictionary<Guid, FieldDto>>> getFieldsByIdAsync,
+        int currentPage = 1)
     {
         if (match.Content == null || match.ContentType == null)
         {
@@ -103,6 +111,7 @@ public static class SiteRenderViewModelBuilder
             PublishedAfter = publishedAfter,
             PublishedBefore = publishedBefore,
             HeadMetadata = headMetadata,
+            CurrentPage = currentPage,
             Content = new ContentRenderViewModel
             {
                 Content = match.Content,
