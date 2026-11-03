@@ -159,7 +159,7 @@
     "MoreActions": "More actions",
     "CreateThemeFile": "Create",
     "ThemeFilePath": "Path",
-    "ThemeFilePathHint": "A name without an extension is a Scriban template, such as Events or blog/post; a name with an extension is a static file, such as assets/site.css. A partial is usually named with a leading _, such as blog/_card.",
+    "ThemeFilePathHint": "A name without an extension is a Scriban template, such as Events or blog/post; a name with an extension is a static file, such as css/site.css. A partial is usually named with a leading _, such as blog/_card.",
     "ThemeFileNewPath": "New path",
     "ThemeFileExists": "The theme already has a file '{0}'.",
     "ThemePathInvalid": "A path is made of letters, digits, _ and -, in segments separated by /, and only its last segment may have an extension.",

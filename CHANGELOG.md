@@ -54,11 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A tenant or an AI client can now write the theme of a site in Scriban.** A theme is a set of files stored in the
   database per tenant: a path without an extension (`Default`, `blog/post`, `layouts/default`) is a Scriban template,
-  one with an extension (`assets/site.css`) a static file, and no folder is reserved. A page renders through the
+  one with an extension (`css/site.css`) a static file, and no folder is reserved. A page renders through the
   template whose path is its `Template` in the live release, and through the Razor view of that name when there is
   none, so Razor sites keep working unchanged. A page template chooses its layout in front matter
   (`+++` / `layout = "layouts/landing"` / `+++`, or `layout = "none"`), else uses the theme's default layout, a setting
-  that starts as `layouts/default`; a new theme starts with that layout and an empty `assets/site.css`. Templates run
+  that starts as `layouts/default`; a new theme starts with that layout and an empty `css/site.css`. Templates run
   in a sandbox: they see data and a fixed set of functions, with limits on loops, recursion, regular expressions,
   output size and render time. Template output is HTML-encoded by default, like Razor: `site_head`, `render_field` and
   `body` are emitted raw, and `html_raw` marks a trusted value; a render that never calls `site_head` fails with

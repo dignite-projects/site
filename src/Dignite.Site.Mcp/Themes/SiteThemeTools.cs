@@ -79,7 +79,7 @@ public class SiteThemeTools : ITransientDependency
         "current body before changing a file: site_save_theme_file replaces it with exactly what you send.")]
     [Authorize(SiteAdminPermissions.Themes.Default)]
     public virtual async Task<SiteThemeFileContent> GetThemeFileAsync(
-        [Description("The file's path, e.g. 'layouts/default', 'Events' or 'assets/site.css', from site_list_theme_files.")]
+        [Description("The file's path, e.g. 'layouts/default', 'Events' or 'css/site.css', from site_list_theme_files.")]
         string path,
         [Description("A release number from site_list_releases. Omit for the working copy.")]
         int? release = null)
@@ -112,13 +112,13 @@ public class SiteThemeTools : ITransientDependency
         "then 'layout = \"layouts/landing\"' (or 'layout = \"none\"'), then '+++'; without one it uses the theme's " +
         "default layout. '{{ include \"blog/_sidebar\" }}' renders another template in place (a leading '_' is the " +
         "usual name for such a fragment, not a rule). A path with an extension (css, js, json, svg, txt, xml, ...) is a " +
-        "static file, stored as it is and not parsed; a template links it with '{{ asset_url \"assets/site.css\" }}'. " +
+        "static file, stored as it is and not parsed; a template links it with '{{ asset_url \"css/site.css\" }}'. " +
         "Every reference is a full path from the theme's root. A template that does not parse is saved anyway and its " +
         "errors are returned: fix them before publishing. Binary files (images, fonts) are not theme files: upload them " +
         "with site_upload_file.")]
     [Authorize(SiteAdminPermissions.Themes.Edit)]
     public virtual async Task<SiteThemeFileSaved> SaveThemeFileAsync(
-        [Description("The file's path, e.g. 'Events', 'blog/post', '_card', 'layouts/landing' or 'assets/site.css'.")]
+        [Description("The file's path, e.g. 'Events', 'blog/post', '_card', 'layouts/landing' or 'css/site.css'.")]
         string path,
         [Description("The whole content of the file. Replaces the previous content entirely.")]
         string body)

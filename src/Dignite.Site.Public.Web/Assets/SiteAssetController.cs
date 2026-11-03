@@ -16,8 +16,8 @@ namespace Dignite.Site.Public.Assets;
 
 /// <summary>
 /// Serves the static files of the tenant's live release - CSS, JS and other text files, any file of the theme whose
-/// name has an extension - at <c>GET|HEAD /site-assets/{path}</c>: <c>/site-assets/assets/site.css</c> is the live
-/// release's <c>assets/site.css</c>, its body as it is. Anonymous, like the pages that link to it; the tenant is the one
+/// name has an extension - at <c>GET|HEAD /site-assets/{path}</c>: <c>/site-assets/css/site.css</c> is the live
+/// release's <c>css/site.css</c>, its body as it is. Anonymous, like the pages that link to it; the tenant is the one
 /// the request resolves to. Contracts-only, like <see cref="Routing.SiteRenderController"/>: the one dependency is
 /// <see cref="ISiteThemePublicAppService"/>, which only ever reads published content - a file of the working copy is
 /// never served here.

@@ -2,7 +2,7 @@ namespace Dignite.Site.Public.Assets;
 
 /// <summary>
 /// The address a static file of the theme is served at: <c>/site-assets/{path}?v={hash}</c>, where <c>{path}</c> is the
-/// file's full path in the theme (<c>assets/site.css</c>) and <c>{hash}</c> the SHA-256 of its content. What
+/// file's full path in the theme (<c>css/site.css</c>) and <c>{hash}</c> the SHA-256 of its content. What
 /// <c>asset_url</c> writes and <see cref="SiteAssetController"/> answers.
 /// </summary>
 public static class SiteAssetUrl

@@ -159,7 +159,7 @@
     "MoreActions": "その他の操作",
     "CreateThemeFile": "作成",
     "ThemeFilePath": "パス",
-    "ThemeFilePathHint": "拡張子のない名前は Scriban テンプレート（Events、blog/post など）、拡張子のある名前は静的ファイル（assets/site.css など）です。パーシャルは通常 _ で始まる名前にします（blog/_card など）。",
+    "ThemeFilePathHint": "拡張子のない名前は Scriban テンプレート（Events、blog/post など）、拡張子のある名前は静的ファイル（css/site.css など）です。パーシャルは通常 _ で始まる名前にします（blog/_card など）。",
     "ThemeFileNewPath": "新しいパス",
     "ThemeFileExists": "テーマにはすでにファイル「{0}」があります。",
     "ThemePathInvalid": "パスは英字、数字、_、- で構成され、/ で区切ります。拡張子を付けられるのは最後の部分だけです。",

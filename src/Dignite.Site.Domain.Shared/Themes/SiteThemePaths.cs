@@ -8,9 +8,9 @@ namespace Dignite.Site.Themes;
 
 /// <summary>
 /// What a theme file's path says about it. The whole rule is the extension: a path whose last segment has one
-/// (<c>assets/site.css</c>) is a static file, served as it is; a path without one (<c>Events</c>,
+/// (<c>css/site.css</c>) is a static file, served as it is; a path without one (<c>Events</c>,
 /// <c>blog/_sidebar</c>, <c>layouts/default</c>) is a Scriban template. Directories mean nothing to the program -
-/// <c>layouts/</c> and <c>assets/</c> are only where a new theme puts its first files - and a leading <c>_</c> is a
+/// <c>layouts/</c> and <c>css/</c> are only where a new theme puts its first files - and a leading <c>_</c> is a
 /// naming habit for partials, not a rule.
 /// <para>
 /// Paths are compared ordinally, as stored: trimmed and without a leading slash (<see cref="Normalize"/>), the

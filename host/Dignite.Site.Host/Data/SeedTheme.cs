@@ -26,7 +26,7 @@ internal static class SeedTheme
     public static IReadOnlyList<(string Path, string Body)> Files { get; } = new[]
     {
         ("layouts/default", Layout),
-        ("assets/site.css", Stylesheet),
+        ("css/site.css", Stylesheet),
         (HomeTemplate, Home),
         (NewsTemplate, News),
         (EventsTemplate, Events),
@@ -45,7 +45,7 @@ internal static class SeedTheme
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <title>{{ head?.meta_title ?? page.display_name }}</title>
             {{ site_head }}
-            <link rel="stylesheet" href="{{ asset_url "assets/site.css" }}" />
+            <link rel="stylesheet" href="{{ asset_url "css/site.css" }}" />
         </head>
         <body>
         <header class="site-header">

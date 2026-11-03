@@ -37,7 +37,7 @@ public class SiteThemePreviewSource_Tests : SiteEntityFrameworkCoreTestBase
         using (_currentTenant.Change(Guid.NewGuid()))
         {
             (await _source.FindSnapshotAsync(null)).ShouldBeNull();
-            (await _source.FindAssetAsync(null, "assets/site.css")).ShouldBeNull();
+            (await _source.FindAssetAsync(null, "css/site.css")).ShouldBeNull();
         }
     }
 
@@ -65,10 +65,10 @@ public class SiteThemePreviewSource_Tests : SiteEntityFrameworkCoreTestBase
     public async Task A_Release_Should_Be_Read_As_It_Was_Published()
     {
         await SaveAsync("Default", "<p>one</p>");
-        await SaveAsync("css/site.css", "a{}");
+        await SaveAsync("css/page.css", "a{}");
         var first = await PublishAsync();
         await SaveAsync("Default", "<p>two</p>");
-        await _adminAppService.DeleteFileAsync("css/site.css");
+        await _adminAppService.DeleteFileAsync("css/page.css");
         await PublishAsync();
 
         var snapshot = await _source.FindSnapshotAsync(first.Id);
@@ -77,8 +77,8 @@ public class SiteThemePreviewSource_Tests : SiteEntityFrameworkCoreTestBase
         snapshot.ReleaseId.ShouldBe(first.Id);
         snapshot.ReleaseNumber.ShouldBe(1);
         snapshot.Files.Single(f => f.Path == "Default").Body.ShouldBe("<p>one</p>");
-        (await _source.FindAssetAsync(first.Id, "css/site.css"))!.Body.ShouldBe("a{}");
-        (await _source.FindAssetAsync(null, "css/site.css")).ShouldBeNull();
+        (await _source.FindAssetAsync(first.Id, "css/page.css"))!.Body.ShouldBe("a{}");
+        (await _source.FindAssetAsync(null, "css/page.css")).ShouldBeNull();
     }
 
     [Fact]

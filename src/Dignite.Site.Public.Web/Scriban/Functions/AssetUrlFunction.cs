@@ -10,8 +10,8 @@ using Microsoft.AspNetCore.Mvc.Routing;
 namespace Dignite.Site.Public.Scriban.Functions;
 
 /// <summary>
-/// <c>asset_url path</c>: the address of a static file of the theme - <c>asset_url "assets/site.css"</c> is
-/// <c>/site-assets/assets/site.css?v=&lt;content hash&gt;</c>, under the host's base path and never with a language prefix:
+/// <c>asset_url path</c>: the address of a static file of the theme - <c>asset_url "css/site.css"</c> is
+/// <c>/site-assets/css/site.css?v=&lt;content hash&gt;</c>, under the host's base path and never with a language prefix:
 /// a static file is the same in every language. The hash of the file's content makes the address change exactly when
 /// the content does, so <see cref="SiteAssetController"/> can let browsers keep each address for good, and an unchanged
 /// file keeps its address - and its cached copy - across releases. The hash comes with the page's theme
@@ -43,7 +43,7 @@ public class AssetUrlFunction : SiteScriptFunction
         {
             throw new ScriptRuntimeException(
                 span,
-                $"{Name} takes a static file - a name with an extension, such as \"assets/site.css\"; '{path}' is a template.");
+                $"{Name} takes a static file - a name with an extension, such as \"css/site.css\"; '{path}' is a template.");
         }
 
         var url = UrlHelperFactory.GetUrlHelper(Scope.ActionContext)

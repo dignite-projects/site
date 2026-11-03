@@ -151,7 +151,7 @@ public static class ScribanTemplateSyntax
 
     /// <summary>
     /// Every place the body of the parsed <paramref name="template"/> names another file with a string literal:
-    /// <c>include "blog/_sidebar"</c>, <c>asset_url "assets/site.css"</c>, and the same as a pipe
+    /// <c>include "blog/_sidebar"</c>, <c>asset_url "css/site.css"</c>, and the same as a pipe
     /// (<c>"blog/_sidebar" | include</c>). A name computed at run time cannot be known without rendering and is not
     /// listed. The front matter's <c>layout</c> is not among them - see <see cref="ReadFrontMatter"/>. Empty for a
     /// template with syntax errors.

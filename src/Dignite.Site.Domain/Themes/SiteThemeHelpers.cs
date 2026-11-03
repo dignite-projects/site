@@ -9,7 +9,7 @@ namespace Dignite.Site.Themes;
 /// <summary>The files a new theme starts with: a default layout and an empty stylesheet, in the recommended folders.</summary>
 public static class SiteThemeSkeleton
 {
-    public const string StylesheetPath = "assets/site.css";
+    public const string StylesheetPath = "css/site.css";
 
     public const string Layout =
         "<!DOCTYPE html>\n" +
