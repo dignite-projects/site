@@ -38,7 +38,7 @@ public class SiteThemeTools_Tests : SiteEntityFrameworkCoreTestBase
         overview.LiveReleaseNumber.ShouldBeNull();
         overview.Files.Select(f => (f.Path, f.IsAsset, f.Status)).ShouldBe(new[]
         {
-            ("assets/site.css", true, "Added"),
+            ("css/site.css", true, "Added"),
             ("layouts/default", false, "Added")
         });
     }

@@ -13,7 +13,7 @@ namespace Dignite.Site.Admin.Themes;
 /// <see cref="SetLiveReleaseAsync"/>.
 /// <para>
 /// The theme is created on first use, with a default layout (<c>layouts/default</c>) and an empty stylesheet
-/// (<c>assets/site.css</c>); creating it publishes nothing.
+/// (<c>css/site.css</c>); creating it publishes nothing.
 /// </para>
 /// </summary>
 public interface ISiteThemeAdminAppService : IApplicationService

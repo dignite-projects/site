@@ -159,7 +159,7 @@
     "MoreActions": "更多操作",
     "CreateThemeFile": "创建",
     "ThemeFilePath": "路径",
-    "ThemeFilePathHint": "不带扩展名的是 Scriban 模板，例如 Events 或 blog/post；带扩展名的是静态文件，例如 assets/site.css。片段通常以 _ 开头命名，例如 blog/_card。",
+    "ThemeFilePathHint": "不带扩展名的是 Scriban 模板，例如 Events 或 blog/post；带扩展名的是静态文件，例如 css/site.css。片段通常以 _ 开头命名，例如 blog/_card。",
     "ThemeFileNewPath": "新路径",
     "ThemeFileExists": "主题中已有文件“{0}”。",
     "ThemePathInvalid": "路径由字母、数字、_ 和 - 组成，用 / 分段，只有最后一段可以带扩展名。",

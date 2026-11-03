@@ -18,9 +18,9 @@ A tenant's Scriban templates, together with the CSS, JavaScript and other text f
 | File | Example | What it is |
 |---|---|---|
 | A path whose last segment has no extension | `Default`, `blog/post`, `_card`, `layouts/default` | A Scriban template. |
-| A path whose last segment has an extension | `assets/site.css`, `js/menu.min.js` | A [static file](#static-files), served as it is. |
+| A path whose last segment has an extension | `css/site.css`, `js/menu.min.js` | A [static file](#static-files), served as it is. |
 
-There are no reserved folders. A new theme starts with two files, `layouts/default` and `assets/site.css`, and the folders they are in are only a suggestion: arrange the files as you like. What a template is used for follows from what refers to it:
+There are no reserved folders. A new theme starts with two files, `layouts/default` and `css/site.css`, and the folders they are in are only a suggestion: arrange the files as you like. What a template is used for follows from what refers to it:
 
 * A **page template** is a template a page's `Template` names; see [Choosing the Engine](#choosing-the-engine).
 * A **partial** is a template another template `include`s; see [Partials](#partials). A leading `_` in its name, as in `_card` or `blog/_sidebar`, is a common way to tell partials apart, but it is not required.
@@ -181,7 +181,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `field_definitions fields` | The definitions of fields, with their configuration, keyed by field name; see [Pages and Field Definitions](#pages-and-field-definitions). |
 | `html_raw value` | Marks a value as trusted HTML; see [Output Encoding](#output-encoding). |
 | `include path [arguments]` | Renders another template in place; see [Partials](#partials). |
-| `asset_url path` | The address of a [static file](#static-files) of the theme, with the hash of its content, such as `/site-assets/assets/site.css?v=7b58...6970`. |
+| `asset_url path` | The address of a [static file](#static-files) of the theme, with the hash of its content, such as `/site-assets/css/site.css?v=7b58...6970`. |
 
 `contents` takes an object with these keys, all optional, and returns the page of contents with `items`, `total_count`, `max_result_count` and `current_page`:
 
@@ -331,10 +331,10 @@ The same partial can take the item as an argument instead, `{{ include "blog/_po
 
 ## Static Files
 
-A static file is CSS, JavaScript or another text file of the theme, a file whose name has an extension, such as `assets/site.css`. It is published with the rest of the theme, with two differences from a template:
+A static file is CSS, JavaScript or another text file of the theme, a file whose name has an extension, such as `css/site.css`. It is published with the rest of the theme, with two differences from a template:
 
 * It is stored as it is and is **not** parsed as Scriban, so `{{` in a stylesheet or a script is just text.
-* It is served, unrendered, by the application at `GET /site-assets/{path}`, where `{path}` is its full path: `assets/site.css` is served at `/site-assets/assets/site.css`.
+* It is served, unrendered, by the application at `GET /site-assets/{path}`, where `{path}` is its full path: `css/site.css` is served at `/site-assets/css/site.css`.
 
 Only the live release's files are served. A file the live release does not have answers 404; so does a template's path.
 
@@ -347,9 +347,9 @@ The response carries these headers:
 | `ETag` | The hash of the content. A request whose `If-None-Match` matches it is answered 304. |
 | `Cache-Control` | `public, max-age=31536000, immutable` when the `v` query of the URL is the hash of the content served; otherwise `public, no-cache`, which is served but revalidated each time. |
 
-`asset_url` writes the address that earns the long cache. `asset_url "assets/site.css"` returns `/site-assets/assets/site.css?v=` followed by the SHA-256 of the file's content, under the application's path base when it has one. A release that changes the file changes the address, which busts the browser and CDN caches, while a file that did not change keeps its address, and its cached copy, from one release to the next. The path must be a static file of the theme, or the render fails with an error that names it.
+`asset_url` writes the address that earns the long cache. `asset_url "css/site.css"` returns `/site-assets/css/site.css?v=` followed by the SHA-256 of the file's content, under the application's path base when it has one. A release that changes the file changes the address, which busts the browser and CDN caches, while a file that did not change keeps its address, and its cached copy, from one release to the next. The path must be a static file of the theme, or the render fails with an error that names it.
 
-For example, a stylesheet at `assets/site.css`:
+For example, a stylesheet at `css/site.css`:
 
 ````
 body { font-family: system-ui, sans-serif; margin: 0; }
@@ -362,7 +362,7 @@ referenced from a layout:
 <head>
     <meta charset="utf-8" />
     {{ site_head }}
-    <link rel="stylesheet" href="{{ asset_url "assets/site.css" }}" />
+    <link rel="stylesheet" href="{{ asset_url "css/site.css" }}" />
 </head>
 ````
 

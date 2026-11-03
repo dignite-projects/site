@@ -56,7 +56,7 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
         theme.LiveReleaseId.ShouldBeNull();
 
         var files = await WithUnitOfWorkAsync(() => _fileRepository.GetListAsync(theme.Id));
-        files.Select(f => f.Path).ShouldBe(new[] { "assets/site.css", "layouts/default" });
+        files.Select(f => f.Path).ShouldBe(new[] { "css/site.css", "layouts/default" });
 
         (await ThemeAsync()).Id.ShouldBe(theme.Id);
     }
@@ -128,12 +128,12 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
         theme.LiveReleaseId.ShouldBe(release.Id);
 
         var contents = await WithUnitOfWorkAsync(() => _releaseRepository.GetContentsAsync(release.Id, includeAssetBodies: true));
-        contents.Select(c => c.Path).ShouldBe(new[] { "Events", "assets/site.css", "layouts/default" });
+        contents.Select(c => c.Path).ShouldBe(new[] { "Events", "css/site.css", "layouts/default" });
         contents.Single(c => c.Path == "Events").Body.ShouldBe("<h1>{{ page.name }}</h1>");
 
         // Without asset bodies, a static file comes with its hash only.
         var forRender = await WithUnitOfWorkAsync(() => _releaseRepository.GetContentsAsync(release.Id));
-        forRender.Single(c => c.Path == "assets/site.css").Body.ShouldBeNull();
+        forRender.Single(c => c.Path == "css/site.css").Body.ShouldBeNull();
         forRender.Single(c => c.Path == "Events").Body.ShouldNotBeNull();
     }
 
@@ -259,7 +259,7 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
         theme.DefaultLayout.ShouldBe("layouts/default");
         theme.LiveReleaseId.ShouldBe(first.Id);
         var files = await WithUnitOfWorkAsync(() => _fileRepository.GetListAsync(theme.Id));
-        files.Select(f => f.Path).ShouldBe(new[] { "Events", "assets/site.css", "layouts/default" });
+        files.Select(f => f.Path).ShouldBe(new[] { "Events", "css/site.css", "layouts/default" });
         files.Single(f => f.Path == "Events").Body.ShouldBe("<p>one</p>");
         (await CheckAsync()).HasChanges.ShouldBeFalse();
     }

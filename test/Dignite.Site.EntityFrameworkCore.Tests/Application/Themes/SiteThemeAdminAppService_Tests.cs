@@ -54,16 +54,16 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         await PublishAsync();
         await SaveAsync("Events", "<p>y</p>");
         await SaveAsync("_new", "");
-        await _themeAppService.DeleteFileAsync("assets/site.css");
+        await _themeAppService.DeleteFileAsync("css/site.css");
 
         var files = (await _themeAppService.GetFilesAsync()).Items.ToDictionary(f => f.Path);
 
-        files.Keys.ShouldBe(new[] { "Events", "_new", "assets/site.css", "layouts/default" });
+        files.Keys.ShouldBe(new[] { "Events", "_new", "css/site.css", "layouts/default" });
         files["Events"].Status.ShouldBe(SiteThemeFileStatus.Modified);
         files["_new"].Status.ShouldBe(SiteThemeFileStatus.Added);
-        files["assets/site.css"].Status.ShouldBe(SiteThemeFileStatus.Deleted);
-        files["assets/site.css"].IsAsset.ShouldBeTrue();
-        files["assets/site.css"].LastModificationTime.ShouldBeNull();
+        files["css/site.css"].Status.ShouldBe(SiteThemeFileStatus.Deleted);
+        files["css/site.css"].IsAsset.ShouldBeTrue();
+        files["css/site.css"].LastModificationTime.ShouldBeNull();
         files["layouts/default"].Status.ShouldBe(SiteThemeFileStatus.Unchanged);
         files["Events"].LastModificationTime.ShouldNotBeNull();
     }
@@ -114,7 +114,7 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         issue.Code.ShouldBe(SiteThemeIssueCodes.ReferenceMissing);
         issue.Path.ShouldBe("Events");
         issue.Message.ShouldBe("include names '_missing', which is not a file of the theme.");
-        check.Changes.Select(c => c.Path).ShouldBe(new[] { "Events", "assets/site.css", "layouts/default" });
+        check.Changes.Select(c => c.Path).ShouldBe(new[] { "Events", "css/site.css", "layouts/default" });
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         (await _themeAppService.GetAsync()).LiveReleaseNumber.ShouldBe(2);
 
         var detail = await _themeAppService.GetReleaseAsync(first.Id);
-        detail.Files.Select(f => f.Path).ShouldBe(new[] { "Events", "assets/site.css", "layouts/default" });
+        detail.Files.Select(f => f.Path).ShouldBe(new[] { "Events", "css/site.css", "layouts/default" });
         (await _themeAppService.GetReleaseFileAsync(first.Id, "Events")).Body.ShouldBe("<p>one</p>");
         await Should.ThrowAsync<EntityNotFoundException>(() => _themeAppService.GetReleaseFileAsync(first.Id, "nothing"));
     }
@@ -211,7 +211,7 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Refuse_A_Static_File_As_The_Default_Layout()
     {
         var ex = await Should.ThrowAsync<BusinessException>(() =>
-            _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "assets/site.css" }));
+            _themeAppService.UpdateAsync(new UpdateSiteThemeDto { DefaultLayout = "css/site.css" }));
 
         ex.Code.ShouldBe(SiteErrorCodes.SiteThemeDefaultLayoutInvalid);
     }
@@ -311,7 +311,7 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         request.Snapshot.ReleaseId.ShouldBeNull();
         request.Snapshot.DefaultLayout.ShouldBe("layouts/default");
         request.Snapshot.Files.Single(f => f.Path == "Default").Body.ShouldBe("<p>draft</p>");
-        request.Snapshot.Files.Single(f => f.Path == "assets/site.css").Body.ShouldNotBeNull();
+        request.Snapshot.Files.Single(f => f.Path == "css/site.css").Body.ShouldNotBeNull();
         preview.Html.ShouldBe("<html data-release=\"working-copy\"><p>draft</p></html>");
 
         // A preview publishes nothing.

@@ -33,7 +33,7 @@ public static class SiteMcpConsts
         "- `cultureName` must be one of the schema's `enabledLanguages`. Do not invent a variant.\n\n" +
         "Theme (site_*theme*, site_*release* and site_preview tools): the site's look is a theme of files. A " +
         "file without an extension (`Events`, `blog/_sidebar`, `layouts/default`) is a Scriban template; one " +
-        "with an extension (`assets/site.css`) is a static file served as it is. A page renders through the " +
+        "with an extension (`css/site.css`) is a static file served as it is. A page renders through the " +
         "template whose path equals its `template` value, and through the Razor view of that name when the " +
         "theme has none. Saving a file changes only the working copy - the site does not change until " +
         "`site_publish_theme` publishes the whole working copy as a release. Work in this order: " +
@@ -42,7 +42,7 @@ public static class SiteMcpConsts
         "`site_set_live_release` with an older one. A page template picks its layout in front matter - a first " +
         "line `+++`, then `layout = \"layouts/landing\"` (or `\"none\"`), then `+++` - else it uses the theme's " +
         "default layout. Every reference is a full path from the theme's root: `{{ include \"blog/_sidebar\" }}`, " +
-        "`{{ asset_url \"assets/site.css\" }}`. Binary files (images, fonts) are not theme files: upload them with " +
+        "`{{ asset_url \"css/site.css\" }}`. Binary files (images, fonts) are not theme files: upload them with " +
         "the file tools.";
 
     /// <summary>

@@ -84,7 +84,7 @@ public class SiteThemeSyntaxErrorDto
 public class SaveSiteThemeFileDto
 {
     /// <summary>
-    /// The file's path, e.g. <c>Events</c>, <c>blog/_sidebar</c> or <c>assets/site.css</c>. Without an extension it is
+    /// The file's path, e.g. <c>Events</c>, <c>blog/_sidebar</c> or <c>css/site.css</c>. Without an extension it is
     /// a Scriban template; with one it is a static file, whose extension must be one the site serves.
     /// </summary>
     [Required]

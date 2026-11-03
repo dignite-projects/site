@@ -39,7 +39,7 @@
 主题 (SiteTheme，每租户一个)
 ├─ 工作副本：一组文件，随存随改，没有版本；新主题默认建好两个推荐目录
 │    layouts/default    layouts/landing
-│    assets/site.css    assets/js/menu.js
+│    css/site.css    js/menu.js
 │    Events   News   blog/post   _card   blog/_sidebar     ← 其余由作者自己组织
 └─ 发布快照 (SiteRelease #1, #2, ...)：某一刻整套文件的冻结副本，不可变
        ↑ 线上指针 LiveReleaseId
@@ -57,7 +57,7 @@
 
 ### 4.1 程序不认任何目录
 
-程序里没有保留目录。新主题默认建好 `layouts/` 和 `assets/` 并放进骨架文件，这只是推荐的组织方式，作者可以改名、删掉、另建。
+程序里没有保留目录。新主题默认建好 `layouts/` 和 `css/` 并放进骨架文件，这只是推荐的组织方式，作者可以改名、删掉、另建。
 
 文件只分两种，由**扩展名**决定：
 
@@ -78,10 +78,10 @@
   免得作者得到一个被原样输出、从不执行的"模板"。
 - 只有最后一段可以带点，扩展名取最后一个点之后；目录名不带点；`..`、以 `.` 开头的段照旧禁止。
   `Page.Template` 本来就不允许点，所以页面永远指不到静态资源。
-- **所有引用一律写从根开始的完整路径**：`include "blog/_sidebar"`、`layout = "layouts/landing"`、`asset_url "assets/site.css"`。
+- **所有引用一律写从根开始的完整路径**：`include "blog/_sidebar"`、`layout = "layouts/landing"`、`asset_url "css/site.css"`。
   不做"先找当前目录、再找共享目录"的查找，引用写什么就是什么。
-- 资源地址带上完整路径，用推荐目录时是 `/site-assets/assets/site.css?v=…`，前缀和目录名重复一次。这是不保留目录的代价，
-  不另做路径改写。
+- 资源地址带上完整路径，用推荐目录时是 `/site-assets/css/site.css?v=…`。目录名由作者定，最初推荐的 `assets/` 会让地址变成 `/site-assets/assets/…`，
+  前缀和目录名重复一次，2026-11-03 起推荐目录改为按类型分的 `css/`、`js/`，不另做路径改写。
 - `Page.Template` 的值就是模板路径，比如 `blog/post`；工作副本或线上快照里没有这个文件时，交给同名 Razor 视图，同现在。
 
 ### 4.2 页面模板声明 layout
@@ -161,7 +161,7 @@ layout = "layouts/landing"
 | `SiteReleaseFile`（属于 `SiteRelease`） | `ReleaseId`、`Path`、`ContentHash` | 快照清单，不存正文 |
 | `SiteThemeBlob` | `TenantId`、`ContentHash`、`Body` | 发布过的正文，按哈希去重；只在发布时写入 |
 
-**资源地址改用内容哈希**：`asset_url "assets/site.css"` 输出 `/site-assets/assets/site.css?v=<哈希>`。
+**资源地址改用内容哈希**：`asset_url "css/site.css"` 输出 `/site-assets/css/site.css?v=<哈希>`。
 同一个文件内容不变，跨快照地址不变，浏览器和 CDN 缓存能复用；内容变了地址必变，`immutable` 照旧成立。
 现在用版本 Id 是为了防"删除重建后版本号重排"，内容哈希天然没有这个问题。
 `/site-assets/` 只输出带扩展名的文件，只从 `SiteThemeBlob` 取正文，所以 Scriban 模板的源码和草稿都不会被直接下载；
@@ -250,7 +250,7 @@ AI 先写文件、再检查、再预览、最后发布，正好是工作副本�
   | 现在 | 新 |
   |---|---|
   | `layout` | `layouts/default`，默认 layout 设置为它；原来没有 layout 时设置为空 |
-  | 页面模板 `X`、`partials/x`、`assets/x.css` 等 | 路径不变，正文不用改写 |
+  | 页面模板 `X`、`partials/x`、`css/x.css` 等 | 路径不变，正文不用改写 |
   | 每个模板的最新版本 | 工作副本里的文件 |
   | 每个模板的已发布版本 | 快照 #1，说明写"转换自旧模板" |
   | 其余历史版本 | 丢弃 |
@@ -273,7 +273,7 @@ AI 先写文件、再检查、再预览、最后发布，正好是工作副本�
 
 | 事项 | 结论 |
 |---|---|
-| 目录 | 程序不认任何目录；新主题默认建 `layouts/`、`assets/` 作为推荐（用户 2026-11-01） |
+| 目录 | 程序不认任何目录；新主题默认建 `layouts/`、`css/` 作为推荐（用户 2026-11-01；2026-11-03 由 `assets/` 改为按类型分的 `css/`、`js/`，地址不再出现两段 `assets`，也便于本地静态页的目录原样搬进来） |
 | 类型 | 带扩展名为静态资源，扩展名有白名单；其余为 Scriban 模板，角色由引用决定，界面不标类型；`_` 开头表示片段只是推荐（用户 2026-11-01） |
 | layout 引用 | front matter 写完整路径 `layout = "layouts/landing"`（用户 2026-11-01） |
 | 默认 layout | 主题设置项，初始值 `layouts/default`，可改，随快照冻结（用户 2026-11-01）；界面上在布局页的编辑器工具栏点"设为默认布局页"，清空走 API / MCP（2026-11-02） |

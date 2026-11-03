@@ -55,7 +55,7 @@ public class SiteThemePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         live.Snapshot.ReleaseNumber.ShouldBe(1);
         live.Snapshot.DefaultLayout.ShouldBe("layouts/default");
         live.Snapshot.Files.Single(f => f.Path == "Events").Body.ShouldBe("<p>live</p>");
-        var css = live.Snapshot.Files.Single(f => f.Path == "assets/site.css");
+        var css = live.Snapshot.Files.Single(f => f.Path == "css/site.css");
         css.Body.ShouldBeEmpty();
         css.ContentHash.ShouldBe(SiteThemePaths.ComputeContentHash(SiteThemeSkeleton.Stylesheet));
     }

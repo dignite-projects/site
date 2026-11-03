@@ -116,7 +116,7 @@ public sealed class SiteThemeAnalysis
 /// what each file is used as and what is wrong. Pure: no repository, no clock, so the check before a publish, the
 /// check an author runs by hand, the delete confirmation and a rename all see the same answer.
 /// <para>
-/// Only literal names count - <c>include "blog/_sidebar"</c>, <c>asset_url "assets/site.css"</c>,
+/// Only literal names count - <c>include "blog/_sidebar"</c>, <c>asset_url "css/site.css"</c>,
 /// <c>layout = "layouts/landing"</c> - since a name computed at run time cannot be known without rendering. A file
 /// has no type of its own beyond template or static file (<see cref="SiteThemePaths"/>); being a page template, a
 /// partial or a layout follows from what refers to it, and one file may be several.

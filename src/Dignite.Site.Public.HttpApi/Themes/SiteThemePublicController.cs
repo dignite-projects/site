@@ -24,7 +24,7 @@ public class SiteThemePublicController : SitePublicController, ISiteThemePublicA
         return ThemePublicAppService.GetLiveAsync(knownReleaseId);
     }
 
-    /// <summary>The path is a query parameter, not a route segment - it contains slashes (<c>assets/site.css</c>).</summary>
+    /// <summary>The path is a query parameter, not a route segment - it contains slashes (<c>css/site.css</c>).</summary>
     [HttpGet]
     [Route("assets")]
     public virtual Task<SiteThemeAssetDto?> FindLiveAssetAsync([FromQuery] string path)
