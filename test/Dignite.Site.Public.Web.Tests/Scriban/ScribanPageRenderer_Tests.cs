@@ -41,6 +41,36 @@ public class ScribanPageRenderer_Tests
         html.ShouldContain("<meta content=\"About - page 2\" property=\"og:title\">");
     }
 
+    /// <summary>
+    /// Beyond page 1 every address site_head writes carries the page number, as the tag helper's current-page
+    /// makes it do - without the template passing anything: the request's page number is the model's.
+    /// </summary>
+    [Fact]
+    public async Task Site_Head_Should_Carry_The_Requests_Page_Number()
+    {
+        var viewModel = ScribanTestRenderer.PageViewModel(currentPage: 2);
+
+        var html = await new ScribanTestRenderer().RenderAsync("{{ site_head }}", viewModel: viewModel);
+
+        html.ShouldBe(SiteHeadMetadataHtml.Build(ScribanTestRenderer.HeadMetadata, null, null, 2, "page"));
+        html.ShouldContain("<link href=\"https://acme.example/ja/about?page=2\" rel=\"canonical\">");
+        html.ShouldContain("href=\"https://acme.example/about?page=2\" hreflang=\"en\"");
+    }
+
+    /// <summary>The query key is the host's: SiteScribanOptions.PageQueryKey names it for site_head and page_url alike.</summary>
+    [Fact]
+    public async Task Site_Head_And_Page_Url_Should_Use_The_Configured_Page_Query_Key()
+    {
+        var renderer = new ScribanTestRenderer(options: new SiteScribanOptions { PageQueryKey = "p" });
+
+        var html = await renderer.RenderAsync(
+            "{{ site_head }}|{{ page_url 3 }}",
+            viewModel: ScribanTestRenderer.PageViewModel(currentPage: 2));
+
+        html.ShouldContain("<link href=\"https://acme.example/ja/about?p=2\" rel=\"canonical\">");
+        html.ShouldEndWith("|/ja/about?p=3");
+    }
+
     [Fact]
     public async Task The_Layout_Should_Wrap_The_Page_Templates_Output()
     {
@@ -172,6 +202,60 @@ public class ScribanPageRenderer_Tests
             HeadOnlyLayout);
 
         html.ShouldEndWith("[/ja/contact?tab=2][/contact][/Account/Login][https://example.com/]");
+    }
+
+    /// <summary>
+    /// page_no is the request's page number, and page_url the current path with it: no query for page 1, the
+    /// configured key beyond, under the host's base path.
+    /// </summary>
+    [Fact]
+    public async Task Page_No_And_Page_Url_Should_Follow_The_Requests_Page()
+    {
+        var renderer = new ScribanTestRenderer("en,ja", "/ja/about");
+        renderer.Host.HttpContext.Request.PathBase = "/site";
+
+        var html = await renderer.RenderAsync(
+            "[{{ page_no }}][{{ page_url 1 }}][{{ page_url page_no + 1 }}][{{ page_url 0 }}]",
+            HeadOnlyLayout,
+            ScribanTestRenderer.PageViewModel(currentPage: 2));
+
+        html.ShouldEndWith("[2][/site/ja/about][/site/ja/about?page=3][/site/ja/about]");
+    }
+
+    /// <summary>The pager the documentation shows, verbatim: keep it identical to the Paging section.</summary>
+    [Fact]
+    public async Task The_Documented_Pager_Should_Render()
+    {
+        var renderer = new ScribanTestRenderer("en,ja", "/ja/about");
+        renderer.ContentListQuery.Items.Add(ScribanTestRenderer.Content("first", "First post"));
+        renderer.ContentListQuery.TotalCount = 25;
+
+        var html = await renderer.RenderAsync(
+            """
+            {{ list = contents { max: 10, page_no: page_no } }}
+            <ul>
+            {{ for item in list.items }}
+                <li><a href="{{ item.url }}">{{ item.slug }}</a></li>
+            {{ end }}
+            </ul>
+            {{ if page_no > 1 }}<a href="{{ page_url page_no - 1 }}">Newer</a>{{ end }}
+            {{ if page_no * list.max_result_count < list.total_count }}<a href="{{ page_url page_no + 1 }}">Older</a>{{ end }}
+            """,
+            HeadOnlyLayout,
+            ScribanTestRenderer.PageViewModel(currentPage: 2));
+
+        renderer.ContentListQuery.Requests.ShouldHaveSingleItem().CurrentPage.ShouldBe(2);
+        html.ShouldContain("<li><a href=\"/ja/about/first\">first</a></li>");
+        html.ShouldContain("<a href=\"/ja/about\">Newer</a>");
+        html.ShouldContain("<a href=\"/ja/about?page=3\">Older</a>");
+    }
+
+    [Fact]
+    public async Task Page_No_Should_Be_One_By_Default()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync("[{{ page_no }}][{{ page_url page_no }}]", HeadOnlyLayout);
+
+        html.ShouldEndWith("[1][/ja/about]");
     }
 
     [Fact]

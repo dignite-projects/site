@@ -39,6 +39,7 @@ public class SiteLanguageTestHost
         HttpContext.RequestServices = new ServiceCollection()
             .AddSingleton(LanguageContext)
             .AddSingleton(Options)
+            .AddSingleton(Microsoft.Extensions.Options.Options.Create(new Dignite.Site.Public.Scriban.SiteScribanOptions()))
             .AddSingleton(_ => Preview.CreateState())
             .BuildServiceProvider();
     }

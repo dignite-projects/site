@@ -63,7 +63,7 @@ A page must call `site_head`, which writes the head metadata of the page: the ti
 * The [check](#checking-the-theme) refuses a layout, or a page template rendered without a layout, that calls `site_head` nowhere, neither itself nor in a template it includes. A theme with such an error cannot be published.
 * Rendering a page whose render never executed `site_head` fails with the error `Site:090005`, instead of serving a page without the tags.
 
-`site_head` writes the same tags as the `<site-head-metadata>` tag helper of a Razor view. It takes two optional arguments, a title and a description: the title overrides the Open Graph title, and the description is used only when the content has none of its own. For example, `{{ site_head "Archive" }}`.
+`site_head` writes the same tags as the `<site-head-metadata>` tag helper of a Razor view. It takes two optional arguments, a title and a description: the title overrides the Open Graph title, and the description is used only when the content has none of its own. For example, `{{ site_head "Archive" }}`. On the second page of a paged list and beyond, the canonical URL and the alternates carry the page number; see [Paging](#paging).
 
 ## The Working Copy and Releases
 
@@ -121,7 +121,7 @@ The link is issued by the administration API, `GET /preview-link` (see [Managing
 
 ### As HTML
 
-The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. The page or content at that path is rendered through its template and layout as the given theme has them.
+The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a language prefix if the site uses them, and a leading slash is not required. It may carry the page of a paged list, `/ja/blog?page=2`; see [Paging](#paging). The page or content at that path is rendered through its template and layout as the given theme has them.
 
 A preview renders saved files, so save first. It fails with one of these errors:
 
@@ -149,6 +149,7 @@ A template is given data, and only data: the page and the content being rendered
 | `languages` | The site's languages, for a language switcher. Each has `culture_name`, `url`, `is_current` and `is_translation`, whether the current content exists in that language. |
 | `filter_values`, `field_filters` | What the path gave the route's placeholders, with the keys as the route wrote them: `filter_values["publishTime:yyyy"]`. See [The View Model](templates.md#the-view-model). |
 | `published_after`, `published_before` | The period that `publishTime` placeholders named, as dates, or empty. |
+| `page_no` | The page of a paged list that the request asks for with `?page=2`, or 1. See [Paging](#paging). |
 | `head` | The head metadata of the request, or empty: `meta_title`, `base_meta_title`, `meta_description`, `canonical_url`, `robots_content`, `og_image_url`, `og_type`, `twitter_card_type`, `hreflang_alternates` (each with `culture_name`, `url` and `path`) and `x_default_url`. |
 | `body` | In a layout only: the rendered page template. |
 
@@ -171,6 +172,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `site_head [title] [description]` | Writes the head tags; see [Layouts](#layouts). |
 | `t key [fallback]` | A localized text, in the language of the page; `fallback` when the key has no text. It can be piped: `{{ "Key" | t }}`. See [Localizing Template Texts](template-localization.md). |
 | `url path [culture]` | The address of a path in a language. Only a path that starts with `~/` gets the language prefix and the application's path base; anything else is returned unchanged. The language of the request by default. |
+| `page_url page_no` | The address of a page of the list the current page is, for a pager; see [Paging](#paging). |
 | `file_url url width [height]` | The address of a stored image resized to the given size, from a file field's value. |
 | `contents [options]` | Lists published contents; see below. |
 | `content_counts options` | How many published contents carry each value of a field; see [Counting Contents by a Field](#counting-contents-by-a-field). |
@@ -188,7 +190,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | `page` | The name of the page to list. Omit it to list the current page, with the current route's `field_filters`, `published_after` and `published_before` applied. |
 | `content_type` | The name of a content type of that page. |
 | `max` | The page size, 20 by default and at most 100. |
-| `page_no` | The 1-based page number, 1 by default. A page past the end gives an empty list. |
+| `page_no` | The 1-based page number, 1 by default. Pass the request's, `page_no: page_no`, to follow the address; see [Paging](#paging). A page past the end gives an empty list. |
 | `filter` | A text filter over the slug. |
 
 A key that is not in the table is an error, and a `page` that does not exist gives an empty list. Contents are listed newest first, and only published ones. Each item has the shape of `content`, except that its `field_list` holds only the fields marked Show In List.
@@ -201,6 +203,25 @@ A key that is not in the table is an error, and a `page` that does not exist giv
 {{ end }}
 </ul>
 ````
+
+### Paging
+
+A visitor turns the pages of a list with the `page` query parameter: `/blog` is the first page and `/blog?page=2` the second. The template never reads the address itself; the request's page number is the variable `page_no`, 1 when the address has none, or has something that is not a page number. A list follows it when the template passes it on, `contents { page_no: page_no }`, and stays on its first page otherwise, as a "latest posts" block beside the list should.
+
+`page_url` writes the address of another page of the same list, the current path with the page number: `page_url 1` is `/blog`, `page_url 3` is `/blog?page=3`, in the language of the request and under the application's path base. `site_head` needs nothing passed: on the second page and beyond, it writes the canonical URL and the alternates with the page number, so that each page of the list is indexed as its own.
+
+````
+{{ list = contents { max: 10, page_no: page_no } }}
+<ul>
+{{ for item in list.items }}
+    <li><a href="{{ item.url }}">{{ item.slug }}</a></li>
+{{ end }}
+</ul>
+{{ if page_no > 1 }}<a href="{{ page_url page_no - 1 }}">Newer</a>{{ end }}
+{{ if page_no * list.max_result_count < list.total_count }}<a href="{{ page_url page_no + 1 }}">Older</a>{{ end }}
+````
+
+The name of the query parameter is the host's `SiteScribanOptions.PageQueryKey`, `page` by default; `page_no`, `page_url` and `site_head` all follow it.
 
 ### Counting Contents by a Field
 

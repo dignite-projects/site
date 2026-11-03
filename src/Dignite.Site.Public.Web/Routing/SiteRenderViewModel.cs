@@ -48,6 +48,15 @@ public class SiteRenderViewModel
 
     public HeadMetadataDto? HeadMetadata { get; init; }
 
+    /// <summary>
+    /// The 1-based page of a paged list that the request asked for with its page query parameter
+    /// (<c>SiteScribanOptions.PageQueryKey</c>, <c>?page=2</c>), read by <see cref="SiteRenderPageNumber"/>: 1
+    /// when the request names none, or names something that is not a page number. What a Razor view passes to
+    /// <c>&lt;content-list current-page&gt;</c> and <c>&lt;site-head-metadata current-page&gt;</c>, and what a
+    /// Scriban template sees as <c>page_no</c>.
+    /// </summary>
+    public int CurrentPage { get; init; } = 1;
+
     /// <summary>Populated for RouteMatchKindDto.ContentOfPage / .Content. Null for RouteMatchKindDto.Page - a front end queries a list itself (总体设计 §7's "rendering is handed to the front end"), this no longer pre-fetches one.</summary>
     public ContentRenderViewModel? Content { get; init; }
 }

@@ -181,7 +181,8 @@ public class ScribanTestRenderer
     };
 
     /// <summary>A page (list/index) match: no content.</summary>
-    public static SiteRenderViewModel PageViewModel() => new()
+    /// <param name="currentPage">The page of a paged list the request asked for.</param>
+    public static SiteRenderViewModel PageViewModel(int currentPage = 1) => new()
     {
         Page = Page(),
         CultureName = "ja",
@@ -193,7 +194,8 @@ public class ScribanTestRenderer
         FieldFilters = new Dictionary<string, string> { ["category"] = "engineering" },
         PublishedAfter = new DateTime(2026, 1, 1),
         PublishedBefore = new DateTime(2026, 12, 31, 23, 59, 59),
-        HeadMetadata = HeadMetadata
+        HeadMetadata = HeadMetadata,
+        CurrentPage = currentPage
     };
 
     /// <summary>A content match: one content of type "post" with a Title, a Tags and a Gallery field.</summary>

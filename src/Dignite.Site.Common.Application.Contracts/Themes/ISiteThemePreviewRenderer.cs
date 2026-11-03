@@ -33,7 +33,8 @@ public class SiteThemePreviewRequest
 {
     /// <summary>
     /// The site path to render, as a visitor would request it: <c>/about</c>, <c>/ja/blog/hello</c>, a language prefix
-    /// included.
+    /// included. It may carry a query string for the page of a paged list, <c>/ja/blog?page=2</c>; nothing else of a
+    /// query string reaches the page.
     /// </summary>
     public string Path { get; set; } = default!;
 

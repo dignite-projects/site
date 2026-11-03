@@ -171,6 +171,42 @@ public class SiteRenderController_Tests
         view.Model.ShouldBeOfType<SiteRenderViewModel>().Page.Name.ShouldBe("about");
     }
 
+    /// <summary>
+    /// The page query parameter is the model's CurrentPage, for a Razor view's pager and a Scriban template's
+    /// page_no alike; a value that is not a page number is page 1, never an error - it is the visitor's.
+    /// </summary>
+    [Theory]
+    [InlineData("?page=3", 3)]
+    [InlineData("?page=3&page=9", 3)]
+    [InlineData("?page=0", 1)]
+    [InlineData("?page=-2", 1)]
+    [InlineData("?page=abc", 1)]
+    [InlineData("?page=", 1)]
+    [InlineData("?p=3", 1)]
+    [InlineData("", 1)]
+    public async Task The_Page_Query_Parameter_Should_Be_The_Models_Current_Page(string queryString, int expected)
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        host.HttpContext.Request.QueryString = new QueryString(queryString);
+
+        var result = await RenderAsync(host, PageMatch("en", "ja"));
+
+        var view = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
+        view.Model.ShouldBeOfType<SiteRenderViewModel>().CurrentPage.ShouldBe(expected);
+    }
+
+    [Fact]
+    public async Task A_Page_Number_Beyond_The_Cap_Should_Be_The_Cap()
+    {
+        var host = new SiteLanguageTestHost("en,ja", "/ja/about");
+        host.HttpContext.Request.QueryString = new QueryString("?page=2147483647");
+
+        var result = await RenderAsync(host, PageMatch("en", "ja"));
+
+        var view = result.ShouldBeOfType<SiteRenderController.CultureScopedResult>().Inner.ShouldBeOfType<ViewResult>();
+        view.Model.ShouldBeOfType<SiteRenderViewModel>().CurrentPage.ShouldBe(Scriban.Functions.ContentsFunction.MaxPageNumber);
+    }
+
     /// <summary>A tenant that never published renders every page with Razor.</summary>
     [Fact]
     public async Task Nothing_Published_Should_Keep_The_Razor_View()

@@ -210,7 +210,8 @@ public class SiteThemeTools : ITransientDependency
     [Authorize(SiteAdminPermissions.Themes.Default)]
     public virtual async Task<SiteThemePreview> PreviewAsync(
         [Description("A path of the site to render, e.g. '/about' or '/ja/blog/hello' - a language prefix included. " +
-                     "Use site_resolve_path to check which page a path reaches.")]
+                     "Add '?page=2' for the second page of a paged list. Use site_resolve_path to check which page a " +
+                     "path reaches.")]
         string path,
         [Description("A release number from site_list_releases. Omit for the working copy.")]
         int? release = null)

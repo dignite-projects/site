@@ -29,8 +29,9 @@ namespace Dignite.Site.Public.Scriban;
 /// renders the page template alone.
 /// <para>
 /// Both templates see the same globals (<see cref="ScribanRenderModelBuilder"/>) and functions
-/// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>file_url</c>, <c>asset_url</c>, <c>contents</c>, <c>render_field</c>,
-/// <c>find_page</c>, <c>field_definitions</c>, <c>html_raw</c>); a variable the page template assigns (<c>{{ title = "..." }}</c>) is visible to the
+/// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>page_url</c>, <c>file_url</c>, <c>asset_url</c>, <c>contents</c>,
+/// <c>content_counts</c>, <c>render_field</c>, <c>find_page</c>, <c>field_definitions</c>, <c>html_raw</c>); a
+/// variable the page template assigns (<c>{{ title = "..." }}</c>) is visible to the
 /// layout, which is how a page hands its layout a title. Each template renders in its own sandboxed context
 /// (<see cref="ScribanSandbox"/>) with its own output bound; the time budget covers both.
 /// </para>
@@ -174,9 +175,12 @@ public class ScribanPageRenderer : ITransientDependency
     /// </summary>
     protected virtual void RegisterFunctions(ScriptObject globals, ScribanRenderScope scope)
     {
-        globals.SetValue(SiteHeadFunction.Name, new SiteHeadFunction(scope, HtmlEncoder), true);
+        var pageQueryKey = Options.Value.PageQueryKey;
+
+        globals.SetValue(SiteHeadFunction.Name, new SiteHeadFunction(scope, HtmlEncoder, pageQueryKey), true);
         globals.SetValue(TextFunction.Name, new TextFunction(TemplateLocalizer), true);
         globals.SetValue(UrlFunction.Name, new UrlFunction(scope, LanguageContext, LanguageOptions, UrlHelperFactory), true);
+        globals.SetValue(PageUrlFunction.Name, new PageUrlFunction(scope, LanguageContext, UrlHelperFactory, pageQueryKey), true);
         globals.SetValue(FileUrlFunction.Name, new FileUrlFunction(), true);
         globals.SetValue(AssetUrlFunction.Name, new AssetUrlFunction(scope, UrlHelperFactory), true);
         globals.SetValue(ContentsFunction.Name, new ContentsFunction(scope, ContentListQuery, ModelBuilder), true);

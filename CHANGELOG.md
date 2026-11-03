@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on the grouped field. See [Scriban Templates](docs/en/rendering/scriban-templates.md#counting-contents-by-a-field).
   **A class implementing `IContentRepository` or `IContentPublicAppService` must add `GetCountByFieldValueAsync` /
   `GetCountByFieldAsync`, and `ContentPublicAppService` now takes `IFieldRepository` and `IFieldTypeResolver`.**
+- **A Scriban template can turn the pages of a list from the address.** The request's `?page=2` is the template's
+  `page_no` - 1 without it, or with anything that is not a page number - which it passes on with
+  `contents { page_no: page_no }`; `page_url 3` writes the address of another page of the same list, for a pager;
+  and beyond page 1 `site_head` writes the canonical URL and the alternates with the page number, as
+  `<site-head-metadata current-page>` does, without the template passing anything. The query parameter's name is
+  `SiteScribanOptions.PageQueryKey`, `page` by default. The same number is `SiteRenderViewModel.CurrentPage` for a
+  Razor view, and a preview over the API or MCP takes it on the path (`/ja/blog?page=2`). See
+  [Paging](docs/en/rendering/scriban-templates.md#paging). **`SiteThemePreviewRenderer` now takes
+  `IOptions<SiteScribanOptions>`, `SiteHeadFunction` the page query key, and `SiteRenderController`'s
+  `BuildPageViewModel` / `BuildContentViewModelAsync` the page number: a derived class must add the parameter.**
 
 ### Changed
 

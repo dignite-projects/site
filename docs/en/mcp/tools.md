@@ -123,7 +123,7 @@ It sees only what is published, so a match means something is live at that addre
 | `site_delete_theme_file` | `SiteAdmin.Themes.Edit` | Removes a file from the working copy, and returns what used it. Destructive. |
 | `site_update_theme` | `SiteAdmin.Themes.Edit` | Sets the default layout, with `defaultLayout`, a template path or an empty string for none. |
 | `site_check_theme` | `SiteAdmin.Themes` | [Checks](../rendering/scriban-templates.md#checking-the-theme) the working copy, lists what publishing would change, and returns the `fingerprint` a publish needs. |
-| `site_preview` | `SiteAdmin.Themes` | [Previews](../rendering/scriban-templates.md#previewing) the page at `path` with the working copy, or with an optional `release`, and returns the HTML with `pageName`, `cultureName`, `pageTemplate` and `layout`. |
+| `site_preview` | `SiteAdmin.Themes` | [Previews](../rendering/scriban-templates.md#previewing) the page at `path` - which may carry `?page=2` for the page of a paged list - with the working copy, or with an optional `release`, and returns the HTML with `pageName`, `cultureName`, `pageTemplate` and `layout`. |
 | `site_publish_theme` | `SiteAdmin.Themes.Publish` | Publishes the working copy as a new release and makes it live, with the check's `fingerprint` and an optional `comment`. |
 | `site_list_releases` | `SiteAdmin.Themes` | Lists the releases, newest first, with which one is live. |
 | `site_set_live_release` | `SiteAdmin.Themes.Publish` | Makes the release with the number `release` live; an older one is the rollback. |

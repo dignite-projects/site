@@ -52,6 +52,10 @@ namespace Dignite.Site.Public.Scriban;
 /// <c>contents</c> filters the current page's list by.</description></item>
 /// <item><term><c>published_after</c>, <c>published_before</c></term><description>The publish-time window a
 /// <c>publishTime</c> placeholder denotes (an archive month), or null.</description></item>
+/// <item><term><c>page_no</c></term><description>The page of a paged list the request asks for
+/// (<see cref="SiteRenderViewModel.CurrentPage"/>): 1 unless the request's page query parameter says
+/// otherwise. What a template passes <c>contents</c> as <c>page_no</c>; <c>site_head</c> and <c>page_url</c>
+/// read it themselves.</description></item>
 /// <item><term><c>head</c></term><description>The SEO head metadata, or null: <c>meta_title</c>,
 /// <c>base_meta_title</c>, <c>meta_description</c>, <c>canonical_url</c>, <c>robots_content</c>,
 /// <c>og_image_url</c>, <c>og_type</c>, <c>twitter_card_type</c>, <c>hreflang_alternates</c> (each
@@ -121,6 +125,7 @@ public class ScribanRenderModelBuilder : ITransientDependency
         globals.SetValue("field_filters", BuildStrings(viewModel.FieldFilters), false);
         globals.SetValue("published_after", viewModel.PublishedAfter, false);
         globals.SetValue("published_before", viewModel.PublishedBefore, false);
+        globals.SetValue("page_no", viewModel.CurrentPage, false);
         globals.SetValue("head", viewModel.HeadMetadata == null ? null : FromDto(viewModel.HeadMetadata), false);
 
         return globals;
