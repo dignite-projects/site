@@ -19,4 +19,10 @@
     <PackageReference Include="Dignite.Abp.AspNetCore.Mcp" Version="$(DigniteAbpModulesVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The theme guide a model reads before it writes a template is the user documentation page itself, embedded
+         here so that the two are one text (SiteThemeGuide). -->
+    <EmbeddedResource Include="..\..\docs\en\rendering\scriban-templates.md" LogicalName="Dignite.Site.Mcp.Themes.theme-guide.md" />
+  </ItemGroup>
+
 </Project>

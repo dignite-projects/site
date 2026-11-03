@@ -14,6 +14,7 @@ Site does not ship an AI assistant. It opens its authoring capabilities as tools
 ## What the Server Offers
 
 * **The `site://schema` resource**, also available as the `site_get_schema` tool: the site's languages, its primary domain, its pages with their routes, the content types of each page, and the fields of each content type with their types, configuration, whether they are required, and their descriptions.
+* **The `site://theme-guide` resource**, also available as the `site_get_theme_guide` tool: how to write the theme, which is the page [Scriban Templates](../rendering/scriban-templates.md) itself. A model reads it to learn the variables a template sees and the functions it can call.
 * **Tools** to manage pages, content types, fields, contents and files, and to resolve a URL path. See [Tools](tools.md).
 * **Instructions** that the client receives when it connects, telling the model to read the schema first, which names to use, and the two mistakes models most often make: leaving out the slug, and inventing a language tag.
 

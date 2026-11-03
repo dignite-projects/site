@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An AI client can read how to write a theme.** The variables a template sees and the functions it can call were
+  written only in the documentation, which a client connected over MCP does not have, so a model wrote templates from
+  what it remembers of Liquid. The `site://theme-guide` resource and the `site_get_theme_guide` tool return the page
+  [Scriban Templates](docs/en/rendering/scriban-templates.md) itself, embedded in `Dignite.Site.Mcp`, and the MCP
+  instructions tell the model to read it before it writes a template. The descriptions of `site_create_page` and
+  `site_update_page` named `site_save_template`, a tool that no longer exists; they name `site_save_theme_file`.
 - **A Scriban theme carries its own texts.** `t` used to read the files a host ships next to its Razor views, so a
   tenant could not write the texts of a theme without a deployment, and a rollback or a preview left them behind.
   A theme's `locales/{culture}.json` files, in ABP's localization format, are now published, previewed and rolled
