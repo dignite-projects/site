@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dignite.Site.Public.Localization;
 using Dignite.Site.Themes;
 using Volo.Abp;
 
@@ -14,6 +15,7 @@ namespace Dignite.Site.Public.Themes;
 public class SiteThemeRenderSet
 {
     private readonly Dictionary<string, SiteThemeSnapshotFileDto> _filesByPath;
+    private readonly Lazy<SiteThemeTextCatalog> _texts;
 
     public SiteThemeRenderSet(SiteThemeSnapshotDto snapshot)
     {
@@ -21,9 +23,16 @@ public class SiteThemeRenderSet
         _filesByPath = snapshot.Files
             .GroupBy(file => file.Path, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        _texts = new Lazy<SiteThemeTextCatalog>(() => SiteThemeTextCatalog.Create(snapshot.Files));
     }
 
     public SiteThemeSnapshotDto Snapshot { get; }
+
+    /// <summary>
+    /// The theme's own texts, its <c>locales/*.json</c> files, parsed on first use and then shared by every request
+    /// that renders this set.
+    /// </summary>
+    public SiteThemeTextCatalog Texts => _texts.Value;
 
     /// <summary>The release it is, or null for a working copy.</summary>
     public Guid? ReleaseId => Snapshot.ReleaseId;

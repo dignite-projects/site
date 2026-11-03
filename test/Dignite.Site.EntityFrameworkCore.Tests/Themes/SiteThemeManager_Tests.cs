@@ -206,6 +206,36 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
         (await ThemeAsync()).LiveReleaseId.ShouldBeNull();
     }
 
+    /// <summary>A text file that is not valid would be skipped by the renderer, so it stops the publish instead.</summary>
+    [Fact]
+    public async Task Should_Refuse_To_Publish_A_Text_File_That_Is_Not_Valid()
+    {
+        await SaveAsync("locales/ja.json", "{ not json");
+
+        var check = await CheckAsync();
+        check.Analysis.Issues.ShouldContain(i => i.Code == SiteThemeIssueCodes.TextFileInvalid && i.Path == "locales/ja.json");
+
+        var ex = await Should.ThrowAsync<BusinessException>(() => PublishAsync());
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemeHasErrors);
+    }
+
+    /// <summary>
+    /// A static file comes to a render with its hash only - except the theme's texts, which `t` reads out of the
+    /// release the page renders with.
+    /// </summary>
+    [Fact]
+    public async Task A_Render_Should_Be_Given_The_Themes_Texts_And_No_Other_Static_Body()
+    {
+        const string ja = "{ \"culture\": \"ja\", \"texts\": { \"Blog:Name\": \"ブログ\" } }";
+        await SaveAsync("locales/ja.json", ja);
+
+        var release = await PublishAsync();
+
+        var forRender = await WithUnitOfWorkAsync(() => _releaseRepository.GetContentsAsync(release.Id));
+        forRender.Single(c => c.Path == "locales/ja.json").Body.ShouldBe(ja);
+        forRender.Single(c => c.Path == "css/site.css").Body.ShouldBeNull();
+    }
+
     [Fact]
     public async Task Should_Refuse_To_Publish_What_Changed_Since_The_Check()
     {

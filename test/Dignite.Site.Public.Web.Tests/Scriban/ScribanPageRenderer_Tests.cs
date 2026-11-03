@@ -185,13 +185,61 @@ public class ScribanPageRenderer_Tests
     }
 
     [Fact]
-    public async Task T_Should_Read_The_Sites_Texts_With_Fallbacks()
+    public async Task T_Should_Read_The_Themes_Texts_With_Fallbacks()
     {
-        var html = await new ScribanTestRenderer().RenderAsync(
+        var html = await new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
             "[{{ t \"Blog:Name\" }}][{{ \"Blog:Name\" | t }}][{{ t \"Blog:Missing\" \"Fallback\" }}][{{ t \"Blog:Missing\" }}]",
-            HeadOnlyLayout);
+            HeadOnlyLayout,
+            assets: ScribanTestRenderer.JapaneseTexts));
 
         html.ShouldEndWith("[ブログ][ブログ][Fallback][Blog:Missing]");
+    }
+
+    /// <summary>A page in Japanese on a site whose default language is English: the English text stands in for a Japanese one the theme lacks.</summary>
+    [Fact]
+    public async Task T_Should_Fall_Back_To_The_Sites_Default_Language()
+    {
+        var html = await new ScribanTestRenderer("en,ja", "/ja/about").RenderAsync(ScribanTestRenderer.RenderSet(
+            "[{{ t \"Blog:Name\" }}][{{ t \"Menu:About\" }}][{{ t \"Nowhere\" }}]",
+            HeadOnlyLayout,
+            assets: new Dictionary<string, string>
+            {
+                ["locales/ja.json"] = "{ \"culture\": \"ja\", \"texts\": { \"Blog:Name\": \"ブログ\" } }",
+                ["locales/en.json"] = "{ \"culture\": \"en\", \"texts\": { \"Blog:Name\": \"Blog\", \"Menu:About\": \"About\" } }"
+            }));
+
+        html.ShouldEndWith("[ブログ][About][Nowhere]");
+    }
+
+    /// <summary>The renderer loads the site's languages itself and hands the default one to its functions, rather than leaving them to find it loaded.</summary>
+    [Fact]
+    public async Task The_Renderer_Should_Hand_Its_Functions_The_Sites_Default_Language()
+    {
+        var renderer = new ScribanTestRenderer("ja,en", "/en/about");
+
+        await renderer.RenderAsync("{{ site_head }}");
+
+        renderer.LastScope!.DefaultCultureName.ShouldBe("ja");
+    }
+
+    /// <summary>A theme shows its own texts and nobody else's: two themes through one renderer, and one with no texts at all.</summary>
+    [Fact]
+    public async Task T_Should_Read_Only_The_Texts_Of_The_Theme_It_Renders()
+    {
+        const string page = "[{{ t \"Greeting\" \"none\" }}]";
+        var renderer = new ScribanTestRenderer();
+
+        string Theme(string greeting) => $"{{ \"culture\": \"ja\", \"texts\": {{ \"Greeting\": \"{greeting}\" }} }}";
+
+        var acme = await renderer.RenderAsync(ScribanTestRenderer.RenderSet(
+            page, HeadOnlyLayout, assets: new Dictionary<string, string> { ["locales/ja.json"] = Theme("Acme") }));
+        var globex = await renderer.RenderAsync(ScribanTestRenderer.RenderSet(
+            page, HeadOnlyLayout, assets: new Dictionary<string, string> { ["locales/ja.json"] = Theme("Globex") }));
+        var plain = await renderer.RenderAsync(ScribanTestRenderer.RenderSet(page, HeadOnlyLayout));
+
+        acme.ShouldEndWith("[Acme]");
+        globex.ShouldEndWith("[Globex]");
+        plain.ShouldEndWith("[none]");
     }
 
     [Fact]

@@ -20,7 +20,7 @@ A tenant's Scriban templates, together with the CSS, JavaScript and other text f
 | A path whose last segment has no extension | `Default`, `blog/post`, `_card`, `layouts/default` | A Scriban template. |
 | A path whose last segment has an extension | `css/site.css`, `js/menu.min.js` | A [static file](#static-files), served as it is. |
 
-There are no reserved folders. A new theme starts with two files, `layouts/default` and `css/site.css`, and the folders they are in are only a suggestion: arrange the files as you like. What a template is used for follows from what refers to it:
+No folder is reserved for templates. A new theme starts with two files, `layouts/default` and `css/site.css`, and the folders they are in are only a suggestion: arrange the files as you like. The one folder with a meaning of its own is `locales/`, which holds the theme's [texts](template-localization.md#texts-in-a-scriban-theme), one `{culture}.json` file per language. What a template is used for follows from what refers to it:
 
 * A **page template** is a template a page's `Template` names; see [Choosing the Engine](#choosing-the-engine).
 * A **partial** is a template another template `include`s; see [Partials](#partials). A leading `_` in its name, as in `_card` or `blog/_sidebar`, is a common way to tell partials apart, but it is not required.
@@ -95,13 +95,14 @@ These are errors, and a theme with any of them cannot be published:
 * An `include`, an `asset_url` or a `layout` names a file the theme does not have, or the wrong kind of file: `include` and `layout` take a template, `asset_url` a static file.
 * Templates include each other in a circle.
 * A layout, or a page template rendered without a layout, never calls `site_head`, not even in what it includes.
+* A file in `locales/` is not a valid file of the theme's [texts](template-localization.md#texts-in-a-scriban-theme), or two files hold the texts of the same language.
 
 These are warnings:
 
 * A page's `Template` is not a template of the theme, so a Razor view renders it.
 * A layout never writes `{{ body }}`.
 * A layout is also a page template, or is included.
-* Nothing uses a file: no page, template or setting refers to it.
+* Nothing uses a file: no page, template or setting refers to it. The files in `locales/` are never reported, since `t` reads them by language.
 
 Each finding names its file and, where it has one, the line and the column, with a message in the user's language.
 
@@ -170,7 +171,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | Function | Description |
 |---|---|
 | `site_head [title] [description]` | Writes the head tags; see [Layouts](#layouts). |
-| `t key [fallback]` | A localized text, in the language of the page; `fallback` when the key has no text. It can be piped: `{{ "Key" | t }}`. See [Localizing Template Texts](template-localization.md). |
+| `t key [fallback]` | A localized text, in the language of the page; `fallback` when the key has no text. It can be piped: `{{ "Key" | t }}`. The texts are the theme's own, in `locales/{culture}.json`, and nothing else. See [Localizing Template Texts](template-localization.md). |
 | `url path [culture]` | The address of a path in a language. Only a path that starts with `~/` gets the language prefix and the application's path base; anything else is returned unchanged. The language of the request by default. |
 | `page_url page_no` | The address of a page of the list the current page is, for a pager; see [Paging](#paging). |
 | `file_url url width [height]` | The address of a stored image resized to the given size, from a file field's value. |
@@ -336,7 +337,7 @@ A static file is CSS, JavaScript or another text file of the theme, a file whose
 * It is stored as it is and is **not** parsed as Scriban, so `{{` in a stylesheet or a script is just text.
 * It is served, unrendered, by the application at `GET /site-assets/{path}`, where `{path}` is its full path: `css/site.css` is served at `/site-assets/css/site.css`.
 
-Only the live release's files are served. A file the live release does not have answers 404; so does a template's path.
+Only the live release's files are served. A file the live release does not have answers 404; so does a template's path. The theme's texts in `locales/` are static files too, and are served the same way, so keep nothing private in them.
 
 The response carries these headers:
 

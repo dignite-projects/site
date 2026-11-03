@@ -55,9 +55,10 @@
 
 ## 4. 文件
 
-### 4.1 程序不认任何目录
+### 4.1 程序只认一个目录：`locales/`
 
-程序里没有保留目录。新主题默认建好 `layouts/` 和 `css/` 并放进骨架文件，这只是推荐的组织方式，作者可以改名、删掉、另建。
+模板和样式脚本没有保留目录。新主题默认建好 `layouts/` 和 `css/` 并放进骨架文件，这只是推荐的组织方式，作者可以改名、删掉、另建。
+唯一的例外是 `locales/`：主题自带的文本放在 `locales/{culture}.json`，见 4.4。
 
 文件只分两种，由**扩展名**决定：
 
@@ -112,6 +113,34 @@ layout = "layouts/landing"
 静态资源为空；在 `layouts/` 下给 layout 骨架；名字以 `_` 开头给片段骨架；其余给页面模板骨架，不写 front matter，用默认 layout。
 编辑器的语法高亮按扩展名选：模板用 HTML，`.css`、`.js` 等用各自的语言。
 骨架只是起点，按推荐目录猜的，不代表类型。
+
+### 4.4 主题自带文本：`locales/{culture}.json`
+
+`t` 原来只读宿主随程序发布的 `/Sites/[{tenant}/]Localization/{culture}.json`（#73）。主题存在数据库里、按租户运行时创建，
+文本留在发布单元之外就有四个问题：改文本要重新部署宿主；租户没法往宿主磁盘放文件；回滚到旧发布，文本仍是现在的；预览看不到文本的改动。
+所以文本改成主题的一部分，随工作副本、预览、发布、回滚走。
+
+- **位置与格式。** `locales/{culture}.json`，ABP 本地化 JSON（`{"culture": "ja", "texts": {...}}`），与宿主的文件同格式，可以互相搬。
+  文件名就是语言，且必须等于内容里的 `culture`（忽略大小写，按规范拼写比较），否则校验报错，免得复制 `en.json` 改成日文却没改名，
+  悄悄顶替英文。
+- **为什么是固定目录而不是"文件名像语言就算"。** 后者要靠文件名形状和内容猜意图（`faq.json`、`nav.json` 是不是文本？），
+  猜不准就只能静默忽略，作者写坏了也不知道。固定目录下的 `.json` 一律按文本读，坏了一律报错。用户 2026-11-03 决定：固定 `locales/` 参照
+  Shopify 的主题结构，不算破坏"没有保留目录"。
+- **读取。** `SiteThemeRenderSet.Texts` 惰性解析一次，随快照缓存。线上快照原本只带模板正文、静态资源只带哈希，现在 `locales/` 下的文件
+  也带正文（`GetContentsAsync` 按 `SiteThemeTextFiles.IsTextFile` 放行）。
+- **`t` 只读主题自带的文本。** `ScribanPageRenderer` 注册 `t` 时把 `renderSet.Texts`、页面语言（`viewModel.CultureName`）和站点默认语言交给
+  `TextFunction`，按 `SiteTemplateCultureChain`（请求语言 → 各级父语言 → 站点默认语言）逐个语言查，查不到用 `t` 的第二个参数，再不行显示 key。
+  线上渲染和预览都经过 `RenderAsync`，所以只此一处。`t` 不再经过 ABP 的 localizer，也就不读宿主的 `/Sites/.../Localization`；
+  那条路径只留给 Razor 视图，`SiteTemplateLocalizationContributor` 一行逻辑都没改，只是把语言链抽成了 `SiteTemplateCultureChain` 两边共用。
+- **为什么不再兜底到宿主文件。** 最初做过"先主题、再宿主，逐语言交错"，后来去掉了：租户只读自己的 `/Sites/{tenantName}/Localization/`，
+  云上租户这一层本来就是空的；剩下的用途（自托管单站点、Razor 逐页迁到 Scriban 时共用文本）把文本复制进 `locales/` 一次就解决，
+  而代价是 contributor 里的交错逻辑、一个 AsyncLocal、两处来源要解释。2.0.0 未发布，没有要保护的既有行为（用户 2026-11-03 定）。
+- **校验。** `locales/` 下不是合法文本文件（解析失败、缺 `culture` 或 `texts`、文本不是字符串、`culture` 与文件名不符）和同一语言的两个文件，
+  都是错误，拦发布（`ThemeIssue:TextFileInvalid`、`ThemeIssue:TextFileDuplicate`）。这些文件不报"未使用"。运行时遇到坏文件静默跳过、同一语言取路径排序在前的，
+  因为发布已经拦过，不在每次渲染里记日志。
+- **公开。** 它们仍是静态资源，会出现在 `/site-assets/locales/…`；文档里提醒不要放私密内容，也算一个小收益：前端脚本可以直接取。
+- **没做的。** 校验不检查模板里 `t "Key"` 的 key 是否在文本里（可以以后加一条警告）；`render_field` 在 Scriban 渲染里调到的 Razor 片段读的是宿主文件，
+  不是主题文本。
 
 ## 5. 编辑、校验与发布
 
@@ -273,7 +302,8 @@ AI 先写文件、再检查、再预览、最后发布，正好是工作副本�
 
 | 事项 | 结论 |
 |---|---|
-| 目录 | 程序不认任何目录；新主题默认建 `layouts/`、`css/` 作为推荐（用户 2026-11-01；2026-11-03 由 `assets/` 改为按类型分的 `css/`、`js/`，地址不再出现两段 `assets`，也便于本地静态页的目录原样搬进来） |
+| 主题文本 | 固定 `locales/{culture}.json`，是程序认的唯一目录；Scriban 的 `t` 只读主题自带的文本，不兜底到宿主文件，Razor 仍读宿主文件（用户 2026-11-03，见 4.4） |
+| 目录 | 模板和样式脚本不认任何目录；新主题默认建 `layouts/`、`css/` 作为推荐（用户 2026-11-01；2026-11-03 由 `assets/` 改为按类型分的 `css/`、`js/`，地址不再出现两段 `assets`，也便于本地静态页的目录原样搬进来） |
 | 类型 | 带扩展名为静态资源，扩展名有白名单；其余为 Scriban 模板，角色由引用决定，界面不标类型；`_` 开头表示片段只是推荐（用户 2026-11-01） |
 | layout 引用 | front matter 写完整路径 `layout = "layouts/landing"`（用户 2026-11-01） |
 | 默认 layout | 主题设置项，初始值 `layouts/default`，可改，随快照冻结（用户 2026-11-01）；界面上在布局页的编辑器工具栏点"设为默认布局页"，清空走 API / MCP（2026-11-02） |

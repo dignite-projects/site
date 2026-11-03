@@ -60,6 +60,9 @@ public sealed class SiteThemeFileAnalysis
     /// <summary>The parsed template; null for a static file.</summary>
     public Scriban.Template? Template { get; internal set; }
 
+    /// <summary>What a file of the theme's texts (<c>locales/ja.json</c>) holds; null for any other file.</summary>
+    public SiteThemeTextFileReadResult? TextFile { get; internal set; }
+
     public IReadOnlyList<ScribanTemplateError> SyntaxErrors { get; internal set; } = Array.Empty<ScribanTemplateError>();
 
     public SiteTemplateFrontMatter FrontMatter { get; internal set; } = SiteTemplateFrontMatter.Empty;
@@ -146,6 +149,11 @@ public static class SiteThemeAnalyzer
         var analysis = new SiteThemeFileAnalysis(file.Path, file.Body);
         if (analysis.IsAsset)
         {
+            if (SiteThemeTextFiles.IsTextFile(file.Path))
+            {
+                analysis.TextFile = SiteThemeTextFiles.Read(file.Path, file.Body);
+            }
+
             return analysis;
         }
 
@@ -187,6 +195,7 @@ public static class SiteThemeAnalyzer
         public void Run(List<SiteThemePageTemplate> pages)
         {
             ReportSyntaxAndFrontMatter();
+            ReportTextFiles();
             ReadPages(pages);
             ReadDefaultLayout();
             ReadReferences();
@@ -235,6 +244,37 @@ public static class SiteThemeAnalyzer
                 {
                     Error(SiteThemeIssueCodes.FrontMatterInvalid, file.Path, error.Line, error.Column, ("Message", error.Message));
                 }
+            }
+        }
+
+        /// <summary>
+        /// The theme's texts: a file that is not valid would be skipped by the renderer, so it is an error here, and
+        /// so is a second file for a language the first already covers (<c>locales/ja.json</c> and
+        /// <c>locales/JA.json</c>), of which the renderer could keep only one.
+        /// </summary>
+        private void ReportTextFiles()
+        {
+            var covered = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var file in _files.Values
+                         .Where(file => file.TextFile != null)
+                         .OrderBy(file => file.Path, StringComparer.Ordinal))
+            {
+                var result = file.TextFile!;
+                if (!result.IsValid)
+                {
+                    Error(SiteThemeIssueCodes.TextFileInvalid, file.Path, null, null, ("Message", result.Error!));
+                    continue;
+                }
+
+                if (covered.TryGetValue(result.CultureName!, out var first))
+                {
+                    Error(SiteThemeIssueCodes.TextFileDuplicate, file.Path, null, null,
+                        ("Culture", result.CultureName!), ("Other", first));
+                    continue;
+                }
+
+                covered[result.CultureName!] = file.Path;
             }
         }
 
@@ -450,7 +490,8 @@ public static class SiteThemeAnalyzer
         {
             foreach (var path in _files.Keys.OrderBy(path => path, StringComparer.Ordinal))
             {
-                if (!Usages.ContainsKey(path))
+                // The theme's texts are read by `t`, not referred to by name.
+                if (!Usages.ContainsKey(path) && _files[path].TextFile == null)
                 {
                     Warning(SiteThemeIssueCodes.UnusedFile, path, null, null);
                 }

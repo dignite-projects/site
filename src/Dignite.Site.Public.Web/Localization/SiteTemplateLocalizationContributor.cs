@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,8 +25,8 @@ namespace Dignite.Site.Public.Localization;
 /// (<see cref="SiteTemplateDefaultCulture"/>). Past that ABP reports it not found and shows the key - or a
 /// template passes its own fallback through <c>GetOrDefault</c>.
 /// <para>
-/// The whole order lives here rather than in ABP's own fallback, which climbs one parent level at most and
-/// has no notion of a per-site default. ABP caches one localizer per resource and asks its contributors on
+/// The whole order is ours (<see cref="SiteTemplateCultureChain"/>) rather than ABP's own fallback, which
+/// climbs one parent level at most and has no notion of a per-site default. ABP caches one localizer per resource and asks its contributors on
 /// every lookup, so reading the current tenant here, per call, is what makes one resource serve every
 /// tenant; the texts themselves are cached per tenant folder, per culture.
 /// </para>
@@ -119,41 +118,6 @@ public class SiteTemplateLocalizationContributor : ILocalizationResourceContribu
     /// </summary>
     protected virtual IReadOnlyList<string> GetCultureChain(string cultureName)
     {
-        var chain = new List<string>();
-        AddWithParents(chain, cultureName);
-
-        var defaultCultureName = SiteTemplateDefaultCulture.Current;
-        if (!string.IsNullOrWhiteSpace(defaultCultureName))
-        {
-            AddWithParents(chain, defaultCultureName);
-        }
-
-        return chain;
-    }
-
-    private static void AddWithParents(List<string> chain, string cultureName)
-    {
-        CultureInfo culture;
-        try
-        {
-            culture = CultureInfo.GetCultureInfo(cultureName);
-        }
-        catch (CultureNotFoundException)
-        {
-            if (!chain.Contains(cultureName))
-            {
-                chain.Add(cultureName);
-            }
-
-            return;
-        }
-
-        foreach (var member in CultureChain.Of(culture))
-        {
-            if (!chain.Contains(member.Name))
-            {
-                chain.Add(member.Name);
-            }
-        }
+        return SiteTemplateCultureChain.Create(cultureName, SiteTemplateDefaultCulture.Current);
     }
 }

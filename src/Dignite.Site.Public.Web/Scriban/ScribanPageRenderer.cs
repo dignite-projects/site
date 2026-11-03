@@ -15,7 +15,6 @@ using global::Scriban.Runtime;
 using global::Scriban.Syntax;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -54,7 +53,6 @@ public class ScribanPageRenderer : ITransientDependency
     protected ScribanSandbox Sandbox { get; }
     protected ScribanTemplateCache TemplateCache { get; }
     protected ScribanRenderModelBuilder ModelBuilder { get; }
-    protected IStringLocalizer<SiteTemplateResource> TemplateLocalizer { get; }
     protected SiteLanguageContext LanguageContext { get; }
     protected IOptions<SiteLanguageOptions> LanguageOptions { get; }
     protected IUrlHelperFactory UrlHelperFactory { get; }
@@ -68,7 +66,6 @@ public class ScribanPageRenderer : ITransientDependency
         ScribanSandbox sandbox,
         ScribanTemplateCache templateCache,
         ScribanRenderModelBuilder modelBuilder,
-        IStringLocalizer<SiteTemplateResource> templateLocalizer,
         SiteLanguageContext languageContext,
         IOptions<SiteLanguageOptions> languageOptions,
         IUrlHelperFactory urlHelperFactory,
@@ -81,7 +78,6 @@ public class ScribanPageRenderer : ITransientDependency
         Sandbox = sandbox;
         TemplateCache = templateCache;
         ModelBuilder = modelBuilder;
-        TemplateLocalizer = templateLocalizer;
         LanguageContext = languageContext;
         LanguageOptions = languageOptions;
         UrlHelperFactory = urlHelperFactory;
@@ -133,7 +129,8 @@ public class ScribanPageRenderer : ITransientDependency
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(requestAborted);
         timeout.CancelAfter(options.RenderTimeout);
 
-        var scope = new ScribanRenderScope(viewModel, actionContext, renderSet);
+        var languages = await LanguageContext.GetLanguagesAsync();
+        var scope = new ScribanRenderScope(viewModel, actionContext, renderSet, languages.DefaultCultureName);
         var globals = await ModelBuilder.BuildGlobalsAsync(viewModel);
         RegisterFunctions(globals, scope);
         var templateLoader = CreateTemplateLoader(renderSet);
@@ -178,7 +175,10 @@ public class ScribanPageRenderer : ITransientDependency
         var pageQueryKey = Options.Value.PageQueryKey;
 
         globals.SetValue(SiteHeadFunction.Name, new SiteHeadFunction(scope, HtmlEncoder, pageQueryKey), true);
-        globals.SetValue(TextFunction.Name, new TextFunction(TemplateLocalizer), true);
+        globals.SetValue(
+            TextFunction.Name,
+            new TextFunction(scope.RenderSet.Texts, scope.ViewModel.CultureName, scope.DefaultCultureName),
+            true);
         globals.SetValue(UrlFunction.Name, new UrlFunction(scope, LanguageContext, LanguageOptions, UrlHelperFactory), true);
         globals.SetValue(PageUrlFunction.Name, new PageUrlFunction(scope, LanguageContext, UrlHelperFactory, pageQueryKey), true);
         globals.SetValue(FileUrlFunction.Name, new FileUrlFunction(), true);

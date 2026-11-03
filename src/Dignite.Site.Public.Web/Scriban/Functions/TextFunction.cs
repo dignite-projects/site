@@ -1,30 +1,39 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dignite.Site.Public.Localization;
-using Dignite.Site.Public.Templating;
 using global::Scriban;
 using global::Scriban.Parsing;
 using global::Scriban.Runtime;
-using Microsoft.Extensions.Localization;
 
 namespace Dignite.Site.Public.Scriban.Functions;
 
 /// <summary>
-/// <c>t key [fallback]</c>, also <c>{{ "Blog:Name" | t }}</c>: the site's own template text named <c>key</c>
-/// (<see cref="SiteTemplateResource"/>, GitHub issue #73), in the page's language with the site's default
-/// language behind it - or <c>fallback</c>, or failing that the key itself, when the site has not written it
-/// (<c>LocalizerTemplateExtensions.GetOrDefault</c>). Written HTML-encoded, like every value; a text that
-/// holds markup on purpose is written with <c>{{ t "key" | html_raw }}</c>.
+/// <c>t key [fallback]</c>, also <c>{{ "Blog:Name" | t }}</c>: the theme's own text named <c>key</c>
+/// (<c>locales/{culture}.json</c>, <see cref="SiteThemeTextCatalog"/>), in the page's language with the parent
+/// languages and the site's default language behind it (<see cref="SiteTemplateCultureChain"/>) - or
+/// <c>fallback</c>, or failing that the key itself, when the theme has not written it. Written HTML-encoded, like
+/// every value; a text that holds markup on purpose is written with <c>{{ t "key" | html_raw }}</c>.
+/// <para>
+/// The theme's texts only: the files a host ships for its Razor views (<see cref="SiteTemplateLocalizationContributor"/>)
+/// are not read, so what a theme shows is what its release holds.
+/// </para>
 /// </summary>
 public class TextFunction : SiteScriptFunction
 {
     public const string Name = "t";
 
-    protected IStringLocalizer<SiteTemplateResource> Localizer { get; }
+    protected SiteThemeTextCatalog Texts { get; }
 
-    public TextFunction(IStringLocalizer<SiteTemplateResource> localizer)
+    protected IReadOnlyList<string> CultureChain { get; }
+
+    /// <param name="texts">The texts of the theme being rendered.</param>
+    /// <param name="cultureName">The page's language.</param>
+    /// <param name="defaultCultureName">The site's default language, the last one tried; null for none.</param>
+    public TextFunction(SiteThemeTextCatalog texts, string cultureName, string? defaultCultureName)
         : base(Required<string>("key"), Optional<string>("fallback"))
     {
-        Localizer = localizer;
+        Texts = texts;
+        CultureChain = SiteTemplateCultureChain.Create(cultureName, defaultCultureName);
     }
 
     protected override ValueTask<object?> InvokeAsync(TemplateContext context, SourceSpan span, ScriptArray arguments)
@@ -35,6 +44,6 @@ public class TextFunction : SiteScriptFunction
             return new ValueTask<object?>(string.Empty);
         }
 
-        return new ValueTask<object?>(Localizer.GetOrDefault(key, arguments[1] as string));
+        return new ValueTask<object?>(Texts.Find(CultureChain, key) ?? arguments[1] as string ?? key);
     }
 }

@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A Scriban theme carries its own texts.** `t` used to read the files a host ships next to its Razor views, so a
+  tenant could not write the texts of a theme without a deployment, and a rollback or a preview left them behind.
+  A theme's `locales/{culture}.json` files, in ABP's localization format, are now published, previewed and rolled
+  back with the theme, and `t` reads them and nothing else, in the page's language, its parent languages and the
+  site's default language. Razor views keep reading the host's files, as before. `locales/` is the one folder a
+  theme gives a meaning to; the check before a publish reports a file in it that is not valid, that says another
+  language than its name does, or that repeats a language, as errors (`ThemeIssue:TextFileInvalid`,
+  `ThemeIssue:TextFileDuplicate`), and never as unused. The files are static files too, so they are served at
+  `/site-assets/locales/{culture}.json`. See
+  [Texts in a Scriban Theme](docs/en/rendering/template-localization.md#texts-in-a-scriban-theme).
+  **`ScribanPageRenderer` no longer takes `IStringLocalizer<SiteTemplateResource>`, `TextFunction` takes the
+  theme's `SiteThemeTextCatalog`, the page's language and the site's default language, and `ScribanRenderScope`
+  takes the default language: a derived class must adjust its constructor.**
+
 - **Published contents can be counted by the value of a field.** `GET api/site-public/contents/count-by-field` and
   `IContentPublicAppService.GetCountByFieldAsync` return how many contents carry each value of a field - the news per
   category - among the contents selected by the same filters as the content list (page, language, content type, text

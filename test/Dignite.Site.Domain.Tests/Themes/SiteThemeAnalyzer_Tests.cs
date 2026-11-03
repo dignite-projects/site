@@ -266,6 +266,69 @@ public class SiteThemeAnalyzer_Tests
         analysis.HasErrors.ShouldBeFalse();
     }
 
+    /// <summary>`t` reads the theme's texts by language; nothing refers to the file by name.</summary>
+    [Fact]
+    public void Should_Not_Call_The_Themes_Texts_Unused()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["locales/en.json"] = "{ \"culture\": \"en\", \"texts\": { \"A\": \"a\" } }",
+            ["locales/ja.json"] = "{ \"culture\": \"ja\", \"texts\": { \"A\": \"あ\" } }"
+        });
+
+        analysis.Issues.ShouldBeEmpty();
+        analysis.Files["locales/ja.json"].TextFile!.CultureName.ShouldBe("ja");
+        analysis.Files["layouts/default"].TextFile.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Should_Report_A_Text_File_That_Is_Not_Valid()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["locales/en.json"] = "{ \"culture\": \"en\", \"texts\": { \"A\": \"a\" } }",
+            ["locales/ja.json"] = "{ not json",
+            ["locales/fr.json"] = "{ \"culture\": \"en\", \"texts\": {} }"
+        });
+
+        var issues = analysis.Issues.Where(i => i.Code == SiteThemeIssueCodes.TextFileInvalid).ToList();
+
+        issues.Select(i => i.Path).ShouldBe(new[] { "locales/fr.json", "locales/ja.json" });
+        issues.ShouldAllBe(i => i.Severity == SiteThemeIssueSeverity.Error);
+        issues[1].Data["Message"].ShouldContain("not valid JSON");
+        analysis.HasErrors.ShouldBeTrue();
+        Codes(analysis).ShouldNotContain(SiteThemeIssueCodes.UnusedFile);
+    }
+
+    [Fact]
+    public void Should_Report_Two_Files_For_One_Language_Once_On_The_Later_One()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["locales/ja.json"] = "{ \"culture\": \"ja\", \"texts\": {} }",
+            ["locales/JA.json"] = "{ \"culture\": \"JA\", \"texts\": {} }"
+        });
+
+        var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.TextFileDuplicate);
+
+        issue.Path.ShouldBe("locales/ja.json");
+        issue.Data["Other"].ShouldBe("locales/JA.json");
+        issue.Data["Culture"].ShouldBe("ja");
+    }
+
+    /// <summary>Outside locales/ a .json file is a static file like any other.</summary>
+    [Fact]
+    public void Should_Treat_A_Json_File_Elsewhere_As_A_Static_File()
+    {
+        var analysis = Analyze(new() { ["layouts/default"] = Layout, ["assets/ja.json"] = "{ not json" });
+
+        Codes(analysis).ShouldBe(new[] { SiteThemeIssueCodes.UnusedFile });
+        analysis.Files["assets/ja.json"].TextFile.ShouldBeNull();
+    }
+
     [Fact]
     public void Should_Warn_About_A_Layout_Used_Another_Way_Too()
     {

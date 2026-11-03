@@ -9,9 +9,39 @@
 
 A site's templates show text that is not content: the names of a Select field's options, labels, archive headings. Whoever writes the templates also writes these texts, in JSON files next to the templates, one file per language. Site reads them per tenant, the same way it finds the templates themselves.
 
+There are two places for texts, one for each engine. The texts of a [Scriban theme](scriban-templates.md) belong to the theme and are published with it, and a Scriban template's `t` reads only those. The texts of [Razor views](#where-the-files-go) are files the host ships, and Razor views read only those.
+
+## Texts in a Scriban Theme
+
+A theme keeps its texts in its own files, one per language, in the `locales/` folder: `locales/en.json`, `locales/ja.json`, `locales/zh-Hans.json`. They are saved, previewed, published and rolled back with the rest of the theme, so a tenant can write them without a deployment.
+
+````json
+{
+  "culture": "ja",
+  "texts": {
+    "Blog:Name": "ブログ",
+    "Archive:Month": "{0:yyyy年M月}の記事"
+  }
+}
+````
+
+The format is the one [below](#file-format), so a file can move between a theme and a host. The name of the file is its language, and it must be the `culture` the file says: a `locales/en.json` that says `"culture": "ja"` is an error, not a second Japanese file. Comments and trailing commas are allowed.
+
+A template reads a text with `t`, in the language of the page:
+
+````
+<a href="{{ url "~/blog" }}">{{ t "Blog:Name" "Blog" }}</a>
+````
+
+The second argument is the fallback for a key the theme has not written; without one, the key is shown. `t` looks in the page's language, then in its parent languages and then in the site's default language, the order described under [Lookup Order](#lookup-order). It does not read the files a host ships for its Razor views, so what a theme shows is what its release holds. See [Scriban Templates](scriban-templates.md#functions) for `t`.
+
+The check before a publish reports a file in `locales/` that does not parse, has no `culture` or `texts`, has a text that is not a string, or does not say its own language, and two files for the same language. Each is an error, so a theme with one cannot be published. The files in `locales/` are never reported as unused.
+
+`locales/` files are static files too, so they are served at `/site-assets/locales/ja.json` like the rest: put nothing private in them.
+
 ## Where the Files Go
 
-Next to the templates, in a `Localization` folder:
+For Razor views, next to the templates, in a `Localization` folder:
 
 | Site | Templates | Texts |
 |---|---|---|
@@ -81,6 +111,8 @@ Within the one folder that applies, the tenant's or, when there is no tenant, th
 4. Otherwise the text is not found: `L[key]` shows the key, and `GetOrDefault` shows the template's fallback.
 
 Step 3 applies in every view that MVC renders, Site pages and the host's own pages alike; see [Multilingual Sites](languages.md#template-texts). Outside a view, such as in a background job, it is skipped.
+
+A Scriban theme's `locales/` files are looked up in the same order of languages.
 
 ## Using the Texts in a Template
 
