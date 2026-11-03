@@ -36,18 +36,32 @@ public static class SiteThemeGuide
     }
 
     /// <summary>
-    /// The documentation page starts with a block for the documentation site's search engine, which says nothing to a
-    /// model: the guide starts at the page's title.
+    /// The documentation site renders its pages with Scriban, so a page whose examples are full of double braces is
+    /// written inside a raw block, <c>{%{ ... }%}</c>, that the site removes. The block's opener is above the title and
+    /// goes with the front matter; its closer is the page's last line and is cut here.
+    /// </summary>
+    private const string RawBlockEnd = "}%}";
+
+    /// <summary>
+    /// The documentation page starts with a block for the documentation site's search engine and the opener of its raw
+    /// block, which say nothing to a model: the guide starts at the page's title and ends where the raw block does.
     /// </summary>
     private static string SkipFrontMatter(string page)
     {
-        if (page.StartsWith("# ", StringComparison.Ordinal))
+        if (!page.StartsWith("# ", StringComparison.Ordinal))
         {
-            return page;
+            var title = page.IndexOf("\n# ", StringComparison.Ordinal);
+
+            if (title >= 0)
+            {
+                page = page[(title + 1)..];
+            }
         }
 
-        var title = page.IndexOf("\n# ", StringComparison.Ordinal);
+        page = page.TrimEnd();
 
-        return title < 0 ? page : page[(title + 1)..];
+        return page.EndsWith(RawBlockEnd, StringComparison.Ordinal)
+            ? page[..^RawBlockEnd.Length].TrimEnd()
+            : page;
     }
 }

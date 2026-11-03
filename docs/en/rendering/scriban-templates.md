@@ -5,6 +5,8 @@
 }
 ```
 
+{%{
+
 # Scriban Templates
 
 A page can be rendered by a [Scriban](https://github.com/scriban/scriban) template instead of a Razor view. Unlike a [Razor template](templates.md), which is compiled with the application and written by its developers, a Scriban template is stored in the database, belongs to one tenant, and is written by the tenant or by an AI client over the [admin API](#managing-the-theme) or the [MCP tools](#mcp-tools). It runs in a sandbox: a template can read the data it is given and call a fixed set of functions, and nothing else.
@@ -525,3 +527,5 @@ Published with these two files, every page whose `Template` is `Default` renders
 * [Localizing Template Texts](template-localization.md)
 * [SEO](../seo/index.md)
 * [MCP Tools](../mcp/tools.md)
+
+}%}

@@ -41,6 +41,20 @@ public class SiteThemeGuide_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// The page is written inside a raw block so that the documentation site, which renders its pages with Scriban,
+    /// does not read the examples' double braces as code. The guide is not rendered by anything: the block's markers
+    /// would be noise in front of a model, and the examples must come through untouched.
+    /// </summary>
+    [Fact]
+    public void Should_Leave_Out_The_Raw_Block_That_Protects_The_Page_On_The_Documentation_Site()
+    {
+        SiteThemeGuide.Text.ShouldNotContain("{%{");
+        SiteThemeGuide.Text.ShouldNotContain("}%}");
+        SiteThemeGuide.Text.ShouldEndWith("* [MCP Tools](../mcp/tools.md)");
+        SiteThemeGuide.Text.ShouldContain("{{ include \"_card\" title: \"Hi\" }}");
+    }
+
+    /// <summary>
     /// The server refuses to start on a resource it cannot build, and that is not a failure a unit test of the method
     /// would see: the SDK reads the attribute and the signature. The URI is what a client asks for.
     /// </summary>

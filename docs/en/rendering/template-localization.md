@@ -5,6 +5,8 @@
 }
 ```
 
+{%{
+
 # Localizing Template Texts
 
 A site's templates show text that is not content: the names of a Select field's options, labels, archive headings. Whoever writes the templates also writes these texts, in JSON files next to the templates, one file per language. Site reads them per tenant, the same way it finds the templates themselves.
@@ -196,3 +198,5 @@ Pass the same title to `<site-head-metadata title="@ViewBag.Title" ...>`, so tha
 ## See Also
 
 * [Multilingual Sites](languages.md)
+
+}%}

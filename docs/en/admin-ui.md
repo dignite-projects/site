@@ -5,6 +5,8 @@
 }
 ```
 
+{%{
+
 # Admin UI
 
 `@dignite/ng.site` is the administration UI of Site for an [ABP Angular application](https://abp.io/docs/latest/framework/ui/angular/overview). It manages everything the [MCP tools](mcp/index.md) manage, through the same administration API and the same permissions, for the people who prefer a form, or who check what an AI client did.
@@ -108,3 +110,5 @@ Besides `SITE_ROUTES`, `@dignite/ng.site` exports what its screens are built on:
 * [Getting Started](getting-started.md)
 * [Field Types](field-types.md)
 * [Files](files.md)
+
+}%}
