@@ -64,12 +64,17 @@ public partial class ContentToContentDtoMapper : MapperBase<Content, ContentDto>
 {
     // Url has no source on Content itself - whichever Public service resolved the content's owning page
     // alongside it sets Url by hand afterward; every other producer (Admin included) leaves it at
-    // ContentDto.Url's own string.Empty default.
+    // ContentDto.Url's own string.Empty default. PageName and ContentTypeName are the same: names live on the
+    // page and the content type, and the Admin service that reads those sets them by hand.
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
     [MapperIgnoreTarget(nameof(ContentDto.Url))]
+    [MapperIgnoreTarget(nameof(ContentDto.PageName))]
+    [MapperIgnoreTarget(nameof(ContentDto.ContentTypeName))]
     public override partial ContentDto Map(Content source);
 
     [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
     [MapperIgnoreTarget(nameof(ContentDto.Url))]
+    [MapperIgnoreTarget(nameof(ContentDto.PageName))]
+    [MapperIgnoreTarget(nameof(ContentDto.ContentTypeName))]
     public override partial void Map(Content source, ContentDto destination);
 }

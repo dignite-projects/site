@@ -46,8 +46,11 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
 
         match.Matched.ShouldBeTrue();
         match.Kind.ShouldBe(RouteMatchKindDto.Content);
-        match.Page!.Id.ShouldBe(SiteTestData.BlogPageId);
-        match.Content!.Slug.ShouldBe(SiteTestData.TripSlug);
+        match.Page.ShouldBe("blog");
+        match.ContentType.ShouldBe("post-article");
+        match.Slug.ShouldBe(SiteTestData.TripSlug);
+        match.Url.ShouldBe("/blog/" + SiteTestData.TripSlug);
+        match.CultureName.ShouldBe(SiteTestData.EnglishCulture);
     }
 
     [Fact]
@@ -58,7 +61,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
         match.Matched.ShouldBeFalse();
         match.Kind.ShouldBe(RouteMatchKindDto.None);
         match.Page.ShouldBeNull();
-        match.Content.ShouldBeNull();
+        match.Slug.ShouldBeNull();
     }
 
     /// <summary>
@@ -91,7 +94,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
         match.Kind.ShouldBe(RouteMatchKindDto.None);
     }
 
-    /// <summary>The MCP wrapper passes RouteMatchDto through untouched, but FilterValues is new enough to pin explicitly.</summary>
+    /// <summary>A partial match names the page and the values its placeholders were given, and no content.</summary>
     [Fact]
     public async Task Should_Return_Filter_Values_For_A_Partial_Match()
     {
@@ -99,6 +102,16 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
 
         match.Matched.ShouldBeTrue();
         match.Kind.ShouldBe(RouteMatchKindDto.Page);
-        match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-07");
+        match.Slug.ShouldBeNull();
+        match.FilterValues!["publishTime:yyyy-MM"].ShouldBe("2026-07");
+    }
+
+    /// <summary>A path that leads to a page of its own, with nothing to filter, has no filter values to report.</summary>
+    [Fact]
+    public async Task Should_Leave_Out_Filter_Values_When_There_Are_None()
+    {
+        var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.TripSlug);
+
+        match.FilterValues.ShouldBeNull();
     }
 }

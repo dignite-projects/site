@@ -45,9 +45,9 @@ public class ContentTypeTools : ITransientDependency
         "Defines a shape of content under a page: an ordered arrangement of fields from the field " +
         "library. Every field named here must already exist - call site_create_field for any that does not. " +
         "The same field can be pulled into any number of content types, with different required and " +
-        "searchable flags in each.")]
+        "searchable flags in each. Returns the content type as stored, its fields by name.")]
     [Authorize(SiteAdminPermissions.ContentTypes.Create)]
-    public virtual async Task<ContentTypeDto> CreateContentTypeAsync(
+    public virtual async Task<McpContentTypeSummary> CreateContentTypeAsync(
         [Description("The page this type belongs to, by name. A content type never moves to another page.")]
         string page,
         [Description("Machine name, unique within the page, e.g. 'post-article'. This is how other tools address it.")]
@@ -64,7 +64,7 @@ public class ContentTypeTools : ITransientDependency
     {
         var pageDto = await NameResolver.GetPageAsync(page);
 
-        return await ContentTypeAppService.CreateAsync(new CreateContentTypeDto
+        var created = await ContentTypeAppService.CreateAsync(new CreateContentTypeDto
         {
             PageId = pageDto.Id,
             Name = name,
@@ -72,6 +72,8 @@ public class ContentTypeTools : ITransientDependency
             Description = description,
             Fields = await ResolveFieldsAsync(fields)
         });
+
+        return await ToSummaryAsync(pageDto.Name, created);
     }
 
     [McpServerTool(Name = "site_update_content_type", Title = "Update a content type", Idempotent = true)]
@@ -81,9 +83,9 @@ public class ContentTypeTools : ITransientDependency
         "changes merged in - dropping a field from the arrangement stops its stored values being read " +
         "back, though it does not delete them. An empty 'fields' list is a real value, not a synonym for " +
         "omitting the parameter: it clears the arrangement down to zero fields. To leave fields alone, " +
-        "do not pass the parameter at all.")]
+        "do not pass the parameter at all. Returns the content type as stored, its fields by name.")]
     [Authorize(SiteAdminPermissions.ContentTypes.Update)]
-    public virtual async Task<ContentTypeDto> UpdateContentTypeAsync(
+    public virtual async Task<McpContentTypeSummary> UpdateContentTypeAsync(
         [Description("The page this type belongs to, by name.")]
         string page,
         [Description("The type's current machine name.")]
@@ -103,13 +105,43 @@ public class ContentTypeTools : ITransientDependency
         var pageDto = await NameResolver.GetPageAsync(page);
         var current = await NameResolver.GetContentTypeAsync(pageDto, contentType);
 
-        return await ContentTypeAppService.UpdateAsync(current.Id, new UpdateContentTypeDto
+        var updated = await ContentTypeAppService.UpdateAsync(current.Id, new UpdateContentTypeDto
         {
             Name = name ?? current.Name,
             DisplayName = displayName ?? current.DisplayName,
             Description = description ?? current.Description,
             Fields = fields == null ? null : await ResolveFieldsAsync(fields)
         });
+
+        return await ToSummaryAsync(pageDto.Name, updated);
+    }
+
+    /// <summary>
+    /// The content type by names: its fields are the library's, and the application service refers to them by id, which no
+    /// tool takes. A field that has since left the library, which a content type may still arrange, shows as an empty name.
+    /// </summary>
+    protected virtual async Task<McpContentTypeSummary> ToSummaryAsync(string page, ContentTypeDto contentType)
+    {
+        var fieldNames = await NameResolver.GetFieldNamesAsync();
+
+        return new McpContentTypeSummary
+        {
+            Page = page,
+            Name = contentType.Name,
+            DisplayName = contentType.DisplayName,
+            Description = contentType.Description,
+            Fields = contentType.Fields
+                .Select(field => new McpContentTypeFieldSummary
+                {
+                    Field = fieldNames.GetValueOrDefault(field.FieldId) ?? string.Empty,
+                    Required = field.Required,
+                    Searchable = field.Searchable,
+                    ShowInList = field.ShowInList,
+                    DisplayName = field.DisplayName,
+                    Order = field.Order
+                })
+                .ToList()
+        };
     }
 
     [McpServerTool(Name = "site_delete_content_type", Title = "Delete a content type", Destructive = true)]

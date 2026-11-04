@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Common;
 using Dignite.Site.Contents;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Pages;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Validation;
@@ -19,16 +21,26 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
 
     protected ContentManager ContentManager { get; }
 
-    public ContentAdminAppService(IContentRepository contentRepository, ContentManager contentManager)
+    protected IPageRepository PageRepository { get; }
+
+    protected IContentTypeRepository ContentTypeRepository { get; }
+
+    public ContentAdminAppService(
+        IContentRepository contentRepository,
+        ContentManager contentManager,
+        IPageRepository pageRepository,
+        IContentTypeRepository contentTypeRepository)
     {
         ContentRepository = contentRepository;
         ContentManager = contentManager;
+        PageRepository = pageRepository;
+        ContentTypeRepository = contentTypeRepository;
     }
 
     public virtual async Task<ContentDto> GetAsync(Guid id)
     {
         var content = await ContentRepository.GetAsync(id);
-        return MapToDto(content);
+        return await MapToDtoAsync(content);
     }
 
     public virtual async Task<ContentDto?> FindBySlugAsync(Guid pageId, string cultureName, string slug)
@@ -62,7 +74,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
 
         var content = await ContentRepository.FindBySlugAsync(pageId, normalizedCulture, slug);
 
-        return content == null ? null : MapToDto(content);
+        return content == null ? null : await MapToDtoAsync(content);
     }
 
     public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
@@ -78,7 +90,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
             filter: input.Filter, flexFieldConditions: input.FlexFieldConditions,
             maxResultCount: input.MaxResultCount, skipCount: input.SkipCount, sorting: input.Sorting);
 
-        return new PagedResultDto<ContentDto>(totalCount, contents.Select(MapToDto).ToList());
+        return new PagedResultDto<ContentDto>(totalCount, await MapToDtosAsync(contents));
     }
 
     [Authorize(SiteAdminPermissions.Contents.Create)]
@@ -88,7 +100,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
             input.ContentTypeId, input.CultureName, input.Slug, input.PublishTime, input.Status,
             input.FieldValues);
 
-        return MapToDto(content);
+        return await MapToDtoAsync(content);
     }
 
     [Authorize(SiteAdminPermissions.Contents.Update)]
@@ -99,7 +111,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
         content = await ContentManager.UpdateAsync(
             content, input.Slug, input.PublishTime, input.Status, input.FieldValues, input.ContentTypeId);
 
-        return MapToDto(content);
+        return await MapToDtoAsync(content);
     }
 
     [Authorize(SiteAdminPermissions.Contents.Delete)]
@@ -109,10 +121,44 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
         await ContentRepository.DeleteAsync(id);
     }
 
-    protected virtual ContentDto MapToDto(Content content)
+    protected virtual async Task<ContentDto> MapToDtoAsync(Content content)
     {
-        var dto = ObjectMapper.Map<Content, ContentDto>(content);
-        dto.FieldValues = content.FlexFields.ToValueDictionary();
-        return dto;
+        return (await MapToDtosAsync(new[] { content })).Single();
+    }
+
+    /// <summary>
+    /// The contents as DTOs, each with the names of its page and content type: looked up once for the whole list, from the
+    /// repositories, so that reading a content needs the permission to read contents and no more - a client that addresses
+    /// everything by name is told the names of what it is allowed to read.
+    /// </summary>
+    protected virtual async Task<List<ContentDto>> MapToDtosAsync(IReadOnlyCollection<Content> contents)
+    {
+        if (contents.Count == 0)
+        {
+            return new List<ContentDto>();
+        }
+
+        var pageIds = contents.Select(content => content.PageId).Distinct().ToList();
+        var pageNames = (await PageRepository.GetListAsync(pageIds)).ToDictionary(page => page.Id, page => page.Name);
+
+        var contentTypeNames = new Dictionary<Guid, string>();
+        foreach (var pageId in pageIds)
+        {
+            foreach (var contentType in await ContentTypeRepository.GetListByPageAsync(pageId))
+            {
+                contentTypeNames[contentType.Id] = contentType.Name;
+            }
+        }
+
+        return contents
+            .Select(content =>
+            {
+                var dto = ObjectMapper.Map<Content, ContentDto>(content);
+                dto.FieldValues = content.FlexFields.ToValueDictionary();
+                dto.PageName = pageNames.GetValueOrDefault(content.PageId) ?? string.Empty;
+                dto.ContentTypeName = contentTypeNames.GetValueOrDefault(content.ContentTypeId) ?? string.Empty;
+                return dto;
+            })
+            .ToList();
     }
 }

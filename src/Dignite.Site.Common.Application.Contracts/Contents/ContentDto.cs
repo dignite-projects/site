@@ -34,5 +34,15 @@ public class ContentDto : FullAuditedEntityDto<Guid>
     /// </summary>
     public string Url { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The <c>Name</c> of the page this content is under, the name every name-addressed client (MCP) knows it by. Populated
+    /// by the Admin surface, which reads contents for people who manage them; <see cref="string.Empty"/> from producers
+    /// that do not look the page up, on the same terms as <see cref="Url"/>.
+    /// </summary>
+    public string PageName { get; set; } = string.Empty;
+
+    /// <summary>The <c>Name</c> of this content's content type, populated and left empty on the same terms as <see cref="PageName"/>.</summary>
+    public string ContentTypeName { get; set; } = string.Empty;
+
     public IDictionary<string, object?> FieldValues { get; set; } = new Dictionary<string, object?>();
 }

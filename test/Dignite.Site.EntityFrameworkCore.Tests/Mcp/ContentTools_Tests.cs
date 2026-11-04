@@ -42,10 +42,34 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
             status: ContentStatus.Published,
             publishTime: SiteTestData.PublishTime);
 
-        created.PageId.ShouldBe(SiteTestData.BlogPageId);
-        created.ContentTypeId.ShouldBe(SiteTestData.PostArticleTypeId);
+        created.Page.ShouldBe("blog");
+        created.ContentType.ShouldBe("post-article");
         created.Slug.ShouldBe("mcp-created");
-        JsonSerializer.Serialize(created.FieldValues["title"]).ShouldBe("\"Written over MCP\"");
+        created.StoredFields.ShouldBe(new[] { "title" });
+
+        // The values went in; they are not sent back.
+        created.FieldValues.ShouldBeNull();
+        JsonSerializer.Serialize(
+                (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "mcp-created")).FieldValues["title"])
+            .ShouldBe("\"Written over MCP\"");
+    }
+
+    /// <summary>
+    /// A value for a field the type does not declare is dropped, and the one place a client can see it is
+    /// <c>storedFields</c>: the values themselves are not echoed.
+    /// </summary>
+    [Fact]
+    public async Task Should_Name_The_Values_It_Stored_So_A_Dropped_One_Shows()
+    {
+        var created = await _contentTools.CreateContentAsync(
+            page: "blog",
+            contentType: "post-article",
+            cultureName: SiteTestData.EnglishCulture,
+            slug: "dropped-value",
+            fieldValues: new Dictionary<string, object?> { ["title"] = "Kept", ["not-a-field"] = "Dropped" },
+            publishTime: SiteTestData.PublishTime);
+
+        created.StoredFields.ShouldBe(new[] { "title" });
     }
 
     /// <summary>
@@ -159,7 +183,10 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
         updated.Status.ShouldBe(ContentStatus.Published);
         updated.Slug.ShouldBe(SiteTestData.DraftSlug);
         // fieldValues was omitted, so the body it was seeded with is untouched.
-        JsonSerializer.Serialize(updated.FieldValues["title"]).ShouldBe("\"Draft post\"");
+        updated.StoredFields.ShouldContain("title");
+        JsonSerializer.Serialize(
+                (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, SiteTestData.DraftSlug)).FieldValues["title"])
+            .ShouldBe("\"Draft post\"");
     }
 
     /// <summary>
@@ -221,13 +248,11 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
             publishTime: SiteTestData.PublishTime);
 
         normalized.Slug.ShouldBe("legacy-slug");
-        normalized.Id.ShouldNotBe(verbatim.Id);
+        var normalizedId = (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "legacy-slug")).Id;
+        normalizedId.ShouldNotBe(verbatim.Id);
 
         (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "Legacy-Slug"))
             .Id.ShouldBe(verbatim.Id, "the exact address must not be shadowed by the normalized one");
-
-        (await _contentTools.GetContentAsync("blog", SiteTestData.EnglishCulture, "legacy-slug"))
-            .Id.ShouldBe(normalized.Id);
     }
 
     /// <summary>Writes through the admin API, which stores a slug exactly as given.</summary>
@@ -507,9 +532,25 @@ public class ContentTools_Tests : SiteEntityFrameworkCoreTestBase
     {
         var result = await _contentTools.ListContentsAsync(page: "blog");
 
-        result.Items.ShouldAllBe(content => content.PageId == SiteTestData.BlogPageId);
+        result.Items.ShouldAllBe(content => content.Page == "blog");
         result.Items.Select(content => content.Slug)
             .ShouldContain(SiteTestData.TripSlug);
+    }
+
+    /// <summary>A list of pages is not a list of their bodies: values only when asked for.</summary>
+    [Fact]
+    public async Task Should_List_Contents_Without_Their_Values_Unless_Asked()
+    {
+        var slim = await _contentTools.ListContentsAsync(page: "blog");
+        var full = await _contentTools.ListContentsAsync(page: "blog", includeFieldValues: true);
+
+        slim.Items.ShouldNotBeEmpty();
+        slim.Items.ShouldAllBe(content => content.FieldValues == null);
+        slim.Items.ShouldAllBe(content => content.ContentType.Length > 0);
+
+        full.Items.ShouldAllBe(content => content.FieldValues != null);
+        JsonSerializer.Serialize(full.Items.Single(content => content.Slug == SiteTestData.TripSlug).FieldValues!["title"])
+            .ShouldBe("\"My trip\"");
     }
 
     /// <summary>

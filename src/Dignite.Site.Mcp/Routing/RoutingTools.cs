@@ -33,17 +33,31 @@ public class RoutingTools : ITransientDependency
         "it. Published content only: a draft resolves to nothing, so a match here means something is " +
         "actually live at that URL through routing. A path that names some but not all of a page's " +
         "placeholders short of its slug (e.g. '/blog/2026-08' against '/blog/{publishTime:yyyy-MM}/{slug}') " +
-        "resolves to that page with filterValues populated instead of a specific content.")]
-    public virtual Task<RouteMatchDto> ResolvePathAsync(
+        "resolves to that page with filterValues populated instead of a specific content. Answers with where " +
+        "the path leads - page, content type, slug, address, language - not the content itself; read that with " +
+        "site_get_content.")]
+    public virtual async Task<McpRouteMatch> ResolvePathAsync(
         [Description(
             "The raw path to resolve, e.g. '/blog/my-trip', '/zh-Hans/blog/my-trip', or '/'. A served, " +
             "non-default language's prefix is stripped automatically - the response's cultureName reports " +
             "which language was actually resolved.")]
         string path)
     {
-        return RoutingAppService.ResolveAsync(new ResolvePathInput
+        var match = await RoutingAppService.ResolveAsync(new ResolvePathInput
         {
             Path = path
         });
+
+        return new McpRouteMatch
+        {
+            Matched = match.Matched,
+            Kind = match.Kind,
+            CultureName = match.CultureName,
+            Page = match.Page?.Name,
+            ContentType = match.ContentType?.Name,
+            Slug = match.Content?.Slug,
+            Url = match.Content is { Url.Length: > 0 } ? match.Content.Url : null,
+            FilterValues = match.FilterValues.Count > 0 ? match.FilterValues : null
+        };
     }
 }
