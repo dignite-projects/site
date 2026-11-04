@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 using Volo.Abp;
 using Volo.Abp.Authorization;
 using Volo.Abp.Autofac;
 using Volo.Abp.Features;
 using Volo.Abp.Guids;
 using Volo.Abp.Modularity;
+using Volo.Abp.SettingManagement;
 using Volo.Abp.Settings;
 using Dignite.Site.Features;
 using Dignite.Site.Settings;
@@ -29,7 +31,9 @@ namespace Dignite.Site;
     typeof(AbpTestBaseModule),
     typeof(AbpAuthorizationModule),
     typeof(AbpFeaturesModule),
-    typeof(AbpGuidsModule)
+    typeof(AbpGuidsModule),
+    // ISettingManager, which the domain writes settings through; its store is InMemorySettingManagementStore here.
+    typeof(AbpSettingManagementDomainModule)
 )]
 public class SiteTestBaseModule : AbpModule
 {
@@ -38,12 +42,24 @@ public class SiteTestBaseModule : AbpModule
         context.Services.AddAlwaysAllowAuthorization();
 
         // Added last on purpose: SettingProvider consults value providers in reverse registration order,
-        // so this one gets the final say - which is what lets a test set a tenant setting without the
-        // Setting Management module (and therefore without a database) being present.
+        // so this one gets the final say - which is what lets a test set a tenant setting without going
+        // through Setting Management at all.
         Configure<AbpSettingOptions>(options =>
         {
             options.ValueProviders.Add<TestSettingValueProvider>();
         });
+
+        // Setting Management's startup work - saving the static definitions to its tables, and a definition store that reads
+        // them - is for a host with a database. Off, as in ABP's own tests; the values are InMemorySettingManagementStore's.
+        Configure<SettingManagementOptions>(options =>
+        {
+            options.SaveStaticSettingsToDatabase = false;
+            options.IsDynamicSettingStoreEnabled = false;
+        });
+
+        // The module still replaces ABP's setting definition store with one that is built on this repository, though with the
+        // dynamic store off it never calls it. The test layers have no tables to back one.
+        context.Services.AddSingleton(Substitute.For<ISettingDefinitionRecordRepository>());
 
         // Same idea for features: last registered, so a test can switch Site.Enable off for the tenant.
         Configure<AbpFeatureOptions>(options =>

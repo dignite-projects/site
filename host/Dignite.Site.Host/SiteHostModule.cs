@@ -121,7 +121,6 @@ namespace Dignite.Site.Host;
     typeof(AbpSettingManagementWebModule),
     typeof(AbpSettingManagementHttpApiModule),
     typeof(AbpSettingManagementApplicationModule),
-    typeof(SiteSettingManagementModule),
 
     // Entity Framework Core packages for the used modules
     typeof(AbpAuditLoggingEntityFrameworkCoreModule),

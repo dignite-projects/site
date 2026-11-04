@@ -18,6 +18,10 @@
          infrastructure with no ASP.NET Core dependency, not a rendering package, so it does not break the
          "Domain stays library-agnostic" rule the sitemap/robots/feed generators already follow. -->
     <PackageReference Include="Volo.Abp.Ui" Version="10.7.0"/>
+    <!-- ISettingManager, through which SiteLanguageManager writes the languages - the way ABP's own domain modules
+         (CMS Kit) write their settings. Loading its module needs the setting store a host has anyway (the module's
+         database, or SettingManagementOptions turned off as the tests do). -->
+    <PackageReference Include="Volo.Abp.SettingManagement.Domain" Version="10.7.0"/>
     <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
     <PackageReference Include="Dignite.Abp.FlexFields.Domain" Version="$(DigniteAbpModulesVersion)" />
     <PackageReference Include="Dignite.Abp.FlexFields.CKEditor" Version="$(DigniteAbpModulesVersion)" />
