@@ -140,6 +140,8 @@ The sample is what a visitor would open, for each page rendered by a template of
 
 Only the theme's failures are findings. An address that leads nowhere, or a failure of the site itself while rendering, is not.
 
+The rendered pages are also read for links to an id that nothing on the page has: a `<use href="#icon">` whose symbol is not in the page shows nothing and fails nothing, and an anchor to a section that does not exist goes nowhere. Each is a warning, once per id, with the first address that has it (`ThemeIssue:FragmentReferenceNotFound`); a warning does not stop a publish. A reference to another file (`href="sprite.svg#icon"`), an empty `#` and `#top` are not reported.
+
 ## Previewing
 
 The site can be seen with the working copy, or with any release, without publishing anything: in a browser, where you click through the site as a visitor would, or as the HTML of one page, over the API and MCP. Either way a preview renders the saved files, and the data, the functions and the limits are the live site's.

@@ -48,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The check warns about a link to an id the page does not have.** A `<use href="#icon-github">` whose symbol is not in
+  the page shows nothing and fails nothing, so a theme kept a blank icon unnoticed. The trial render now reads the pages it
+  rendered for `href="#id"` and `url(#id)` that nothing on the page defines (found in the rendered page, not in a template:
+  a layout or another partial may define the id) and reports each id once, with the first address that has it, as a warning
+  (`ThemeIssue:FragmentReferenceNotFound`) that does not stop a publish. Another file (`href="sprite.svg#icon"`), an empty
+  `#` and `#top` are not reported.
+
 - **An AI client can read how to write a theme.** The variables a template sees and the functions it can call were
   written only in the documentation, which a client connected over MCP does not have, so a model wrote templates from
   what it remembers of Liquid. The `site://theme-guide` resource and the `site_get_theme_guide` tool return the page
