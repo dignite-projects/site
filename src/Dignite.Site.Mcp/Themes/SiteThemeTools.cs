@@ -225,7 +225,8 @@ public class SiteThemeTools : ITransientDependency
         "A page whose template is not in the theme is rendered by a Razor view and cannot be previewed here. HTML " +
         "longer than " + MaxPreviewHtmlLengthText + " characters is cut off: 'isTruncated' is then true and " +
         "'htmlLength' gives the full length. A page's HTML is a lot to read back: when you only need to know that " +
-        "it renders, or to check its head, pass a small maxHtmlLength.")]
+        "it renders, or to check its head, pass a small maxHtmlLength. It shows markup, not looks: to see how a page " +
+        "really looks in a browser, use site_get_preview_link.")]
     [Authorize(SiteAdminPermissions.Themes.Default)]
     public virtual async Task<SiteThemePreview> PreviewAsync(
         [Description("A path of the site to render, e.g. '/about' or '/ja/blog/hello' - a language prefix included. " +
@@ -259,6 +260,42 @@ public class SiteThemeTools : ITransientDependency
             Html = isTruncated ? preview.Html[..limit] : preview.Html,
             IsTruncated = isTruncated,
             HtmlLength = preview.Html.Length
+        };
+    }
+
+    [McpServerTool(Name = "site_get_preview_link", Title = "Get a link to look at the site in a browser", ReadOnly = true)]
+    [Description(
+        "Returns a link that opens the site in a browser with the theme's working copy - or with a release - in place " +
+        "of the live release, nothing published and visitors seeing no change. Use it to look at how a page really " +
+        "looks (layout, colours, images, fonts, the way through the site), which the HTML of site_preview cannot " +
+        "show; use site_preview to read a page's markup and head tags, which a screenshot does not show. Open the " +
+        "url in a browser and take a screenshot. Opening it sets a cookie in that browser, and for the next couple of " +
+        "hours every page and static file of the site opened there is rendered with that theme, so you can follow the " +
+        "site's links; the working copy is read again on every page view, so after another site_save_theme_file only " +
+        "reload. A page rendered by a template shows a banner at the top that says what is previewed. The link is good " +
+        "for the minutes 'expiresAt' says and shows unpublished work to whoever holds it: give it to the user or " +
+        "your own browser, nowhere else. A host that resolves the site from the request's address needs nothing " +
+        "more; one that takes the tenant from a query or a header (a local development host) needs it added to the " +
+        "address the same way as for any page of the site. Without a browser, give the link to the user.")]
+    [Authorize(SiteAdminPermissions.Themes.Default)]
+    public virtual async Task<SiteThemePreviewLink> GetPreviewLinkAsync(
+        [Description("The path to open, e.g. '/about' or '/ja/blog/hello' - a language prefix included. Omit for the home page.")]
+        string? path = null,
+        [Description("A release number from site_list_releases. Omit for the working copy.")]
+        int? release = null)
+    {
+        Guid? releaseId = release is { } number ? (await GetReleaseAsync(number)).Id : null;
+
+        // Needs Dignite.Site.Public.Web in the same application: without it the application service says so
+        // (Site:090007), which the server's error envelope reports in full.
+        var link = await ThemeAppService.GetPreviewLinkAsync(path, releaseId);
+
+        return new SiteThemePreviewLink
+        {
+            Url = link.Url,
+            Path = link.Path,
+            Release = release,
+            ExpiresAt = link.ExpiresAt
         };
     }
 
@@ -374,6 +411,22 @@ public class SiteThemeFileSaved
 
     /// <summary><c>(line,column): message</c> for each syntax error; empty when the template parses.</summary>
     public string[] SyntaxErrors { get; set; } = Array.Empty<string>();
+}
+
+/// <summary>A link that opens the site with the theme in a browser - see <c>site_get_preview_link</c>.</summary>
+public class SiteThemePreviewLink
+{
+    /// <summary>The address to open, absolute, with the token that starts the preview.</summary>
+    public string Url { get; set; } = default!;
+
+    /// <summary>The path it opens.</summary>
+    public string Path { get; set; } = default!;
+
+    /// <summary>The release it previews, or null for the working copy.</summary>
+    public int? Release { get; set; }
+
+    /// <summary>When the link stops starting a preview (UTC).</summary>
+    public DateTime ExpiresAt { get; set; }
 }
 
 /// <summary>A page rendered with the theme - see <c>site_preview</c>.</summary>

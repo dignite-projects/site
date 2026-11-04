@@ -26,6 +26,48 @@ public class SiteThemeTools_Tests : SiteEntityFrameworkCoreTestBase
         _previewRenderer = GetRequiredService<FakeSiteThemePreviewRenderer>();
     }
 
+    [Fact]
+    public async Task Should_Give_A_Link_To_Look_At_The_Working_Copy_In_A_Browser()
+    {
+        var issuer = GetRequiredService<FakeSiteThemePreviewLinkIssuer>();
+
+        var link = await _themeTools.GetPreviewLinkAsync("/about");
+
+        link.Url.ShouldBe("https://site.example/about?site-preview=token");
+        link.Path.ShouldBe("/about");
+        link.Release.ShouldBeNull();
+        link.ExpiresAt.ShouldBeGreaterThan(DateTime.UtcNow);
+        issuer.Requests.ShouldHaveSingleItem().ReleaseId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Should_Give_A_Link_For_The_Home_Page_When_No_Path_Is_Given()
+    {
+        var link = await _themeTools.GetPreviewLinkAsync();
+
+        link.Path.ShouldBe("/");
+    }
+
+    [Fact]
+    public async Task Should_Give_A_Link_For_A_Release_By_Its_Number()
+    {
+        await _themeTools.SaveThemeFileAsync("Default", "<p>one</p>");
+        var release = await PublishAsync();
+        var issuer = GetRequiredService<FakeSiteThemePreviewLinkIssuer>();
+
+        var link = await _themeTools.GetPreviewLinkAsync("/about", release.Number);
+
+        link.Release.ShouldBe(release.Number);
+        issuer.Requests.ShouldHaveSingleItem().ReleaseId.ShouldBe(release.Id);
+    }
+
+    /// <summary>A release number the site does not have is named, with where to find the numbers, not a link that opens the live site.</summary>
+    [Fact]
+    public async Task Should_Refuse_A_Link_For_A_Release_The_Site_Does_Not_Have()
+    {
+        await Should.ThrowAsync<McpEntityNotFoundException>(() => _themeTools.GetPreviewLinkAsync("/about", 99));
+    }
+
     private async Task<SiteReleaseDto> PublishAsync(string? comment = null) =>
         await _themeTools.PublishThemeAsync((await _themeTools.CheckThemeAsync()).Fingerprint, comment);
 

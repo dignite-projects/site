@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An AI client can look at the site in a browser before it publishes.** `site_preview` returns a page's HTML, which shows
+  its markup and head tags but not how it looks: a broken layout, a missing image or a font that did not load cannot be
+  seen in it. `site_get_preview_link` returns the signed [browser preview](docs/en/rendering/scriban-templates.md#in-a-browser)
+  link the Theme screen already issued (`GET /preview-link`) for a path and, optionally, a release number: a client with a
+  browser opens it, takes a screenshot and follows the site's links with the working copy in place of the live release,
+  visitors seeing no change, and `site_preview` stays for reading the markup and the head. The link shows unpublished work
+  to whoever holds it, so the tool says to keep it to the user and the client's own browser.
+
 - **An AI client can read how to write a theme.** The variables a template sees and the functions it can call were
   written only in the documentation, which a client connected over MCP does not have, so a model wrote templates from
   what it remembers of Liquid. The `site://theme-guide` resource and the `site_get_theme_guide` tool return the page
