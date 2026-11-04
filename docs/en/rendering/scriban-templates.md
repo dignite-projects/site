@@ -168,7 +168,7 @@ A preview renders saved files, so save first. It fails with one of these errors:
 
 A render that fails, through a run-time error, a template that does not parse or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
 
-You can preview over the [admin API](#managing-the-theme), which returns the HTML with the page, the template and the layout it was rendered with, and over MCP, with `site_preview`, so that an AI client can check its own changes before it publishes; see [MCP Tools](#mcp-tools).
+You can preview over the [admin API](#managing-the-theme), which returns the HTML with the page, the template and the layout it was rendered with, and over MCP, with `site_preview`, so that an AI client can check its own changes before it publishes; see [MCP Tools](#mcp-tools). An AI client that has a browser also looks at the site as a visitor would: `site_get_preview_link` returns the [browser preview](#in-a-browser) link for a path, which it opens and takes a screenshot of, where `site_preview` gives it the markup and the head tags a screenshot does not show.
 
 ## What a Template Sees
 
@@ -449,7 +449,7 @@ A file whose extension no static file may have (`Site:090004`), a rename onto an
 
 ### MCP Tools
 
-The MCP server offers the same operations: `site_list_theme_files`, `site_get_theme_file`, `site_save_theme_file`, `site_rename_theme_file`, `site_delete_theme_file`, `site_update_theme`, `site_check_theme`, `site_preview`, `site_publish_theme`, `site_list_releases`, `site_set_live_release` and `site_restore_release`. Files are addressed by path and releases by number. The recommended flow is to save, check and fix every error, preview, and then publish with the check's fingerprint; making an older release live is the rollback. See [Tools](../mcp/tools.md#theme).
+The MCP server offers the same operations: `site_list_theme_files`, `site_get_theme_file`, `site_save_theme_file`, `site_rename_theme_file`, `site_delete_theme_file`, `site_update_theme`, `site_check_theme`, `site_preview`, `site_get_preview_link`, `site_publish_theme`, `site_list_releases`, `site_set_live_release` and `site_restore_release`. Files are addressed by path and releases by number. The recommended flow is to save, check and fix every error, preview, and then publish with the check's fingerprint; making an older release live is the rollback. See [Tools](../mcp/tools.md#theme).
 
 ## Example
 
