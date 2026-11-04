@@ -20,7 +20,6 @@
         <Project Path="src/Dignite.Site.EntityFrameworkCore/Dignite.Site.EntityFrameworkCore.csproj" />
         <Project Path="src/Dignite.Site.Installer/Dignite.Site.Installer.csproj" />
         <Project Path="src/Dignite.Site.MongoDB/Dignite.Site.MongoDB.csproj" />
-        <Project Path="src/Dignite.Site.SettingManagement/Dignite.Site.SettingManagement.csproj" />
     </Folder>
     <Folder Name="/src/public/">
         <Project Path="src/Dignite.Site.Public.Application.Contracts/Dignite.Site.Public.Application.Contracts.csproj" />

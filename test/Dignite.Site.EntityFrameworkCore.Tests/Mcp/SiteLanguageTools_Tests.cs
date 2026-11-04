@@ -16,12 +16,12 @@ namespace Dignite.Site.Mcp;
 public class SiteLanguageTools_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly SiteLanguageTools _languageTools;
-    private readonly FakeSiteSettingWriter _settingWriter;
+    private readonly InMemorySettingManagementStore _settingStore;
 
     public SiteLanguageTools_Tests()
     {
         _languageTools = GetRequiredService<SiteLanguageTools>();
-        _settingWriter = GetRequiredService<FakeSiteSettingWriter>();
+        _settingStore = GetRequiredService<InMemorySettingManagementStore>();
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class SiteLanguageTools_Tests : SiteEntityFrameworkCoreTestBase
         var exception = await Should.ThrowAsync<BusinessException>(() => _languageTools.SetLanguagesAsync(new() { "xx-nope" }));
 
         exception.Code.ShouldBe(SiteErrorCodes.SiteLanguageNotRecognized);
-        _settingWriter.Writes.ShouldBeEmpty();
+        _settingStore.Stored.ShouldBeEmpty();
     }
 
     /// <summary>Changing the languages moves addresses, so it is not granted with the right to read them.</summary>

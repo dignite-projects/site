@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Dignite.Site.Settings;
 using Shouldly;
 using Volo.Abp;
+using Volo.Abp.MultiTenancy;
 using Xunit;
 
 namespace Dignite.Site.Seo;
@@ -16,13 +17,13 @@ public class SiteLanguageManager_Tests : SiteDomainTestBase<SiteDomainTestModule
 {
     private readonly SiteLanguageManager _manager;
     private readonly SiteLanguageProvider _provider;
-    private readonly FakeSiteSettingWriter _settingWriter;
+    private readonly InMemorySettingManagementStore _settingStore;
 
     public SiteLanguageManager_Tests()
     {
         _manager = GetRequiredService<SiteLanguageManager>();
         _provider = GetRequiredService<SiteLanguageProvider>();
-        _settingWriter = GetRequiredService<FakeSiteSettingWriter>();
+        _settingStore = GetRequiredService<InMemorySettingManagementStore>();
     }
 
     [Fact]
@@ -41,18 +42,38 @@ public class SiteLanguageManager_Tests : SiteDomainTestBase<SiteDomainTestModule
         var stored = await _manager.SetEnabledLanguagesAsync(new[] { " ZH-hans ", "EN", "en", "", "zh-Hans" });
 
         stored.ShouldBe(new[] { "zh-Hans", "en" });
-        _settingWriter.Writes.ShouldHaveSingleItem().Value.ShouldBe("zh-Hans,en");
+        _settingStore.Stored.ShouldHaveSingleItem().Value.ShouldBe("zh-Hans,en");
     }
 
-    /// <summary>Where the value lands - the tenant's own, or the host's default - is the writer's; the manager names the setting.</summary>
     [Fact]
-    public async Task Should_Store_The_List_As_The_Enabled_Languages_Setting()
+    public async Task Should_Store_The_Host_Sites_List_As_The_Global_Value()
     {
         await _manager.SetEnabledLanguagesAsync(new[] { "en", "ja" });
 
-        var write = _settingWriter.Writes.ShouldHaveSingleItem();
-        write.Name.ShouldBe(SiteSettings.EnabledLanguages);
-        write.Value.ShouldBe("en,ja");
+        var stored = _settingStore.Stored.ShouldHaveSingleItem();
+        stored.Name.ShouldBe(SiteSettings.EnabledLanguages);
+        stored.Value.ShouldBe("en,ja");
+        stored.ProviderName.ShouldBe("G");
+        stored.ProviderKey.ShouldBeNull();
+    }
+
+    /// <summary>Forced: a tenant that sets the very value the host has keeps it when the host changes its own.</summary>
+    [Fact]
+    public async Task Should_Store_A_Tenants_List_For_The_Tenant_And_Keep_It_Its_Own()
+    {
+        var tenantId = Guid.NewGuid();
+
+        using (GetRequiredService<ICurrentTenant>().Change(tenantId))
+        {
+            // "en" is what a site serves when nothing is set: the value the tenant would otherwise inherit.
+            await _manager.SetEnabledLanguagesAsync(new[] { "en" });
+            (await _provider.GetEnabledLanguagesAsync()).ShouldBe(new[] { "en" });
+        }
+
+        var stored = _settingStore.Stored.ShouldHaveSingleItem();
+        stored.Value.ShouldBe("en");
+        stored.ProviderName.ShouldBe("T");
+        stored.ProviderKey.ShouldBe(tenantId.ToString());
     }
 
     [Fact]
@@ -65,7 +86,7 @@ public class SiteLanguageManager_Tests : SiteDomainTestBase<SiteDomainTestModule
             exception.Code.ShouldBe(SiteErrorCodes.SiteLanguagesRequired);
         }
 
-        _settingWriter.Writes.ShouldBeEmpty();
+        _settingStore.Stored.ShouldBeEmpty();
     }
 
     [Fact]
@@ -76,6 +97,6 @@ public class SiteLanguageManager_Tests : SiteDomainTestBase<SiteDomainTestModule
 
         exception.Code.ShouldBe(SiteErrorCodes.SiteLanguageNotRecognized);
         exception.Data["CultureName"].ShouldBe("not-a-language");
-        _settingWriter.Writes.ShouldBeEmpty();
+        _settingStore.Stored.ShouldBeEmpty();
     }
 }

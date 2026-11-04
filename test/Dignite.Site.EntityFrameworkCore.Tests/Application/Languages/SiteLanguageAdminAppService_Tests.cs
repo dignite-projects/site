@@ -9,12 +9,12 @@ namespace Dignite.Site.Admin.Languages;
 public class SiteLanguageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly ISiteLanguageAdminAppService _languageAppService;
-    private readonly FakeSiteSettingWriter _settingWriter;
+    private readonly InMemorySettingManagementStore _settingStore;
 
     public SiteLanguageAdminAppService_Tests()
     {
         _languageAppService = GetRequiredService<ISiteLanguageAdminAppService>();
-        _settingWriter = GetRequiredService<FakeSiteSettingWriter>();
+        _settingStore = GetRequiredService<InMemorySettingManagementStore>();
     }
 
     [Fact]
@@ -40,6 +40,6 @@ public class SiteLanguageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         var read = await _languageAppService.GetAsync();
         read.EnabledLanguages.ShouldBe(updated.EnabledLanguages);
         read.DefaultLanguage.ShouldBe("ja");
-        _settingWriter.Writes.ShouldHaveSingleItem().Value.ShouldBe("ja,en,zh-Hans");
+        _settingStore.Stored.ShouldHaveSingleItem().Value.ShouldBe("ja,en,zh-Hans");
     }
 }

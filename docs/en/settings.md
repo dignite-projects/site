@@ -13,7 +13,7 @@ A site has no configuration entity of its own: every tenant is one site, and its
 
 | Setting | Default | Description |
 |---|---|---|
-| `Site.EnabledLanguages` | `en` | The site's languages, comma-separated, such as `en,ja,zh-Hans`. The first one is the default language, with no URL prefix; the others are served under `/{culture}/`. See [Multilingual Sites](rendering/languages.md). A client without a settings page sets it with `PUT /api/site-admin/languages` or the `site_set_languages` [MCP tool](mcp/tools.md#languages), which need `SiteSettingManagementModule` from the `Dignite.Site.SettingManagement` package in the application; it brings ABP's Setting Management. |
+| `Site.EnabledLanguages` | `en` | The site's languages, comma-separated, such as `en,ja,zh-Hans`. The first one is the default language, with no URL prefix; the others are served under `/{culture}/`. See [Multilingual Sites](rendering/languages.md). A client without a settings page sets it with `PUT /api/site-admin/languages` or the `site_set_languages` [MCP tool](mcp/tools.md#languages), which store it through ABP's [Setting Management](https://abp.io/docs/latest/modules/setting-management). |
 | `Site.PrimaryDomain` | Empty | The site's absolute address, such as `https://www.example.com`, optionally with a base path. See [Primary Domain](#primary-domain). |
 | `Site.Robots.AllowIndexing` | `true` | Whether search engines may index the site. |
 | `Site.Robots.AllowAiTraining` | `false` | Whether crawlers that train AI models (GPTBot, Google-Extended, ClaudeBot, CCBot) may crawl the site. |
