@@ -151,6 +151,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Static files and library files set no cookies.** The host's tenant and localization handling put `Set-Cookie`
+  (`__tenant`, `.AspNetCore.Culture`) on every response, a theme's static file at `/site-assets/` (`Cache-Control: public,
+  max-age=31536000, immutable`) and a library file at `/api/site-public/files/` (`public, max-age=86400`) included: a shared
+  cache may refuse a response that sets a cookie, or keep it and hand the cookie of one visitor's language and tenant to
+  every visitor after. Those two responses carry none now. Pages are unchanged.
+
 - `contents` with a `page_no` of more than about twenty-one million no longer fails the render with an invalid-request
   error from the content service, whose skip count overflowed: the page number is capped where the skip count still
   fits, and a page past the end lists nothing, as before.

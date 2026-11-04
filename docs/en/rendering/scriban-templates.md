@@ -381,6 +381,7 @@ The response carries these headers:
 | `X-Content-Type-Options` | `nosniff`. |
 | `ETag` | The hash of the content. A request whose `If-None-Match` matches it is answered 304. |
 | `Cache-Control` | `public, max-age=31536000, immutable` when the `v` query of the URL is the hash of the content served; otherwise `public, no-cache`, which is served but revalidated each time. |
+| `Set-Cookie` | None: a response a shared cache may keep carries no cookie, even though the application's tenant and language handling would set one on a page. |
 
 `asset_url` writes the address that earns the long cache. `asset_url "css/site.css"` returns `/site-assets/css/site.css?v=` followed by the SHA-256 of the file's content, under the application's path base when it has one. A release that changes the file changes the address, which busts the browser and CDN caches, while a file that did not change keeps its address, and its cached copy, from one release to the next. The path must be a static file of the theme, or the render fails with an error that names it.
 

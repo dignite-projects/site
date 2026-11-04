@@ -128,6 +128,11 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
         // The declared type is the detected one; never let a browser second-guess it into something
         // executable on the site's own origin.
         Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
+
+        // A response meant for a shared cache sets no cookie: a cache may refuse to store a response with Set-Cookie, or
+        // store it and hand the cookie to every visitor after - one visitor's culture and tenant for everyone.
+        // The host's tenant and localization middleware append theirs before this action runs.
+        Response.Headers.Remove(HeaderNames.SetCookie);
     }
 
     protected virtual void SetContentDisposition(string type, string? fileName)

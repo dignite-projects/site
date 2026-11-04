@@ -90,7 +90,7 @@ An absolute address that a user typed into a field, such as the address of an ex
 
 * `?Width=` and `?Height=` resize an image on the way out, up to 4096 pixels a side; with both given, the image is cropped to fill the box. The source can be at most 4096 x 4096 and 16 million pixels. Anything that is not an image is served as stored, and so is a GIF.
 * `/api/site-public/files/download/{containerName}/{blobName}?fileName=` serves the file as an attachment with the given file name.
-* Responses carry an `ETag`, `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`. A request with a matching `If-None-Match` is answered with `304`.
+* Responses carry an `ETag`, `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`.
 
 In a template, build a resized address with `SiteFileUrl.Sized` from the `Dignite.Site.Public.Templating` namespace; in Angular, use `sizedFileUrl` from `@dignite/ng.site`:
 
