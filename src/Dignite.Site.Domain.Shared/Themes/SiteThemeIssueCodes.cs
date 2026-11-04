@@ -52,6 +52,12 @@ public static class SiteThemeIssueCodes
     /// <summary>Templates include each other in a circle. Data: Chain.</summary>
     public const string IncludeCycle = Prefix + "IncludeCycle";
 
+    /// <summary>
+    /// An <c>include</c> does not pass a named argument the template reads as a local (<c>$title</c>), which fails the
+    /// render. Reported at the <c>include</c>. Data: Target, Variable.
+    /// </summary>
+    public const string IncludeArgumentMissing = Prefix + "IncludeArgumentMissing";
+
     /// <summary>A file used as a layout calls <c>site_head</c> nowhere, not even through what it includes.</summary>
     public const string LayoutWithoutSiteHead = Prefix + "LayoutWithoutSiteHead";
 
@@ -67,7 +73,17 @@ public static class SiteThemeIssueCodes
     /// <summary>A language version (<c>Default.ja</c>) has no template (<c>Default</c>) to be the version of. Data: Template.</summary>
     public const string LanguageVersionWithoutTemplate = Prefix + "LanguageVersionWithoutTemplate";
 
+    /// <summary>
+    /// Rendering a sample page with the working copy failed - a template error only a render finds. Reported at the
+    /// template and place the message names, else at the page's template as a whole. Data: Path (the sample address
+    /// that failed), Message.
+    /// </summary>
+    public const string RenderFailed = Prefix + "RenderFailed";
+
     // Warnings: worth a look, but nothing breaks.
+
+    /// <summary>The trial render stopped before the whole sample was rendered, for the time it took. Data: Rendered, Total.</summary>
+    public const string TrialRenderIncomplete = Prefix + "TrialRenderIncomplete";
 
     /// <summary>Pages whose template is not in the theme; a Razor view renders them. Data: Template, Pages.</summary>
     public const string PageRenderedByRazor = Prefix + "PageRenderedByRazor";

@@ -158,9 +158,20 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
                                               && !httpContext.RequestAborted.IsCancellationRequested
                                               && !cancellationToken.IsCancellationRequested))
         {
-            throw new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed, innerException: exception)
+            var failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed, innerException: exception)
                 .WithData("Name", templatePath)
                 .WithData("Message", exception.Message);
+
+            // Where in the theme it happened, as the places themselves and not a message to be read for them.
+            if ((exception as ScriptRuntimeException ?? exception.InnerException as ScriptRuntimeException)?.Span is { FileName: { Length: > 0 } file } span)
+            {
+                failure
+                    .WithData("File", file)
+                    .WithData("Line", span.Start.Line + 1)
+                    .WithData("Column", span.Start.Column + 1);
+            }
+
+            throw failure;
         }
         finally
         {

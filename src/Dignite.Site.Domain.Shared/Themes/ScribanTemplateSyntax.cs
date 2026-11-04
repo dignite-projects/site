@@ -176,7 +176,7 @@ public static class ScribanTemplateSyntax
                                               && IsReferencingFunction(target.Name)
                                               && call.Arguments.Count > 0
                                               && call.Arguments[0] is ScriptLiteral { Value: string path } literal:
-                references.Add(ToReference(target.Name, path, literal));
+                references.Add(ToReference(target.Name, path, literal, GetNamedArguments(call)));
                 break;
 
             // The right side of a pipe is the bare variable or, as the parser usually builds it, a function call of
@@ -184,7 +184,11 @@ public static class ScribanTemplateSyntax
             case ScriptPipeCall pipe when pipe.From is ScriptLiteral { Value: string pipedPath } pipedLiteral
                                           && GetPipedFunctionName(pipe.To) is { } pipedFunction
                                           && IsReferencingFunction(pipedFunction):
-                references.Add(ToReference(pipedFunction, pipedPath, pipedLiteral));
+                references.Add(ToReference(
+                    pipedFunction,
+                    pipedPath,
+                    pipedLiteral,
+                    pipe.To is ScriptFunctionCall pipedCall ? GetNamedArguments(pipedCall) : null));
                 break;
         }
 
@@ -212,7 +216,82 @@ public static class ScribanTemplateSyntax
         };
     }
 
-    private static SiteThemeReference ToReference(string functionName, string path, ScriptNode literal)
+    private static IReadOnlyList<string> GetNamedArguments(ScriptFunctionCall call)
+    {
+        return call.Arguments
+            .OfType<ScriptNamedArgument>()
+            .Select(argument => argument.Name.BaseName)
+            .ToList();
+    }
+
+    /// <summary>
+    /// The local variables the parsed <paramref name="template"/> reads without ever giving them a value, which an
+    /// <c>include</c> has to pass as named arguments: <c>{{ $title }}</c> in a partial whose caller passed no
+    /// <c>title:</c> fails the render, since the partial's locals are its own and nothing else sets them. A local
+    /// the template assigns (<c>$x = ...</c>), loops over (<c>for $item in ...</c>) or captures counts as given, wherever
+    /// in the template that happens, so the check errs toward saying nothing. Not counted: the positional
+    /// arguments (<c>$1</c>), the loop state (<c>$for</c>), and anything inside a <c>func</c> or <c>do</c>, whose
+    /// locals are the function's own. Empty for a template with syntax errors.
+    /// </summary>
+    public static IReadOnlyCollection<string> GetRequiredLocals(Scriban.Template template)
+    {
+        if (template.Page?.Body == null || template.HasErrors)
+        {
+            return Array.Empty<string>();
+        }
+
+        var read = new HashSet<string>(StringComparer.Ordinal);
+        var given = new HashSet<string>(StringComparer.Ordinal);
+        CollectLocals(template.Page.Body, read, given);
+
+        read.ExceptWith(given);
+        return read.OrderBy(name => name, StringComparer.Ordinal).ToList();
+    }
+
+    private static void CollectLocals(ScriptNode node, HashSet<string> read, HashSet<string> given)
+    {
+        switch (node)
+        {
+            case ScriptFunction:
+                return;
+
+            case ScriptAssignExpression { Target: ScriptVariableLocal target }:
+                given.Add(target.BaseName);
+                break;
+
+            case ScriptForStatement { Variable: ScriptVariableLocal variable }:
+                given.Add(variable.BaseName);
+                break;
+
+            case ScriptCaptureStatement { Target: ScriptVariableLocal captured }:
+                given.Add(captured.BaseName);
+                break;
+
+            case ScriptVariableLocal local when IsNamedLocal(local):
+                read.Add(local.BaseName);
+                break;
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (child != null)
+            {
+                CollectLocals(child, read, given);
+            }
+        }
+    }
+
+    /// <summary>A local a caller can pass: not <c>$</c> itself (the arguments, <c>$1</c> is an index of it) and not the loop state.</summary>
+    private static bool IsNamedLocal(ScriptVariableLocal local)
+    {
+        return !string.IsNullOrEmpty(local.BaseName) && local.BaseName is not ("for" or "while" or "tablerow");
+    }
+
+    private static SiteThemeReference ToReference(
+        string functionName,
+        string path,
+        ScriptNode literal,
+        IReadOnlyList<string>? namedArguments = null)
     {
         var span = literal.Span;
         var normalized = path.Trim() == SiteThemeConsts.NoLayout && functionName == SiteThemeConsts.LayoutKey
@@ -225,7 +304,8 @@ public static class ScribanTemplateSyntax
             span.Start.Line + 1,
             span.Start.Column + 1,
             span.Start.Offset,
-            span.End.Offset - span.Start.Offset + 1);
+            span.End.Offset - span.Start.Offset + 1,
+            namedArguments);
     }
 
     private static ScribanTemplateError ToError(ScriptNode node, string message)

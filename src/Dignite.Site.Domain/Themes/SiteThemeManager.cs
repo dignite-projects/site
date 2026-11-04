@@ -10,6 +10,26 @@ using Volo.Abp.Domain.Services;
 
 namespace Dignite.Site.Themes;
 
+/// <summary>
+/// The working copy <see cref="SiteThemeManager.PrepareAsync"/> agreed to publish: the check it passed and the files that
+/// were checked.
+/// </summary>
+public sealed class SiteThemePublication
+{
+    internal SiteThemePublication(SiteTheme theme, SiteThemeCheck check, IReadOnlyList<SiteThemeFile> files)
+    {
+        Theme = theme;
+        Check = check;
+        Files = files;
+    }
+
+    public SiteTheme Theme { get; }
+
+    public SiteThemeCheck Check { get; }
+
+    public IReadOnlyList<SiteThemeFile> Files { get; }
+}
+
 /// <summary>What <see cref="SiteThemeManager.CheckAsync"/> found: the analysis, and how the working copy differs from the live release.</summary>
 public sealed class SiteThemeCheck
 {
@@ -307,14 +327,15 @@ public class SiteThemeManager : DomainService
     }
 
     /// <summary>
-    /// Publishes the working copy as a new release and makes it live. Refused when <paramref name="fingerprint"/> is
-    /// not the working copy's any more (<see cref="SiteErrorCodes.SiteThemeChangedSinceCheck"/>), when the check finds
-    /// an error (<see cref="SiteErrorCodes.SiteThemeHasErrors"/>), and when nothing changed since the live release
-    /// (<see cref="SiteErrorCodes.SiteThemeNoChanges"/>).
+    /// Agrees to publish the working copy: refused when <paramref name="fingerprint"/> is not the working copy's any more
+    /// (<see cref="SiteErrorCodes.SiteThemeChangedSinceCheck"/>), when the check finds an error
+    /// (<see cref="SiteErrorCodes.SiteThemeHasErrors"/>), and when nothing changed since the live release
+    /// (<see cref="SiteErrorCodes.SiteThemeNoChanges"/>). What it agreed to is the working copy as it was checked, to be given to
+    /// <see cref="PublishAsync(SiteThemePublication, string?, CancellationToken)"/> - so that a caller can do what the
+    /// domain cannot between the two, such as render the pages with it, without checking the theme again.
     /// </summary>
-    public virtual async Task<SiteRelease> PublishAsync(
+    public virtual async Task<SiteThemePublication> PrepareAsync(
         SiteTheme theme,
-        string? comment,
         string fingerprint,
         CancellationToken cancellationToken = default)
     {
@@ -336,6 +357,29 @@ public class SiteThemeManager : DomainService
         {
             throw new BusinessException(SiteErrorCodes.SiteThemeNoChanges);
         }
+
+        return new SiteThemePublication(theme, check, files);
+    }
+
+    /// <summary><see cref="PrepareAsync"/> and then <see cref="PublishAsync(SiteThemePublication, string?, CancellationToken)"/>.</summary>
+    public virtual async Task<SiteRelease> PublishAsync(
+        SiteTheme theme,
+        string? comment,
+        string fingerprint,
+        CancellationToken cancellationToken = default)
+    {
+        return await PublishAsync(await PrepareAsync(theme, fingerprint, cancellationToken), comment, cancellationToken);
+    }
+
+    /// <summary>Publishes what <see cref="PrepareAsync"/> agreed to as a new release, and makes it live.</summary>
+    public virtual async Task<SiteRelease> PublishAsync(
+        SiteThemePublication publication,
+        string? comment,
+        CancellationToken cancellationToken = default)
+    {
+        var theme = publication.Theme;
+        var files = publication.Files;
+        var check = publication.Check;
 
         await StoreBlobsAsync(files, cancellationToken);
 
@@ -458,7 +502,7 @@ public class SiteThemeManager : DomainService
     }
 
     /// <summary>Stores a blob for every content the tenant has none for yet - once per content, however many files share it.</summary>
-    protected virtual async Task StoreBlobsAsync(List<SiteThemeFile> files, CancellationToken cancellationToken)
+    protected virtual async Task StoreBlobsAsync(IEnumerable<SiteThemeFile> files, CancellationToken cancellationToken)
     {
         var bodiesByHash = files
             .GroupBy(file => file.ContentHash, StringComparer.Ordinal)

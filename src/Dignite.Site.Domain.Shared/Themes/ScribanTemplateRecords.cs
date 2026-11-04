@@ -16,7 +16,18 @@ public sealed record ScribanTemplateError(int Line, int Column, string Message);
 /// <param name="Column">1-based column of the literal.</param>
 /// <param name="Start">0-based offset of the literal in the source, its opening quote included.</param>
 /// <param name="Length">Length of the literal in the source, both quotes included.</param>
-public sealed record SiteThemeReference(string FunctionName, string Path, int Line, int Column, int Start, int Length);
+/// <param name="NamedArguments">
+/// The names of the named arguments an <c>include</c> passes (<c>include "_card" title: "Hi"</c> passes
+/// <c>title</c>); empty for any other reference, and for an <c>include</c> that passes none.
+/// </param>
+public sealed record SiteThemeReference(
+    string FunctionName,
+    string Path,
+    int Line,
+    int Column,
+    int Start,
+    int Length,
+    IReadOnlyList<string>? NamedArguments = null);
 
 /// <summary>What a template's front matter says - see <see cref="ScribanTemplateSyntax.ReadFrontMatter"/>.</summary>
 /// <param name="Exists">Whether the template has front matter at all.</param>
