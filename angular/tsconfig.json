@@ -5,6 +5,9 @@
       "@dignite/ng.site": ["./projects/site/src/public-api.ts"],
       "@dignite/ng.site/config": [
         "./projects/site/config/src/public-api.ts"
+      ],
+      "@dignite/ng.site/setting-management": [
+        "./projects/site/setting-management/src/public-api.ts"
       ]
     }
   }

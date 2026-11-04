@@ -29,16 +29,20 @@ public class FieldManager : DomainService
 
     protected IFieldTypeResolver FieldTypeResolver { get; }
 
+    protected IFieldConfigurationValidator ConfigurationValidator { get; }
+
     public FieldManager(
         IFieldRepository fieldRepository,
         IFlexFieldValueMigrator<Content> valueMigrator,
         IFlexFieldIndexManager<Content> indexManager,
-        IFieldTypeResolver fieldTypeResolver)
+        IFieldTypeResolver fieldTypeResolver,
+        IFieldConfigurationValidator configurationValidator)
     {
         FieldRepository = fieldRepository;
         ValueMigrator = valueMigrator;
         IndexManager = indexManager;
         FieldTypeResolver = fieldTypeResolver;
+        ConfigurationValidator = configurationValidator;
     }
 
     public virtual async Task<Field> CreateAsync(
@@ -52,6 +56,7 @@ public class FieldManager : DomainService
     {
         await CheckNameAsync(name, null, cancellationToken);
         CheckNestingDepth(name, fieldTypeName, configuration);
+        ConfigurationValidator.Check(fieldTypeName, configuration);
 
         var field = new Field(
             GuidGenerator.Create(),
@@ -87,6 +92,12 @@ public class FieldManager : DomainService
         CheckNestingDepth(field.Name, fieldTypeName, configuration);
 
         var fieldTypeChanged = !string.Equals(field.FieldTypeName, fieldTypeName, StringComparison.Ordinal);
+
+        // What the client sends is checked, and what is already stored is not: a client that changes only the display name
+        // sends the stored configuration back (site_update_field does), and a field saved before a key was declared must
+        // not be refused for something that was not touched. The kernel compares the two; a configuration moved to another
+        // field type is all new.
+        ConfigurationValidator.Check(fieldTypeName, configuration, fieldTypeChanged ? null : field.Configuration);
 
         field.SetDisplayName(displayName);
         field.SetFieldTypeName(fieldTypeName);

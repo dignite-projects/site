@@ -22,7 +22,8 @@ public interface ISiteThemePreviewRenderer
     /// <see cref="SiteErrorCodes.SiteTemplatePreviewPathNotFound"/> when no page answers the path;
     /// <see cref="SiteErrorCodes.SiteThemePreviewPageNotScriban"/> when the page's template is not in the snapshot, so a
     /// Razor view renders it; <see cref="SiteErrorCodes.SiteTemplatePreviewRenderFailed"/> when a template fails at
-    /// run time or runs out of time, with the template, line and column in its message; also what a render that never
+    /// run time or runs out of time, with its message in <c>Data["Message"]</c> and, when the failure has a place in a template of the
+    /// theme, that place in <c>Data["File"]</c>, <c>Data["Line"]</c> and <c>Data["Column"]</c> (1-based); also what a render that never
     /// called <c>site_head</c> raises (<see cref="SiteErrorCodes.SiteTemplateDidNotRenderSiteHead"/>).
     /// </exception>
     Task<SiteThemePreviewDto> RenderAsync(SiteThemePreviewRequest request, CancellationToken cancellationToken = default);

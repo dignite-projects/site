@@ -26,7 +26,9 @@ A field's type decides how its configuration is read, how its value is validated
 
 A field is searchable only if its type is indexable **and** the content type marks its use `Searchable`; see [Arranging Fields](content-types-and-fields.md#arranging-fields).
 
-The names and configuration keys below are stored in every field definition, so they never change. The `site_list_field_types` [MCP tool](mcp/tools.md#fields) lists the field types of a running site.
+The names and configuration keys below are stored in every field definition, so they never change. The `site_list_field_types` [MCP tool](mcp/tools.md#fields) lists the field types of a running site, each with its configuration keys.
+
+A configuration is checked when a field is created or updated: a key the field type does not list, a value of the wrong kind and a missing required key are refused, with every problem named at once and the valid keys listed. A field type of your own that lists no keys is not checked. On an update, a key that is unchanged from what is stored is not checked again, so a field saved before a key was listed can still be renamed or described.
 
 ## FlexFields Field Types
 

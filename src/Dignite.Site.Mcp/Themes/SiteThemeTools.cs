@@ -205,8 +205,12 @@ public class SiteThemeTools : ITransientDependency
     [McpServerTool(Name = "site_check_theme", Title = "Check the theme", ReadOnly = true)]
     [Description(
         "Checks the whole working copy - syntax, front matter, references to missing files, layouts without site_head " +
-        "or body, include cycles, pages whose template is missing - and lists what publishing would change. Errors " +
-        "block site_publish_theme; warnings do not. Returns the 'fingerprint' site_publish_theme needs.")]
+        "or body, include cycles, includes that leave out a named argument the partial reads, pages whose template " +
+        "is missing - and lists what publishing would change. Once those find no error, it also renders a sample of " +
+        "the site's pages with the working copy (each page's own address, and one published content per content type " +
+        "and language), and a template that fails to render - an unknown variable, say - is an error naming the " +
+        "template, line, column and the address that failed. Errors block site_publish_theme; warnings do not. " +
+        "Returns the 'fingerprint' site_publish_theme needs.")]
     [Authorize(SiteAdminPermissions.Themes.Default)]
     public virtual async Task<SiteThemeCheckDto> CheckThemeAsync()
     {
@@ -220,7 +224,8 @@ public class SiteThemeTools : ITransientDependency
         "only. A template that fails at render time is returned as an error naming the template, line and column. " +
         "A page whose template is not in the theme is rendered by a Razor view and cannot be previewed here. HTML " +
         "longer than " + MaxPreviewHtmlLengthText + " characters is cut off: 'isTruncated' is then true and " +
-        "'htmlLength' gives the full length.")]
+        "'htmlLength' gives the full length. A page's HTML is a lot to read back: when you only need to know that " +
+        "it renders, or to check its head, pass a small maxHtmlLength.")]
     [Authorize(SiteAdminPermissions.Themes.Default)]
     public virtual async Task<SiteThemePreview> PreviewAsync(
         [Description("A path of the site to render, e.g. '/about' or '/ja/blog/hello' - a language prefix included. " +
@@ -228,14 +233,20 @@ public class SiteThemeTools : ITransientDependency
                      "path reaches.")]
         string path,
         [Description("A release number from site_list_releases. Omit for the working copy.")]
-        int? release = null)
+        int? release = null,
+        [Description(
+            "The most HTML characters to return, from the start of the page: 'htmlLength' still gives the whole " +
+            "length. Omit for " + MaxPreviewHtmlLengthText + ", the largest. A page's head and the start of its body " +
+            "are in the first 3000 or so.")]
+        int? maxHtmlLength = null)
     {
         Guid? releaseId = release is { } number ? (await GetReleaseAsync(number)).Id : null;
+        var limit = maxHtmlLength is { } requested ? Math.Clamp(requested, 1, MaxPreviewHtmlLength) : MaxPreviewHtmlLength;
 
         // A render failure is a business exception (Site:090008, carrying the template, line and column), which the
         // server's error envelope reports in full - nothing to catch here.
         var preview = await ThemeAppService.PreviewAsync(path, releaseId);
-        var isTruncated = preview.Html.Length > MaxPreviewHtmlLength;
+        var isTruncated = preview.Html.Length > limit;
 
         return new SiteThemePreview
         {
@@ -245,7 +256,7 @@ public class SiteThemeTools : ITransientDependency
             PageTemplate = preview.PageTemplate,
             Layout = preview.Layout,
             Release = release,
-            Html = isTruncated ? preview.Html[..MaxPreviewHtmlLength] : preview.Html,
+            Html = isTruncated ? preview.Html[..limit] : preview.Html,
             IsTruncated = isTruncated,
             HtmlLength = preview.Html.Length
         };
@@ -255,7 +266,8 @@ public class SiteThemeTools : ITransientDependency
     [Description(
         "Publishes the whole working copy as a new release and makes it live at once. Pass the 'fingerprint' of the " +
         "latest site_check_theme: the publish is refused if the working copy changed since, if the check finds an " +
-        "error, or if nothing changed since the live release. Confirm with the user first - this changes the live site.")]
+        "error (rendering the sample pages again included), or if nothing changed since the live release. Confirm " +
+        "with the user first - this changes the live site.")]
     [Authorize(SiteAdminPermissions.Themes.Publish)]
     public virtual async Task<SiteReleaseDto> PublishThemeAsync(
         [Description("The 'fingerprint' from site_check_theme.")]

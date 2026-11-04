@@ -56,6 +56,9 @@ public static class SiteErrorCodes
     public const string FileContainerNotAvailable = "Site:080001";
     public const string FileSortingNotSupported = "Site:080002";
 
+    /// <summary>An upload link that is not one this site issued, has expired, or has been used. One code for all three.</summary>
+    public const string FileUploadTicketInvalid = "Site:080003";
+
     // The tenant's theme (Dignite.Site.Themes): a working copy of files, published as immutable releases.
     public const string SiteThemeFileAlreadyExists = "Site:090001";
 
@@ -102,4 +105,12 @@ public static class SiteErrorCodes
     /// <c>site_head</c>, or has front matter; Data["Layout"].
     /// </summary>
     public const string SiteThemeDefaultLayoutNotALayout = "Site:090013";
+
+    // The site's languages (Site.EnabledLanguages), set through SiteLanguageManager.
+
+    /// <summary>A list of languages with none in it: a site has to serve at least one.</summary>
+    public const string SiteLanguagesRequired = "Site:100001";
+
+    /// <summary>A language tag .NET does not know; Data["CultureName"].</summary>
+    public const string SiteLanguageNotRecognized = "Site:100002";
 }

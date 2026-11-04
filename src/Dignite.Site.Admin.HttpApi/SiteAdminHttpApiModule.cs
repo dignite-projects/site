@@ -25,6 +25,10 @@ public class SiteAdminHttpApiModule : AbpModule
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        // The upload links are signed with it (FileUploadTicketProtector). Added by every application that has
+        // authentication already, and adding it again changes nothing: it keeps the keys the host configured.
+        context.Services.AddDataProtection();
+
         Configure<AbpLocalizationOptions>(options =>
         {
             options.Resources

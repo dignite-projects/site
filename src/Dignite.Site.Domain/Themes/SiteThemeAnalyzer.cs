@@ -73,6 +73,12 @@ public sealed class SiteThemeFileAnalysis
     public bool CallsSiteHead { get; internal set; }
 
     public bool UsesBody { get; internal set; }
+
+    /// <summary>
+    /// The local variables the body reads and never gives a value - what an <c>include</c> of this template has to pass
+    /// as named arguments. See <see cref="ScribanTemplateSyntax.GetRequiredLocals"/>.
+    /// </summary>
+    public IReadOnlyCollection<string> RequiredLocals { get; internal set; } = Array.Empty<string>();
 }
 
 /// <summary>The result of <see cref="SiteThemeAnalyzer.Analyze"/>.</summary>
@@ -167,6 +173,7 @@ public static class SiteThemeAnalyzer
             analysis.References = ScribanTemplateSyntax.GetReferences(template);
             analysis.CallsSiteHead = ScribanTemplateSyntax.CallsSiteHead(template);
             analysis.UsesBody = ScribanTemplateSyntax.UsesBody(template);
+            analysis.RequiredLocals = ScribanTemplateSyntax.GetRequiredLocals(template);
         }
 
         return analysis;
@@ -468,9 +475,33 @@ public static class SiteThemeAnalyzer
             if (kind == SiteThemeUsageKind.Include)
             {
                 _included.Add(target);
+                ReportMissingArguments(source, reference);
             }
 
             AddUsage(target, new SiteThemeUsage(kind, source.Path, null));
+        }
+
+        /// <summary>
+        /// An <c>include</c> passes a partial its locals, and only those: a partial that reads <c>$title</c> fails the render
+        /// wherever it is included without <c>title:</c>. The template and every language version of it are held to it, since
+        /// the include renders whichever one fits the page's language.
+        /// </summary>
+        private void ReportMissingArguments(SiteThemeFileAnalysis source, SiteThemeReference reference)
+        {
+            var passed = reference.NamedArguments ?? Array.Empty<string>();
+
+            var missing = new[] { reference.Path }
+                .Concat(GetLanguageVersions(reference.Path))
+                .SelectMany(path => _files[path].RequiredLocals)
+                .Where(name => !passed.Contains(name, StringComparer.Ordinal))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(name => name, StringComparer.Ordinal);
+
+            foreach (var name in missing)
+            {
+                Error(SiteThemeIssueCodes.IncludeArgumentMissing, source.Path, reference.Line, reference.Column,
+                    ("Target", reference.Path), ("Variable", name));
+            }
         }
 
         private void ReportIncludeCycles()

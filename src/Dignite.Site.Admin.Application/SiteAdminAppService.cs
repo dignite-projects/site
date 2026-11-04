@@ -1,7 +1,9 @@
 ﻿using Dignite.Site.Features;
 using Dignite.Site.Localization;
+using System.Threading;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Features;
+using Volo.Abp.Threading;
 
 namespace Dignite.Site.Admin;
 
@@ -12,6 +14,10 @@ namespace Dignite.Site.Admin;
 [RequiresFeature(SiteFeatures.Enable)]
 public abstract class SiteAdminAppService : ApplicationService
 {
+    /// <summary>The token of the request being served; none outside one.</summary>
+    protected CancellationToken RequestCancellationToken =>
+        LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None;
+
     protected SiteAdminAppService()
     {
         LocalizationResource = typeof(SiteResource);

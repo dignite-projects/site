@@ -144,6 +144,9 @@ public class SiteThemeTools_Tests : SiteEntityFrameworkCoreTestBase
         await PublishAsync();
         await _themeTools.SaveThemeFileAsync("Default", "<p>two</p>");
 
+        // The publish rendered a sample of the pages to check the theme; only the previews are counted below.
+        _previewRenderer.Requests.Clear();
+
         var draft = await _themeTools.PreviewAsync("/about");
         var released = await _themeTools.PreviewAsync("/about", release: 1);
 
@@ -168,6 +171,32 @@ public class SiteThemeTools_Tests : SiteEntityFrameworkCoreTestBase
         preview.IsTruncated.ShouldBeTrue();
         preview.Html.Length.ShouldBe(SiteThemeTools.MaxPreviewHtmlLength);
         preview.HtmlLength.ShouldBeGreaterThan(SiteThemeTools.MaxPreviewHtmlLength);
+    }
+
+    /// <summary>A client that only wants to know a page renders can ask for the start of it: the whole HTML is a lot to read back.</summary>
+    [Fact]
+    public async Task Should_Cut_A_Preview_To_The_Length_Asked_For()
+    {
+        await _themeTools.SaveThemeFileAsync("Default", new string('x', 500));
+
+        var preview = await _themeTools.PreviewAsync("/about", maxHtmlLength: 40);
+
+        preview.Html.Length.ShouldBe(40);
+        preview.IsTruncated.ShouldBeTrue();
+        preview.HtmlLength.ShouldBeGreaterThan(500);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(-5, 1)]
+    [InlineData(SiteThemeTools.MaxPreviewHtmlLength * 4, SiteThemeTools.MaxPreviewHtmlLength)]
+    public async Task Should_Keep_The_Asked_For_Preview_Length_Within_Bounds(int asked, int expected)
+    {
+        await _themeTools.SaveThemeFileAsync("Default", new string('x', SiteThemeTools.MaxPreviewHtmlLength + 100));
+
+        var preview = await _themeTools.PreviewAsync("/about", maxHtmlLength: asked);
+
+        preview.Html.Length.ShouldBe(expected);
     }
 
     /// <summary>

@@ -77,6 +77,22 @@ public class ScribanIncludes_Tests
         html.ShouldEndWith("[Hi]");
     }
 
+    /// <summary>
+    /// A partial's locals are its own: the theme check asks every <c>include</c> to pass what the partial reads, because
+    /// a local of the including template does not reach it and an unset one fails the render.
+    /// </summary>
+    [Fact]
+    public async Task A_Local_Of_The_Including_Template_Should_Not_Reach_The_Partial()
+    {
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            "{{ $title = \"Hi\" }}{{ include \"partials/named\" }}",
+            HeadOnlyLayout,
+            new Dictionary<string, string> { ["partials/named"] = "[{{ $title }}]" }));
+
+        ex.ShouldBeAssignableTo<ScriptRuntimeException>();
+        ex!.Message.ShouldContain("$title");
+    }
+
     [Fact]
     public async Task The_Layout_Should_Include_A_Partial_Too()
     {

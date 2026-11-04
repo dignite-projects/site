@@ -32,8 +32,15 @@ public static class SiteFileContainerNames
     /// </summary>
     public const string Images = "images";
 
+    /// <summary>
+    /// Publicly readable files a theme uses and a picture or a document is not: a favicon, a font (<see cref="SiteFileTypes.ThemeAssets"/>).
+    /// Uploading to it is the theme's permission, <c>SiteAdmin.Themes.Edit</c>, not the content's: it is design, not content.
+    /// A theme's own static files are text (<c>css/site.css</c>) and live in the theme; these are the binary ones it links.
+    /// </summary>
+    public const string ThemeAssets = "theme-assets";
+
     /// <summary>Every container Site's file library uses.</summary>
-    public static IReadOnlyList<string> All { get; } = new[] { Images, Attachments };
+    public static IReadOnlyList<string> All { get; } = new[] { Images, Attachments, ThemeAssets };
 
     /// <summary>
     /// Whether <paramref name="containerName"/> is one of <see cref="All"/>. Ordinal, the same as ABP's own

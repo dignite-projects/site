@@ -29,6 +29,14 @@ public class SiteMcpFileOptions
     public long MaxUploadSize { get; set; } = 5 * 1024 * 1024;
 
     /// <summary>
+    /// The address, up to but not including <c>/api/site-admin/...</c>, that an upload link made by
+    /// <c>site_create_upload_url</c> starts with - where the client will send the file. When it is not set the link
+    /// starts with the scheme and host the MCP request itself came in on. A host behind a gateway that does not forward
+    /// the original host sets it to the gateway's address, and routes <c>api/site-admin/files/upload/*</c> through.
+    /// </summary>
+    public string? UploadBaseUrl { get; set; }
+
+    /// <summary>
     /// What <c>site_upload_file</c> actually accepts for a container: the container's own limit where it has
     /// one, never more than <see cref="MaxUploadSize"/>. The one rule both the upload and the container
     /// listing use, so what is advertised is what is enforced.

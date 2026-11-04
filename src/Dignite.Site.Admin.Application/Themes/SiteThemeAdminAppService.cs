@@ -19,15 +19,18 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
     protected SiteThemeManager ThemeManager { get; }
     protected ISiteThemeFileRepository FileRepository { get; }
     protected ISiteReleaseRepository ReleaseRepository { get; }
+    protected SiteThemeTrialRenderer TrialRenderer { get; }
 
     public SiteThemeAdminAppService(
         SiteThemeManager themeManager,
         ISiteThemeFileRepository fileRepository,
-        ISiteReleaseRepository releaseRepository)
+        ISiteReleaseRepository releaseRepository,
+        SiteThemeTrialRenderer trialRenderer)
     {
         ThemeManager = themeManager;
         FileRepository = fileRepository;
         ReleaseRepository = releaseRepository;
+        TrialRenderer = trialRenderer;
     }
 
     public virtual async Task<SiteThemeDto> GetAsync()
@@ -146,11 +149,20 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
         var theme = await ThemeManager.GetOrCreateAsync();
         var check = await ThemeManager.CheckAsync(theme);
 
+        // A theme that does not read cleanly renders into errors that are only its errors again, so the pages are
+        // rendered once the reading finds nothing wrong.
+        var issues = check.Analysis.Issues.ToList();
+        if (!check.Analysis.HasErrors)
+        {
+            issues.AddRange(await TrialRenderAsync(theme, await FileRepository.GetListAsync(theme.Id), check));
+        }
+
         return new SiteThemeCheckDto
         {
             Fingerprint = check.Fingerprint,
-            Issues = check.Analysis.Issues.Select(MapToDto).ToList(),
-            HasErrors = check.Analysis.HasErrors,
+            // Errors first; the sort is stable, so the findings keep their order within a severity.
+            Issues = issues.OrderBy(issue => issue.Severity).Select(MapToDto).ToList(),
+            HasErrors = issues.Any(issue => issue.Severity == SiteThemeIssueSeverity.Error),
             Layouts = check.Analysis.Layouts.ToList(),
             Changes = check.Changes
                 .Where(change => change.Status != SiteThemeFileStatus.Unchanged)
@@ -163,13 +175,39 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
         };
     }
 
+    /// <summary>
+    /// The domain agrees to the working copy as it was checked - the fingerprint, the errors the reading finds, something to
+    /// publish - and then the pages are rendered with it, which finds the errors only a render finds and which the domain
+    /// cannot do: the renderer is the rendering library's, not the domain's. Nothing is checked twice, and no page is rendered
+    /// for a publish the domain would refuse.
+    /// </summary>
     [Authorize(SiteAdminPermissions.Themes.Publish)]
     public virtual async Task<SiteReleaseDto> PublishAsync(PublishSiteThemeDto input)
     {
         var theme = await ThemeManager.GetOrCreateAsync();
-        var release = await ThemeManager.PublishAsync(theme, input.Comment, input.Fingerprint);
+        var publication = await ThemeManager.PrepareAsync(theme, input.Fingerprint);
+
+        var failures = (await TrialRenderAsync(theme, publication.Files, publication.Check))
+            .Count(issue => issue.Severity == SiteThemeIssueSeverity.Error);
+        if (failures > 0)
+        {
+            throw new BusinessException(SiteErrorCodes.SiteThemeHasErrors).WithData("Count", failures);
+        }
+
+        var release = await ThemeManager.PublishAsync(publication, input.Comment);
 
         return MapToDto(release, theme);
+    }
+
+    protected virtual async Task<List<SiteThemeIssue>> TrialRenderAsync(
+        SiteTheme theme,
+        IEnumerable<SiteThemeFile> files,
+        SiteThemeCheck check)
+    {
+        return await TrialRenderer.RenderAsync(
+            ToWorkingCopySnapshot(theme, files),
+            check.Analysis,
+            RequestCancellationToken);
     }
 
     public virtual async Task<ListResultDto<SiteReleaseDto>> GetReleasesAsync()
@@ -251,7 +289,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
 
         return await renderer.RenderAsync(
             new SiteThemePreviewRequest { Path = path, Snapshot = snapshot },
-            LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None);
+            RequestCancellationToken);
     }
 
     public virtual async Task<SiteThemePreviewLinkDto> GetPreviewLinkAsync(string? path = null, Guid? releaseId = null)
@@ -272,8 +310,11 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
 
     protected virtual async Task<SiteThemeSnapshotDto> GetWorkingCopySnapshotAsync(SiteTheme theme)
     {
-        var files = await FileRepository.GetListAsync(theme.Id);
+        return ToWorkingCopySnapshot(theme, await FileRepository.GetListAsync(theme.Id));
+    }
 
+    protected virtual SiteThemeSnapshotDto ToWorkingCopySnapshot(SiteTheme theme, IEnumerable<SiteThemeFile> files)
+    {
         return new SiteThemeSnapshotDto
         {
             DefaultLayout = theme.DefaultLayout,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Contents;
 using Dignite.Site.Admin.Permissions;
@@ -48,9 +49,11 @@ public class ContentTools : ITransientDependency
     [McpServerTool(Name = "site_list_contents", Title = "List contents", ReadOnly = true)]
     [Description(
         "Lists contents, newest first, including drafts. Every filter is optional; with none, it lists " +
-        "across the whole site.")]
+        "across the whole site. Each row says where a content is - page, content type, language, slug, status, " +
+        "publish time - and leaves its field values out, which is what a list of pages would otherwise " +
+        "cost: read one with site_get_content, or pass includeFieldValues to get them all.")]
     [Authorize(SiteAdminPermissions.Contents.Default)]
-    public virtual async Task<PagedResultDto<ContentDto>> ListContentsAsync(
+    public virtual async Task<PagedResultDto<McpContentSummary>> ListContentsAsync(
         [Description("Page name to list under, from site_get_schema. Omit to list across the whole site.")]
         string? page = null,
         [Description("Content type name, from site_get_schema. Requires 'page', since a content type's name is unique only within its page.")]
@@ -64,7 +67,9 @@ public class ContentTools : ITransientDependency
         [Description("How many to skip, for paging.")]
         int skipCount = 0,
         [Description("How many to return. Keep this small unless you need more.")]
-        int maxResultCount = 20)
+        int maxResultCount = 20,
+        [Description("Include each content's field values. Off by default: with long text fields a page of results is large.")]
+        bool includeFieldValues = false)
     {
         var pageDto = page.IsNullOrWhiteSpace() ? null : await NameResolver.GetPageAsync(page!);
 
@@ -92,7 +97,7 @@ public class ContentTools : ITransientDependency
             contentTypeId = (await NameResolver.GetContentTypeAsync(pageDto, contentType!)).Id;
         }
 
-        return await ContentAppService.GetListAsync(new GetContentListInput
+        var result = await ContentAppService.GetListAsync(new GetContentListInput
         {
             PageId = pageDto?.Id,
             ContentTypeId = contentTypeId,
@@ -102,6 +107,10 @@ public class ContentTools : ITransientDependency
             SkipCount = skipCount,
             MaxResultCount = maxResultCount
         });
+
+        return new PagedResultDto<McpContentSummary>(
+            result.TotalCount,
+            result.Items.Select(content => ToSummary(content, includeFieldValues, storedFields: false)).ToList());
     }
 
     [McpServerTool(Name = "site_get_content", Title = "Get one content", ReadOnly = true)]
@@ -122,9 +131,11 @@ public class ContentTools : ITransientDependency
     [Description(
         "Creates one content of the given type under the given page. Field values are validated against " +
         "the content type's field definitions; a value for a field the type does not declare is dropped, " +
-        "and a missing required value is rejected with the field named.")]
+        "and a missing required value is rejected with the field named. Returns where the content landed - page, " +
+        "content type, language, slug, status, publish time - and storedFields, the names of the values kept: one " +
+        "missing from it was dropped. The values are not echoed back; read them with site_get_content.")]
     [Authorize(SiteAdminPermissions.Contents.Create)]
-    public virtual async Task<ContentDto> CreateContentAsync(
+    public virtual async Task<McpContentSummary> CreateContentAsync(
         [Description("Page name, from site_get_schema.")]
         string page,
         [Description("Content type name under that page, from site_get_schema. Pick the one whose description matches what is being written.")]
@@ -149,7 +160,7 @@ public class ContentTools : ITransientDependency
     {
         var contentTypeDto = await NameResolver.GetContentTypeAsync(page, contentType);
 
-        return await ContentAppService.CreateAsync(new CreateContentDto
+        var created = await ContentAppService.CreateAsync(new CreateContentDto
         {
             ContentTypeId = contentTypeDto.Id,
             // Passed through as given. Normalizing here as well as in ContentManager would be the second
@@ -161,6 +172,8 @@ public class ContentTools : ITransientDependency
             PublishTime = publishTime ?? Clock.Now,
             FieldValues = fieldValues
         });
+
+        return ToSummary(created, includeFieldValues: false, storedFields: true);
     }
 
     [McpServerTool(Name = "site_update_content", Title = "Update a content", Idempotent = true)]
@@ -168,9 +181,10 @@ public class ContentTools : ITransientDependency
         "Updates one content, addressed by page, language and slug. Anything left null is kept as it is - " +
         "so this can publish a draft, or reschedule, without resending the body. Supplying fieldValues " +
         "REPLACES the whole set: read the content first and send it back with your edits merged in, or " +
-        "omit it entirely.")]
+        "omit it entirely. Returns where the content is now, and storedFields, the names of its values; " +
+        "the values are not echoed back.")]
     [Authorize(SiteAdminPermissions.Contents.Update)]
-    public virtual async Task<ContentDto> UpdateContentAsync(
+    public virtual async Task<McpContentSummary> UpdateContentAsync(
         [Description("Page name, from site_get_schema.")]
         string page,
         [Description("Language tag of the content to update.")]
@@ -198,7 +212,7 @@ public class ContentTools : ITransientDependency
             ? null
             : (await NameResolver.GetContentTypeAsync(pageDto, contentType!)).Id;
 
-        return await ContentAppService.UpdateAsync(content.Id, new UpdateContentDto
+        var updated = await ContentAppService.UpdateAsync(content.Id, new UpdateContentDto
         {
             Slug = newSlug == null ? content.Slug : McpSlug.NormalizeReplacement(newSlug),
             Status = status ?? content.Status,
@@ -206,6 +220,28 @@ public class ContentTools : ITransientDependency
             FieldValues = fieldValues,
             ContentTypeId = contentTypeId
         });
+
+        return ToSummary(updated, includeFieldValues: false, storedFields: true);
+    }
+
+    /// <summary>
+    /// A content as these tools say it back: where it is, by name, and either the names of its values or the values.
+    /// <see cref="ContentDto.Url"/> is left out: the administration side leaves it empty, so it would only mislead.
+    /// <c>site_resolve_path</c> gives the address a visitor reaches.
+    /// </summary>
+    protected virtual McpContentSummary ToSummary(ContentDto content, bool includeFieldValues, bool storedFields)
+    {
+        return new McpContentSummary
+        {
+            Page = content.PageName,
+            ContentType = content.ContentTypeName,
+            CultureName = content.CultureName,
+            Slug = content.Slug,
+            Status = content.Status,
+            PublishTime = content.PublishTime,
+            StoredFields = storedFields ? content.FieldValues.Keys.OrderBy(name => name, StringComparer.Ordinal).ToArray() : null,
+            FieldValues = includeFieldValues ? content.FieldValues : null
+        };
     }
 
     [McpServerTool(Name = "site_delete_content", Title = "Delete a content", Destructive = true)]

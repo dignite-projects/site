@@ -113,6 +113,16 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
                         Description = property.Description,
                     })
                     .ToList(),
+                ConfigurationKeys = fieldType.ConfigurationKeys
+                    ?.Select(key => new FieldConfigurationKeyDto
+                    {
+                        Name = key.Name,
+                        Type = key.Shape,
+                        Description = key.Description,
+                        DefaultValue = key.DefaultValue,
+                        Required = key.Required,
+                    })
+                    .ToList(),
             })
             .ToList();
 

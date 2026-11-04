@@ -131,6 +131,90 @@ public class SiteThemeAnalyzer_Tests
         missing.Single(i => i.Data["Target"] == "_nope").Line.ShouldBe(4);
     }
 
+    /// <summary>The render fails with "$back_url was not found" wherever the partial is included without the argument.</summary>
+    [Fact]
+    public void Should_Report_An_Include_That_Leaves_Out_An_Argument_The_Partial_Reads()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["Events"] = "{{ include \"_header\" title: \"Events\" back_url: \"/\" }}\n{{ include \"_header\" title: \"More\" }}",
+            ["_header"] = "<h1>{{ $title }}</h1>{{ if $back_url }}<a href=\"{{ $back_url }}\">back</a>{{ end }}"
+        }, pages: ("events", "Events"));
+
+        var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.IncludeArgumentMissing);
+        issue.Severity.ShouldBe(SiteThemeIssueSeverity.Error);
+        issue.Path.ShouldBe("Events");
+        issue.Line.ShouldBe(2);
+        issue.Data["Target"].ShouldBe("_header");
+        issue.Data["Variable"].ShouldBe("back_url");
+        analysis.HasErrors.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Should_Report_Every_Argument_An_Include_Leaves_Out_And_Follow_A_Piped_Include()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["Events"] = "{{ \"_card\" | include a: 1 }}\n{{ \"_card\" | include }}\n{{ include \"_card\" }}",
+            ["_card"] = "{{ $a }}{{ $b }}"
+        }, pages: ("events", "Events"));
+
+        analysis.Issues
+            .Where(i => i.Code == SiteThemeIssueCodes.IncludeArgumentMissing)
+            .Select(i => (i.Line!.Value, i.Data["Variable"]))
+            .ShouldBe(new[] { (1, "b"), (2, "a"), (2, "b"), (3, "a"), (3, "b") }, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Should_Accept_An_Include_That_Passes_What_The_Partial_Reads()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            // An optional argument is passed as null.
+            ["Events"] = "{{ include \"_header\" title: page.display_name back_url: null }}",
+            ["_header"] = "<h1>{{ $title }}</h1>{{ if $back_url }}<a href=\"{{ $back_url }}\">back</a>{{ end }}"
+        }, pages: ("events", "Events"));
+
+        analysis.Issues.ShouldBeEmpty();
+    }
+
+    /// <summary>A local the partial gives a value itself is not an argument; neither are the positional ones, the loop state and what a function reads.</summary>
+    [Fact]
+    public void Should_Not_Ask_For_Locals_The_Partial_Sets_Or_Which_Are_Not_Arguments()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["Events"] = "{{ include \"_list\" }}",
+            ["_list"] =
+                "{{ $count = 0 }}{{ capture $label }}items{{ end }}" +
+                "{{ for $item in contents }}{{ $count = $count + 1 }}{{ $for.index }}{{ $item.slug }}{{ end }}" +
+                "{{ $1 }}{{ $label }}{{ func shout }}{{ $inside }}{{ end }}"
+        }, pages: ("events", "Events"));
+
+        analysis.Issues.ShouldBeEmpty();
+    }
+
+    /// <summary>The include renders the version that fits the page's language, so each version must get what it reads.</summary>
+    [Fact]
+    public void Should_Hold_The_Language_Versions_Of_A_Partial_To_The_Same_Arguments()
+    {
+        var analysis = Analyze(new()
+        {
+            ["layouts/default"] = Layout,
+            ["Events"] = "{{ include \"_card\" title: \"x\" }}",
+            ["_card"] = "{{ $title }}",
+            ["_card.ja"] = "{{ $title }}{{ $note }}"
+        }, pages: ("events", "Events"));
+
+        var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.IncludeArgumentMissing);
+        issue.Data["Target"].ShouldBe("_card");
+        issue.Data["Variable"].ShouldBe("note");
+    }
+
     [Fact]
     public void Should_Report_References_To_The_Wrong_Kind_Of_File()
     {

@@ -39,4 +39,8 @@ export enum eSitePolicyNames {
   ThemesEdit = 'SiteAdmin.Themes.Edit',
   /** Changing what the site renders: publishing, and making an older release live. */
   ThemesPublish = 'SiteAdmin.Themes.Publish',
+
+  Languages = 'SiteAdmin.Languages',
+  /** Setting them: the default language is the one without a URL prefix, so this moves the address of pages. */
+  LanguagesUpdate = 'SiteAdmin.Languages.Update',
 }

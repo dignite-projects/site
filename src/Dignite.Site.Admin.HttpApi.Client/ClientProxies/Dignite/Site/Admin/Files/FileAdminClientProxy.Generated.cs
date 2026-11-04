@@ -41,6 +41,14 @@ public partial class FileAdminClientProxy : ClientProxyBase<IFileAdminAppService
         });
     }
 
+    public virtual async Task<FileUploadTicketDto> CreateUploadTicketAsync(CreateFileUploadTicketInput input)
+    {
+        return await RequestAsync<FileUploadTicketDto>(nameof(CreateUploadTicketAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(CreateFileUploadTicketInput), input }
+        });
+    }
+
     public virtual async Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input)
     {
         return await RequestAsync<FileDescriptorDto>(nameof(UpdateAsync), new ClientProxyRequestTypeValue

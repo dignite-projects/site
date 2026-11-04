@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   admin UI's previews, which load a file with a plain `<img>` request from the `SiteAdmin` API's host, name the
   signed-in tenant themselves (`SiteFileUrlService.toDisplay`, and inside the CKEditor field), without saving it;
   `absoluteFileUrl` takes the tenant as a third parameter and `relativeFileUrl` is its inverse.
+- **The results of the content tools of MCP name things and leave out what a client cannot use.** `site_create_content`
+  and `site_update_content` return where the content is (page, content type, language, slug, status, publish time) and
+  `storedFields`, the names of the values kept, instead of the content with the body it has just been sent;
+  `site_list_contents` returns the same for each row and the field values only with `includeFieldValues`;
+  `site_resolve_path` and the content type tools answer with names, not ids or audit columns. **A client that read the
+  old fields has to read `site_get_content` for the values.** `ContentDto` has two new members, `PageName` and
+  `ContentTypeName`, filled by the administration side, so that naming them needs no more than the permission to read
+  contents (empty from the public one, like `Url`).
+- **Chinese, Japanese and other non-Latin text is written as it is in rendered pages.** The default `HtmlEncoder`
+  passes only Basic Latin, so a title or a description came out as `&#x...;` entities: the same page, larger, and a
+  `<title>` nobody could read in the source. `SitePublicWebModule` now lets every Unicode range through; markup
+  characters are still encoded. It was set in the host before; every host of Site gets it now.
+- **Publishing a theme is two steps in the domain.** `SiteThemeManager.PrepareAsync` agrees to the working copy as it was
+  checked and `PublishAsync(publication, comment)` publishes it, so that the application renders the pages between them
+  without checking the theme again; `PublishAsync(theme, comment, fingerprint)` is both without the render. **A derived
+  `SiteThemeAdminAppService` takes `SiteThemeTrialRenderer`, `ContentAdminAppService` takes `IPageRepository` and
+  `IContentTypeRepository`, `FileTools` takes an optional `IHttpContextAccessor`, and `SiteAdminAppService` has
+  `RequestCancellationToken`: a derived class that declares its own must hide or drop it.**
+- **A theme preview reports as the template's failure exactly what the renderer found wrong with the theme.** A
+  template that does not parse, a layout that is not a template of the theme and output past
+  `SiteScribanOptions.MaxOutputLength` now raise `ScribanRenderException` (an `InvalidOperationException`); the
+  preview - `SiteThemePreviewRenderer`, and the error page a previewed page shows - reports it, a `TimeoutException`
+  and a `ScriptRuntimeException` as `Site:090008`, and lets any other exception propagate as it is, rather than
+  presenting every `InvalidOperationException` (a disposed service, a `DbContext` used twice at once) and every
+  business exception a service threw as the template's fault. A preview rendered for a call that was cancelled stops
+  rendering: `ISiteThemePreviewRenderer.RenderAsync`'s token now reaches the render. **`ScribanPageRenderer.RenderAsync`
+  takes an optional `CancellationToken`, and its `RenderTemplateAsync` takes the parsed `Template` after the file: a
+  derived renderer that overrides it must add the parameter.**
 
 ### Added
 
@@ -72,25 +100,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [Paging](docs/en/rendering/scriban-templates.md#paging). **`SiteThemePreviewRenderer` now takes
   `IOptions<SiteScribanOptions>`, `SiteHeadFunction` the page query key, and `SiteRenderController`'s
   `BuildPageViewModel` / `BuildContentViewModelAsync` the page number: a derived class must add the parameter.**
-
-### Changed
-
-- **A theme preview reports as the template's failure exactly what the renderer found wrong with the theme.** A
-  template that does not parse, a layout that is not a template of the theme and output past
-  `SiteScribanOptions.MaxOutputLength` now raise `ScribanRenderException` (an `InvalidOperationException`); the
-  preview - `SiteThemePreviewRenderer`, and the error page a previewed page shows - reports it, a `TimeoutException`
-  and a `ScriptRuntimeException` as `Site:090008`, and lets any other exception propagate as it is, rather than
-  presenting every `InvalidOperationException` (a disposed service, a `DbContext` used twice at once) and every
-  business exception a service threw as the template's fault. A preview rendered for a call that was cancelled stops
-  rendering: `ISiteThemePreviewRenderer.RenderAsync`'s token now reaches the render. **`ScribanPageRenderer.RenderAsync`
-  takes an optional `CancellationToken`, and its `RenderTemplateAsync` takes the parsed `Template` after the file: a
-  derived renderer that overrides it must add the parameter.**
+- **The languages of a site can be set from the application.** `GET` and `PUT api/site-admin/languages`, the
+  `site_set_languages` MCP tool and a Languages tab on the admin UI's Setting Management page read and set the whole ordered
+  list - the first language is the default, whose pages have no URL prefix - for the current tenant, or, on the host's
+  own site, as the default of every site that sets none. A tag that is not a language is refused, not repaired. Two new
+  permissions, `SiteAdmin.Languages` and `SiteAdmin.Languages.Update`. The tab is `provideSiteSettingTabs()` of the new
+  `@dignite/ng.site/setting-management` entry point, next to `provideSettingManagementConfig()`; `@abp/ng.setting-management` is an
+  optional peer dependency. See [Settings](docs/en/settings.md) and [Admin UI](docs/en/admin-ui.md).
+  **Writing goes through the new `ISiteSettingWriter` of `Dignite.Site.Domain`, whose implementation is in the new
+  `Dignite.Site.SettingManagement` package: a host that serves these calls loads its `SiteSettingManagementModule`,
+  which brings ABP's Setting Management and its tables. Without it the language services fail to resolve.**
+- **A file can be uploaded through a one-time link.** The bytes of a photo, a background or an icon do not go through an
+  AI client: `site_create_upload_url` (and `POST api/site-admin/files/upload-tickets`) returns a link that takes the file
+  as the body of a `PUT` (`api/site-admin/files/upload/{ticket}`, anonymous: the link is the credential), with the command
+  that sends it for POSIX shells and for PowerShell. The link is signed with ASP.NET Core Data Protection, so the host's key
+  ring is shared by its instances; it is good for ten minutes, for one use - recorded in the distributed cache under a
+  distributed lock, so several instances need both configured - and for one container, name, directory and size, and the
+  upload is made as the one who asked for it, under the container's own rules. Behind a gateway that does not forward the
+  original host, `SiteMcpFileOptions.UploadBaseUrl` names the address to start the link with and
+  `api/site-admin/files/upload/*` is routed through. See [Files](docs/en/files.md).
+- **A theme can link binary files of its own.** The new file container `theme-assets` holds what a theme links and a
+  picture or a document is not - an `.ico` and web fonts (`.woff2`, `.woff`, `.ttf`, `.otf`), whose type the
+  content-based detection of `Dignite.Abp.BlobStoring.Pipeline` reads from their bytes. It is read publicly, like the other containers, and written with
+  `SiteAdmin.Themes.Edit`, not the content permissions. The containers' provider has to be configured for it.
+- **The check before a publish renders the pages.** The static check reads the templates but runs none, so a variable
+  that does not exist or a partial that fails on one kind of content passed it and broke the first page a visitor
+  opened. The check now also renders a sample of the pages with the working copy - each page's own address in every
+  language, and a content of each type and language - and reports a template that fails at run time, or never calls
+  `site_head`, as an error at its place (`ThemeIssue:RenderFailed`), and a sample cut short as a warning
+  (`ThemeIssue:TrialRenderIncomplete`); a publish is refused for the same failures. It also reports an `include` that
+  leaves out a named argument the partial reads (`ThemeIssue:IncludeArgumentMissing`). See
+  [Checking the Theme](docs/en/rendering/scriban-templates.md#checking-the-theme).
+- **A field's configuration is checked when it is saved.** A misspelled key (`Text.Multiline` for `Text.Mode`) was stored
+  without a word and had no effect. `FieldManager` now checks the configuration against the keys the field type
+  declares (`IFieldType.ConfigurationKeys`, Dignite.Abp.FlexFields 10.7.2): an unknown key, a value of the wrong kind and
+  a missing required key are refused with every problem at once, and the error lists the valid keys. On an update, what
+  is unchanged from what is stored is not checked, so an old field can still be renamed. The `Content`, `File` and `Seo`
+  field types declare their keys (`FileExplorer.FileContainerName` is required), and `site_list_field_types` lists them
+  as `configurationKeys`. See [Field Types](docs/en/field-types.md). **`FieldManager` takes
+  `IFieldConfigurationValidator`: a derived class must add the parameter.**
+- `site_preview` takes `maxHtmlLength`, to read the beginning of a large page.
 
 ### Fixed
 
 - `contents` with a `page_no` of more than about twenty-one million no longer fails the render with an invalid-request
   error from the content service, whose skip count overflowed: the page number is capped where the skip count still
   fits, and a page past the end lists nothing, as before.
+
+### Migrate
+
+- **Existing roles do not have the new permissions.** Run the host's `--migrate-database` (or its migrator): its seed grants
+  every permission, `SiteAdmin.Languages` and `SiteAdmin.Languages.Update` among them, to the `admin` role of the host
+  and of each tenant. A role of another name is granted them in the permission dialog.
+- **A host loads `SiteSettingManagementModule`** (package `Dignite.Site.SettingManagement`) to serve the language calls.
+- **A host that uploads through links configures Data Protection keys, a distributed cache and a distributed lock** shared
+  by its instances, a provider for the `theme-assets` container, and routes `api/site-admin/files/upload/*` to Site.
 
 ## [2.0.0] - 2026-10-30
 

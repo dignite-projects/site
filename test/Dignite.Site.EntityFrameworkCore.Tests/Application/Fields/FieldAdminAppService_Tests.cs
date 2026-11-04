@@ -125,13 +125,114 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             Name = "admin-config-round-trip",
             DisplayName = "Round trip",
             FieldTypeName = "Number",
-            Configuration = new Dictionary<string, object?> { ["Min"] = 0, ["Max"] = 100 }
+            Configuration = new Dictionary<string, object?> { ["Number.Min"] = 0, ["Number.Max"] = 100 }
         });
 
         created.Configuration.ShouldNotBeEmpty();
 
         var fetched = await _fieldAppService.GetAsync(created.Id);
         JsonSerializer.Serialize(fetched.Configuration).ShouldBe(JsonSerializer.Serialize(created.Configuration));
+    }
+
+    /// <summary>A misspelled key used to be stored without a word and have no effect; now it is refused, and the error lists the valid ones.</summary>
+    [Fact]
+    public async Task Should_Refuse_A_Configuration_Key_The_Field_Type_Does_Not_Declare()
+    {
+        var exception = await Should.ThrowAsync<AbpValidationException>(() => _fieldAppService.CreateAsync(new CreateFieldDto
+        {
+            Name = "admin-config-typo",
+            DisplayName = "Typo",
+            FieldTypeName = "Text",
+            Configuration = new Dictionary<string, object?> { ["Text.Multiline"] = true }
+        }));
+
+        exception.ValidationErrors.ShouldContain(error => error.ErrorMessage!.Contains("Text.Multiline") && error.ErrorMessage.Contains("Text.Mode"));
+    }
+
+    [Fact]
+    public async Task Should_Refuse_A_Value_Of_The_Wrong_Type()
+    {
+        await Should.ThrowAsync<AbpValidationException>(() => _fieldAppService.CreateAsync(new CreateFieldDto
+        {
+            Name = "admin-config-wrong-type",
+            DisplayName = "Wrong type",
+            FieldTypeName = "Text",
+            Configuration = new Dictionary<string, object?> { ["Text.CharLimit"] = "many" }
+        }));
+    }
+
+    /// <summary>A file field cannot work without the container it uploads to: it is told so at once, not when the first upload fails.</summary>
+    [Fact]
+    public async Task Should_Refuse_A_File_Field_With_No_Container()
+    {
+        await Should.ThrowAsync<AbpValidationException>(() => _fieldAppService.CreateAsync(new CreateFieldDto
+        {
+            Name = "admin-file-no-container",
+            DisplayName = "No container",
+            FieldTypeName = "FileExplorer",
+            Configuration = new Dictionary<string, object?> { ["FileExplorer.UploadFileMultiple"] = true }
+        }));
+    }
+
+    /// <summary>
+    /// A client that changes only a display name sends the stored configuration back with it (site_update_field does). A field
+    /// saved before a key was declared must not be refused for what was not touched.
+    /// </summary>
+    [Fact]
+    public async Task Should_Not_Check_What_An_Update_Leaves_As_It_Was_Stored()
+    {
+        var created = await _fieldAppService.CreateAsync(new CreateFieldDto
+        {
+            Name = "admin-config-legacy",
+            DisplayName = "Legacy",
+            FieldTypeName = "Text"
+        });
+
+        // Written the way a field saved before the key was declared is: around the check.
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var repository = GetRequiredService<Dignite.Site.Fields.IFieldRepository>();
+            var field = await repository.GetAsync(created.Id);
+            field.SetConfiguration(new Dignite.Abp.FlexFields.FieldConfigurationDictionary(
+                new Dictionary<string, object> { ["Text.Legacy"] = true }));
+            await repository.UpdateAsync(field, autoSave: true);
+        });
+
+        var stored = await _fieldAppService.GetAsync(created.Id);
+
+        var updated = await _fieldAppService.UpdateAsync(created.Id, new UpdateFieldDto
+        {
+            DisplayName = "Renamed for display",
+            FieldTypeName = "Text",
+            Configuration = stored.Configuration
+        });
+
+        updated.DisplayName.ShouldBe("Renamed for display");
+
+        // What is new is checked.
+        await Should.ThrowAsync<AbpValidationException>(() => _fieldAppService.UpdateAsync(created.Id, new UpdateFieldDto
+        {
+            DisplayName = "Renamed for display",
+            FieldTypeName = "Text",
+            Configuration = new Dictionary<string, object?>(stored.Configuration) { ["Text.Another"] = 1 }
+        }));
+    }
+
+    [Fact]
+    public async Task Should_List_The_Configuration_Keys_Of_Every_Field_Type_That_Declares_Them()
+    {
+        var fieldTypes = (await _fieldAppService.GetFieldTypesAsync()).Items.ToDictionary(type => type.Name);
+
+        var text = fieldTypes["Text"].ConfigurationKeys.ShouldNotBeNull();
+        text.Select(key => key.Name).ShouldContain("Text.Mode");
+
+        var file = fieldTypes["FileExplorer"].ConfigurationKeys.ShouldNotBeNull();
+        file.Single(key => key.Name == "FileExplorer.FileContainerName").Required.ShouldBeTrue();
+
+        fieldTypes["Seo"].ConfigurationKeys.ShouldNotBeNull().Select(key => key.Name)
+            .ShouldBe(new[] { "Seo.MetaTitleCharLimit", "Seo.MetaDescriptionCharLimit" });
+        fieldTypes["Content"].ConfigurationKeys.ShouldNotBeNull().Select(key => key.Name)
+            .ShouldContain("Content.ContentTypeId");
     }
 
     /// <summary>

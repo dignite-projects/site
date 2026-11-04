@@ -58,6 +58,22 @@ public class SeoFieldType : FieldTypeBase, INormalizesValue, IHasValueShape
     /// </summary>
     public override FlexFieldValueType? IndexValueType => null;
 
+    private static readonly FieldConfigurationKey[] Keys =
+    {
+        new(SeoConfigurationNames.MetaTitleCharLimit, FieldConfigurationValueKind.Integer)
+        {
+            DefaultValue = new SeoConfiguration().MetaTitleCharLimit,
+            Description = "The most characters the meta title may have."
+        },
+        new(SeoConfigurationNames.MetaDescriptionCharLimit, FieldConfigurationValueKind.Integer)
+        {
+            DefaultValue = new SeoConfiguration().MetaDescriptionCharLimit,
+            Description = "The most characters the meta description may have."
+        }
+    };
+
+    public override IReadOnlyList<FieldConfigurationKey>? ConfigurationKeys => Keys;
+
     /// <summary>
     /// Checks two independent things: presence, against this usage's own
     /// <see cref="FlexFieldValue.Required"/> flag; and, if present, whether the value is structurally

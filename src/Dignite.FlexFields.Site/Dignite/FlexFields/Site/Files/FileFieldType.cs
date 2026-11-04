@@ -45,6 +45,23 @@ public class FileFieldType : FieldTypeBase
 
     public override string DisplayName => L["FieldType:File"];
 
+    private static readonly FieldConfigurationKey[] Keys =
+    {
+        new(FileFieldConfigurationNames.FileContainerName, FieldConfigurationValueKind.String)
+        {
+            Required = true,
+            Description = "The file container the value's files are uploaded to and picked from, one of the names " +
+                          "site_list_file_containers gives, e.g. images."
+        },
+        new(FileFieldConfigurationNames.UploadFileMultiple, FieldConfigurationValueKind.Boolean)
+        {
+            DefaultValue = new FileFieldConfiguration().UploadFileMultiple,
+            Description = "Whether the value is a list of files rather than one."
+        }
+    };
+
+    public override IReadOnlyList<FieldConfigurationKey>? ConfigurationKeys => Keys;
+
     public override FlexFieldValueType? IndexValueType => null;
 
     public override IReadOnlyList<ValidationResult> Validate(FieldValidationArgs args)

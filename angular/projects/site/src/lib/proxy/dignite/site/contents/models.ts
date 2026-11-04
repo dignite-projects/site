@@ -9,5 +9,7 @@ export interface ContentDto extends FullAuditedEntityDto<string> {
   publishTime?: string;
   status?: ContentStatus;
   url?: string;
+  pageName?: string;
+  contentTypeName?: string;
   fieldValues?: Record<string, object>;
 }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using SkiaSharp;
 using Volo.Abp.BlobStoring;
+using Volo.Abp.DistributedLocking;
 using Volo.Abp.Imaging;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
@@ -26,7 +27,10 @@ namespace Dignite.Site.Admin;
     typeof(AbpBlobStoringImagingModule),
     // The imaging provider those contributors hand images to. Without one they find nothing that can
     // process an image and store every upload unresized.
-    typeof(AbpImagingSkiaSharpModule)
+    typeof(AbpImagingSkiaSharpModule),
+    // The lock the upload links are recorded as used under: one implementation per process by default, a
+    // distributed one when the host configures it.
+    typeof(AbpDistributedLockingAbstractionsModule)
     )]
 public class SiteAdminApplicationModule : AbpModule
 {
@@ -35,6 +39,9 @@ public class SiteAdminApplicationModule : AbpModule
 
     /// <summary>Largest upload to <see cref="SiteFileContainerNames.Images"/>: 10 MB.</summary>
     private const long ImagesContainerMaxSizeInBytes = 10 * 1024 * 1024;
+
+    /// <summary>Largest upload to <see cref="SiteFileContainerNames.ThemeAssets"/>: 5 MB, more than any icon or font a page loads.</summary>
+    private const long ThemeAssetsContainerMaxSizeInBytes = 5 * 1024 * 1024;
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
@@ -115,6 +122,18 @@ public class SiteAdminApplicationModule : AbpModule
                 ConfigureContentPermissions(container);
             });
 
+            // Binary files a theme links - a favicon, later fonts. No image contributors: the icon is stored as it is,
+            // an .ico being neither resized nor re-encoded. Written to by the theme's permission, not the content's.
+            options.Containers.Configure(SiteFileContainerNames.ThemeAssets, container =>
+            {
+                container.AddMaxSizeContributor(config => config.MaxSizeInBytes = ThemeAssetsContainerMaxSizeInBytes);
+                container.AddAllowedContentTypesContributor(config =>
+                {
+                    config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.ThemeAssets);
+                });
+                ConfigurePermissions(container, ContainerPermissions.All(SiteAdminPermissions.Themes.Edit));
+            });
+
             options.Containers.Configure(SiteFileContainerNames.Images, container =>
             {
                 container.AddMaxSizeContributor(config => config.MaxSizeInBytes = ImagesContainerMaxSizeInBytes);
@@ -150,12 +169,30 @@ public class SiteAdminApplicationModule : AbpModule
     /// </summary>
     private static void ConfigureContentPermissions(BlobContainerConfiguration container)
     {
+        ConfigurePermissions(
+            container,
+            new ContainerPermissions(
+                Create: SiteAdminPermissions.Contents.Create,
+                Update: SiteAdminPermissions.Contents.Update,
+                Delete: SiteAdminPermissions.Contents.Delete,
+                CreateDirectory: SiteAdminPermissions.Contents.Create));
+    }
+
+    /// <summary>The permission each write to a container needs.</summary>
+    private sealed record ContainerPermissions(string Create, string Update, string Delete, string CreateDirectory)
+    {
+        /// <summary>The same permission for every write.</summary>
+        public static ContainerPermissions All(string permission) => new(permission, permission, permission, permission);
+    }
+
+    private static void ConfigurePermissions(BlobContainerConfiguration container, ContainerPermissions permissions)
+    {
         container.SetAuthorizationConfiguration(config =>
         {
-            config.CreateFilePermissionName = SiteAdminPermissions.Contents.Create;
-            config.UpdateFilePermissionName = SiteAdminPermissions.Contents.Update;
-            config.DeleteFilePermissionName = SiteAdminPermissions.Contents.Delete;
-            config.CreateDirectoryPermissionName = SiteAdminPermissions.Contents.Create;
+            config.CreateFilePermissionName = permissions.Create;
+            config.UpdateFilePermissionName = permissions.Update;
+            config.DeleteFilePermissionName = permissions.Delete;
+            config.CreateDirectoryPermissionName = permissions.CreateDirectory;
         });
     }
 }

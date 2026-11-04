@@ -299,6 +299,141 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         pages.Usages.ShouldAllBe(u => u.Kind == SiteThemeUsageKindDto.Page);
     }
 
+    /// <summary>
+    /// The sample is what a visitor would open: each page's own address and one published content per content type -
+    /// the blog has an article and a gallery - and no draft.
+    /// </summary>
+    [Fact]
+    public async Task The_Check_Should_Render_A_Sample_Of_The_Pages_With_The_Working_Copy()
+    {
+        await SaveAsync("Default", "<p>draft</p>");
+
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeFalse();
+        check.Issues.ShouldBeEmpty();
+        _previewRenderer.Requests.Select(request => request.Path).ShouldBe(
+            new[]
+            {
+                "/", "/about", "/blog",
+                "/blog/" + SiteTestData.TripSlug, "/blog/" + SiteTestData.GallerySlug,
+                "/news", "/news/2026-07/launch"
+            },
+            ignoreOrder: true);
+        _previewRenderer.Requests.ShouldAllBe(request => request.Snapshot.ReleaseId == null);
+        _previewRenderer.Requests.ShouldAllBe(
+            request => request.Snapshot.Files.Single(file => file.Path == "Default").Body == "<p>draft</p>");
+    }
+
+    /// <summary>The pages the theme has no template for are rendered by Razor views, which a trial render cannot run.</summary>
+    [Fact]
+    public async Task The_Check_Should_Not_Render_The_Pages_A_Razor_View_Renders()
+    {
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeFalse();
+        _previewRenderer.Requests.ShouldBeEmpty();
+    }
+
+    /// <summary>What only a render finds: one finding for a failure, however many pages meet it, at the place the message names.</summary>
+    [Fact]
+    public async Task The_Check_Should_Report_A_Template_That_Fails_To_Render_Once_At_Its_Place()
+    {
+        await SaveAsync("Default", "{{ include \"_header\" title: page.display_name }}");
+        await SaveAsync("_header", "<h1>{{ $title }}</h1>");
+        _previewRenderer.Failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed)
+            .WithData("Name", "Default")
+            .WithData("Message", "_header(1,9) : error : The variable or function $title was not found")
+            .WithData("File", "_header")
+            .WithData("Line", 1)
+            .WithData("Column", 9);
+
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeTrue();
+        var issue = check.Issues.Single(i => i.Code == SiteThemeIssueCodes.RenderFailed);
+        issue.Severity.ShouldBe(SiteThemeIssueSeverity.Error);
+        issue.Path.ShouldBe("_header");
+        issue.Line.ShouldBe(1);
+        issue.Column.ShouldBe(9);
+        issue.Message.ShouldContain("$title was not found");
+    }
+
+    /// <summary>A failure the renderer cannot place in a template is about the page's template as a whole.</summary>
+    [Fact]
+    public async Task The_Check_Should_Report_A_Render_Failure_Without_A_Place_Against_No_File()
+    {
+        await SaveAsync("Default", "<p>x</p>");
+        _previewRenderer.Failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed)
+            .WithData("Message", "timed out");
+
+        var issue = (await _themeAppService.CheckAsync()).Issues.Single(i => i.Code == SiteThemeIssueCodes.RenderFailed);
+
+        issue.Path.ShouldBeNull();
+        issue.Line.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_Failure_At_Render_Time_Should_Refuse_The_Publish()
+    {
+        await SaveAsync("Default", "<p>x</p>");
+        var check = await _themeAppService.CheckAsync();
+        check.HasErrors.ShouldBeFalse();
+
+        _previewRenderer.Failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed)
+            .WithData("Message", "Default(1,1) : error : boom");
+
+        var exception = await Should.ThrowAsync<BusinessException>(() =>
+            _themeAppService.PublishAsync(new PublishSiteThemeDto { Fingerprint = check.Fingerprint }));
+
+        exception.Code.ShouldBe(SiteErrorCodes.SiteThemeHasErrors);
+        (await _themeAppService.GetAsync()).LiveReleaseNumber.ShouldBeNull();
+    }
+
+    /// <summary>The errors the reading finds come first; rendering them would only repeat them.</summary>
+    [Fact]
+    public async Task The_Check_Should_Not_Render_A_Theme_That_Has_Errors()
+    {
+        await SaveAsync("Default", "<p>\n{{ if x }}");
+
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeTrue();
+        check.Issues.ShouldNotContain(i => i.Code == SiteThemeIssueCodes.RenderFailed);
+        _previewRenderer.Requests.ShouldBeEmpty();
+    }
+
+    /// <summary>A path that leads nowhere, or a service that fails, is not the theme's failure.</summary>
+    [Theory]
+    [InlineData(SiteErrorCodes.SiteTemplatePreviewPathNotFound)]
+    [InlineData(SiteErrorCodes.SiteThemePreviewPageNotScriban)]
+    public async Task The_Check_Should_Not_Blame_The_Theme_For_What_Is_Not_Its_Failure(string code)
+    {
+        await SaveAsync("Default", "<p>x</p>");
+        _previewRenderer.Failure = new BusinessException(code);
+
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeFalse();
+        check.Issues.ShouldBeEmpty();
+    }
+
+    /// <summary>It would meet the same failure at the next address, so the run ends - and says that it did not get through.</summary>
+    [Fact]
+    public async Task The_Check_Should_Stop_Rendering_When_A_Service_Fails_And_Say_So_Without_Failing()
+    {
+        await SaveAsync("Default", "<p>x</p>");
+        _previewRenderer.Failure = new InvalidOperationException("the database went away");
+
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeFalse();
+        var issue = check.Issues.ShouldHaveSingleItem();
+        issue.Code.ShouldBe(SiteThemeIssueCodes.TrialRenderIncomplete);
+        issue.Severity.ShouldBe(SiteThemeIssueSeverity.Warning);
+        _previewRenderer.Requests.ShouldHaveSingleItem();
+    }
+
     [Fact]
     public async Task Should_Preview_The_Working_Copy()
     {
@@ -324,6 +459,9 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         await SaveAsync("Default", "<p>one</p>");
         var first = await PublishAsync();
         await SaveAsync("Default", "<p>two</p>");
+
+        // The publish rendered a sample of the pages to check the theme; only the preview is counted below.
+        _previewRenderer.Requests.Clear();
 
         var preview = await _themeAppService.PreviewAsync("/about", first.Id);
 

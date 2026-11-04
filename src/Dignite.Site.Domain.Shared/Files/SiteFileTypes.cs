@@ -48,8 +48,22 @@ public static class SiteFileTypes
         new(".zip", "application/zip")
     ];
 
+    /// <summary>
+    /// What a theme links and neither of the above holds - the whole of <see cref="SiteFileContainerNames.ThemeAssets"/>:
+    /// an icon and the web fonts (<c>woff2</c>, <c>woff</c>, <c>ttf</c>, <c>otf</c>), whose type the content-based
+    /// <c>MimeTypeDetector</c> of Dignite.Abp.BlobStoring.Pipeline reads from the bytes.
+    /// </summary>
+    public static IReadOnlyList<SiteFileType> ThemeAssets { get; } =
+    [
+        new(".ico", "image/x-icon"),
+        new(".woff2", "font/woff2"),
+        new(".woff", "font/woff"),
+        new(".ttf", "font/ttf"),
+        new(".otf", "font/otf")
+    ];
+
     /// <summary>Every type of the table, <see cref="Images"/> first.</summary>
-    public static IReadOnlyList<SiteFileType> All { get; } = [.. Images, .. Documents];
+    public static IReadOnlyList<SiteFileType> All { get; } = [.. Images, .. Documents, .. ThemeAssets];
 
     /// <summary>The distinct MIME types of <paramref name="types"/>, in table order.</summary>
     public static string[] GetMimeTypes(IEnumerable<SiteFileType> types)

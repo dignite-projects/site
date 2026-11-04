@@ -14,6 +14,15 @@ export interface FieldTypeDto {
   indexable?: boolean;
   composite?: boolean;
   valueShape?: FieldValuePropertyDto[] | null;
+  configurationKeys?: FieldConfigurationKeyDto[] | null;
+}
+
+export interface FieldConfigurationKeyDto {
+  name?: string;
+  type?: string;
+  description?: string | null;
+  defaultValue?: object | null;
+  required?: boolean;
 }
 
 export interface FieldValuePropertyDto {

@@ -35,6 +35,29 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// A client that addresses everything by name is told the names of the page and content type from this service itself,
+    /// not made to look them up through the page and content type services, whose permissions reading a content does not
+    /// need.
+    /// </summary>
+    [Fact]
+    public async Task Should_Name_The_Page_And_Content_Type_Of_A_Content_In_A_Get_And_In_A_List()
+    {
+        var single = await GetTripContentAsync();
+
+        single.PageName.ShouldBe("blog");
+        single.ContentTypeName.ShouldBe("post-article");
+
+        var list = await _contentAppService.GetListAsync(new GetContentListInput
+        {
+            PageId = SiteTestData.BlogPageId,
+            MaxResultCount = 100
+        });
+
+        list.Items.ShouldNotBeEmpty();
+        list.Items.ShouldAllBe(content => content.PageName == "blog" && content.ContentTypeName.Length > 0);
+    }
+
+    /// <summary>
     /// The DTO shape's whole reason to exist (总体设计 issue #4): a value read out through
     /// <c>ContentDto.FieldValues</c> must be postable straight back through <c>UpdateContentDto</c>
     /// unchanged, with no reshaping and no precision loss.

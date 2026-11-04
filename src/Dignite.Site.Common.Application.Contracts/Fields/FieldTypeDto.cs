@@ -39,6 +39,35 @@ public class FieldTypeDto
     /// <c>Configuration</c>.
     /// </summary>
     public IReadOnlyList<FieldValuePropertyDto>? ValueShape { get; set; }
+
+    /// <summary>
+    /// The keys this type's <c>Configuration</c> understands, so a client can ask before it writes one. <b>Null means the
+    /// type does not say</b> - its configuration is not checked - <b>and an empty list means it takes none</b>: keep the two
+    /// apart. Populated from <c>IFieldType.ConfigurationKeys</c>; a key the type does not list, or a value of the wrong
+    /// kind, is refused when a field is created or updated.
+    /// </summary>
+    public IReadOnlyList<FieldConfigurationKeyDto>? ConfigurationKeys { get; set; }
+}
+
+/// <summary>
+/// One configuration key of a field type, the contract-side mirror of the kernel's <c>FieldConfigurationKey</c> - a plain
+/// DTO, for the same reason as <see cref="FieldValuePropertyDto"/>.
+/// </summary>
+public class FieldConfigurationKeyDto
+{
+    /// <summary>The key as stored, e.g. <c>Text.CharLimit</c>. Case-sensitive.</summary>
+    public string Name { get; set; } = default!;
+
+    /// <summary>The value it takes, as JSON would show it: <c>integer</c>, <c>boolean</c>, <c>integer: 0 (SingleLine) | 1 (MultipleLine)</c>.</summary>
+    public string Type { get; set; } = default!;
+
+    public string? Description { get; set; }
+
+    /// <summary>What the field behaves as when the key is absent; null when there is no fixed default.</summary>
+    public object? DefaultValue { get; set; }
+
+    /// <summary>Whether a field of this type cannot work without the key.</summary>
+    public bool Required { get; set; }
 }
 
 /// <summary>

@@ -193,9 +193,13 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
                 new() { Field = "doc-body", Order = 1 }
             });
 
-        contentType.Fields.Count.ShouldBe(2);
+        // The arrangement comes back by field name, not by the library's ids.
+        contentType.Page.ShouldBe("docs");
+        contentType.Fields.Select(field => field.Field).ShouldBe(new[] { "doc-title", "doc-body" });
+        contentType.Fields[0].Required.ShouldBeTrue();
 
-        var content = await GetRequiredService<Contents.ContentTools>().CreateContentAsync(
+        var contents = GetRequiredService<Contents.ContentTools>();
+        var content = await contents.CreateContentAsync(
             page: "docs",
             contentType: "doc-page",
             cultureName: SiteTestData.EnglishCulture,
@@ -209,7 +213,10 @@ public class FieldTools_Tests : SiteEntityFrameworkCoreTestBase
             publishTime: SiteTestData.PublishTime);
 
         content.Slug.ShouldBe("getting-started");
-        JsonSerializer.Serialize(content.FieldValues["doc-title"]).ShouldBe("\"Getting started\"");
+        content.StoredFields.ShouldBe(new[] { "doc-body", "doc-title" });
+        JsonSerializer.Serialize(
+                (await contents.GetContentAsync("docs", SiteTestData.EnglishCulture, "getting-started")).FieldValues["doc-title"])
+            .ShouldBe("\"Getting started\"");
     }
 
     /// <summary>

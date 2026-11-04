@@ -53,6 +53,15 @@ public class SiteAdminPermissions
         public const string Publish = Default + ".Publish";
     }
 
+    public static class Languages
+    {
+        /// <summary>Reading the languages the site serves.</summary>
+        public const string Default = GroupName + ".Languages";
+
+        /// <summary>Setting them. Moves the address of pages: the default language is the one without a prefix.</summary>
+        public const string Update = Default + ".Update";
+    }
+
     public static string[] GetAll()
     {
         return ReflectionHelper.GetPublicConstantsRecursively(typeof(SiteAdminPermissions));

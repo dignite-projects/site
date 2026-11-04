@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Contents;
@@ -74,6 +75,13 @@ public class SiteMcpNameResolver : ITransientDependency
     {
         return await FieldAppService.FindByNameAsync(field)
                ?? throw new McpEntityNotFoundException("field", field);
+    }
+
+    /// <summary>The name of every field of the library, by the field's id.</summary>
+    public virtual async Task<IReadOnlyDictionary<Guid, string>> GetFieldNamesAsync()
+    {
+        return (await FieldAppService.GetListAsync(new GetFieldListInput())).Items
+            .ToDictionary(field => field.Id, field => field.Name);
     }
 
     /// <summary>

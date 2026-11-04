@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Reference of the site_* MCP tools of Dignite Site: the schema, pages, content types, fields, contents, path resolution, the theme and its releases, and files, with their parameters and permissions."
+    "Description": "Reference of the site_* MCP tools of Dignite Site: the schema, languages, pages, content types, fields, contents, path resolution, the theme and its releases, and files, with their parameters and permissions."
 }
 ```
 
@@ -18,6 +18,16 @@ The descriptions below are summaries; a client reads the full description of eac
 | `site_get_schema` | `SiteAdmin.Pages`, `SiteAdmin.ContentTypes` and `SiteAdmin.Fields` | Returns the schema: the enabled languages (the first is the default), the primary domain, every page with its route, and every content type with its fields, their types, configuration, required flags and descriptions. |
 
 The `site://schema` resource returns the same document, with the same permissions, to a client that supports resources. A client should read one of them before calling anything else.
+
+## Languages
+
+| Tool | Permission | Description |
+|---|---|---|
+| `site_set_languages` | `SiteAdmin.Languages.Update` | Sets the languages the site serves, with `enabledLanguages`, the whole list in order. The first is the default language. |
+
+A site serves only `en` until its languages are set, so a client that writes content in another language sets them first. The tool replaces the list: read the current one from the schema's `enabledLanguages` and send it back with the change. Tags are checked and stored in their canonical form, such as `zh-Hans`; a tag that is not a language, or an empty list, is refused.
+
+Changing the languages moves addresses. The default language's pages have no prefix, so a new default takes the unprefixed addresses and the old one's pages move under `/{language}/`; and a language left out is no longer served, though its contents are kept and come back when the language is added again. The application has to load `SiteSettingManagementModule` from the `Dignite.Site.SettingManagement` package, which stores the setting through ABP's Setting Management.
 
 ## Pages
 
@@ -48,7 +58,7 @@ The `site://schema` resource returns the same document, with the same permission
 | `site_update_content_type` | `SiteAdmin.ContentTypes.Update` | Updates a content type. Passing `fields` replaces the whole arrangement; an empty list clears it. |
 | `site_delete_content_type` | `SiteAdmin.ContentTypes.Delete` | Deletes a content type that no content uses. Destructive. |
 
-`site_create_content_type` takes `page`, `name` (unique within the page), `displayName`, an optional `description` and an optional `fields` list. `site_update_content_type` takes `page`, `contentType` (the current name) and any of `name`, `displayName`, `description` and `fields`. `site_delete_content_type` takes `page` and `contentType`.
+`site_create_content_type` takes `page`, `name` (unique within the page), `displayName`, an optional `description` and an optional `fields` list. `site_update_content_type` takes `page`, `contentType` (the current name) and any of `name`, `displayName`, `description` and `fields`. `site_delete_content_type` takes `page` and `contentType`. Creating and updating return the content type with its fields by name, in order.
 
 Each entry of `fields` is:
 
@@ -68,13 +78,13 @@ See [Arranging Fields](../content-types-and-fields.md#arranging-fields).
 | Tool | Permission | Description |
 |---|---|---|
 | `site_list_fields` | `SiteAdmin.Fields` | Lists the whole field library, fields no content type uses included. Takes an optional `filter` over the name and display name. |
-| `site_list_field_types` | `SiteAdmin.Fields` | Lists the field types, with the `valueShape` of a type whose value is an object, such as `Seo`. |
+| `site_list_field_types` | `SiteAdmin.Fields` | Lists the field types, with the `configurationKeys` each one understands (name, type, default, description, whether it is required) and the `valueShape` of a type whose value is an object, such as `Seo`. |
 | `site_create_field` | `SiteAdmin.Fields.Create` | Adds a field to the library. |
 | `site_update_field` | `SiteAdmin.Fields.Update` | Updates a field everywhere it is used. Cannot rename it. |
 | `site_rename_field` | `SiteAdmin.Fields.Rename` | Renames a field and moves the stored value of every content to the new name. Destructive. |
 | `site_delete_field` | `SiteAdmin.Fields.Delete` | Deletes a field and removes its values from every content. Destructive. |
 
-`site_create_field` takes `name`, `displayName`, `fieldTypeName`, an optional `description` and an optional `configuration`, whose keys depend on the field type; see [Field Types](../field-types.md). `site_update_field` takes `field` (the name) and any of `displayName`, `fieldTypeName`, `description` and `configuration`, which replaces the whole configuration. `site_rename_field` takes `field` and `newName`; `site_delete_field` takes `field`.
+`site_create_field` takes `name`, `displayName`, `fieldTypeName`, an optional `description` and an optional `configuration`, whose keys are the field type's `configurationKeys`; a key it does not list, or a value of the wrong type, is refused. See [Field Types](../field-types.md). `site_update_field` takes `field` (the name) and any of `displayName`, `fieldTypeName`, `description` and `configuration`, which replaces the whole configuration. `site_rename_field` takes `field` and `newName`; `site_delete_field` takes `field`.
 
 ## Contents
 
@@ -104,13 +114,15 @@ A content is addressed by `page`, `cultureName` and `slug`, an empty string for 
 
 `site_list_contents` takes the optional filters `page`, `contentType` (which needs `page`), `cultureName`, `status` and `filter` (over the slug only), and `skipCount` and `maxResultCount`, 20 by default.
 
+The write and list tools say where a content is, by names, and do not send its values back: `site_create_content` and `site_update_content` return the `page`, `contentType`, `cultureName`, `slug`, `status` and `publishTime`, and `storedFields`, the names of the values that were stored, so a value the content type does not declare shows as missing from it; `site_list_contents` returns the same for each row, with the values only when `includeFieldValues` is true. `site_get_content` reads the values.
+
 ## Routing
 
 | Tool | Permission | Description |
 |---|---|---|
 | `site_resolve_path` | None | Resolves a path, such as `/zh-Hans/blog/my-trip`, to its page and content, as a visitor's request would be. Takes `path`. |
 
-It sees only what is published, so a match means something is live at that address. See [Resolving a Request](../pages-and-routing.md#resolving-a-request).
+It answers with where the path leads - `matched`, `kind`, `cultureName`, the `page` and `contentType` names, the `slug` and `url` of the content, and the `filterValues` of a partial match - not with the content; `site_get_content` reads that. It sees only what is published, so a match means something is live at that address. See [Resolving a Request](../pages-and-routing.md#resolving-a-request).
 
 ## Theme
 
@@ -124,13 +136,13 @@ It sees only what is published, so a match means something is live at that addre
 | `site_delete_theme_file` | `SiteAdmin.Themes.Edit` | Removes a file from the working copy, and returns what used it. Destructive. |
 | `site_update_theme` | `SiteAdmin.Themes.Edit` | Sets the default layout, with `defaultLayout`, a template path or an empty string for none. |
 | `site_check_theme` | `SiteAdmin.Themes` | [Checks](../rendering/scriban-templates.md#checking-the-theme) the working copy, lists what publishing would change, and returns the `fingerprint` a publish needs. |
-| `site_preview` | `SiteAdmin.Themes` | [Previews](../rendering/scriban-templates.md#previewing) the page at `path` - which may carry `?page=2` for the page of a paged list - with the working copy, or with an optional `release`, and returns the HTML with `pageName`, `cultureName`, `pageTemplate` and `layout`. |
+| `site_preview` | `SiteAdmin.Themes` | [Previews](../rendering/scriban-templates.md#previewing) the page at `path` - which may carry `?page=2` for the page of a paged list - with the working copy, or with an optional `release`, and returns the HTML with `pageName`, `cultureName`, `pageTemplate` and `layout`. An optional `maxHtmlLength` returns only the start of the HTML. |
 | `site_publish_theme` | `SiteAdmin.Themes.Publish` | Publishes the working copy as a new release and makes it live, with the check's `fingerprint` and an optional `comment`. |
 | `site_list_releases` | `SiteAdmin.Themes` | Lists the releases, newest first, with which one is live. |
 | `site_set_live_release` | `SiteAdmin.Themes.Publish` | Makes the release with the number `release` live; an older one is the rollback. |
 | `site_restore_release` | `SiteAdmin.Themes.Edit` | Replaces the working copy with the release with the number `release`. Nothing goes live. Destructive. |
 
-The theme is not part of the schema: its files are addressed by path, and `site_list_theme_files` returns them; releases are addressed by number. Saving changes only the working copy. Save, check and fix every error the check reports, preview a path, and then publish with the check's fingerprint; a publish is refused when the working copy changed since the check. The HTML of `site_preview` is cut at 32 KiB: then `isTruncated` is true and `htmlLength` is the full length.
+The theme is not part of the schema: its files are addressed by path, and `site_list_theme_files` returns them; releases are addressed by number. Saving changes only the working copy. Save, check and fix every error the check reports, preview a path, and then publish with the check's fingerprint; a publish is refused when the working copy changed since the check. The HTML of `site_preview` is cut at 32 KiB, or at `maxHtmlLength` when that is smaller: then `isTruncated` is true and `htmlLength` is the full length. A client that only needs to know that a page renders asks for a few thousand characters.
 
 ## Files
 
@@ -139,7 +151,8 @@ The theme is not part of the schema: its files are addressed by path, and `site_
 | `site_list_file_containers` | Lists the containers the client may use, with each one's purpose, largest upload and allowed file types. Call it before the other file tools. |
 | `site_list_files` | Lists the files of a container, newest first: the user's own, or everyone's with `SiteAdmin.Contents`. Takes `containerName` and the optional `directoryId`, `filter`, `skipCount` and `maxResultCount` (at most 100). |
 | `site_get_file` | Reads one file by `id`, with its `url`. |
-| `site_upload_file` | Uploads a file from `containerName`, `fileName` (with its extension), `contentBase64` (or a `data:` URL) and an optional `directoryId`, and returns it with its `url`, the value to put in a content field. |
+| `site_create_upload_url` | Returns a one-time link, good for ten minutes, and the commands that send a file to it (one for POSIX shells and cmd.exe, one for PowerShell), from `containerName`, `fileName` and an optional `directoryId`. The way to upload a large file: the bytes go from the machine the file is on to the site and never through the client. |
+| `site_upload_file` | Uploads a small file from `containerName`, `fileName` (with its extension), `contentBase64` (or a `data:` URL) and an optional `directoryId`, and returns it with its `url`, the value to put in a content field. |
 | `site_update_file` | Renames a file (`name`) or moves it (`directoryId`, or `moveToRoot`), by `id`. |
 | `site_delete_file` | Deletes a file by `id`. Anything that links to it stops working. Destructive. |
 | `site_list_directories` | Returns the user's directory tree in a container, by `containerName`. |

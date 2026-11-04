@@ -1,3 +1,5 @@
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Localization;
 using Microsoft.AspNetCore.Mvc.Razor;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.WebEncoders;
 using Dignite.Site.Localization;
 using Microsoft.AspNetCore.Routing;
 using Dignite.Site.Public.Localization;
@@ -61,6 +64,15 @@ public class SitePublicWebModule : AbpModule
         });
 
         context.Services.AddMapperlyObjectMapper<SitePublicWebModule>();
+
+        // The default HtmlEncoder passes only Basic Latin through, so every Chinese or Japanese character a Razor or
+        // Scriban template writes - titles and descriptions from the site's content - would come out as a &#x...;
+        // entity: the same page, but larger, and a <title> nobody can read in the source. Markup-significant
+        // characters are still encoded. Here and not in a host, so that every host of Site renders the same.
+        Configure<WebEncoderOptions>(options =>
+        {
+            options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All);
+        });
 
         Configure<RazorViewEngineOptions>(options =>
         {

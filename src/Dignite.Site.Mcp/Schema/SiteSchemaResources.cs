@@ -2,8 +2,10 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Permissions;
+using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Site.Admin.Schema;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using Volo.Abp.DependencyInjection;
 
@@ -21,13 +23,18 @@ namespace Dignite.Site.Mcp.Schema;
 [McpServerResourceType]
 public class SiteSchemaResources : ITransientDependency
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
-
     protected ISiteSchemaAdminAppService SiteSchemaAppService { get; }
 
-    public SiteSchemaResources(ISiteSchemaAdminAppService siteSchemaAppService)
+    /// <summary>
+    /// The options every other result of this server is written with: this resource returns text it serializes itself, so
+    /// it takes the same encoder (non-ASCII text and markup as written) rather than a set of its own.
+    /// </summary>
+    protected JsonSerializerOptions SerializerOptions { get; }
+
+    public SiteSchemaResources(ISiteSchemaAdminAppService siteSchemaAppService, IOptions<AbpMcpServerOptions> mcpOptions)
     {
         SiteSchemaAppService = siteSchemaAppService;
+        SerializerOptions = mcpOptions.Value.SerializerOptions;
     }
 
     [McpServerResource(

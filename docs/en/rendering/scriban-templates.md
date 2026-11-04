@@ -61,7 +61,7 @@ layout = "layouts/landing"
 * `layout = "none"` renders the page template alone, as a complete document.
 * Front matter is not part of the output. It may set nothing but `layout`, to a path in quotes; anything else is an [error](#checking-the-theme). Front matter is read only in a page template: a partial's is ignored, and a layout cannot have one.
 
-A page must call `site_head`, which writes the head metadata of the page: the title, the description, the canonical URL, the robots tag, Open Graph, the Twitter card and the hreflang alternates. Without it, the page would lose its [SEO](../seo/index.md) tags. So the rule is enforced twice:
+A page must call `site_head`, which writes the head metadata of the page: the description, the canonical URL, the robots tag, Open Graph (`og:title` included), the Twitter card and the hreflang alternates. It does not write the `<title>` element, the charset or the viewport, which stay the layout's own: write the title as `<title>{{ head?.meta_title ?? page.display_name }}</title>`. Without `site_head`, the page would lose its [SEO](../seo/index.md) tags. So the rule is enforced twice:
 
 * The [check](#checking-the-theme) refuses a layout, or a page template rendered without a layout, that calls `site_head` nowhere, neither itself nor in a template it includes. A theme with such an error cannot be published.
 * Rendering a page whose render never executed `site_head` fails with the error `Site:090005`, instead of serving a page without the tags.
@@ -116,6 +116,7 @@ These are errors, and a theme with any of them cannot be published:
 * The default layout names no template of the theme.
 * An `include`, an `asset_url` or a `layout` names a file the theme does not have, or the wrong kind of file: `include` and `layout` take a template, `asset_url` a static file.
 * Templates include each other in a circle.
+* An `include` leaves out a named argument that the template reads as a local variable: a partial that writes `$title` fails the render wherever it is included without `title:`. A partial's own `$x = ...`, `for $item in ...` and `capture $x` count as given. Pass `title: null` when the argument is optional.
 * A layout, or a page template rendered without a layout, never calls `site_head`, not even in what it includes.
 * A file in `locales/` is not a valid file of the theme's [texts](template-localization.md#texts-in-a-scriban-theme), or two files hold the texts of the same language.
 * A [version for one language](#templates-for-one-language) has no template to be the version of.
@@ -130,6 +131,14 @@ These are warnings:
 * Nothing uses a file: no page, template or setting refers to it. The files in `locales/` are never reported, since `t` reads them by language, and a version for one language is never reported apart from its template.
 
 Each finding names its file and, where it has one, the line and the column, with a message in the user's language.
+
+### Trial Render
+
+Reading the templates cannot find everything: a variable that does not exist, or a partial that fails on one kind of content, passes the reading and breaks the page when it renders. So once the reading finds no error, the check also **renders a sample of the site's pages with the working copy**, and a template that fails to render is an error, reported at the template, line and column of the failure, with the address that exposed it. Publishing renders the sample again and is refused when it fails, so the theme that goes live is one that rendered.
+
+The sample is what a visitor would open, for each page rendered by a template of the theme: the page's own address in each language the site serves, and one published content for each content type and language under the page, since a list and a detail run different parts of a template. Drafts are not rendered. The sample is bounded, at 60 addresses and 30 seconds; when it is cut short the check says so in a warning. A page the theme has no template for is not rendered, as a Razor view renders it.
+
+Only the theme's failures are findings. An address that leads nowhere, or a failure of the site itself while rendering, is not.
 
 ## Previewing
 
@@ -329,7 +338,7 @@ The rules of `include`:
 A partial renders in the context of the template that includes it. It sees the same data and functions, and the variables that the including template has assigned. Arguments after the path pass values explicitly:
 
 * Positional arguments are available in the partial as `$1`, `$2` and so on.
-* Named arguments become local variables of the partial, read with the `$` prefix that Scriban gives a local: `{{ include "_card" title: "Hi" }}` gives the partial a `$title`.
+* Named arguments become local variables of the partial, read with the `$` prefix that Scriban gives a local: `{{ include "_card" title: "Hi" }}` gives the partial a `$title`. A partial reads only the locals it was passed or assigned itself, not those of the template that includes it, and a local it reads but was not passed fails the render; the [check](#checking-the-theme) reports the `include` that leaves it out.
 
 A partial's output is encoded the way any template's is: every value it writes is HTML-encoded once, and the result of `include` is placed into the including template as it is, not encoded a second time. A partial can include other partials. `include_join` is not available.
 
