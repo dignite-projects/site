@@ -1,0 +1,63 @@
+<h4 class="mb-1">{{ 'Site::Languages' | abpLocalization }}</h4>
+<p class="text-muted">{{ 'Site::Languages:Hint' | abpLocalization }}</p>
+
+<ul class="list-group mb-3">
+  @for (language of languages(); track language; let i = $index) {
+    <li class="list-group-item d-flex align-items-center gap-2">
+      <span class="fw-semibold">{{ language }}</span>
+      @if (i === 0) {
+        <span class="badge bg-primary">{{ 'Site::Languages:Default' | abpLocalization }}</span>
+      }
+      <span class="ms-auto d-flex gap-1" *abpPermission="policies.LanguagesUpdate">
+        @if (i > 0) {
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="makeDefault(i)">
+            {{ 'Site::Languages:MakeDefault' | abpLocalization }}
+          </button>
+        }
+        <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="i === 0" (click)="move(i, -1)">
+          <i class="fa fa-arrow-up"></i>
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary"
+          [disabled]="i === languages().length - 1"
+          (click)="move(i, 1)"
+        >
+          <i class="fa fa-arrow-down"></i>
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-danger"
+          [disabled]="languages().length <= 1"
+          (click)="remove(i)"
+        >
+          <i class="fa fa-trash"></i>
+        </button>
+      </span>
+    </li>
+  }
+</ul>
+
+<ng-container *abpPermission="policies.LanguagesUpdate">
+  <div class="input-group mb-3">
+    <input
+      type="text"
+      class="form-control"
+      [ngModel]="newLanguage()"
+      (ngModelChange)="newLanguage.set($event)"
+      (keydown.enter)="$event.preventDefault(); add()"
+      [placeholder]="'Site::Languages:Placeholder' | abpLocalization"
+    />
+    <button type="button" class="btn btn-outline-primary" (click)="add()">
+      <i class="fa fa-plus me-1"></i>{{ 'Site::Languages:Add' | abpLocalization }}
+    </button>
+  </div>
+
+  @if (isDirty()) {
+    <div class="alert alert-warning">{{ 'Site::Languages:ChangeWarning' | abpLocalization }}</div>
+  }
+
+  <button type="button" class="btn btn-primary" [disabled]="!isDirty() || saving()" (click)="save()">
+    <i class="fa fa-check me-1"></i>{{ 'AbpUi::Save' | abpLocalization }}
+  </button>
+</ng-container>

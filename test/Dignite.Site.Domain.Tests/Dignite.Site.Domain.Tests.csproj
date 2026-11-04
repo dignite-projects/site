@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
+    <!-- The writer of a site's settings is tested without loading its module, which needs a database. -->
+    <ProjectReference Include="..\..\src\Dignite.Site.SettingManagement\Dignite.Site.SettingManagement.csproj" />
     <ProjectReference Include="..\Dignite.Site.TestBase\Dignite.Site.TestBase.csproj" />
   </ItemGroup>
 

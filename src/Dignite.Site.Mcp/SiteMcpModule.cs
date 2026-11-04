@@ -4,6 +4,7 @@ using Dignite.Site.Mcp.Contents;
 using Dignite.Site.Files;
 using Dignite.Site.Mcp.Fields;
 using Dignite.Site.Mcp.Files;
+using Dignite.Site.Mcp.Languages;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
 using Dignite.Site.Mcp.Schema;
@@ -56,6 +57,7 @@ public class SiteMcpModule : AbpModule
             .AddTools<DirectoryTools>()
             .AddTools<FileTools>()
             .AddTools<SiteThemeTools>()
+            .AddTools<SiteLanguageTools>()
             .AddResources<SiteSchemaResources>()
             .AddResources<SiteThemeResources>()
             .AddInstructions(SiteMcpConsts.Instructions)

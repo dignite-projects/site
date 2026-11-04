@@ -13,7 +13,7 @@ A site has no configuration entity of its own: every tenant is one site, and its
 
 | Setting | Default | Description |
 |---|---|---|
-| `Site.EnabledLanguages` | `en` | The site's languages, comma-separated, such as `en,ja,zh-Hans`. The first one is the default language, with no URL prefix; the others are served under `/{culture}/`. See [Multilingual Sites](rendering/languages.md). |
+| `Site.EnabledLanguages` | `en` | The site's languages, comma-separated, such as `en,ja,zh-Hans`. The first one is the default language, with no URL prefix; the others are served under `/{culture}/`. See [Multilingual Sites](rendering/languages.md). A client without a settings page sets it with `PUT /api/site-admin/languages` or the `site_set_languages` [MCP tool](mcp/tools.md#languages), which need `SiteSettingManagementModule` from the `Dignite.Site.SettingManagement` package in the application; it brings ABP's Setting Management. |
 | `Site.PrimaryDomain` | Empty | The site's absolute address, such as `https://www.example.com`, optionally with a base path. See [Primary Domain](#primary-domain). |
 | `Site.Robots.AllowIndexing` | `true` | Whether search engines may index the site. |
 | `Site.Robots.AllowAiTraining` | `false` | Whether crawlers that train AI models (GPTBot, Google-Extended, ClaudeBot, CCBot) may crawl the site. |
@@ -76,6 +76,8 @@ The `Site.Enable` feature, on by default, switches the administration side of Si
 | `SiteAdmin.Themes` | Reading the [Scriban theme](rendering/scriban-templates.md): its working copy, its releases and the check, and previewing. |
 | `SiteAdmin.Themes.Edit` | Changing the working copy: saving, renaming and deleting files, the default layout, and restoring a release into it. |
 | `SiteAdmin.Themes.Publish` | Changing what the site renders: publishing the working copy, and making an older release live. |
+| `SiteAdmin.Languages` | Reading the languages the site serves. |
+| `SiteAdmin.Languages.Update` | Setting them. The default language is the one without a URL prefix, so this moves the address of pages. |
 
 The file library has no permissions of its own; see [Files](files.md#permissions). The public read API needs no permission. The MCP tools are authorized by the same permissions as the administration API; see [MCP Server](mcp/index.md#authorization).
 

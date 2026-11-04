@@ -58,6 +58,26 @@ apis: {
 
 Because of that, everything `provideSite()` registers is part of the application's initial bundle, CKEditor included: it is downloaded on first paint, whether or not any content type has a rich-text field and whether or not the user opens the Site screens. Measured on a production build of an ABP admin application, registering Site added roughly 950 KB, about 170 KB gzipped. If the application enforces a bundle budget in `angular.json`, it may need to be raised. The code editor of the **Theme** screen (CodeMirror) is not part of it: it is loaded with its screen, when a user opens **Theme**.
 
+## Languages in Setting Management
+
+The site's languages are set on a tab of ABP's Setting Management page, not on a screen of their own. The tab belongs to a secondary entry point, so that an application without Setting Management does not need its package: add it next to `provideSettingManagementConfig()`.
+
+````ts
+// app.config.ts
+import { provideSettingManagementConfig } from '@abp/ng.setting-management/config';
+import { provideSiteSettingTabs } from '@dignite/ng.site/setting-management';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ...
+    provideSettingManagementConfig(),
+    provideSiteSettingTabs(),
+  ],
+};
+````
+
+`@abp/ng.setting-management` is an optional peer dependency of `@dignite/ng.site`: install it when the application uses this tab. The tab is shown to a user with the `SiteAdmin.Languages` permission and can change the list with `SiteAdmin.Languages.Update`. It sets the whole ordered list; the first language is the default and its pages have no language prefix. See [Settings](settings.md).
+
 ## Screens
 
 The **Site** menu has four entries; each is shown to users with its permission:

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Site</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
+    <!-- ISettingManager, behind ISiteSettingWriter. Its own project because loading the module swaps ABP's setting
+         definition store for one that needs the module's database (see ISiteSettingWriter). -->
+    <PackageReference Include="Volo.Abp.SettingManagement.Domain" Version="10.7.0" />
+  </ItemGroup>
+
+</Project>

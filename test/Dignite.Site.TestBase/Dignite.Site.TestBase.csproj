@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- FakeSiteSettingWriter stands in for the domain's ISiteSettingWriter. -->
+    <ProjectReference Include="..\..\src\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17">

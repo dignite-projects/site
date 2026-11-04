@@ -102,4 +102,12 @@ public static class SiteErrorCodes
     /// <c>site_head</c>, or has front matter; Data["Layout"].
     /// </summary>
     public const string SiteThemeDefaultLayoutNotALayout = "Site:090013";
+
+    // The site's languages (Site.EnabledLanguages), set through SiteLanguageManager.
+
+    /// <summary>A list of languages with none in it: a site has to serve at least one.</summary>
+    public const string SiteLanguagesRequired = "Site:100001";
+
+    /// <summary>A language tag .NET does not know; Data["CultureName"].</summary>
+    public const string SiteLanguageNotRecognized = "Site:100002";
 }
