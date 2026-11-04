@@ -41,6 +41,9 @@ public class SiteThemeTrialRenderer : ITransientDependency
     /// <summary>The most contents read per page to pick the sample from; they are ordered by language and slug.</summary>
     public const int MaxContentsPerPage = 200;
 
+    /// <summary>The most dangling-reference warnings one run reports; the rest would only repeat the same mistake.</summary>
+    public const int MaxFragmentWarnings = 20;
+
     /// <summary>The longest a run goes on starting renders. A render in flight is not interrupted; it has its own limit.</summary>
     public static readonly TimeSpan TimeBudget = TimeSpan.FromSeconds(30);
 
@@ -86,6 +89,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
         var paths = await GetSamplePathsAsync(analysis, cancellationToken);
         var failures = new Dictionary<string, SiteThemeIssue>(StringComparer.Ordinal);
+        var fragmentWarnings = new Dictionary<string, SiteThemeIssue>(StringComparer.Ordinal);
         var stopwatch = Stopwatch.StartNew();
         var rendered = 0;
 
@@ -100,7 +104,21 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
             try
             {
-                await renderer.RenderAsync(new SiteThemePreviewRequest { Path = path, Snapshot = snapshot }, cancellationToken);
+                var preview = await renderer.RenderAsync(new SiteThemePreviewRequest { Path = path, Snapshot = snapshot }, cancellationToken);
+
+                foreach (var id in RenderedFragmentReferences.FindMissing(preview.Html))
+                {
+                    if (fragmentWarnings.Count < MaxFragmentWarnings)
+                    {
+                        fragmentWarnings.TryAdd(id, new SiteThemeIssue(
+                            SiteThemeIssueSeverity.Warning,
+                            SiteThemeIssueCodes.FragmentReferenceNotFound,
+                            null,
+                            null,
+                            null,
+                            new Dictionary<string, string> { ["Path"] = path, ["Id"] = id }));
+                    }
+                }
             }
             catch (BusinessException exception) when (exception.Code is
                                                           SiteErrorCodes.SiteTemplatePreviewRenderFailed
@@ -126,6 +144,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
         }
 
         issues.AddRange(failures.Values);
+        issues.AddRange(fragmentWarnings.Values);
 
         if (rendered < paths.Count)
         {

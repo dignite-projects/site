@@ -64,20 +64,19 @@ public class FeedDocumentAppService_Tests : SiteEntityFrameworkCoreTestBase
     /// <summary>
     /// Titles come from the SEO field when a type pulled it in, and otherwise from the type's first text
     /// field - the platform has no "title" field of its own to ask, and must not hard-code a tenant's
-    /// field names (总体设计 §2.4).
+    /// field names (总体设计 §2.4). A summary comes from the SEO field's description and from nowhere else.
     /// </summary>
     [Fact]
-    public async Task Titles_And_Summaries_Should_Come_From_The_Types_Text_Fields()
+    public async Task Titles_Should_Come_From_The_Types_First_Text_Field_And_There_Should_Be_No_Summary_Without_Seo()
     {
         var document = await GetAsync("/blog", "en", SiteFeedFormat.Rss);
 
         var items = XDocument.Parse(document!.Content).Root!.Element("channel")!.Elements("item").ToList();
 
+        // The post has a body, but a body is not a description: no field was written as one, so there is none.
         var trip = items.First(i => i.Element("title")!.Value == "My trip");
-        trip.Element("description")!.Value.ShouldBe("Trip body");
+        trip.Element("description").ShouldBeNull();
 
-        // The gallery post has a title but no body, so it has no description - inventing one from an
-        // unrelated field would be worse than leaving it out.
         var gallery = items.First(i => i.Element("title")!.Value == "Summer photos");
         gallery.Element("description").ShouldBeNull();
     }
@@ -112,12 +111,11 @@ public class FeedDocumentAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// A custom SEO title with no custom description is the common case - the whole point of an SEO title
-    /// override is usually to leave the description to auto-derive. The description must come from the
-    /// type's next text field (the body), never from the title field's own raw text repeated back.
+    /// A custom SEO title with no custom description: the item has the title and no description. The body is not
+    /// taken for one, and the title field's own raw text is not repeated back as one either.
     /// </summary>
     [Fact]
-    public async Task An_Seo_Meta_Title_Alone_Should_Not_Duplicate_Itself_As_The_Description()
+    public async Task An_Seo_Meta_Title_Alone_Should_Leave_The_Description_Out()
     {
         var contentTypeId = await CreateSeoEnabledBlogTypeWithBodyAsync();
 
@@ -139,7 +137,7 @@ public class FeedDocumentAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         var item = items.First(i => i.Element("link")!.Value == $"{BaseUrl}/blog/seo-title-only");
         item.Element("title")!.Value.ShouldBe("The SEO title");
-        item.Element("description")!.Value.ShouldBe("The real body text");
+        item.Element("description").ShouldBeNull();
     }
 
     [Fact]

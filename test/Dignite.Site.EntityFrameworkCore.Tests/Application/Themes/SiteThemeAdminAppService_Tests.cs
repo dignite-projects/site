@@ -359,6 +359,28 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         issue.Message.ShouldContain("$title was not found");
     }
 
+    /// <summary>
+    /// An icon whose symbol is not in the page shows nothing and fails nothing: the check says so, as a warning that does
+    /// not stop a publish. A reference to an id the page does have, one to a file and `#top` are not reported.
+    /// </summary>
+    [Fact]
+    public async Task The_Check_Should_Warn_About_A_Link_To_An_Id_The_Page_Does_Not_Have()
+    {
+        await SaveAsync("Default",
+            "<svg><use href=\"#icon-missing\"/></svg><svg><use href=\"#icon-there\"/></svg><symbol id=\"icon-there\"/>" +
+            "<svg><use href=\"sprite.svg#icon-elsewhere\"/></svg><a href=\"#top\">up</a><a href=\"#\">x</a>");
+
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeFalse();
+        var warning = check.Issues.Single(i => i.Code == SiteThemeIssueCodes.FragmentReferenceNotFound);
+        warning.Severity.ShouldBe(SiteThemeIssueSeverity.Warning);
+        warning.Message.ShouldContain("icon-missing");
+
+        // Warnings do not stop a publish.
+        await _themeAppService.PublishAsync(new PublishSiteThemeDto { Fingerprint = check.Fingerprint });
+    }
+
     /// <summary>A failure the renderer cannot place in a template is about the page's template as a whole.</summary>
     [Fact]
     public async Task The_Check_Should_Report_A_Render_Failure_Without_A_Place_Against_No_File()

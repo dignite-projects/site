@@ -48,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The check warns about a link to an id the page does not have.** A `<use href="#icon-github">` whose symbol is not in
+  the page shows nothing and fails nothing, so a theme kept a blank icon unnoticed. The trial render now reads the pages it
+  rendered for `href="#id"` and `url(#id)` that nothing on the page defines (found in the rendered page, not in a template:
+  a layout or another partial may define the id) and reports each id once, with the first address that has it, as a warning
+  (`ThemeIssue:FragmentReferenceNotFound`) that does not stop a publish. Another file (`href="sprite.svg#icon"`), an empty
+  `#` and `#top` are not reported.
 - **An AI client can look at the site in a browser before it publishes.** `site_preview` returns a page's HTML, which shows
   its markup and head tags but not how it looks: a broken layout, a missing image or a font that did not load cannot be
   seen in it. `site_get_preview_link` returns the signed [browser preview](docs/en/rendering/scriban-templates.md#in-a-browser)
@@ -147,6 +153,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   field types declare their keys (`FileExplorer.FileContainerName` is required), and `site_list_field_types` lists them
   as `configurationKeys`. See [Field Types](docs/en/field-types.md). **`FieldManager` takes
   `IFieldConfigurationValidator`: a derived class must add the parameter.**
+- **A page has a description only when its author wrote one.** The description (`<meta name="description">`,
+  `og:description`, a feed item's summary) was the SEO field's `metaDescription`, or else the next text field that had a
+  value after the title: a case page with a `Year` field got `<meta name="description" content="2025">`, and a check
+  could not tell. It is now the `metaDescription` and nothing else; without one there is no tag, and a feed item has no
+  summary. **The title is unchanged**: the SEO field's `metaTitle`, else the first text field with a value, else the slug.
+  A site that relied on the guess adds the SEO field to those content types. `FeedConsts.MaxSummaryLength` is removed, as
+  nothing is cut any more. See [Head Metadata](docs/en/seo/index.md#head-metadata).
+- **A file container says what it does to an image.** `site_list_file_containers` (and `FileContainerConfigurationDto`)
+  report `imageMaxWidth`, `imageMaxHeight` and `compressesImages`, read from the container's own configuration, so a client
+  knows that an image is shrunk to fit and re-encoded - its size is not the size it sent - and the numbers are the
+  configured ones, whatever a host set.
 - **A file field says what its value is, and refuses what is not one.** `site_list_field_types` gave `FileExplorer` no
   `valueShape`, so a client had to read the source to learn that the value is a list of file objects. It lists them now
   (`[].url`, `[].id`, `[].name`, ...), and a content is refused when a file field holds a plain string, a list of strings
@@ -158,6 +175,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `site_preview` takes `maxHtmlLength`, to read the beginning of a large page.
 
 ### Fixed
+
+- **Static files and library files set no cookies.** The host's tenant and localization handling put `Set-Cookie`
+  (`__tenant`, `.AspNetCore.Culture`) on every response, a theme's static file at `/site-assets/` (`Cache-Control: public,
+  max-age=31536000, immutable`) and a library file at `/api/site-public/files/` (`public, max-age=86400`) included: a shared
+  cache may refuse a response that sets a cookie, or keep it and hand the cookie of one visitor's language and tenant to
+  every visitor after. Those two responses carry none now. Pages are unchanged.
 
 - `contents` with a `page_no` of more than about twenty-one million no longer fails the render with an invalid-request
   error from the content service, whose skip count overflowed: the page number is capped where the skip count still

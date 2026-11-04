@@ -140,6 +140,8 @@ The sample is what a visitor would open, for each page rendered by a template of
 
 Only the theme's failures are findings. An address that leads nowhere, or a failure of the site itself while rendering, is not.
 
+The rendered pages are also read for links to an id that nothing on the page has: a `<use href="#icon">` whose symbol is not in the page shows nothing and fails nothing, and an anchor to a section that does not exist goes nowhere. Each is a warning, once per id, with the first address that has it (`ThemeIssue:FragmentReferenceNotFound`); a warning does not stop a publish. A reference to another file (`href="sprite.svg#icon"`), an empty `#` and `#top` are not reported.
+
 ## Previewing
 
 The site can be seen with the working copy, or with any release, without publishing anything: in a browser, where you click through the site as a visitor would, or as the HTML of one page, over the API and MCP. Either way a preview renders the saved files, and the data, the functions and the limits are the live site's.
@@ -381,6 +383,7 @@ The response carries these headers:
 | `X-Content-Type-Options` | `nosniff`. |
 | `ETag` | The hash of the content. A request whose `If-None-Match` matches it is answered 304. |
 | `Cache-Control` | `public, max-age=31536000, immutable` when the `v` query of the URL is the hash of the content served; otherwise `public, no-cache`, which is served but revalidated each time. |
+| `Set-Cookie` | None: a response a shared cache may keep carries no cookie, even though the application's tenant and language handling would set one on a page. |
 
 `asset_url` writes the address that earns the long cache. `asset_url "css/site.css"` returns `/site-assets/css/site.css?v=` followed by the SHA-256 of the file's content, under the application's path base when it has one. A release that changes the file changes the address, which busts the browser and CDN caches, while a file that did not change keeps its address, and its cached copy, from one release to the next. The path must be a static file of the theme, or the render fails with an error that names it.
 

@@ -108,6 +108,29 @@ public class SiteAssetController_Tests
     }
 
     /// <summary>
+    /// The host's tenant and localization middleware set cookies on every response before the action runs; a response a
+    /// shared cache may keep carries none, whether it is the body, a 304 or a revalidated address.
+    /// </summary>
+    [Theory]
+    [InlineData("?v=VERSION", false)]
+    [InlineData("", false)]
+    [InlineData("?v=VERSION", true)]
+    public async Task A_Cacheable_Response_Should_Set_No_Cookie(string query, bool notModified)
+    {
+        var (controller, httpContext, _) = Create(query.Replace("VERSION", SiteCssHash));
+        httpContext.Response.Headers.SetCookie = new[] { "__tenant=1; path=/", ".AspNetCore.Culture=c%3Den%7Cuic%3Den; path=/" };
+        if (notModified)
+        {
+            httpContext.Request.Headers.IfNoneMatch = "\"" + SiteCssHash + "\"";
+        }
+
+        await controller.GetAsync("assets/site.css");
+
+        httpContext.Response.Headers.ContainsKey("Set-Cookie").ShouldBeFalse();
+        httpContext.Response.Headers.CacheControl.ToString().ShouldStartWith("public");
+    }
+
+    /// <summary>
     /// No hash, or one that is not the live content's - an older content's, text that is no hash at all: stored but
     /// revalidated, so the address is never pinned to bytes its hash does not name.
     /// </summary>

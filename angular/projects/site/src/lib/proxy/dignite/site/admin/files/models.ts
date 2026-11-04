@@ -31,6 +31,9 @@ export interface DirectoryDescriptorInfoDto extends ExtensibleEntityDto<string> 
 export interface FileContainerConfigurationDto {
   maxBlobSize?: number;
   allowedFileTypeNames?: string[];
+  imageMaxWidth?: number | null;
+  imageMaxHeight?: number | null;
+  compressesImages?: boolean;
   createDirectoryPermissionName?: string | null;
   createFilePermissionName?: string | null;
   updateFilePermissionName?: string | null;
