@@ -13,6 +13,8 @@ Site has its own **file library**: the images and attachments that content field
 
 The library has three [BLOB containers](https://abp.io/docs/latest/framework/infrastructure/blob-storing), each with fixed upload rules:
 
+The rules are the containers' configuration (`SiteAdminApplicationModule`), and `site_list_file_containers` reports them as they are configured: `imageMaxWidth`, `imageMaxHeight` and `compressesImages` for a container that processes images, and nothing for one that does not. A host that configures the containers differently is described by what it configured, not by the table below.
+
 | Container | Accepts | Size limit | On upload |
 |---|---|---|---|
 | `images` | JPEG, PNG, GIF, WebP | 10 MB | A picture larger than 1920 x 1920 is shrunk to fit, keeping its aspect ratio; one that fits is stored as uploaded. Then it is re-encoded in its own format, and the result is kept only if it is smaller. |

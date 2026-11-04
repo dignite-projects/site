@@ -146,6 +146,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   summary. **The title is unchanged**: the SEO field's `metaTitle`, else the first text field with a value, else the slug.
   A site that relied on the guess adds the SEO field to those content types. `FeedConsts.MaxSummaryLength` is removed, as
   nothing is cut any more. See [Head Metadata](docs/en/seo/index.md#head-metadata).
+- **A file container says what it does to an image.** `site_list_file_containers` (and `FileContainerConfigurationDto`)
+  report `imageMaxWidth`, `imageMaxHeight` and `compressesImages`, read from the container's own configuration, so a client
+  knows that an image is shrunk to fit and re-encoded - its size is not the size it sent - and the numbers are the
+  configured ones, whatever a host set.
 - **A file field says what its value is, and refuses what is not one.** `site_list_field_types` gave `FileExplorer` no
   `valueShape`, so a client had to read the source to learn that the value is a list of file objects. It lists them now
   (`[].url`, `[].id`, `[].name`, ...), and a content is refused when a file field holds a plain string, a list of strings

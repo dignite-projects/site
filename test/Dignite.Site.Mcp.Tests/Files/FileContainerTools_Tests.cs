@@ -17,7 +17,10 @@ public class FileContainerTools_Tests
         fileAppService.GetContainerConfigurationAsync("images").Returns(new FileContainerConfigurationDto
         {
             MaxBlobSize = 1024,
-            AllowedFileTypeNames = new[] { ".png", ".jpg" }
+            AllowedFileTypeNames = new[] { ".png", ".jpg" },
+            ImageMaxWidth = 1920,
+            ImageMaxHeight = 1080,
+            CompressesImages = true
         });
         fileAppService.GetContainerConfigurationAsync("attachments").Returns(new FileContainerConfigurationDto
         {
@@ -36,8 +39,14 @@ public class FileContainerTools_Tests
         containers[0].Description.ShouldBe("Images used in site content.");
         containers[0].MaxUploadSize.ShouldBe(1024);
         containers[0].AllowedFileTypes.ShouldBe(new[] { ".png", ".jpg" });
+        // What the container does to an image is what its configuration says, passed on as it is.
+        containers[0].ImageMaxWidth.ShouldBe(1920);
+        containers[0].ImageMaxHeight.ShouldBe(1080);
+        containers[0].CompressesImages.ShouldBeTrue();
         // The container allows 100 MB, but nothing larger than the module limit travels as base64.
         containers[1].MaxUploadSize.ShouldBe(2048);
+        containers[1].ImageMaxWidth.ShouldBeNull();
+        containers[1].CompressesImages.ShouldBeFalse();
     }
 
     /// <summary>One bad name in the host's list must not take the entry-point tool down for the containers that work.</summary>

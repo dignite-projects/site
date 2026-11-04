@@ -31,8 +31,10 @@ public class FileContainerTools : ITransientDependency
     [McpServerTool(Name = "site_list_file_containers", Title = "List file containers", ReadOnly = true)]
     [Description(
         "Lists the site's file containers you may use, with each one's purpose, the largest file you may " +
-        "upload to it and its allowed file types. Call this before any other file tool: they all take a " +
-        "containerName from this list.")]
+        "upload to it and its allowed file types. A container that processes images says so: imageMaxWidth and " +
+        "imageMaxHeight are the size an image is shrunk to fit (a smaller one is not enlarged), and compressesImages " +
+        "means the stored file is re-encoded, so its size differs from the file you sent. Call this before any other " +
+        "file tool: they all take a containerName from this list.")]
     public virtual async Task<List<SiteMcpFileContainerDto>> ListFileContainersAsync()
     {
         var result = new List<SiteMcpFileContainerDto>();
@@ -59,7 +61,10 @@ public class FileContainerTools : ITransientDependency
                 Name = container.Name,
                 Description = container.Description,
                 MaxUploadSize = Options.GetMaxUploadSize(configuration),
-                AllowedFileTypes = configuration.AllowedFileTypeNames.ToList()
+                AllowedFileTypes = configuration.AllowedFileTypeNames.ToList(),
+                ImageMaxWidth = configuration.ImageMaxWidth,
+                ImageMaxHeight = configuration.ImageMaxHeight,
+                CompressesImages = configuration.CompressesImages
             });
         }
 
@@ -78,4 +83,13 @@ public class SiteMcpFileContainerDto
 
     /// <summary>Allowed file extensions; empty means the container does not restrict them.</summary>
     public List<string> AllowedFileTypes { get; set; } = new();
+
+    /// <summary>The width, in pixels, an image is shrunk to fit; null when the container does not resize images.</summary>
+    public int? ImageMaxWidth { get; set; }
+
+    /// <summary>The height, in pixels, an image is shrunk to fit; null when the container does not resize images.</summary>
+    public int? ImageMaxHeight { get; set; }
+
+    /// <summary>Whether a stored image is re-encoded to a smaller file, so its size differs from the one uploaded.</summary>
+    public bool CompressesImages { get; set; }
 }
