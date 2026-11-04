@@ -57,15 +57,15 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Fact]
-    public async Task Title_And_Description_Should_Match_ContentSummaryResolver_For_A_Content_Match()
+    public async Task Title_Should_Be_The_First_Text_Field_And_There_Should_Be_No_Description_Without_The_Seo_Field()
     {
         var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
 
-        // post-article never pulled in the SEO field, so the fallback chain lands on the first two text
-        // fields in order: title supplies the title, body supplies the description.
+        // post-article never pulled in the SEO field: the title is the first text field with a value, and the
+        // description is nothing - the body is not the author saying what the page is about.
         metadata.Title.ShouldBe("My trip");
         metadata.BaseTitle.ShouldBe(metadata.Title);
-        metadata.Description.ShouldBe("Trip body");
+        metadata.Description.ShouldBeNull();
     }
 
     [Fact]

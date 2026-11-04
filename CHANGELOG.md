@@ -139,6 +139,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   field types declare their keys (`FileExplorer.FileContainerName` is required), and `site_list_field_types` lists them
   as `configurationKeys`. See [Field Types](docs/en/field-types.md). **`FieldManager` takes
   `IFieldConfigurationValidator`: a derived class must add the parameter.**
+- **A page has a description only when its author wrote one.** The description (`<meta name="description">`,
+  `og:description`, a feed item's summary) was the SEO field's `metaDescription`, or else the next text field that had a
+  value after the title: a case page with a `Year` field got `<meta name="description" content="2025">`, and a check
+  could not tell. It is now the `metaDescription` and nothing else; without one there is no tag, and a feed item has no
+  summary. **The title is unchanged**: the SEO field's `metaTitle`, else the first text field with a value, else the slug.
+  A site that relied on the guess adds the SEO field to those content types. `FeedConsts.MaxSummaryLength` is removed, as
+  nothing is cut any more. See [Head Metadata](docs/en/seo/index.md#head-metadata).
 - **A file field says what its value is, and refuses what is not one.** `site_list_field_types` gave `FileExplorer` no
   `valueShape`, so a client had to read the source to learn that the value is a list of file objects. It lists them now
   (`[].url`, `[].id`, `[].name`, ...), and a content is refused when a file field holds a plain string, a list of strings

@@ -27,14 +27,14 @@ A template writes the head metadata with the `site-head-metadata` tag helper; se
 | Tag | Value |
 |---|---|
 | `<title>`, `og:title` | The SEO field's `metaTitle`, or the first text field of the content that has a value, or the slug. |
-| `description`, `og:description` | The SEO field's `metaDescription`, or the next text field that has a value. |
+| `description`, `og:description` | The SEO field's `metaDescription`. Without one there is no tag. |
 | `canonical`, `og:url` | The absolute URL of the content or the page, in its language. |
 | `robots` | `noindex`, when the content is marked so or the request is a [truncated filtered view](#filtered-views); otherwise no tag. |
 | `og:image` | The SEO field's `ogImage`; see [Share Images](#share-images). |
 | `twitter:card` | `summary_large_image` with an image, `summary` without. |
 | `hreflang` alternates, `x-default` | See [Hreflang Alternates](#hreflang-alternates). |
 
-The title and the description of a content come from the [SEO field](../field-types.md#seo) when its content type includes one. A content type without it still gets a title and a description, from its first text fields. A request for a page itself takes them from the page's own content, the one with an empty slug, when it has one, and from the page's display name otherwise.
+The title and the description of a content come from the [SEO field](../field-types.md#seo) when its content type includes one. A content type without it still gets a title, from its first text field that has a value, but no description: no other field is taken for one, since a year, a price or a category is not what the page is about. Add the SEO field to the content types whose pages should have a description. A request for a page itself takes them from the page's own content, the one with an empty slug, when it has one, and from the page's display name otherwise.
 
 `HeadMetadata` is also in the template's view model, and `/api/site-public/head-metadata?path=...` returns it to an external front end.
 

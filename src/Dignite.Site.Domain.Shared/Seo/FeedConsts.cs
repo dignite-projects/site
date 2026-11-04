@@ -11,13 +11,6 @@ public static class FeedConsts
     /// </summary>
     public const int MaxItems = 20;
 
-    /// <summary>
-    /// How far a summary derived from a content field is truncated. Only applies to the fallback path; a
-    /// value that came from the SEO field's <c>MetaDescription</c> is emitted whole, since an author wrote
-    /// it at that length on purpose.
-    /// </summary>
-    public const int MaxSummaryLength = 500;
-
     public const string RssFileName = "feed.xml";
     public const string AtomFileName = "atom.xml";
     public const string JsonFileName = "feed.json";
