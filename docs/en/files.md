@@ -11,14 +11,15 @@ Site has its own **file library**: the images and attachments that content field
 
 ## Containers
 
-The library has two [BLOB containers](https://abp.io/docs/latest/framework/infrastructure/blob-storing), each with fixed upload rules:
+The library has three [BLOB containers](https://abp.io/docs/latest/framework/infrastructure/blob-storing), each with fixed upload rules:
 
 | Container | Accepts | Size limit | On upload |
 |---|---|---|---|
 | `images` | JPEG, PNG, GIF, WebP | 10 MB | A picture larger than 1920 x 1920 is shrunk to fit, keeping its aspect ratio; one that fits is stored as uploaded. Then it is re-encoded in its own format, and the result is kept only if it is smaller. |
 | `attachments` | PDF, Word, Excel, PowerPoint (both the legacy and the Open XML formats), text, CSV, ZIP | 20 MB | Stored as uploaded. |
+| `theme-assets` | ICO, WOFF2, WOFF, TTF, OTF | 5 MB | Stored as uploaded. The binary files a [theme](rendering/scriban-templates.md) links, such as the favicon and web fonts. Written with the theme's permission; see [Permissions](#permissions). |
 
-`SiteFileContainerNames.Images` and `SiteFileContainerNames.Attachments` hold the names, and `SiteFileTypes` is the table of allowed extensions and MIME types. SVG, HTML and script files are accepted by neither container: files are public, so a file that a browser renders and executes would run on the site's own origin.
+`SiteFileContainerNames.Images`, `SiteFileContainerNames.Attachments` and `SiteFileContainerNames.ThemeAssets` hold the names, and `SiteFileTypes` is the table of allowed extensions and MIME types. SVG, HTML and script files are accepted by neither container: files are public, so a file that a browser renders and executes would run on the site's own origin.
 
 A file's type is **detected from its bytes**, never taken from the uploader's claim:
 
@@ -30,7 +31,7 @@ Uploading the same bytes into the same container twice stores them once: the sec
 
 ### Choosing the Storage Provider
 
-Site sets the rules of both containers; the host only chooses where the bytes are stored, with any [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing#blob-storage-providers). ABP merges the host's configuration of a container onto Site's, so configure the provider per container:
+Site sets the rules of the containers; the host only chooses where the bytes are stored, with any [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing#blob-storage-providers). ABP merges the host's configuration of a container onto Site's, so configure the provider per container:
 
 ````csharp
 Configure<AbpBlobStoringOptions>(options =>
@@ -49,13 +50,13 @@ Images are resized with ABP's SkiaSharp image provider, which the Site packages 
 
 ## Permissions
 
-The file library has no permissions of its own. Files use the permissions of the contents they belong to:
+The file library has no permissions of its own. Files use the permissions of the contents they belong to, and the files of `theme-assets`, which belong to the theme, those of the theme:
 
 | Operation | Requires |
 |---|---|
-| Upload a file, create a directory | `SiteAdmin.Contents.Create` |
-| Rename or move a file | `SiteAdmin.Contents.Update`, or being the file's uploader |
-| Delete a file | `SiteAdmin.Contents.Delete`, or being the file's uploader |
+| Upload a file, create a directory | `SiteAdmin.Contents.Create`; in `theme-assets`, `SiteAdmin.Themes.Edit` |
+| Rename or move a file | `SiteAdmin.Contents.Update`, or being the file's uploader; in `theme-assets`, `SiteAdmin.Themes.Edit` |
+| Delete a file | `SiteAdmin.Contents.Delete`, or being the file's uploader; in `theme-assets`, `SiteAdmin.Themes.Edit` |
 | List and manage the files of every user | `SiteAdmin.Contents`; without it, a user lists only their own files |
 | Read a file | Nothing: the files of a site are public |
 
@@ -129,4 +130,13 @@ Configure<SiteMcpFileOptions>(options =>
 });
 ````
 
-An upload travels base64-encoded inside the MCP request, so it is capped at the smaller of `MaxUploadSize` and the container's own limit. The request size limit of the MCP endpoint is raised to fit one.
+An upload with `site_upload_file` travels base64-encoded inside the MCP request, as text the client has to write out, so it is capped at the smaller of `MaxUploadSize` and the container's own limit, and suits files of a few kilobytes. The request size limit of the MCP endpoint is raised to fit one.
+
+### Uploading a Large File
+
+`site_create_upload_url` is the way to upload a photo, a background or an icon: it returns a link that takes the file as the body of a `PUT`, and the command that sends it: `command` for sh, bash, zsh and cmd.exe, and `powerShellCommand` for PowerShell, where `curl` is another command. The client runs the command on the machine the file is on, so the bytes go straight to the site and never through the model.
+
+* The link is checked when it is issued, as the upload itself would be, and again when the file arrives: the container, the file name, the directory and the largest size are fixed in it, and the upload runs as the user who asked for it, with that user's permissions.
+* It is good for ten minutes and for one use, whether the upload then succeeds or not. A link that is expired, used or not the site's own is refused with `Site:080003`.
+* The link is signed with ASP.NET Core Data Protection, so every instance of a deployment has to share its key ring, as it already does for cookies. The response of the `PUT` is the stored file, with its `url`.
+* The link starts with the address the MCP request came in on, which is right behind a proxy whose forwarded headers the application trusts. A host behind a gateway that does not forward the original host sets `SiteMcpFileOptions.UploadBaseUrl` to the gateway's address and routes `api/site-admin/files/upload/*` to Site.

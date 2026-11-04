@@ -54,6 +54,30 @@ internal static class TestFiles
         return Encoding.UTF8.GetBytes(text);
     }
 
+    /// <summary>A one-image .ico: its header and directory entry, with a PNG as the image, the form browsers read.</summary>
+    public static byte[] Ico(int size = 16)
+    {
+        var png = Png(size, size);
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+
+        writer.Write((ushort)0);          // reserved
+        writer.Write((ushort)1);          // type: icon
+        writer.Write((ushort)1);          // one image
+        writer.Write((byte)size);         // width
+        writer.Write((byte)size);         // height
+        writer.Write((byte)0);            // palette colors
+        writer.Write((byte)0);            // reserved
+        writer.Write((ushort)1);          // color planes
+        writer.Write((ushort)32);         // bits per pixel
+        writer.Write(png.Length);         // image size
+        writer.Write(22);                 // image offset: after the 6 + 16 bytes of header
+        writer.Write(png);
+        writer.Flush();
+
+        return stream.ToArray();
+    }
+
     /// <summary>The content a file of this name should have.</summary>
     public static byte[] For(string fileName)
     {
@@ -63,6 +87,7 @@ internal static class TestFiles
             ".png" => Png(16, 16),
             ".webp" => Webp(16, 16),
             ".pdf" => Pdf(),
+            ".ico" => Ico(),
             _ => Text("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>")
         };
     }

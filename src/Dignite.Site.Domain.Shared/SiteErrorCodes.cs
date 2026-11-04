@@ -56,6 +56,9 @@ public static class SiteErrorCodes
     public const string FileContainerNotAvailable = "Site:080001";
     public const string FileSortingNotSupported = "Site:080002";
 
+    /// <summary>An upload link that is not one this site issued, has expired, or has been used. One code for all three.</summary>
+    public const string FileUploadTicketInvalid = "Site:080003";
+
     // The tenant's theme (Dignite.Site.Themes): a working copy of files, published as immutable releases.
     public const string SiteThemeFileAlreadyExists = "Site:090001";
 

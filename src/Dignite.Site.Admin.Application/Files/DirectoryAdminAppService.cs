@@ -18,9 +18,6 @@ public class DirectoryAdminAppService : SiteAdminAppService, IDirectoryAdminAppS
 
     protected IDirectoryDescriptorRepository DirectoryDescriptorRepository { get; }
 
-    protected CancellationToken RequestCancellationToken =>
-        LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None;
-
     public DirectoryAdminAppService(
         DirectoryManager directoryManager,
         IDirectoryDescriptorRepository directoryDescriptorRepository)

@@ -59,6 +59,50 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
         configuration.ProviderType.ShouldBe(typeof(FileSystemBlobProvider));
     }
 
+    /// <summary>
+    /// The theme's binary files are design, not content: they are written with the theme's edit permission, and
+    /// read by anyone, like the other containers.
+    /// </summary>
+    [Fact]
+    public void Theme_Assets_Container_Rides_On_The_Themes_Edit_Permission_And_Stays_Publicly_Readable()
+    {
+        var configuration = _configurationProvider.Get(SiteFileContainerNames.ThemeAssets);
+        var authorization = configuration.GetAuthorizationConfiguration();
+
+        authorization.CreateFilePermissionName.ShouldBe(SiteAdminPermissions.Themes.Edit);
+        authorization.UpdateFilePermissionName.ShouldBe(SiteAdminPermissions.Themes.Edit);
+        authorization.DeleteFilePermissionName.ShouldBe(SiteAdminPermissions.Themes.Edit);
+        authorization.CreateDirectoryPermissionName.ShouldBe(SiteAdminPermissions.Themes.Edit);
+        authorization.GetFilePermissionName.ShouldBeNull();
+        configuration.ProviderType.ShouldBe(typeof(FileSystemBlobProvider));
+        configuration.GetMaxSizeContributorConfiguration().MaxSizeInBytes.ShouldBe(5L * 1024 * 1024);
+    }
+
+    /// <summary>An icon is stored as it is: not resized, not re-encoded, and no picture or document gets in beside it.</summary>
+    [Fact]
+    public async Task Theme_Assets_Container_Stores_An_Icon_As_Uploaded()
+    {
+        var ico = TestFiles.Ico();
+
+        var descriptor = await UploadAsync(SiteFileContainerNames.ThemeAssets, "favicon.ico", ico);
+
+        descriptor.MimeType.ShouldBe("image/x-icon");
+        (await ReadAsync(descriptor)).ShouldBe(ico);
+    }
+
+    [Theory]
+    [InlineData("photo.png")]
+    [InlineData("report.pdf")]
+    [InlineData("logo.svg")]
+    [InlineData("page.html")]
+    public async Task Theme_Assets_Container_Takes_Nothing_But_What_It_Lists(string fileName)
+    {
+        var exception = await Should.ThrowAsync<BusinessException>(
+            () => UploadAsync(SiteFileContainerNames.ThemeAssets, fileName, TestFiles.For(fileName)));
+
+        exception.Code.ShouldBe(BlobStoringPipelineErrorCodes.ContentTypeNotAllowed);
+    }
+
     [Theory]
     [InlineData(SiteFileContainerNames.Attachments, 20)]
     [InlineData(SiteFileContainerNames.Images, 10)]

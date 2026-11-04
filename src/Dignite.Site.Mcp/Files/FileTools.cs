@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Files;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using Volo.Abp.Application.Dtos;
@@ -31,14 +32,19 @@ public class FileTools : ITransientDependency
 
     protected SiteMcpFileOptions Options { get; }
 
+    /// <summary>Where the request being served came in; absent outside a web request, then the link is a path only.</summary>
+    protected IHttpContextAccessor? HttpContextAccessor { get; }
+
     public FileTools(
         IFileAdminAppService fileAppService,
         SiteMcpFileContainerGuard containerGuard,
-        IOptions<SiteMcpFileOptions> options)
+        IOptions<SiteMcpFileOptions> options,
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         FileAppService = fileAppService;
         ContainerGuard = containerGuard;
         Options = options.Value;
+        HttpContextAccessor = httpContextAccessor;
     }
 
     [McpServerTool(Name = "site_list_files", Title = "List files", ReadOnly = true)]
@@ -77,10 +83,77 @@ public class FileTools : ITransientDependency
         return await GetExposedFileAsync(id);
     }
 
+    [McpServerTool(Name = "site_create_upload_url", Title = "Get a link to upload a file to")]
+    [Description(
+        "The way to upload a real file - a photo, a background, an icon: returns a one-time link, good for ten minutes, " +
+        "that the file is sent to with a PUT, and the command that does it. The bytes go from the machine the file is on " +
+        "to the site and never through you, so a large file costs nothing here; run the command on that machine " +
+        "(replace FILE_PATH): command for sh, bash, zsh and cmd.exe, powerShellCommand for PowerShell. The response of the PUT is the stored file, with its url - the address to put in a " +
+        "content field. The same rules apply as to site_upload_file (the container's types and size; the type is detected " +
+        "from the bytes, so the extension of fileName must match them), checked now for the link and again when the file " +
+        "arrives. Without a shell to run it in, use site_upload_file for a file of a few kilobytes.")]
+    public virtual async Task<McpUploadUrl> CreateUploadUrlAsync(
+        [Description("A container name from site_list_file_containers.")]
+        string containerName,
+        [Description("The file name the file will be stored under, with its extension, e.g. 'hero.jpg'.")]
+        string fileName,
+        [Description("The directory to put it in, by id from site_list_directories. Omit for the top level.")]
+        Guid? directoryId = null)
+    {
+        var container = ContainerGuard.GetContainer(containerName);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw Invalid(nameof(fileName), "A file name is required.");
+        }
+
+        var ticket = await FileAppService.CreateUploadTicketAsync(new CreateFileUploadTicketInput
+        {
+            ContainerName = container.Name,
+            FileName = fileName,
+            DirectoryId = directoryId
+        });
+
+        var url = GetUploadBaseUrl().TrimEnd('/') + "/" + ticket.Path;
+
+        return new McpUploadUrl
+        {
+            Url = url,
+            ExpiresAt = ticket.ExpiresAt,
+            MaxBytes = ticket.MaxBytes,
+            ContainerName = ticket.ContainerName,
+            FileName = ticket.FileName,
+            Command = $"curl -sS --fail-with-body -X PUT -H \"Content-Type: application/octet-stream\" --data-binary \"@FILE_PATH\" \"{url}\"",
+            PowerShellCommand = $"Invoke-RestMethod -Method Put -ContentType application/octet-stream -InFile \"FILE_PATH\" -Uri \"{url}\""
+        };
+    }
+
+    /// <summary>
+    /// Where the link points: the configured address, else the scheme and host this MCP request came in on - the address
+    /// the client reached the site at, so the link is one it can reach too. A path base (the site served below a path) is kept.
+    /// Behind a proxy that address is right when the host trusts the proxy's forwarded headers, as it has to for every other
+    /// address it builds; where it does not, <see cref="SiteMcpFileOptions.UploadBaseUrl"/> says it. With neither there is no
+    /// address to give, and a link that starts with a path would only look like one that works.
+    /// </summary>
+    protected virtual string GetUploadBaseUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(Options.UploadBaseUrl))
+        {
+            return Options.UploadBaseUrl!;
+        }
+
+        var request = HttpContextAccessor?.HttpContext?.Request
+                      ?? throw new InvalidOperationException(
+                          $"The address of an upload link is unknown: {nameof(SiteMcpFileOptions)}.{nameof(SiteMcpFileOptions.UploadBaseUrl)} is not set and there is no request to take it from.");
+
+        return $"{request.Scheme}://{request.Host}{request.PathBase}";
+    }
+
     [McpServerTool(Name = "site_upload_file", Title = "Upload a file")]
     [Description(
         "Uploads a file from base64-encoded bytes and returns it with its url - the address to put in a " +
-        "content field. Small files only: site_list_file_containers gives each container's maxUploadSize. " +
+        "content field. Small files only: the bytes are text you have to write out, so this suits a file of a few " +
+        "kilobytes, and site_create_upload_url is the way to send anything larger. " +
+        "site_list_file_containers gives each container's maxUploadSize. " +
         "The container's own rules (allowed types, size, image processing) apply, and the file type is " +
         "detected from the bytes themselves, so the file name's extension must match the content.")]
     public virtual async Task<FileDescriptorDto> UploadFileAsync(

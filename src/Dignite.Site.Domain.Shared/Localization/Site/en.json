@@ -38,6 +38,7 @@
     "Site:070007": "Directories belong to a user, so this needs a signed-in user rather than a client credential.",
     "Site:080001": "'{ContainerName}' is not one of this site's file containers.",
     "Site:080002": "The requested sorting is not supported.",
+    "Site:080003": "This upload link is not valid: it has expired, has already been used, or was not issued by this site. Ask for a new one.",
     "Site:090001": "The theme already has a file '{Path}'.",
     "Site:090002": "The theme has {Count} error(s). Run the check and fix them before publishing.",
     "Site:090003": "The theme changed since it was checked. Check it again, and publish what the new check shows.",

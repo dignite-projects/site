@@ -8,7 +8,9 @@ using Dignite.Site.Files;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.BlobStoring;
+using Volo.Abp.Security.Claims;
 using Volo.Abp.Threading;
+using Volo.Abp.Users;
 
 namespace Dignite.Site.Admin.Files;
 
@@ -27,9 +29,6 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
     protected FileDescriptorManager FileDescriptorManager { get; }
 
     protected IBlobContainerConfigurationProvider BlobContainerConfigurationProvider { get; }
-
-    protected CancellationToken RequestCancellationToken =>
-        LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None;
 
     public FileAdminAppService(
         IFileDescriptorRepository fileDescriptorRepository,
@@ -90,29 +89,78 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
 
     public virtual async Task<FileDescriptorDto> CreateAsync(CreateFileInput input)
     {
-        FileContainerNotAvailableException.ThrowIfNotSiteContainer(input.ContainerName);
         var cancellationToken = RequestCancellationToken;
-
-        // The upload is authorized before anything is stored, against a stand-in that carries what the
-        // container's rules look at.
-        var pending = new FileDescriptor(
-            GuidGenerator.Create(), input.ContainerName, "pending", "pending", string.Empty, 0,
-            hash: null, referBlobName: null, input.DirectoryId, CurrentTenant.Id);
-        await AuthorizationService.CheckAsync(pending, FileOperations.Create);
-
-        // The new file is the caller's, in the current tenant: the directory must be theirs, there.
-        await EnsureDirectoryFitsAsync(input.DirectoryId, input.ContainerName, CurrentUser.Id, CurrentTenant.Id, cancellationToken);
+        await AuthorizeCreateAsync(input.ContainerName, input.DirectoryId, cancellationToken);
 
         var fileName = input.File.FileName.IsNullOrWhiteSpace() ? "file" : input.File.FileName!;
-        using var stream = input.File.GetStream();
+
+        // The content closes what it owns and leaves alone what it was only lent (disposeStream): the request's own body,
+        // for an upload that arrives by a link, is the server's to close.
+        using var content = input.File;
         var file = await FileDescriptorManager.CreateAsync(
             input.ContainerName,
             fileName,
-            stream,
+            content.GetStream(),
             input.DirectoryId,
             cancellationToken);
 
         return ObjectMapper.Map<FileDescriptor, FileDescriptorDto>(file);
+    }
+
+    /// <summary>
+    /// Whether the caller may upload to <paramref name="containerName"/> now: the container is one of the site's, the
+    /// container's permission is granted, and the directory is the caller's, in the current tenant. Checked before anything is
+    /// stored, against a stand-in that carries what the container's rules look at - the same check for the upload and for the
+    /// link that will make one later, so a link is never issued for an upload that would be refused.
+    /// </summary>
+    protected virtual async Task AuthorizeCreateAsync(string containerName, Guid? directoryId, CancellationToken cancellationToken)
+    {
+        FileContainerNotAvailableException.ThrowIfNotSiteContainer(containerName);
+
+        var pending = new FileDescriptor(
+            GuidGenerator.Create(), containerName, "pending", "pending", string.Empty, 0,
+            hash: null, referBlobName: null, directoryId, CurrentTenant.Id);
+        await AuthorizationService.CheckAsync(pending, FileOperations.Create);
+
+        // The new file is the caller's, in the current tenant: the directory must be theirs, there.
+        await EnsureDirectoryFitsAsync(directoryId, containerName, CurrentUser.Id, CurrentTenant.Id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Authorized now exactly as the upload would be - the container, the permission, the directory - so a link is never
+    /// issued for an upload that would be refused; and authorized again when it is used, under the identity it carries.
+    /// </summary>
+    public virtual async Task<FileUploadTicketDto> CreateUploadTicketAsync(CreateFileUploadTicketInput input)
+    {
+        await AuthorizeCreateAsync(input.ContainerName, input.DirectoryId, RequestCancellationToken);
+
+        var expiresAt = Clock.Now.Add(FileUploadTicketProtector.Lifetime);
+        var maxBytes = BlobStreamBuffering.GetMaxBufferedBytes(BlobContainerConfigurationProvider.Get(input.ContainerName));
+
+        var ticket = new FileUploadTicket(
+            FileUploadTicket.CurrentVersion,
+            Guid.NewGuid().ToString("N"),
+            new DateTimeOffset(expiresAt),
+            CurrentTenant.Id,
+            CurrentUser.Id,
+            CurrentUser.UserName,
+            CurrentUser.Roles,
+            CurrentUser.FindClaimValue(AbpClaimTypes.ClientId),
+            input.ContainerName,
+            input.FileName.Trim(),
+            input.DirectoryId,
+            maxBytes);
+
+        var protectedTicket = LazyServiceProvider.LazyGetRequiredService<FileUploadTicketProtector>().Protect(ticket);
+
+        return new FileUploadTicketDto
+        {
+            Path = FileUploadTicketPaths.Build(protectedTicket),
+            ExpiresAt = expiresAt,
+            MaxBytes = maxBytes,
+            ContainerName = ticket.ContainerName,
+            FileName = ticket.FileName
+        };
     }
 
     public virtual async Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input)

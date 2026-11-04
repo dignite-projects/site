@@ -52,13 +52,13 @@ public class SiteMcpFileModule_Tests
     }
 
     [Fact]
-    public void Should_Expose_Both_Site_Containers_By_Default()
+    public void Should_Expose_Every_Site_Container_By_Default()
     {
         using var provider = BuildProvider();
 
         provider.GetRequiredService<IOptions<SiteMcpFileOptions>>().Value.Containers
             .Select(container => container.Name)
-            .ShouldBe(new[] { SiteFileContainerNames.Images, SiteFileContainerNames.Attachments });
+            .ShouldBe(new[] { SiteFileContainerNames.Images, SiteFileContainerNames.Attachments, SiteFileContainerNames.ThemeAssets });
     }
 
     /// <summary>

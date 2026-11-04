@@ -22,6 +22,13 @@ public interface IFileAdminAppService : IApplicationService
 
     Task<FileDescriptorDto> CreateAsync(CreateFileInput input);
 
+    /// <summary>
+    /// A link to upload one file to, valid for a few minutes and for one use, authorized now as the upload itself would
+    /// be. For a client that cannot send the bytes through an API call - an AI model, for which they would be text it
+    /// has to write out - but can reach the file from a shell: it sends the file to the link.
+    /// </summary>
+    Task<FileUploadTicketDto> CreateUploadTicketAsync(CreateFileUploadTicketInput input);
+
     Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input);
 
     Task DeleteAsync(Guid id);

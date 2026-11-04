@@ -23,6 +23,12 @@
          need a Six Labors license key. Its natives cover Windows and macOS; a Linux host also references
          SkiaSharp.NativeAssets.Linux (as Dignite.Site.Host and the EF Core tests do). -->
     <PackageReference Include="Volo.Abp.Imaging.SkiaSharp" Version="10.7.0" />
+    <!-- IDataProtectionProvider, which signs the upload links (FileUploadTicketProtector). Only the abstractions: the
+         host's ASP.NET Core application already registers the provider and holds its keys. -->
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.12" />
+    <!-- IAbpDistributedLock, which makes the use of an upload link one step (FileUploadTicketProtector). Its in-process
+         lock is registered by the abstractions module; a deployment of several instances adds a distributed one. -->
+    <PackageReference Include="Volo.Abp.DistributedLocking.Abstractions" Version="10.7.0" />
   </ItemGroup>
 
 </Project>

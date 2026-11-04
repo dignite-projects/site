@@ -42,6 +42,9 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
     {
         context.Services.AddAlwaysDisableUnitOfWorkTransaction();
 
+        // What the host provides: the upload links are signed with it. Ephemeral keys, in memory, per test application.
+        context.Services.AddDataProtection();
+
         var sqliteConnection = CreateDatabaseAndGetConnection();
 
         Configure<AbpDbContextOptions>(options =>
