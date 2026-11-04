@@ -209,7 +209,9 @@ public class SiteThemeTools : ITransientDependency
         "is missing - and lists what publishing would change. Once those find no error, it also renders a sample of " +
         "the site's pages with the working copy (each page's own address, and one published content per content type " +
         "and language), and a template that fails to render - an unknown variable, say - is an error naming the " +
-        "template, line, column and the address that failed. Errors block site_publish_theme; warnings do not. " +
+        "template, line, column and the address that failed; a rendered page that links to an #id nothing on it has " +
+        "(a <use> of a symbol that is not there, an anchor to nowhere) is a warning. Errors block site_publish_theme; " +
+        "warnings do not. " +
         "Returns the 'fingerprint' site_publish_theme needs.")]
     [Authorize(SiteAdminPermissions.Themes.Default)]
     public virtual async Task<SiteThemeCheckDto> CheckThemeAsync()

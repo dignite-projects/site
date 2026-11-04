@@ -82,6 +82,13 @@ public static class SiteThemeIssueCodes
 
     // Warnings: worth a look, but nothing breaks.
 
+    /// <summary>
+    /// A rendered page refers to <c>#id</c> and nothing on it has that id - a <c>&lt;use&gt;</c> of a symbol that is not
+    /// there, an anchor to a section that does not exist. Found in the trial render, not in a template: the id may be
+    /// defined by a layout or another partial. Data: Path (the first sample address that has it), Id.
+    /// </summary>
+    public const string FragmentReferenceNotFound = Prefix + "FragmentReferenceNotFound";
+
     /// <summary>The trial render stopped before the whole sample was rendered, for the time it took. Data: Rendered, Total.</summary>
     public const string TrialRenderIncomplete = Prefix + "TrialRenderIncomplete";
 

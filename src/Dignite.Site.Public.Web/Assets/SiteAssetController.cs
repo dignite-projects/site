@@ -35,6 +35,9 @@ namespace Dignite.Site.Public.Assets;
 /// are for the author only, and no cache may keep them.
 /// </para>
 /// <para>
+/// A response that carries a cache header carries no <c>Set-Cookie</c> (see <see cref="SetCacheHeaders"/>).
+/// </para>
+/// <para>
 /// <c>X-Content-Type-Options: nosniff</c> keeps a browser to the declared type, which comes from the extension
 /// (<see cref="GetContentType"/>), so a text file can never be run as a script under another type.
 /// </para>
@@ -178,5 +181,10 @@ public class SiteAssetController : AbpController
             ? $"public, max-age={ImmutableMaxAgeSeconds.ToString(CultureInfo.InvariantCulture)}, immutable"
             : "public, no-cache";
         Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
+
+        // A response meant for a shared cache sets no cookie: a cache may refuse to store a response with Set-Cookie, or
+        // store it and hand the cookie to every visitor after - one visitor's culture and tenant for everyone.
+        // The host's tenant and localization middleware append theirs before this action runs.
+        Response.Headers.Remove(HeaderNames.SetCookie);
     }
 }
