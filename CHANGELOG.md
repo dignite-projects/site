@@ -7,44 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **A file address no longer carries `?__tenant=`.** `FileDescriptorDto.Url`, and so what a file field, the SEO
-  share image, a CKEditor image and a branding logo store, is now `/api/site-public/files/{container}/{blob}`:
-  the endpoint serves the file of the tenant the request resolves to, by the host name or however the
-  deployment resolves tenants, like every other public request. Addresses stored before keep their
-  `?__tenant=` and keep working; nothing is migrated. **`SiteFileUrl.Build` lost its `tenantId` parameter.** The
-  admin UI's previews, which load a file with a plain `<img>` request from the `SiteAdmin` API's host, name the
-  signed-in tenant themselves (`SiteFileUrlService.toDisplay`, and inside the CKEditor field), without saving it;
-  `absoluteFileUrl` takes the tenant as a third parameter and `relativeFileUrl` is its inverse.
-- **The results of the content tools of MCP name things and leave out what a client cannot use.** `site_create_content`
-  and `site_update_content` return where the content is (page, content type, language, slug, status, publish time) and
-  `storedFields`, the names of the values kept, instead of the content with the body it has just been sent;
-  `site_list_contents` returns the same for each row and the field values only with `includeFieldValues`;
-  `site_resolve_path` and the content type tools answer with names, not ids or audit columns. **A client that read the
-  old fields has to read `site_get_content` for the values.** `ContentDto` has two new members, `PageName` and
-  `ContentTypeName`, filled by the administration side, so that naming them needs no more than the permission to read
-  contents (empty from the public one, like `Url`).
-- **Chinese, Japanese and other non-Latin text is written as it is in rendered pages.** The default `HtmlEncoder`
-  passes only Basic Latin, so a title or a description came out as `&#x...;` entities: the same page, larger, and a
-  `<title>` nobody could read in the source. `SitePublicWebModule` now lets every Unicode range through; markup
-  characters are still encoded. It was set in the host before; every host of Site gets it now.
-- **Publishing a theme is two steps in the domain.** `SiteThemeManager.PrepareAsync` agrees to the working copy as it was
-  checked and `PublishAsync(publication, comment)` publishes it, so that the application renders the pages between them
-  without checking the theme again; `PublishAsync(theme, comment, fingerprint)` is both without the render. **A derived
-  `SiteThemeAdminAppService` takes `SiteThemeTrialRenderer`, `ContentAdminAppService` takes `IPageRepository` and
-  `IContentTypeRepository`, `FileTools` takes an optional `IHttpContextAccessor`, and `SiteAdminAppService` has
-  `RequestCancellationToken`: a derived class that declares its own must hide or drop it.**
-- **A theme preview reports as the template's failure exactly what the renderer found wrong with the theme.** A
-  template that does not parse, a layout that is not a template of the theme and output past
-  `SiteScribanOptions.MaxOutputLength` now raise `ScribanRenderException` (an `InvalidOperationException`); the
-  preview - `SiteThemePreviewRenderer`, and the error page a previewed page shows - reports it, a `TimeoutException`
-  and a `ScriptRuntimeException` as `Site:090008`, and lets any other exception propagate as it is, rather than
-  presenting every `InvalidOperationException` (a disposed service, a `DbContext` used twice at once) and every
-  business exception a service threw as the template's fault. A preview rendered for a call that was cancelled stops
-  rendering: `ISiteThemePreviewRenderer.RenderAsync`'s token now reaches the render. **`ScribanPageRenderer.RenderAsync`
-  takes an optional `CancellationToken`, and its `RenderTemplateAsync` takes the parsed `Template` after the file: a
-  derived renderer that overrides it must add the parameter.**
+## [2.0.0] - 2026-11-04
 
 ### Added
 
@@ -181,31 +144,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of promising that a value of the wrong type is refused.
 - `site_preview` takes `maxHtmlLength`, to read the beginning of a large page.
 
-### Fixed
-
-- **Static files and library files set no cookies.** The host's tenant and localization handling put `Set-Cookie`
-  (`__tenant`, `.AspNetCore.Culture`) on every response, a theme's static file at `/site-assets/` (`Cache-Control: public,
-  max-age=31536000, immutable`) and a library file at `/api/site-public/files/` (`public, max-age=86400`) included: a shared
-  cache may refuse a response that sets a cookie, or keep it and hand the cookie of one visitor's language and tenant to
-  every visitor after. Those two responses carry none now. Pages are unchanged.
-
-- `contents` with a `page_no` of more than about twenty-one million no longer fails the render with an invalid-request
-  error from the content service, whose skip count overflowed: the page number is capped where the skip count still
-  fits, and a page past the end lists nothing, as before.
-
-### Migrate
-
-- **Existing roles do not have the new permissions.** Run the host's `--migrate-database` (or its migrator): its seed grants
-  every permission, `SiteAdmin.Languages` and `SiteAdmin.Languages.Update` among them, to the `admin` role of the host
-  and of each tenant. A role of another name is granted them in the permission dialog.
-- **A host loads `SiteSettingManagementModule`** (package `Dignite.Site.SettingManagement`) to serve the language calls.
-- **A host that uploads through links configures Data Protection keys, a distributed cache and a distributed lock** shared
-  by its instances, a provider for the `theme-assets` container, and routes `api/site-admin/files/upload/*` to Site.
-
-## [2.0.0] - 2026-10-30
-
-### Added
-
 - **A tenant or an AI client can now write the theme of a site in Scriban.** A theme is a set of files stored in the
   database per tenant: a path without an extension (`Default`, `blog/post`, `layouts/default`) is a Scriban template,
   one with an extension (`css/site.css`) a static file, and no folder is reserved. A page renders through the
@@ -271,6 +209,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A file address no longer carries `?__tenant=`.** `FileDescriptorDto.Url`, and so what a file field, the SEO
+  share image, a CKEditor image and a branding logo store, is now `/api/site-public/files/{container}/{blob}`:
+  the endpoint serves the file of the tenant the request resolves to, by the host name or however the
+  deployment resolves tenants, like every other public request. Addresses stored before keep their
+  `?__tenant=` and keep working; nothing is migrated. **`SiteFileUrl.Build` lost its `tenantId` parameter.** The
+  admin UI's previews, which load a file with a plain `<img>` request from the `SiteAdmin` API's host, name the
+  signed-in tenant themselves (`SiteFileUrlService.toDisplay`, and inside the CKEditor field), without saving it;
+  `absoluteFileUrl` takes the tenant as a third parameter and `relativeFileUrl` is its inverse.
+- **The results of the content tools of MCP name things and leave out what a client cannot use.** `site_create_content`
+  and `site_update_content` return where the content is (page, content type, language, slug, status, publish time) and
+  `storedFields`, the names of the values kept, instead of the content with the body it has just been sent;
+  `site_list_contents` returns the same for each row and the field values only with `includeFieldValues`;
+  `site_resolve_path` and the content type tools answer with names, not ids or audit columns. **A client that read the
+  old fields has to read `site_get_content` for the values.** `ContentDto` has two new members, `PageName` and
+  `ContentTypeName`, filled by the administration side, so that naming them needs no more than the permission to read
+  contents (empty from the public one, like `Url`).
+- **Chinese, Japanese and other non-Latin text is written as it is in rendered pages.** The default `HtmlEncoder`
+  passes only Basic Latin, so a title or a description came out as `&#x...;` entities: the same page, larger, and a
+  `<title>` nobody could read in the source. `SitePublicWebModule` now lets every Unicode range through; markup
+  characters are still encoded. It was set in the host before; every host of Site gets it now.
+- **Publishing a theme is two steps in the domain.** `SiteThemeManager.PrepareAsync` agrees to the working copy as it was
+  checked and `PublishAsync(publication, comment)` publishes it, so that the application renders the pages between them
+  without checking the theme again; `PublishAsync(theme, comment, fingerprint)` is both without the render. **A derived
+  `SiteThemeAdminAppService` takes `SiteThemeTrialRenderer`, `ContentAdminAppService` takes `IPageRepository` and
+  `IContentTypeRepository`, `FileTools` takes an optional `IHttpContextAccessor`, and `SiteAdminAppService` has
+  `RequestCancellationToken`: a derived class that declares its own must hide or drop it.**
+- **A theme preview reports as the template's failure exactly what the renderer found wrong with the theme.** A
+  template that does not parse, a layout that is not a template of the theme and output past
+  `SiteScribanOptions.MaxOutputLength` now raise `ScribanRenderException` (an `InvalidOperationException`); the
+  preview - `SiteThemePreviewRenderer`, and the error page a previewed page shows - reports it, a `TimeoutException`
+  and a `ScriptRuntimeException` as `Site:090008`, and lets any other exception propagate as it is, rather than
+  presenting every `InvalidOperationException` (a disposed service, a `DbContext` used twice at once) and every
+  business exception a service threw as the template's fault. A preview rendered for a call that was cancelled stops
+  rendering: `ISiteThemePreviewRenderer.RenderAsync`'s token now reaches the render. **`ScribanPageRenderer.RenderAsync`
+  takes an optional `CancellationToken`, and its `RenderTemplateAsync` takes the parsed `Template` after the file: a
+  derived renderer that overrides it must add the parameter.**
+
 - **`SelectFieldOptionsProvider` is removed.** It returned the options of a `Select` field, found through a page by
   name. A Razor view reads them from `IPagePublicAppService.FindByNameAsync`, for the page's content types, and
   `IFieldPublicAppService.GetListAsync`, for the field's definition, as `new SelectConfiguration(field.Configuration.ToFieldConfiguration()).Options`
@@ -297,6 +272,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Static files and library files set no cookies.** The host's tenant and localization handling put `Set-Cookie`
+  (`__tenant`, `.AspNetCore.Culture`) on every response, a theme's static file at `/site-assets/` (`Cache-Control: public,
+  max-age=31536000, immutable`) and a library file at `/api/site-public/files/` (`public, max-age=86400`) included: a shared
+  cache may refuse a response that sets a cookie, or keep it and hand the cookie of one visitor's language and tenant to
+  every visitor after. Those two responses carry none now. Pages are unchanged.
+
+- `contents` with a `page_no` of more than about twenty-one million no longer fails the render with an invalid-request
+  error from the content service, whose skip count overflowed: the page number is capped where the skip count still
+  fits, and a page past the end lists nothing, as before.
+
 - **A deleted page, content type, field or content no longer keeps its name from being used again.** Deleting only
   marks the row deleted, and the duplicate check ignores it, so creating a page with the same name or route (or a
   content type, field or content with a name or slug that was freed this way) was accepted and then rejected by the
@@ -318,6 +303,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the editor had nothing to show for it: a row with no name and no type, but live toggles. The row now says "Deleted
   field" and that it has no effect, and its toggles are off; the remove button was already there. Nothing is cleaned up
   for you: remove the row and save the content type. The content type API still returns such usages.
+
+### Migrate
+
+- **Existing roles do not have the new permissions.** Run the host's `--migrate-database` (or its migrator): its seed grants
+  every permission, `SiteAdmin.Languages` and `SiteAdmin.Languages.Update` among them, to the `admin` role of the host
+  and of each tenant. A role of another name is granted them in the permission dialog.
+- **A host loads `SiteSettingManagementModule`** (package `Dignite.Site.SettingManagement`) to serve the language calls.
+- **A host that uploads through links configures Data Protection keys, a distributed cache and a distributed lock** shared
+  by its instances, a provider for the `theme-assets` container, and routes `api/site-admin/files/upload/*` to Site.
 
 ## [1.0.1] - 2026-10-29
 
