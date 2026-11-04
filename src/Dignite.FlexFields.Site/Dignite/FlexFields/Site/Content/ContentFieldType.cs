@@ -38,6 +38,27 @@ public class ContentFieldType : FieldTypeBase
 
     public override string DisplayName => L["FieldType:Content"];
 
+    // The configuration class owns the defaults; a declaration reads them from it rather than restating them.
+    private static readonly FieldConfigurationKey[] Keys =
+    {
+        new(ContentConfigurationNames.ContentTypeId, FieldConfigurationValueKind.Guid)
+        {
+            EmptyStringIsUnset = true,
+            Description = "The content type the value picks contents of, by id. Unset: contents of any type may be picked."
+        },
+        new(ContentConfigurationNames.Multiple, FieldConfigurationValueKind.Boolean)
+        {
+            DefaultValue = new ContentConfiguration().Multiple,
+            Description = "Whether the value is a list of contents rather than one."
+        },
+        new(ContentConfigurationNames.Placeholder, FieldConfigurationValueKind.String)
+        {
+            Description = "The placeholder of the picker."
+        }
+    };
+
+    public override IReadOnlyList<FieldConfigurationKey>? ConfigurationKeys => Keys;
+
     public override FlexFieldValueType? IndexValueType => FlexFieldValueType.Guid;
 
     public override IReadOnlyList<ValidationResult> Validate(FieldValidationArgs args)

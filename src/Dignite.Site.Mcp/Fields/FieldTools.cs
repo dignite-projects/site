@@ -52,7 +52,9 @@ public class FieldTools : ITransientDependency
         "site_create_field if you are unsure what fieldTypeName to use. Also call this before writing a value " +
         "for a field whose type carries a non-null valueShape (e.g. Seo): that field's value is a JSON " +
         "object, and valueShape lists the exact keys to use - do not guess casing from any server-side " +
-        "source code.")]
+        "source code. Also call it before writing a configuration: each type lists its configurationKeys " +
+        "(name, type, default, description, required), which are the only keys a configuration may hold. " +
+        "A null configurationKeys means the type does not say, and its configuration is not checked.")]
     [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual Task<ListResultDto<FieldTypeDto>> ListFieldTypesAsync()
     {
@@ -78,7 +80,11 @@ public class FieldTools : ITransientDependency
             "content. Worth writing properly: alongside the content type's description, it is the whole " +
             "briefing a model gets.")]
         string? description = null,
-        [Description("Type-specific configuration - length limits, the option list of a select, and so on. Shape depends on fieldTypeName.")]
+        [Description(
+            "Type-specific configuration - length limits, the option list of a select, and so on. Its keys are the " +
+            "configurationKeys that site_list_field_types lists for fieldTypeName, spelled exactly, with a value of " +
+            "the type listed: an unknown key or a value of the wrong type is refused, and the error lists the valid " +
+            "keys. An enum value is its integer (Text.Mode 1, not \"MultipleLine\").")]
         Dictionary<string, object?>? configuration = null)
     {
         return FieldAppService.CreateAsync(new CreateFieldDto
@@ -105,7 +111,9 @@ public class FieldTools : ITransientDependency
         string? fieldTypeName = null,
         [Description("New description. Omit to keep it.")]
         string? description = null,
-        [Description("The complete replacement configuration. Omit to leave it untouched.")]
+        [Description(
+            "The complete replacement configuration, with the keys that site_list_field_types lists under " +
+            "configurationKeys for the field's type. Omit to leave it untouched.")]
         Dictionary<string, object?>? configuration = null)
     {
         var current = await NameResolver.GetFieldAsync(field);
