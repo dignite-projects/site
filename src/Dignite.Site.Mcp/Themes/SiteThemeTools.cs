@@ -225,10 +225,11 @@ public class SiteThemeTools : ITransientDependency
         "and returns the HTML; nothing is published and visitors see no change. Save first: it renders saved files " +
         "only. A template that fails at render time is returned as an error naming the template, line and column. " +
         "A page whose template is not in the theme is rendered by a Razor view and cannot be previewed here. HTML " +
-        "longer than " + MaxPreviewHtmlLengthText + " characters is cut off: 'isTruncated' is then true and " +
-        "'htmlLength' gives the full length. A page's HTML is a lot to read back: when you only need to know that " +
-        "it renders, or to check its head, pass a small maxHtmlLength. It shows markup, not looks: to see how a page " +
-        "really looks in a browser, use site_get_preview_link.")]
+        "longer than " + MaxPreviewHtmlLengthText + " characters comes in parts: 'isTruncated' is then true, 'htmlLength' " +
+        "gives the full length and 'nextOffset' the offset that returns the part after this one - pass it as " +
+        "'offset' and repeat until nextOffset is null to read a page of any size. A page's HTML is a lot to read " +
+        "back: when you only need to know that it renders, or to check its head, pass a small maxHtmlLength. It " +
+        "shows markup, not looks: to see how a page really looks in a browser, use site_get_preview_link.")]
     [Authorize(SiteAdminPermissions.Themes.Default)]
     public virtual async Task<SiteThemePreview> PreviewAsync(
         [Description("A path of the site to render, e.g. '/about' or '/ja/blog/hello' - a language prefix included. " +
@@ -241,7 +242,11 @@ public class SiteThemeTools : ITransientDependency
             "The most HTML characters to return, from the start of the page: 'htmlLength' still gives the whole " +
             "length. Omit for " + MaxPreviewHtmlLengthText + ", the largest. A page's head and the start of its body " +
             "are in the first 3000 or so.")]
-        int? maxHtmlLength = null)
+        int? maxHtmlLength = null,
+        [Description(
+            "Where in the page's HTML, in characters from its start, the part to return begins. Omit for the start. " +
+            "Take it from 'nextOffset' of the previous part to read on; one past the end returns nothing.")]
+        int? offset = null)
     {
         Guid? releaseId = release is { } number ? (await GetReleaseAsync(number)).Id : null;
         var limit = maxHtmlLength is { } requested ? Math.Clamp(requested, 1, MaxPreviewHtmlLength) : MaxPreviewHtmlLength;
@@ -249,7 +254,8 @@ public class SiteThemeTools : ITransientDependency
         // A render failure is a business exception (Site:090008, carrying the template, line and column), which the
         // server's error envelope reports in full - nothing to catch here.
         var preview = await ThemeAppService.PreviewAsync(path, releaseId);
-        var isTruncated = preview.Html.Length > limit;
+        var (start, end) = GetPart(preview.Html, offset ?? 0, limit);
+        var isTruncated = end < preview.Html.Length;
 
         return new SiteThemePreview
         {
@@ -259,10 +265,37 @@ public class SiteThemeTools : ITransientDependency
             PageTemplate = preview.PageTemplate,
             Layout = preview.Layout,
             Release = release,
-            Html = isTruncated ? preview.Html[..limit] : preview.Html,
+            Html = preview.Html[start..end],
+            Offset = start,
+            NextOffset = isTruncated ? end : null,
             IsTruncated = isTruncated,
             HtmlLength = preview.Html.Length
         };
+    }
+
+    /// <summary>
+    /// The part of <paramref name="html"/> from <paramref name="offset"/> (kept within the page) of at most
+    /// <paramref name="limit"/> characters. A part never starts or ends inside a surrogate pair - a character outside
+    /// the Basic Multilingual Plane, an emoji say, is one or the other part's whole, never split - so reading the parts one
+    /// after the other gives the page back exactly, and the part may be one character shorter than the limit.
+    /// </summary>
+    protected static (int Start, int End) GetPart(string html, int offset, int limit)
+    {
+        var start = Math.Clamp(offset, 0, html.Length);
+        if (start > 0 && start < html.Length && char.IsLowSurrogate(html[start]) && char.IsHighSurrogate(html[start - 1]))
+        {
+            start--;
+        }
+
+        var end = (int)Math.Min((long)start + limit, html.Length);
+        if (end < html.Length && char.IsHighSurrogate(html[end - 1]) && char.IsLowSurrogate(html[end]))
+        {
+            // One short of the pair; or, when the limit is one character and that would be nothing, the whole pair - a part
+            // always moves the reading on.
+            end += end > start + 1 ? -1 : 1;
+        }
+
+        return (start, end);
     }
 
     [McpServerTool(Name = "site_get_preview_link", Title = "Get a link to look at the site in a browser", ReadOnly = true)]
@@ -449,10 +482,18 @@ public class SiteThemePreview
     /// <summary>The release it rendered with, or null for the working copy.</summary>
     public int? Release { get; set; }
 
-    /// <summary>The page's HTML, cut to <see cref="SiteThemeTools.MaxPreviewHtmlLength"/> characters.</summary>
+    /// <summary>The part of the page's HTML asked for, at most <see cref="SiteThemeTools.MaxPreviewHtmlLength"/> characters.</summary>
     public string Html { get; set; } = default!;
 
+    /// <summary>True when the page goes on after this part: ask again with <see cref="NextOffset"/>.</summary>
     public bool IsTruncated { get; set; }
 
+    /// <summary>The whole page's length, in characters.</summary>
     public int HtmlLength { get; set; }
+
+    /// <summary>Where <see cref="Html"/> begins in the page, in characters; 0 for the start.</summary>
+    public int Offset { get; set; }
+
+    /// <summary>The <c>offset</c> that returns the part after this one; null when this part reaches the end.</summary>
+    public int? NextOffset { get; set; }
 }

@@ -228,6 +228,94 @@ public class SiteThemeTools_Tests : SiteEntityFrameworkCoreTestBase
         preview.HtmlLength.ShouldBeGreaterThan(500);
     }
 
+    /// <summary>
+    /// A page longer than one part is read in parts, each starting where the last ended; the parts put together are the page.
+    /// </summary>
+    [Fact]
+    public async Task Should_Read_A_Long_Page_In_Parts_That_Make_The_Whole_Page()
+    {
+        var body = string.Concat(Enumerable.Range(0, 400).Select(i => $"<p>{i:D4}</p>"));
+        await _themeTools.SaveThemeFileAsync("Default", body);
+
+        var parts = new System.Text.StringBuilder();
+        var offsets = new System.Collections.Generic.List<int>();
+        int? offset = null;
+        do
+        {
+            var part = await _themeTools.PreviewAsync("/about", maxHtmlLength: 700, offset: offset);
+
+            part.Offset.ShouldBe(offset ?? 0);
+            part.Html.Length.ShouldBeLessThanOrEqualTo(700);
+            part.IsTruncated.ShouldBe(part.NextOffset != null);
+            offsets.Add(part.Offset);
+            parts.Append(part.Html);
+            offset = part.NextOffset;
+        }
+        while (offset != null);
+
+        offsets.Count.ShouldBeGreaterThan(3);
+        offsets.ShouldBe(offsets.OrderBy(o => o).ToList());
+        parts.ToString().ShouldBe("<html data-release=\"working-copy\">" + body + "</html>");
+    }
+
+    [Fact]
+    public async Task Should_Return_The_Part_From_The_Offset_Asked_For()
+    {
+        await _themeTools.SaveThemeFileAsync("Default", "0123456789");
+
+        var preview = await _themeTools.PreviewAsync("/about", maxHtmlLength: 4, offset: 40);
+
+        var whole = (await _themeTools.PreviewAsync("/about")).Html;
+        preview.Offset.ShouldBe(40);
+        preview.Html.ShouldBe(whole.Substring(40, 4));
+        preview.HtmlLength.ShouldBe(whole.Length);
+    }
+
+    /// <summary>One past the end returns nothing and nothing more to read; an offset below zero is the start.</summary>
+    [Theory]
+    [InlineData(100000, "", 100000, false)]
+    [InlineData(-7, null, 0, false)]
+    public async Task Should_Keep_The_Offset_Within_The_Page(int asked, string? expectedHtml, int expectedOffset, bool truncated)
+    {
+        await _themeTools.SaveThemeFileAsync("Default", "0123456789");
+        var whole = (await _themeTools.PreviewAsync("/about")).Html;
+
+        var preview = await _themeTools.PreviewAsync("/about", offset: asked);
+
+        preview.IsTruncated.ShouldBe(truncated);
+        preview.NextOffset.ShouldBeNull();
+        preview.Offset.ShouldBe(asked > whole.Length ? whole.Length : expectedOffset);
+        preview.Html.ShouldBe(expectedHtml ?? whole);
+    }
+
+    /// <summary>A character outside the Basic Multilingual Plane is never cut in two between parts, even with one character of room.</summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task Should_Not_Split_A_Surrogate_Pair_Between_Parts(int limit)
+    {
+        var body = string.Concat(Enumerable.Repeat("a😀b", 30));
+        await _themeTools.SaveThemeFileAsync("Default", body);
+
+        var parts = new System.Text.StringBuilder();
+        int? offset = null;
+        var guard = 0;
+        do
+        {
+            var part = await _themeTools.PreviewAsync("/about", maxHtmlLength: limit, offset: offset);
+
+            (part.Html.Length == 0 || !char.IsLowSurrogate(part.Html[0])).ShouldBeTrue();
+            (part.Html.Length == 0 || !char.IsHighSurrogate(part.Html[^1])).ShouldBeTrue();
+            parts.Append(part.Html);
+            offset = part.NextOffset;
+            (++guard < 1000).ShouldBeTrue();
+        }
+        while (offset != null);
+
+        parts.ToString().ShouldBe("<html data-release=\"working-copy\">" + body + "</html>");
+    }
+
     [Theory]
     [InlineData(0, 1)]
     [InlineData(-5, 1)]
