@@ -48,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`site_preview` can read a page of any size.** Its HTML was cut at 32 KiB from the start, so the end of a long page - a
+  footer, the last items of a list - could not be read at all, and a home page of 32,548 characters was 220 short of it. It
+  takes an `offset`, and the result carries `offset` and `nextOffset`: a client repeats the call with `nextOffset` until it
+  is null and the parts put together are the page. A part never ends inside a character outside the Basic Multilingual Plane
+  (an emoji), so the parts rejoin exactly. A part is still at most 32 KiB, or `maxHtmlLength`; `isTruncated` now means that
+  the page goes on after the part.
+
 - **The check warns about a link to an id the page does not have.** A `<use href="#icon-github">` whose symbol is not in
   the page shows nothing and fails nothing, so a theme kept a blank icon unnoticed. The trial render now reads the pages it
   rendered for `href="#id"` and `url(#id)` that nothing on the page defines (found in the rendered page, not in a template:
