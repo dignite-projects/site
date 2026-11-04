@@ -139,6 +139,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   field types declare their keys (`FileExplorer.FileContainerName` is required), and `site_list_field_types` lists them
   as `configurationKeys`. See [Field Types](docs/en/field-types.md). **`FieldManager` takes
   `IFieldConfigurationValidator`: a derived class must add the parameter.**
+- **A file field says what its value is, and refuses what is not one.** `site_list_field_types` gave `FileExplorer` no
+  `valueShape`, so a client had to read the source to learn that the value is a list of file objects. It lists them now
+  (`[].url`, `[].id`, `[].name`, ...), and a content is refused when a file field holds a plain string, a list of strings
+  or an object with no `url` - such a value used to be stored and then rendered as no file at all. A file object, a list of
+  them, an empty list and nothing are accepted; a stored value is never checked on read.
+- A configuration value that reads as the kind a key asks for is accepted, a number written as text (`"100"`) included,
+  as the admin UI sends it; the descriptions of `site_create_field`, `site_update_field` and the field type docs say so
+  instead of promising that a value of the wrong type is refused.
 - `site_preview` takes `maxHtmlLength`, to read the beginning of a large page.
 
 ### Fixed

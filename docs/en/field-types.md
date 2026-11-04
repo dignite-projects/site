@@ -28,7 +28,7 @@ A field is searchable only if its type is indexable **and** the content type mar
 
 The names and configuration keys below are stored in every field definition, so they never change. The `site_list_field_types` [MCP tool](mcp/tools.md#fields) lists the field types of a running site, each with its configuration keys.
 
-A configuration is checked when a field is created or updated: a key the field type does not list, a value of the wrong kind and a missing required key are refused, with every problem named at once and the valid keys listed. A field type of your own that lists no keys is not checked. On an update, a key that is unchanged from what is stored is not checked again, so a field saved before a key was listed can still be renamed or described.
+A configuration is checked when a field is created or updated: a key the field type does not list, a value that cannot be read as the kind listed and a missing required key are refused (a number written as text, such as `"100"`, reads as a number, as the admin UI sends it), with every problem named at once and the valid keys listed. A field type of your own that lists no keys is not checked. On an update, a key that is unchanged from what is stored is not checked again, so a field saved before a key was listed can still be renamed or described.
 
 ## FlexFields Field Types
 
@@ -70,6 +70,8 @@ A `FileExplorer` field holds one or more files from the site's [file library](fi
   }
 ]
 ````
+
+A client writing the value passes the file objects a file tool returns, as a list even for one file. Only the `url` is required: a content is refused when a value is something else, such as a plain string, or when a file in it has no `url`. `site_list_field_types` lists the keys of each file object as the field type's `valueShape`.
 
 | Configuration key | Default | Description |
 |---|---|---|

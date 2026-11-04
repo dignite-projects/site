@@ -54,6 +54,7 @@ public class FieldTools : ITransientDependency
         "object, and valueShape lists the exact keys to use - do not guess casing from any server-side " +
         "source code. Also call it before writing a configuration: each type lists its configurationKeys " +
         "(name, type, default, description, required), which are the only keys a configuration may hold. " +
+        "A field type whose value is an object or a list lists its valueShape too (Seo, FileExplorer). " +
         "A null configurationKeys means the type does not say, and its configuration is not checked.")]
     [Authorize(SiteAdminPermissions.Fields.Default)]
     public virtual Task<ListResultDto<FieldTypeDto>> ListFieldTypesAsync()
@@ -83,8 +84,10 @@ public class FieldTools : ITransientDependency
         [Description(
             "Type-specific configuration - length limits, the option list of a select, and so on. Its keys are the " +
             "configurationKeys that site_list_field_types lists for fieldTypeName, spelled exactly, with a value of " +
-            "the type listed: an unknown key or a value of the wrong type is refused, and the error lists the valid " +
-            "keys. An enum value is its integer (Text.Mode 1, not \"MultipleLine\").")]
+            "the kind listed: an unknown key, a missing required key or a value that cannot be read as the kind listed " +
+            "(a list for a boolean, text for a number) is refused, and the error lists the valid keys. A number or a " +
+            "boolean may be written as text that reads as one (\"100\"), as the admin UI sends it, and is accepted; write " +
+            "the real kind. An enum value is its integer (Text.Mode 1, not \"MultipleLine\").")]
         Dictionary<string, object?>? configuration = null)
     {
         return FieldAppService.CreateAsync(new CreateFieldDto

@@ -98,6 +98,58 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
         field.Configuration.ShouldContainKey("FileExplorer.FileContainerName");
     }
 
+    /// <summary>
+    /// A file field holds file objects, as a list or as one: a plain string, a list of strings and an object with no
+    /// address used to be stored and then rendered as no file at all.
+    /// </summary>
+    [Theory]
+    [InlineData("string")]
+    [InlineData("strings")]
+    [InlineData("no-url")]
+    [InlineData("empty-url")]
+    public async Task Should_Refuse_A_Value_That_Is_Not_A_File(string kind)
+    {
+        object? value = kind switch
+        {
+            "string" => "/api/site-public/files/images/a.jpg",
+            "strings" => new[] { "/api/site-public/files/images/a.jpg" },
+            "no-url" => new[] { new { id = Guid.NewGuid(), name = "a.jpg" } },
+            _ => new[] { new { url = "" } }
+        };
+
+        await Should.ThrowAsync<Volo.Abp.Validation.AbpValidationException>(() => WithUnitOfWorkAsync(async () =>
+        {
+            var (name, contentTypeId) = await CreateFileFieldAndContentTypeAsync();
+            await _contentManager.CreateAsync(
+                contentTypeId, SiteTestData.EnglishCulture, $"refused-{kind}", SiteTestData.PublishTime, ContentStatus.Published,
+                new Dictionary<string, object?> { [name] = value });
+        }));
+    }
+
+    [Theory]
+    [InlineData("list")]
+    [InlineData("one")]
+    [InlineData("empty-list")]
+    [InlineData("empty-string")]
+    public async Task Should_Accept_A_File_Object_A_List_Of_Them_Or_Nothing(string kind)
+    {
+        object? value = kind switch
+        {
+            "list" => new[] { new { url = "/api/site-public/files/images/a.jpg", name = "a.jpg" } },
+            "one" => new { url = "/api/site-public/files/images/a.jpg" },
+            "empty-list" => Array.Empty<object>(),
+            _ => string.Empty
+        };
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var (name, contentTypeId) = await CreateFileFieldAndContentTypeAsync();
+            await _contentManager.CreateAsync(
+                contentTypeId, SiteTestData.EnglishCulture, $"accepted-{kind}", SiteTestData.PublishTime, ContentStatus.Published,
+                new Dictionary<string, object?> { [name] = value });
+        });
+    }
+
     private async Task<(string FieldName, Guid ContentTypeId)> CreateFileFieldAndContentTypeAsync()
     {
         var token = Guid.NewGuid().ToString("N");
@@ -124,8 +176,8 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// A minimal stand-in for the shape the admin UI's file picker hands over - the field type itself only
-    /// checks presence (see FileFieldType's doc comment), so this test defines its own shape.
+    /// A minimal stand-in for the shape the admin UI's file picker hands over: the field type checks that a value
+    /// is a file object with a <c>url</c> (see FileFieldType), and presence.
     /// </summary>
     private class FileReference
     {
@@ -133,13 +185,15 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
         public string ContainerName { get; set; } = string.Empty;
         public string BlobName { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
 
         public static FileReference From(FileDescriptor file) => new()
         {
             Id = file.Id,
             ContainerName = file.ContainerName,
             BlobName = file.BlobName,
-            Name = file.Name
+            Name = file.Name,
+            Url = SiteFileUrl.Build(file.ContainerName, file.BlobName)
         };
     }
 }
