@@ -78,6 +78,29 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
         configuration.GetMaxSizeContributorConfiguration().MaxSizeInBytes.ShouldBe(5L * 1024 * 1024);
     }
 
+    /// <summary>
+    /// What a client is told a container does to an image is read from the container's own configuration: images
+    /// are shrunk to fit and re-encoded, the other containers store what they are given.
+    /// </summary>
+    [Fact]
+    public async Task The_Container_Configuration_Reports_What_It_Does_To_An_Image()
+    {
+        var fileAppService = GetRequiredService<Dignite.Site.Admin.Files.IFileAdminAppService>();
+
+        var images = await fileAppService.GetContainerConfigurationAsync(SiteFileContainerNames.Images);
+        images.ImageMaxWidth.ShouldBe(1920);
+        images.ImageMaxHeight.ShouldBe(1920);
+        images.CompressesImages.ShouldBeTrue();
+
+        foreach (var name in new[] { SiteFileContainerNames.Attachments, SiteFileContainerNames.ThemeAssets })
+        {
+            var configuration = await fileAppService.GetContainerConfigurationAsync(name);
+            configuration.ImageMaxWidth.ShouldBeNull();
+            configuration.ImageMaxHeight.ShouldBeNull();
+            configuration.CompressesImages.ShouldBeFalse();
+        }
+    }
+
     /// <summary>An icon is stored as it is: not resized, not re-encoded, and no picture or document gets in beside it.</summary>
     [Fact]
     public async Task Theme_Assets_Container_Stores_An_Icon_As_Uploaded()

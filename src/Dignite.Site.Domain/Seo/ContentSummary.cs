@@ -13,8 +13,8 @@ public class ContentSummary
     public string Title { get; }
 
     /// <summary>
-    /// May be null. A feed item is valid with a title alone, and inventing a description from whatever
-    /// field happened to be nearby would be worse than omitting it.
+    /// The SEO field's meta description; null when the author wrote none. A feed item is valid with a title alone, and
+    /// inventing a description from whatever field happened to be nearby would be worse than omitting it.
     /// </summary>
     public string? Summary { get; }
 }

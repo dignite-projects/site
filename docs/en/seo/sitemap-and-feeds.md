@@ -42,7 +42,7 @@ Every active page has a feed in every language the site serves, in three formats
 
 A language other than the default one keeps its prefix, `/ja/blog/feed.xml`, and the home page's feeds are at `/feed.xml`, `/atom.xml` and `/feed.json`.
 
-A feed lists the 20 newest published contents beneath the page in that language, newest first, with the same exclusions as the sitemap. Each item has the content's title and summary, resolved as for the [head metadata](index.md#head-metadata): the SEO field's `metaTitle` and `metaDescription`, or the content's first text fields. A summary taken from a field is cut at 500 characters; a `metaDescription` is used whole.
+A feed lists the 20 newest published contents beneath the page in that language, newest first, with the same exclusions as the sitemap. Each item has the content's title and summary, resolved as for the [head metadata](index.md#head-metadata): the SEO field's `metaTitle` or, without one, the content's first text field, and the SEO field's `metaDescription`, used whole; an item without a `metaDescription` has no summary.
 
 Site does not write the `<link rel="alternate">` tag that lets browsers and feed readers discover a feed. Add it to the template of the pages that have one. `Url.SiteContent` gives the page address its language prefix; it leaves a path ending in a file name alone, so append the file name after it:
 

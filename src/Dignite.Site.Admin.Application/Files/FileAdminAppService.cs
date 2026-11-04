@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Abp.BlobStoring.Pipeline;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Files;
@@ -207,6 +208,11 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
         var configuration = BlobContainerConfigurationProvider.Get(containerName);
         var authorization = configuration.GetAuthorizationConfiguration();
 
+        // What the container does to an image, read from the contributors it was configured with, not restated.
+        var resize = configuration.PipelineContributors.Contains<ImageResizeContributor>()
+            ? configuration.GetImageResizeContributorConfiguration()
+            : null;
+
         return Task.FromResult(new FileContainerConfigurationDto
         {
             // What the upload actually enforces: the container's MaxSize contributor, or the pipeline's
@@ -217,6 +223,9 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
             // container restricts no type.
             AllowedFileTypeNames = SiteFileTypes.GetExtensions(
                 configuration.GetAllowedContentTypesContributorConfiguration().AllowedContentTypes),
+            ImageMaxWidth = resize is { MaxWidth: > 0 } ? resize.MaxWidth : null,
+            ImageMaxHeight = resize is { MaxHeight: > 0 } ? resize.MaxHeight : null,
+            CompressesImages = configuration.PipelineContributors.Contains<ImageCompressContributor>(),
             CreateDirectoryPermissionName = authorization.CreateDirectoryPermissionName,
             CreateFilePermissionName = authorization.CreateFilePermissionName,
             UpdateFilePermissionName = authorization.UpdateFilePermissionName,

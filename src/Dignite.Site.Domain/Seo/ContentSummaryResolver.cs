@@ -20,14 +20,15 @@ namespace Dignite.Site.Seo;
 /// <para>
 /// That absence is by design: <c>title</c> and <c>body</c> in a tenant's field library are ordinary tenant
 /// data, not platform vocabulary (总体设计 §2.4), so nothing may hard-code those names. What the platform
-/// does recognize is the seeded SEO field (§5.3, GitHub issue #14) - so its <c>MetaTitle</c> and
-/// <c>MetaDescription</c> are the authoritative answer whenever a content type pulled it in, and the first
-/// text field on the type is the fallback when it did not.
+/// does recognize is the seeded SEO field (§5.3, GitHub issue #14): its <c>MetaDescription</c> is the
+/// description, and the only one. A content without one has <b>no description</b> - a text field that happens to
+/// sit after the title is not the author saying what the page is about (a year, a category, a price became a
+/// page's meta description that way), and a missing description is something an author can see and fix.
 /// </para>
 /// <para>
-/// <b>This is a stopgap and should be replaced.</b> GitHub issue #20 adds an explicit field mapping to
-/// <c>ContentType</c> for JSON-LD; once that exists, this resolver should read it instead of guessing at
-/// field order.
+/// <b>The title is still guessed</b> when the SEO field has none: the first text field with a value, then the
+/// slug. A page cannot go without a title, and this is the one guess left; GitHub issue #20 adds an explicit field
+/// mapping to <c>ContentType</c> for JSON-LD, which is what the title should read once it exists.
 /// </para>
 /// </summary>
 public class ContentSummaryResolver : DomainService
@@ -88,12 +89,8 @@ public class ContentSummaryResolver : DomainService
     }
 
     /// <summary>
-    /// Resolves both at once, because they interact: whichever text field supplies the title must not also
-    /// supply the summary - <b>even when the title actually shown comes from SEO's <c>MetaTitle</c>
-    /// instead</b>. The first field with a value is always that field, its text is never eligible for the
-    /// summary, and only the fields after it are - otherwise a content with a custom SEO title but no
-    /// custom description would get its own title text duplicated as the description, and the real body
-    /// field would never be read at all.
+    /// The title - the SEO field's <c>MetaTitle</c>, else the first text field with a value, else
+    /// <paramref name="fallbackTitle"/> - and the description: the SEO field's <c>MetaDescription</c> and nothing else.
     /// </summary>
     /// <param name="fallbackTitle">
     /// Used when the content has neither an SEO title nor any text field with a value - typically the
@@ -106,32 +103,20 @@ public class ContentSummaryResolver : DomainService
         var textFieldNames = lookup.GetTextFieldNames(content.ContentTypeId);
 
         string? title = NullIfBlank(seoValue?.MetaTitle);
+
+        // Only what the author wrote: nothing is taken from another field.
         string? summary = NullIfBlank(seoValue?.MetaDescription);
-        var titleFieldConsumed = false;
 
-        foreach (var fieldName in textFieldNames)
+        if (title == null)
         {
-            if (title != null && summary != null)
+            foreach (var fieldName in textFieldNames)
             {
-                break;
+                title = NullIfBlank(ReadText(content, fieldName));
+                if (title != null)
+                {
+                    break;
+                }
             }
-
-            var text = NullIfBlank(ReadText(content, fieldName));
-            if (text == null)
-            {
-                continue;
-            }
-
-            if (!titleFieldConsumed)
-            {
-                titleFieldConsumed = true;
-                title ??= text;
-                continue;
-            }
-
-            summary ??= text.Length > FeedConsts.MaxSummaryLength
-                ? text[..FeedConsts.MaxSummaryLength]
-                : text;
         }
 
         return new ContentSummary(title ?? fallbackTitle, summary);
