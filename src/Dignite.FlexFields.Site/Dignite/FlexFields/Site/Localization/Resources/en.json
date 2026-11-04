@@ -9,6 +9,7 @@
     "Validate:MaxValue": "The value must be at most {0}.",
     "Validate:MaxLength": "The value must not exceed {0} characters.",
     "Validate:InvalidSeoValue": "The value of '{0}' is not a valid SEO field value.",
+    "Validate:InvalidFileValue": "The value of '{0}' must be a list of files from the file library: objects with a url, as the file tools return them.",
     "Content:ContentTypeId": "Content Type",
     "Content:AnyContentType": "(Any content type)",
     "Content:Multiple": "Allow multiple",

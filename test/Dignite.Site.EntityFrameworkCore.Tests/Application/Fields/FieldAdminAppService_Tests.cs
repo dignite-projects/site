@@ -229,6 +229,11 @@ public class FieldAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         var file = fieldTypes["FileExplorer"].ConfigurationKeys.ShouldNotBeNull();
         file.Single(key => key.Name == "FileExplorer.FileContainerName").Required.ShouldBeTrue();
 
+        // A list of file objects: a client has to be told, not made to read the C# source.
+        var fileShape = fieldTypes["FileExplorer"].ValueShape.ShouldNotBeNull();
+        fileShape.Select(property => property.Name).ShouldContain("[].url");
+        fileShape.Single(property => property.Name == "[].url").Description.ShouldContain("Required");
+
         fieldTypes["Seo"].ConfigurationKeys.ShouldNotBeNull().Select(key => key.Name)
             .ShouldBe(new[] { "Seo.MetaTitleCharLimit", "Seo.MetaDescriptionCharLimit" });
         fieldTypes["Content"].ConfigurationKeys.ShouldNotBeNull().Select(key => key.Name)

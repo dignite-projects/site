@@ -9,6 +9,7 @@
     "Validate:MaxValue": "数值不能大于 {0}。",
     "Validate:MaxLength": "字数不能超过 {0} 个字符。",
     "Validate:InvalidSeoValue": "“{0}”的值不是有效的 SEO 字段值。",
+    "Validate:InvalidFileValue": "“{0}”的值必须是文件库中的文件列表：带有 url 的对象，与文件工具返回的一致。",
     "Content:ContentTypeId": "内容类型",
     "Content:AnyContentType": "（不限内容类型）",
     "Content:Multiple": "允许多选",

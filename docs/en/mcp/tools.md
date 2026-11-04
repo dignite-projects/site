@@ -84,7 +84,7 @@ See [Arranging Fields](../content-types-and-fields.md#arranging-fields).
 | `site_rename_field` | `SiteAdmin.Fields.Rename` | Renames a field and moves the stored value of every content to the new name. Destructive. |
 | `site_delete_field` | `SiteAdmin.Fields.Delete` | Deletes a field and removes its values from every content. Destructive. |
 
-`site_create_field` takes `name`, `displayName`, `fieldTypeName`, an optional `description` and an optional `configuration`, whose keys are the field type's `configurationKeys`; a key it does not list, or a value of the wrong type, is refused. See [Field Types](../field-types.md). `site_update_field` takes `field` (the name) and any of `displayName`, `fieldTypeName`, `description` and `configuration`, which replaces the whole configuration. `site_rename_field` takes `field` and `newName`; `site_delete_field` takes `field`.
+`site_create_field` takes `name`, `displayName`, `fieldTypeName`, an optional `description` and an optional `configuration`, whose keys are the field type's `configurationKeys`; a key it does not list, a missing required key, or a value that cannot be read as the listed kind is refused (a number written as text, such as `"100"`, reads as a number and is accepted). See [Field Types](../field-types.md). `site_update_field` takes `field` (the name) and any of `displayName`, `fieldTypeName`, `description` and `configuration`, which replaces the whole configuration. `site_rename_field` takes `field` and `newName`; `site_delete_field` takes `field`.
 
 ## Contents
 

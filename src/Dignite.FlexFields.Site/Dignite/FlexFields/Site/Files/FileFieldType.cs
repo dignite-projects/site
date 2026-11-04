@@ -28,8 +28,10 @@ namespace Dignite.FlexFields.Site.Files;
 /// endpoint's at fetch time.
 /// </para>
 /// </summary>
-public class FileFieldType : FieldTypeBase
+public class FileFieldType : FieldTypeBase, IHasValueShape
 {
+    private static readonly JsonSerializerOptions WebOptions = new(JsonSerializerDefaults.Web);
+
     /// <summary>
     /// The registration key. <b>Persisted data</b> (<c>SiteFields.FieldTypeName</c>, Matrix block
     /// configurations) - unchanged from when the field type was <c>Dignite.Abp.FlexFields</c>'.
@@ -62,11 +64,38 @@ public class FileFieldType : FieldTypeBase
 
     public override IReadOnlyList<FieldConfigurationKey>? ConfigurationKeys => Keys;
 
+    /// <summary>
+    /// The value is an array of file objects - an array even for one file - and the objects are what the file tools
+    /// return (<c>site_upload_file</c>, <c>site_get_file</c>, the response of an upload link) or what the picker stores.
+    /// The properties are named <c>[].key</c>, the key of each element. Plain English, like the configuration keys'
+    /// descriptions: it documents a wire shape for a client choosing what to write.
+    /// </summary>
+    public IReadOnlyList<FieldValueShapeProperty> ValueShape => new[]
+    {
+        new FieldValueShapeProperty { Name = "[].url", Type = "string", Description = "Required: the file's address, as the file tools return it. A template reads the first file's url." },
+        new FieldValueShapeProperty { Name = "[].id", Type = "string (GUID)", Description = "The file's id in the library." },
+        new FieldValueShapeProperty { Name = "[].name", Type = "string", Description = "The file name." },
+        new FieldValueShapeProperty { Name = "[].containerName", Type = "string", Description = "The container the file is in." },
+        new FieldValueShapeProperty { Name = "[].blobName", Type = "string", Description = "The name the file is stored under." },
+        new FieldValueShapeProperty { Name = "[].mimeType", Type = "string", Description = "The type detected from the file's bytes." },
+        new FieldValueShapeProperty { Name = "[].size", Type = "integer", Description = "The size in bytes." },
+    };
+
     public override FlexFieldValueType? IndexValueType => null;
 
     public override IReadOnlyList<ValidationResult> Validate(FieldValidationArgs args)
     {
         var errors = new List<ValidationResult>();
+
+        if (!IsFileValue(args.Field.Value))
+        {
+            errors.Add(
+                new ValidationResult(
+                    L["Validate:InvalidFileValue", args.Field.DisplayName],
+                    new[] { args.Field.Name }
+                    ));
+            return errors;
+        }
 
         if (args.Field.Required && !HasAnyValue(args.Field.Value))
         {
@@ -83,6 +112,42 @@ public class FileFieldType : FieldTypeBase
     public override FieldConfigurationBase GetConfiguration(FieldConfigurationDictionary fieldConfiguration)
     {
         return new FileFieldConfiguration(fieldConfiguration);
+    }
+
+    /// <summary>
+    /// Whether the value is something this field type stores: nothing (null, an empty string, an empty list), a file
+    /// object, or a list of them - an object is a file when it has an address, a <c>url</c> that is a non-empty string,
+    /// which is what a template reads. A plain string, a number or a list of strings is not: it used to be stored and
+    /// then rendered as no file at all. Storage-shape-agnostic, like <see cref="HasAnyValue"/>: a live CLR value is
+    /// read as the JSON it would be stored as.
+    /// </summary>
+    private static bool IsFileValue(object? value)
+    {
+        switch (value)
+        {
+            case null:
+                return true;
+            case string text:
+                return string.IsNullOrEmpty(text);
+        }
+
+        var element = value is JsonElement json ? json : JsonSerializer.SerializeToElement(value, WebOptions);
+
+        return element.ValueKind switch
+        {
+            JsonValueKind.Null or JsonValueKind.Undefined => true,
+            JsonValueKind.Object => IsFile(element),
+            JsonValueKind.Array => element.EnumerateArray().All(IsFile),
+            _ => false,
+        };
+
+        static bool IsFile(JsonElement file)
+        {
+            return file.ValueKind == JsonValueKind.Object
+                   && file.TryGetProperty("url", out var url)
+                   && url.ValueKind == JsonValueKind.String
+                   && !string.IsNullOrWhiteSpace(url.GetString());
+        }
     }
 
     /// <summary>
