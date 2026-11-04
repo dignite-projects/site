@@ -26,7 +26,6 @@
     <!-- The MCP endpoint (GitHub issue #26). -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
     <!-- Writes a site's settings through Setting Management (its languages, today), which this host loads. -->
-    <ProjectReference Include="..\..\src\Dignite.Site.SettingManagement\Dignite.Site.SettingManagement.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -27,7 +27,7 @@ The `site://schema` resource returns the same document, with the same permission
 
 A site serves only `en` until its languages are set, so a client that writes content in another language sets them first. The tool replaces the list: read the current one from the schema's `enabledLanguages` and send it back with the change. Tags are checked and stored in their canonical form, such as `zh-Hans`; a tag that is not a language, or an empty list, is refused.
 
-Changing the languages moves addresses. The default language's pages have no prefix, so a new default takes the unprefixed addresses and the old one's pages move under `/{language}/`; and a language left out is no longer served, though its contents are kept and come back when the language is added again. The application has to load `SiteSettingManagementModule` from the `Dignite.Site.SettingManagement` package, which stores the setting through ABP's Setting Management.
+Changing the languages moves addresses. The default language's pages have no prefix, so a new default takes the unprefixed addresses and the old one's pages move under `/{language}/`; and a language left out is no longer served, though its contents are kept and come back when the language is added again. The setting is stored through ABP's [Setting Management](https://abp.io/docs/latest/modules/setting-management), which `Dignite.Site.Domain` depends on.
 
 ## Pages
 

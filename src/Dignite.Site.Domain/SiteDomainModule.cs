@@ -5,6 +5,7 @@ using Dignite.FlexFields.Site;
 using Volo.Abp.Domain;
 using Volo.Abp.Features;
 using Volo.Abp.Modularity;
+using Volo.Abp.SettingManagement;
 using Volo.Abp.UI;
 
 namespace Dignite.Site;
@@ -30,7 +31,9 @@ namespace Dignite.Site;
     // IMimeTypeDetector FileDescriptorManager detects an upload's type with (Files/).
     typeof(AbpBlobStoringPipelineModule),
     // IBrandingProvider, for JSON-LD's Organization/WebSite name and logo (GitHub issue #20).
-    typeof(AbpUiModule)
+    typeof(AbpUiModule),
+    // ISettingManager, for SiteLanguageManager.
+    typeof(AbpSettingManagementDomainModule)
 )]
 public class SiteDomainModule : AbpModule
 {

@@ -91,9 +91,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   permissions, `SiteAdmin.Languages` and `SiteAdmin.Languages.Update`. The tab is `provideSiteSettingTabs()` of the new
   `@dignite/ng.site/setting-management` entry point, next to `provideSettingManagementConfig()`; `@abp/ng.setting-management` is an
   optional peer dependency. See [Settings](docs/en/settings.md) and [Admin UI](docs/en/admin-ui.md).
-  **Writing goes through the new `ISiteSettingWriter` of `Dignite.Site.Domain`, whose implementation is in the new
-  `Dignite.Site.SettingManagement` package: a host that serves these calls loads its `SiteSettingManagementModule`,
-  which brings ABP's Setting Management and its tables. Without it the language services fail to resolve.**
+  **`Dignite.Site.Domain` now depends on ABP's Setting Management (`Volo.Abp.SettingManagement.Domain`)**, as ABP's own
+  modules do, and writes the setting through its `ISettingManager`. A host needs Setting Management's data store; one that
+  already runs it, as the ABP application templates do, needs nothing more.
 - **A file can be uploaded through a one-time link.** The bytes of a photo, a background or an icon do not go through an
   AI client: `site_create_upload_url` (and `POST api/site-admin/files/upload-tickets`) returns a link that takes the file
   as the body of a `PUT` (`api/site-admin/files/upload/{ticket}`, anonymous: the link is the credential), with the command
@@ -309,7 +309,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Existing roles do not have the new permissions.** Run the host's `--migrate-database` (or its migrator): its seed grants
   every permission, `SiteAdmin.Languages` and `SiteAdmin.Languages.Update` among them, to the `admin` role of the host
   and of each tenant. A role of another name is granted them in the permission dialog.
-- **A host loads `SiteSettingManagementModule`** (package `Dignite.Site.SettingManagement`) to serve the language calls.
+- **A host needs Setting Management's data store**, as `Dignite.Site.Domain` now depends on `Volo.Abp.SettingManagement.Domain`:
+  the `Volo.Abp.SettingManagement.EntityFrameworkCore` (or MongoDB) module and the migration of its table. A host built on
+  an ABP application template has both. Without them no setting can be read at all, because the module replaces ABP's
+  setting definition store with one built on a repository that nothing provides.
 - **A host that uploads through links configures Data Protection keys, a distributed cache and a distributed lock** shared
   by its instances, a provider for the `theme-assets` container, and routes `api/site-admin/files/upload/*` to Site.
 
