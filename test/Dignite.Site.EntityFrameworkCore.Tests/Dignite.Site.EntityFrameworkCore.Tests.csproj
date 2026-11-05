@@ -17,6 +17,9 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
     <ProjectReference Include="..\Dignite.Site.Application.Tests\Dignite.Site.Application.Tests.csproj" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.7.0"/>
+    <!-- Not a database: SiteThemeIndexes_Tests generates the DDL SQL Server gets from the model, without a server,
+         to check the unique indexes the host shares with tenants (SQLite treats NULLs as distinct and cannot show it). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
     <!-- The file library's test containers (GitHub issue #41) - same provider as the dev Host,
          pointed at a temp directory instead of App_Data. -->
     <PackageReference Include="Volo.Abp.BlobStoring.FileSystem" Version="10.7.0" />

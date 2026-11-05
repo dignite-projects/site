@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.Pages;
+using Microsoft.Extensions.Logging;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Services;
+using Volo.Abp.Uow;
 
 namespace Dignite.Site.Themes;
 
@@ -82,6 +85,7 @@ public class SiteThemeManager : DomainService
     protected ISiteReleaseRepository ReleaseRepository { get; }
     protected ISiteThemeBlobRepository BlobRepository { get; }
     protected IPageRepository PageRepository { get; }
+    protected IUnitOfWorkManager UnitOfWorkManager => LazyServiceProvider.LazyGetRequiredService<IUnitOfWorkManager>();
 
     public SiteThemeManager(
         ISiteThemeRepository themeRepository,
@@ -104,22 +108,58 @@ public class SiteThemeManager : DomainService
     /// </summary>
     public virtual async Task<SiteTheme> GetOrCreateAsync(CancellationToken cancellationToken = default)
     {
-        var theme = await ThemeRepository.FindCurrentAsync(cancellationToken);
-        if (theme != null)
+        return await ThemeRepository.FindCurrentAsync(cancellationToken)
+               ?? await CreateAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates the current tenant's theme with its skeleton files, in a unit of work of its own, and returns it as the
+    /// caller's unit of work reads it back.
+    /// <para>
+    /// Two requests that both found no theme - two calls at the same moment, before the tenant had one - both get here. The unique index on <see cref="SiteTheme.TenantId"/> lets one insert
+    /// through and refuses the other, which then returns the theme the first one created instead of failing. The
+    /// refused insert happened in its own unit of work, so the caller's carries on as if it had found the theme.
+    /// </para>
+    /// </summary>
+    protected virtual async Task<SiteTheme> CreateAsync(CancellationToken cancellationToken = default)
+    {
+        ExceptionDispatchInfo? failure = null;
+        try
         {
-            return theme;
+            using var uow = UnitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
+
+            var theme = new SiteTheme(GuidGenerator.Create(), CurrentTenant.Id);
+            await ThemeRepository.InsertAsync(theme, autoSave: true, cancellationToken: cancellationToken);
+            await FileRepository.InsertManyAsync(
+                SiteThemeSkeleton.Files.Select(file => new SiteThemeFile(GuidGenerator.Create(), theme.Id, file.Path, file.Body, CurrentTenant.Id)),
+                autoSave: true,
+                cancellationToken: cancellationToken);
+
+            await uow.CompleteAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            // The domain cannot tell a unique-index violation from another database error without knowing the
+            // provider; reading the theme back can. Found, another request made it first; not found, it is rethrown.
+            failure = ExceptionDispatchInfo.Capture(exception);
         }
 
-        theme = new SiteTheme(GuidGenerator.Create(), CurrentTenant.Id);
-        await ThemeRepository.InsertAsync(theme, autoSave: true, cancellationToken: cancellationToken);
+        var created = await ThemeRepository.FindCurrentAsync(cancellationToken);
+        if (created != null)
+        {
+            if (failure != null)
+            {
+                Logger.LogInformation(
+                    "Another request created the theme of tenant {TenantId} first; using it. The refused insert: {Message}",
+                    CurrentTenant.Id?.ToString() ?? "(host)",
+                    failure.SourceException.Message);
+            }
 
-        // Saved at once, like the theme: the caller usually goes on to query the files in the same unit of work.
-        await FileRepository.InsertManyAsync(
-            SiteThemeSkeleton.Files.Select(file => new SiteThemeFile(GuidGenerator.Create(), theme.Id, file.Path, file.Body, CurrentTenant.Id)),
-            autoSave: true,
-            cancellationToken: cancellationToken);
+            return created;
+        }
 
-        return theme;
+        failure?.Throw();
+        throw new AbpException("The theme was created, but the current unit of work cannot read it back.");
     }
 
     /// <summary>

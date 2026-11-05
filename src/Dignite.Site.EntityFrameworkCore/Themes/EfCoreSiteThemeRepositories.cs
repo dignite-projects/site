@@ -20,17 +20,23 @@ public class EfCoreSiteThemeRepository
 
     public virtual async Task<SiteTheme?> FindCurrentAsync(CancellationToken cancellationToken = default)
     {
-        // The tenant filter narrows it to the current tenant's one theme.
+        // The tenant filter narrows it to the current tenant's one theme. Ordered all the way down to the id: where
+        // the database lets a second row in (the host, on a provider that treats NULLs as distinct in a unique
+        // index), two rows made at the same moment can share a creation time, and the administration API and the
+        // site must still read the same one.
         return await (await GetQueryableAsync())
             .OrderBy(theme => theme.CreationTime)
+            .ThenBy(theme => theme.Id)
             .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
     }
 
     public virtual async Task<Guid?> FindLiveReleaseIdAsync(CancellationToken cancellationToken = default)
     {
+        // The same row as FindCurrentAsync.
         return await (await GetQueryableAsync())
             .AsNoTracking()
             .OrderBy(theme => theme.CreationTime)
+            .ThenBy(theme => theme.Id)
             .Select(theme => theme.LiveReleaseId)
             .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
     }
