@@ -92,6 +92,12 @@ public static class SiteThemeIssueCodes
     /// <summary>The trial render stopped before the whole sample was rendered, for the time it took. Data: Rendered, Total.</summary>
     public const string TrialRenderIncomplete = Prefix + "TrialRenderIncomplete";
 
+    /// <summary>
+    /// The trial render rendered nothing: the application has no renderer, as an administration API deployed apart from
+    /// <c>Dignite.Site.Public.Web</c> has none. Only when the theme renders some page. Data: Total (the sample addresses).
+    /// </summary>
+    public const string TrialRenderUnavailable = Prefix + "TrialRenderUnavailable";
+
     /// <summary>Pages whose template is not in the theme; a Razor view renders them. Data: Template, Pages.</summary>
     public const string PageRenderedByRazor = Prefix + "PageRenderedByRazor";
 

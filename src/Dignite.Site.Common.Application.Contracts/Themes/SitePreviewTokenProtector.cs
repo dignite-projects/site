@@ -7,21 +7,32 @@ using Microsoft.AspNetCore.DataProtection;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 
-namespace Dignite.Site.Public.Preview;
+namespace Dignite.Site.Themes;
 
 /// <summary>
 /// Signs, encrypts and dates a <see cref="SitePreviewTicket"/>, and reads one back - the token of a preview link and
-/// the value of the preview cookie alike. ASP.NET Core Data Protection under
-/// <see cref="SitePreviewConsts.ProtectorPurpose"/>, time-limited: the expiry is inside the protected payload, so neither
-/// a token nor a cookie can be kept alive past it by whoever holds it.
+/// the value of the preview cookie alike. ASP.NET Core Data Protection under <see cref="Purpose"/>, time-limited: the
+/// expiry is inside the protected payload, so neither a token nor a cookie can be kept alive past it by whoever holds it.
 /// <para>
 /// The keys are the application's own Data Protection keys. The site that honors a ticket must be able to read what the
 /// administration side issued, so both must share a key ring: automatically in one application, explicitly
-/// (<c>PersistKeysTo...</c> with one application name) when several instances serve the site.
+/// (<c>PersistKeysTo...</c> with one application name) when the administration API and the site are deployed apart, or
+/// when several instances serve the site.
+/// </para>
+/// <para>
+/// Here, in the contracts both sides reference, because the two sides may be two applications: the administration API
+/// issues the token, the site reads it.
 /// </para>
 /// </summary>
 public class SitePreviewTokenProtector : ITransientDependency
 {
+    /// <summary>
+    /// The Data Protection purpose of the browser preview's token and cookie: a value protected for any other purpose -
+    /// an antiforgery token, an authentication cookie, a <see cref="SitePreviewServiceTokenProtector"/> token - never
+    /// reads as a preview ticket here, and the reverse.
+    /// </summary>
+    public const string Purpose = "Dignite.Site.ThemePreview";
+
     /// <summary>
     /// Longer than any token this class writes (a few hundred characters); anything longer is refused before it is
     /// decoded.
@@ -31,9 +42,14 @@ public class SitePreviewTokenProtector : ITransientDependency
     protected ITimeLimitedDataProtector Protector { get; }
 
     public SitePreviewTokenProtector(IDataProtectionProvider dataProtectionProvider)
+        : this(dataProtectionProvider, Purpose)
+    {
+    }
+
+    protected SitePreviewTokenProtector(IDataProtectionProvider dataProtectionProvider, string purpose)
     {
         Protector = dataProtectionProvider
-            .CreateProtector(SitePreviewConsts.ProtectorPurpose)
+            .CreateProtector(purpose)
             .ToTimeLimitedDataProtector();
     }
 

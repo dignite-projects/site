@@ -233,9 +233,29 @@ MongoDB 提供程序现在就没有实现模板仓储，这次同样不实现，
 - `{ t: 租户, r: "" }`：预览工作副本。每次请求读工作副本的当前内容，作者保存后刷新预览窗口就能看到。
 - `{ t: 租户, r: 快照 Id }`：预览某个历史快照，回滚前先看一眼。
 
-横幅写"正在预览工作副本"或"正在预览发布 #12"；要预览的快照已不在时写明"显示的是线上发布"。工作副本只经进程内钩子
+横幅写"正在预览工作副本"或"正在预览发布 #12"；要预览的快照已不在时写明"显示的是线上发布"。工作副本只经
 `ISiteThemePreviewSource` 读取，公开 API 不暴露工作副本。Data Protection 的 purpose 换成新的
 （`Dignite.Site.ThemePreview`），cookie 改名 `Dignite.Site.Preview`，#108 的令牌一律读不出来。
+
+### 7.1 管理 API 与站点拆开部署（2026-11-05）
+
+2.0.0 的预览、预览链接、发布前试渲染都假定 `Dignite.Site.Public.Web` 和管理 API 在同一个进程：渲染器、签发类、
+工作副本的读取都是进程内钩子。Dignite.Cloud 把 SiteService（数据和管理 API）与 Web.Public（站点，经 HttpApi.Client
+调 Public API）拆开，于是 HTML 预览报 `Site:090007`、试渲染静默跳过、浏览器预览静默显示线上版。定案：
+
+- **签名下沉**：`SitePreviewTicket`、`SitePreviewTokenProtector`、`SitePreviewOptions` 移到
+  `Common.Application.Contracts`，签发类移到 `Admin.Application`。链接地址取租户的 `Site.PrimaryDomain`
+  （`ISiteBaseUrlResolver`），每个租户独立域名也成立；不用 ABP 的 `AppUrlOptions`，它的 `{{tenantName}}` 模板表达不了独立域名。
+- **渲染留在站点**：管理端把快照**推**给站点的 `POST /site-preview/render`，由站点自己的渲染器、视图和服务渲染，
+  预览与线上只差主题。没选"站点按令牌拉快照"：推不改 `ISiteThemePreviewRenderer` 的签名，试渲染检查的正是要发布的那份，
+  没有"检查中途有人保存"的竞态，也省掉站点端的快照缓存。业务异常以数据回传，管理端原样重新抛出，所以试渲染与本地渲染无差别。
+  站点地址是远程服务 `RemoteServices:SitePublicWeb`，用内网地址即可：页面里的地址是相对路径或基于 `PrimaryDomain`。
+- **工作副本按令牌远程读**：`ISiteThemePreviewIntegrationService` 是 ABP integration service，只在宿主
+  `ExposeIntegrationServices` 时出现，挂在 `/integration-api/` 下，网关不转发；客户端用独立的远程服务名
+  `SitePublicIntegration` 直连。站点端没有进程内实现时，`Public.HttpApi.Client` 补上远程版 `ISiteThemePreviewSource`，
+  接口签名不变。不加客户端凭据：令牌已经只给出持有人本来就能在浏览器里看到的东西，要不要再加交给宿主。
+- **令牌分用途**：服务端之间的调用用独立 purpose（`Dignite.Site.ThemePreview.Service`，有效 1 分钟），浏览器预览链接泄露了也用不到这两个端点。
+- 两边都没配时：HTML 预览报 `Site:090007`，试渲染报 `ThemeIssue:TrialRenderUnavailable` 告警，浏览器预览显示线上版并在横幅上说明。
 
 起始页面：工作台的"预览"是整个主题的预览，只打开首页，之后从站点里点链接进去（预览 cookie 在整个站点有效）。
 最初做过"编辑的文件有页面指向时多一个下拉，直达该页面"，2026-11-02 去掉：按钮在主题区，使用者理解的是"预览这个主题"，

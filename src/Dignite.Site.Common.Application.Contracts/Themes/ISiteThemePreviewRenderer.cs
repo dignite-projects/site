@@ -11,8 +11,10 @@ namespace Dignite.Site.Themes;
 /// <c>Dignite.Site.Admin.Application</c>, which does not reference the Public contracts, and the implementation lives
 /// in <c>Dignite.Site.Public.Web</c>, which references nothing but them. A plain interface rather than an
 /// application service: it is an in-process hook, not an endpoint, so it gets no controller and no client proxy - the
-/// working copy is never reachable over the public surface. An application without <c>Dignite.Site.Public.Web</c>
-/// has no implementation, and a preview there fails with <see cref="SiteErrorCodes.SiteTemplatePreviewUnavailable"/>.
+/// working copy is never reachable over the public surface. An administration API hosted without
+/// <c>Dignite.Site.Public.Web</c> has the site render it instead, over the site's <c>POST /site-preview/render</c>
+/// (<see cref="SiteThemePreviewConsts.RenderPath"/>), when <c>RemoteServices:SitePublicWeb</c> names the site's
+/// application; with neither, a preview fails with <see cref="SiteErrorCodes.SiteTemplatePreviewUnavailable"/>.
 /// </para>
 /// </summary>
 public interface ISiteThemePreviewRenderer

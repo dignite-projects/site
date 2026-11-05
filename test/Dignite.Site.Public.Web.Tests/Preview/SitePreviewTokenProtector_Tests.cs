@@ -1,4 +1,5 @@
 using System;
+using Dignite.Site.Themes;
 using Microsoft.AspNetCore.DataProtection;
 using Shouldly;
 using Xunit;
@@ -86,10 +87,30 @@ public class SitePreviewTokenProtector_Tests
     [InlineData("null")]
     public void A_Malformed_Payload_Should_Be_Refused(string payload)
     {
-        var token = _dataProtection.CreateProtector(SitePreviewConsts.ProtectorPurpose).ToTimeLimitedDataProtector()
+        var token = _dataProtection.CreateProtector(SitePreviewTokenProtector.Purpose).ToTimeLimitedDataProtector()
             .Protect(payload, TimeSpan.FromMinutes(1));
 
         Protector.TryUnprotect(token, out _).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// The tokens of the server-to-server calls and the browser's are not interchangeable: a preview link that leaks reads
+    /// nothing on those calls, and theirs nothing in a browser.
+    /// </summary>
+    [Fact]
+    public void A_Service_Token_And_A_Browser_Token_Should_Not_Read_As_Each_Other()
+    {
+        var service = new SitePreviewServiceTokenProtector(_dataProtection);
+
+        var serviceToken = service.Protect(new SitePreviewTicket(TenantId, ReleaseId));
+        var browserToken = Protector.Protect(new SitePreviewTicket(TenantId, ReleaseId), TimeSpan.FromMinutes(1), out _);
+
+        Protector.TryUnprotect(serviceToken, out _).ShouldBeFalse();
+        service.TryUnprotect(browserToken, out _).ShouldBeFalse();
+
+        service.TryUnprotect(serviceToken, out var ticket).ShouldBeTrue();
+        ticket!.TenantId.ShouldBe(TenantId);
+        ticket.ReleaseId.ShouldBe(ReleaseId);
     }
 
     [Theory]

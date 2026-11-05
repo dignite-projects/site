@@ -9,11 +9,11 @@ namespace Dignite.Site.Public.Themes;
 /// The working copy, or any release, of the current tenant's theme - for the site's preview: a visitor holding a valid
 /// preview ticket sees the site rendered with the theme the ticket names.
 /// <para>
-/// An in-process hook, not an application service, on purpose: <see cref="ISiteThemePublicAppService"/> only ever
-/// answers with the live release, and that is what keeps the working copy out of reach of an anonymous visitor. This
-/// interface gets no controller and no client proxy, so the working copy is never reachable over HTTP; only the
-/// rendering side asks for it, and only after it has verified a ticket. A host that renders the site against a remote
-/// Public API has no implementation, and the preview is then simply off.
+/// A hook, not an application service, on purpose: <see cref="ISiteThemePublicAppService"/> only ever answers with
+/// the live release, and that is what keeps the working copy out of reach of an anonymous visitor. Only the rendering
+/// side asks for it, and only after it has verified a ticket. In the application that holds the data it reads the
+/// database; a site rendered against a remote Public API reads it through <see cref="ISiteThemePreviewIntegrationService"/>
+/// instead, an integration service that answers only a call carrying a token of the shared Data Protection keys.
 /// </para>
 /// </summary>
 public interface ISiteThemePreviewSource

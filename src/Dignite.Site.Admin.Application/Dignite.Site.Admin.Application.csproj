@@ -29,6 +29,10 @@
     <!-- IAbpDistributedLock, which makes the use of an upload link one step (FileUploadTicketProtector). Its in-process
          lock is registered by the abstractions module; a deployment of several instances adds a distributed one. -->
     <PackageReference Include="Volo.Abp.DistributedLocking.Abstractions" Version="10.7.0" />
+    <!-- The preview of an administration API deployed apart from the site (SiteThemeRemotePreviewRenderer): the site's
+         address is a remote service (RemoteServices:SitePublicWeb), called with a plain named HttpClient. -->
+    <PackageReference Include="Volo.Abp.RemoteServices" Version="10.7.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
   </ItemGroup>
 
 </Project>

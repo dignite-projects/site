@@ -2,6 +2,7 @@
 using Dignite.Abp.BlobStoring.Pipeline;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
+using Dignite.Site.Admin.Themes;
 using Dignite.Site.Files;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ using Volo.Abp.DistributedLocking;
 using Volo.Abp.Imaging;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
+using Volo.Abp.RemoteServices;
 using Volo.Abp.Application;
 using Dignite.Site.Common;
 
@@ -30,7 +32,10 @@ namespace Dignite.Site.Admin;
     typeof(AbpImagingSkiaSharpModule),
     // The lock the upload links are recorded as used under: one implementation per process by default, a
     // distributed one when the host configures it.
-    typeof(AbpDistributedLockingAbstractionsModule)
+    typeof(AbpDistributedLockingAbstractionsModule),
+    // RemoteServices:SitePublicWeb, the site's application, which renders the previews of an administration API
+    // deployed apart from it (SiteThemeRemotePreviewRenderer).
+    typeof(AbpRemoteServicesModule)
     )]
 public class SiteAdminApplicationModule : AbpModule
 {
@@ -52,6 +57,13 @@ public class SiteAdminApplicationModule : AbpModule
         // state (IPermissionChecker and the configuration provider are resolved through singletons too).
         context.Services.AddSingleton<IAuthorizationHandler, FileDescriptorAuthorizationHandler>();
         context.Services.AddSingleton<IAuthorizationHandler, DirectoryDescriptorAuthorizationHandler>();
+
+        // The calls of SiteThemeRemotePreviewRenderer. A render has its own time limit on the site; this one only
+        // ends a call to a site that does not answer.
+        context.Services.AddHttpClient(SiteThemeRemotePreviewRenderer.HttpClientName, client =>
+        {
+            client.Timeout = System.TimeSpan.FromMinutes(1);
+        });
 
         ConfigureFileContainers();
         ConfigureImaging();
