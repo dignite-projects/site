@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.FlexFields.Site.Seo;
+using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Files;
@@ -44,6 +45,8 @@ public class HeadMetadataBuilder : DomainService
     protected IPageRepository PageRepository => LazyServiceProvider.LazyGetRequiredService<IPageRepository>();
 
     protected ISettingProvider SettingProvider => LazyServiceProvider.LazyGetRequiredService<ISettingProvider>();
+
+    protected IContentTypeRepository ContentTypeRepository => LazyServiceProvider.LazyGetRequiredService<IContentTypeRepository>();
 
     public HeadMetadataBuilder(
         SiteUrlBuilder urlBuilder,
@@ -240,7 +243,8 @@ public class HeadMetadataBuilder : DomainService
     /// step stands for the page, not for the view - and a content by <paramref name="title"/>. The page's own
     /// content (empty slug) is the page's step, not one more. An inactive
     /// ancestor has no address a visitor could follow and is left out. A page tree is a few levels deep, so the
-    /// ancestors are read one by one.
+    /// ancestors and their own contents are read one by one; what names a content's title - the content types of the
+    /// pages and the field library - is read once for all the steps, since the head of every page asks for it.
     /// </para>
     /// </summary>
     protected virtual async Task<IReadOnlyList<BreadcrumbItem>> BuildBreadcrumbAsync(
@@ -287,7 +291,8 @@ public class HeadMetadataBuilder : DomainService
         // step below it.
         var isPageContent = content != null && string.IsNullOrEmpty(content.Slug);
 
-        var items = new List<BreadcrumbItem>();
+        // Each step with the name it already has (the page being rendered), or the page content that will name it.
+        var steps = new List<(Page Page, string? Name, Content? PageContent)>();
         foreach (var step in chain)
         {
             var isCurrentPage = step.Id == page.Id;
@@ -296,13 +301,42 @@ public class HeadMetadataBuilder : DomainService
                 continue;
             }
 
-            var name = !isCurrentPage
-                ? await ResolvePageTitleAsync(step, cultureName, includeUnpublished, asOf, cancellationToken)
-                : content == null
-                    ? baseTitle
-                    : isPageContent
-                        ? title
-                        : await ResolvePageTitleAsync(step, cultureName, includeUnpublished, asOf, cancellationToken);
+            if (isCurrentPage && content == null)
+            {
+                steps.Add((step, baseTitle, null));
+            }
+            else if (isCurrentPage && isPageContent)
+            {
+                steps.Add((step, title, null));
+            }
+            else
+            {
+                steps.Add((step, null, await FindPageContentAsync(step, cultureName, includeUnpublished, asOf, cancellationToken)));
+            }
+        }
+
+        // One lookup for every step that has a content of its own: a content type's id keys its entry, so the content
+        // types of several pages share one, and the field library is read once.
+        ContentSummaryLookup? lookup = null;
+        var pagesWithContent = steps.Where(s => s.PageContent != null).Select(s => s.Page.Id).Distinct().ToList();
+        if (pagesWithContent.Count > 0)
+        {
+            var contentTypes = new List<ContentType>();
+            foreach (var pageId in pagesWithContent)
+            {
+                contentTypes.AddRange(await ContentTypeRepository.GetListByPageAsync(pageId, cancellationToken));
+            }
+
+            lookup = await SummaryResolver.CreateLookupAsync(contentTypes, cancellationToken);
+        }
+
+        var items = new List<BreadcrumbItem>();
+        foreach (var (step, knownName, pageContent) in steps)
+        {
+            var name = knownName
+                       ?? (pageContent != null
+                           ? SummaryResolver.Resolve(pageContent, lookup!, step.DisplayName).Title
+                           : step.DisplayName);
 
             items.Add(new BreadcrumbItem(
                 name,
@@ -316,24 +350,6 @@ public class HeadMetadataBuilder : DomainService
         }
 
         return items;
-    }
-
-    /// <summary>A page's title in <paramref name="cultureName"/>, as its own head would have it (see <see cref="BuildBreadcrumbAsync"/>).</summary>
-    protected virtual async Task<string> ResolvePageTitleAsync(
-        Page page,
-        string cultureName,
-        bool includeUnpublished,
-        DateTime asOf,
-        CancellationToken cancellationToken)
-    {
-        var pageContent = await FindPageContentAsync(page, cultureName, includeUnpublished, asOf, cancellationToken);
-        if (pageContent == null)
-        {
-            return page.DisplayName;
-        }
-
-        var lookup = await SummaryResolver.CreateLookupAsync(page.Id, cancellationToken);
-        return SummaryResolver.Resolve(pageContent, lookup, page.DisplayName).Title;
     }
 
     /// <summary>

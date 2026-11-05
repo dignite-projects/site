@@ -32,7 +32,7 @@ A template writes the head metadata with `site_head` in a [Scriban template](../
 | `robots` | `noindex`, when the content is marked so or the request is a [truncated filtered view](#filtered-views); otherwise no tag. |
 | `og:type` | `website`, or `article` when the template says so, with `article:published_time` and `article:modified_time` from the content. |
 | `og:site_name` | The `Site.Branding.AppName` [setting](../settings.md); without one there is no tag. |
-| `og:locale`, `og:locale:alternate` | The page's language and the languages of its translations, as Open Graph writes them: `ja` is `ja_JP`, `zh-Hans` is `zh_CN`, `en` is `en_US`. |
+| `og:locale`, `og:locale:alternate` | The page's language and the languages of its translations, as Open Graph writes them: `ja` is `ja_JP`, `en` is `en_US`, `zh-Hans` is `zh_CN`, `zh-Hant` is `zh_TW`, and a language that names its territory keeps it (`en-GB` is `en_GB`). |
 | `og:image`, `og:image:width`, `og:image:height` | See [Share Images](#share-images). |
 | `twitter:card` | `summary_large_image` with an image, `summary` without. |
 | `hreflang` alternates, `x-default` | See [Hreflang Alternates](#hreflang-alternates). |

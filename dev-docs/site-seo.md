@@ -90,7 +90,7 @@ Razor 的 `<site-head-metadata>` 加同名属性 `image`、`og-type`、`schema`�
 | 标签 | 值 |
 |---|---|
 | `og:site_name` | `Site.Branding.AppName`；为空不写。 |
-| `og:locale` | 页面语言的地区形式，用 `CultureInfo.CreateSpecificCulture` 推出：`ja` → `ja_JP`，`zh-Hans` → `zh_CN`，`en` → `en_US`。 |
+| `og:locale` | 页面语言的地区形式：名字里带地区的照用（`en-GB` → `en_GB`）；中文按书写方式定（`zh-Hans` → `zh_CN`，`zh-Hant` → `zh_TW`）；其他语言用 `CultureInfo.CreateSpecificCulture` 推出（`ja` → `ja_JP`，`en` → `en_US`）。 |
 | `og:locale:alternate` | hreflang 里的其他语言，同样换成地区形式。 |
 | `og:type` | `type` 参数，默认 `website`。现在固定是 `website`。 |
 | `article:published_time`、`article:modified_time` | `type: "article"` 时，内容的发布时间和最后修改时间，ISO 8601。 |
@@ -193,8 +193,11 @@ SEO 字段的 `Seo.MetaTitleCharLimit`、`Seo.MetaDescriptionCharLimit` 改为�
   `Seo.MetaTitleCharLimit` / `Seo.MetaDescriptionCharLimit`，默认 60 / 160；要放宽的站点改字段配置。
 - **宽度计算放在 `Dignite.Site.Domain.Shared`**（`SeoTextWidth`）：MCP 只引用契约层，够不到 `Dignite.FlexFields.Site`。
   SEO 字段名和两个配置键在那里各写了一份，由测试断言与字段类型的常量相等。
-- **面包屑逐级读祖先页面**，不是草稿说的"一次查回"：页面树通常只有两三层，按层查更简单。页面自身的内容（空 slug）
-  算作页面那一步，不再多出一步。
+- **面包屑逐级读祖先页面和它们自己的内容**，不是草稿说的"一次查回"：页面树通常只有两三层，按层查更简单。取标题要用的
+  内容类型和字段库对所有步骤只读一次（发版前审查发现原先每一级都重读整个字段库）。页面自身的内容（空 slug）算作页面
+  那一步，不再多出一步。
+- **`og:locale` 不全交给运行时**：发版前审查发现 Windows 上 `CreateSpecificCulture("zh-Hant")` 给的是 `zh-HK`，
+  不同平台的 ICU 也可能不一样。改为名字带地区的照用、中文按书写方式定（简体 `zh_CN`、繁体 `zh_TW`），其余语言才问运行时。
 - **默认分享图的入口**是 Setting Management 上新增的 **SEO** 选项卡（和语言选项卡同一个入口点），MCP 工具叫
   `site_set_default_share_image`，权限 `SiteAdmin.Seo` / `SiteAdmin.Seo.Update`。
 - **`og:image:alt` 不写**（用户 2026-11-05 先说取文件名，又改为交给模板）。

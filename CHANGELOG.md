@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `IsDefaultOgImage`. See [Share Images](docs/en/seo/index.md#share-images).
 - **The head carries the site's name and its languages.** `site_head` and `<site-head-metadata>` write `og:site_name`, from
   `Site.Branding.AppName` when it is set, and `og:locale` and `og:locale:alternate`, the page's language and its
-  translations' as Open Graph writes them (`ja_JP`, `zh_CN`, `en_US`), and `HeadMetadataDto` has them as `SiteName`, `Locale`
+  translations' as Open Graph writes them (`ja_JP`, `zh_CN`, `zh_TW`, `en_US`), and `HeadMetadataDto` has them as `SiteName`, `Locale`
   and `LocaleAlternates`. **A host that wrote these tags itself removes its own, or they are written twice.**
 - **A template can say a page is an article.** `site_head { type: "article" }`, or `og-type="article"` with
   `published-time` and `modified-time` on `<site-head-metadata>`, writes `og:type` `article` with
