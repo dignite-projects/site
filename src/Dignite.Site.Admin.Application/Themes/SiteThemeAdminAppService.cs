@@ -278,9 +278,9 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
     {
         var theme = await ThemeManager.GetOrCreateAsync();
 
-        // Resolved lazily and optionally: the renderer is Dignite.Site.Public.Web's, which this layer cannot
-        // reference, and an administration API hosted without it simply cannot preview.
-        var renderer = LazyServiceProvider.LazyGetService<ISiteThemePreviewRenderer>()
+        // Dignite.Site.Public.Web's renderer, which this layer cannot reference, or the site's over HTTP for an
+        // administration API deployed apart from it; with neither, there is nothing to preview with.
+        var renderer = LazyServiceProvider.LazyGetRequiredService<SiteThemePreviewRendererProvider>().Find()
                        ?? throw new BusinessException(SiteErrorCodes.SiteTemplatePreviewUnavailable);
 
         var snapshot = releaseId is { } id
@@ -301,11 +301,12 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             await ThemeManager.GetReleaseAsync(theme, id);
         }
 
-        // Optional, like the preview renderer: the issuer is Dignite.Site.Public.Web's.
-        var issuer = LazyServiceProvider.LazyGetService<ISiteThemePreviewLinkIssuer>()
-                     ?? throw new BusinessException(SiteErrorCodes.SiteTemplatePreviewUnavailable);
+        // The link goes to the tenant's own site address; the site reads it with the shared Data Protection keys.
+        var issuer = LazyServiceProvider.LazyGetRequiredService<ISiteThemePreviewLinkIssuer>();
 
-        return await issuer.IssueAsync(new SiteThemePreviewLinkRequest { Path = path, ReleaseId = releaseId });
+        return await issuer.IssueAsync(
+            new SiteThemePreviewLinkRequest { Path = path, ReleaseId = releaseId },
+            RequestCancellationToken);
     }
 
     protected virtual async Task<SiteThemeSnapshotDto> GetWorkingCopySnapshotAsync(SiteTheme theme)

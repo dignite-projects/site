@@ -140,6 +140,8 @@ The sample is what a visitor would open, for each page rendered by a template of
 
 Only the theme's failures are findings. An address that leads nowhere, or a failure of the site itself while rendering, is not.
 
+The pages are rendered by `Dignite.Site.Public.Web`, in the same application as the administration API or in the application that serves the site; see [When the Site Runs in Another Application](#when-the-site-runs-in-another-application). An application that has neither renders nothing: the check says so in a warning (`ThemeIssue:TrialRenderUnavailable`), and publishing goes ahead without the trial render, so a template that fails only when it renders is not found before it goes live.
+
 The rendered pages are also read for links to an id that nothing on the page has: a `<use href="#icon">` whose symbol is not in the page shows nothing and fails nothing, and an anchor to a section that does not exist goes nowhere. Each is a warning, once per id, with the first address that has it (`ThemeIssue:FragmentReferenceNotFound`); a warning does not stop a publish. A reference to another file (`href="sprite.svg#icon"`), an empty `#` and `#top` are not reported.
 
 ## Previewing
@@ -154,7 +156,7 @@ The working copy is read again on every page view: save in the editor, then relo
 
 A page rendered by a Scriban template carries a banner at the top that says what is previewed, with an **Exit preview** link that removes the cookie and reloads the page as it is live; a page still rendered by a Razor view has no banner. `/site-preview/exit` ends a preview too. Every response of a preview is sent with `Cache-Control: no-store` and `X-Robots-Tag: noindex`, so no cache keeps it and no search engine indexes it. A template that fails shows a page with the error, the template, and for a run-time error the line and the column, instead of the site's error page.
 
-The link is issued by the administration API, `GET /preview-link` (see [Managing the Theme](#managing-the-theme)), and points at the address of the application that serves it, which is the site's own when one application serves both. The site reads the link with the application's Data Protection keys: when several instances serve the site, they must share one key ring, as they already must for authentication cookies. Issuing a link needs `Dignite.Site.Public.Web` in the same application as the administration API, and fails with `Site:090007` without it.
+The link is issued by the administration API, `GET /preview-link` (see [Managing the Theme](#managing-the-theme)), and points at the tenant's site address, the `Site.PrimaryDomain` setting that canonical links and the sitemap use, so it works when every tenant has a domain of its own. Without that setting the link fails with `Site:050001`. The site reads the link with the application's Data Protection keys: when several instances serve the site, they must share one key ring, as they already must for authentication cookies.
 
 ### As HTML
 
@@ -163,12 +165,47 @@ The path is resolved as a request would be: `/about` or `/ja/blog/hello`, with a
 A preview renders saved files, so save first. It fails with one of these errors:
 
 * `Site:090006` when no page answers the path.
-* `Site:090007` when the application does not have `Dignite.Site.Public.Web`: a preview renders the page the way the site does, so it needs the rendering in the same application as the administration API.
+* `Site:090007` when there is nothing to render with: a preview renders the page the way the site does, with `Dignite.Site.Public.Web`, in the same application as the administration API or in the one [named for it](#when-the-site-runs-in-another-application).
 * `Site:090009` when the page's `Template` is not a template of the previewed theme, so a Razor view renders it.
 
 A render that fails, through a run-time error, a template that does not parse or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
 
 You can preview over the [admin API](#managing-the-theme), which returns the HTML with the page, the template and the layout it was rendered with, and over MCP, with `site_preview`, so that an AI client can check its own changes before it publishes; see [MCP Tools](#mcp-tools). An AI client that has a browser also looks at the site as a visitor would: `site_get_preview_link` returns the [browser preview](#in-a-browser) link for a path, which it opens and takes a screenshot of, where `site_preview` gives it the markup and the head tags a screenshot does not show.
+
+### When the Site Runs in Another Application
+
+When the administration API and the site are deployed as two applications, the administration API has no renderer and the site has no access to the working copy. The two call each other for a preview, so the three ways of previewing (in a browser, as HTML, and the trial render) work as they do in one application:
+
+* The administration API sends the page and the theme to the site's `POST /site-preview/render`, which renders it with the site's own views and services.
+* The site reads the theme a preview cookie names from the administration side's application, through an [integration service](https://abp.io/docs/latest/framework/api-development/integration-services) under `/integration-api/site-public/`.
+
+Each call carries a token that lives one minute, signed with the Data Protection keys. A call without one is answered with nothing, and a browser preview's token is not accepted. To set it up:
+
+1. Give both applications one Data Protection key ring: the same application name and the same key storage, such as Redis.
+2. Set each tenant's `Site.PrimaryDomain`, where the preview links go.
+3. In the administration API's application, name the site's application. An internal address will do:
+
+   ````json
+   "RemoteServices": {
+     "SitePublicWeb": { "BaseUrl": "http://site-public-web" }
+   }
+   ````
+
+4. In the site's application, name the application that holds the data, which serves the administration API. An API gateway does not forward `/integration-api/`, so give its own address:
+
+   ````json
+   "RemoteServices": {
+     "SitePublicIntegration": { "BaseUrl": "http://site-service" }
+   }
+   ````
+
+5. In the application that holds the data, expose the integration services, and keep `/integration-api/` off the public network:
+
+   ````csharp
+   Configure<AbpAspNetCoreMvcOptions>(options => options.ExposeIntegrationServices = true);
+   ````
+
+Without the third step, a preview as HTML fails with `Site:090007` and the trial render warns that it rendered nothing. Without the fourth or the fifth, a page opened through a preview link renders with the live release, under a banner that says so.
 
 ## What a Template Sees
 

@@ -321,8 +321,8 @@ public class SiteThemeTools : ITransientDependency
     {
         Guid? releaseId = release is { } number ? (await GetReleaseAsync(number)).Id : null;
 
-        // Needs Dignite.Site.Public.Web in the same application: without it the application service says so
-        // (Site:090007), which the server's error envelope reports in full.
+        // Goes to the tenant's Site.PrimaryDomain: without one the application service says so (Site:050001), which
+        // the server's error envelope reports in full.
         var link = await ThemeAppService.GetPreviewLinkAsync(path, releaseId);
 
         return new SiteThemePreviewLink

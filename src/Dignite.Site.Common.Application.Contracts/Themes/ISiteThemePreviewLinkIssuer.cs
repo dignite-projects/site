@@ -10,12 +10,11 @@ namespace Dignite.Site.Themes;
 /// for a preview cookie and renders every page the visitor then opens with that theme, under a banner and with
 /// <c>noindex</c>, until the preview is exited or expires.
 /// <para>
-/// Declared here for the same reason as <see cref="ISiteThemePreviewRenderer"/>: the caller is
-/// <c>Dignite.Site.Admin.Application</c>, the implementation is in <c>Dignite.Site.Public.Web</c>, which signs and
-/// verifies the token with the application's Data Protection keys - the same keys, since it is the site that honors
-/// the link. An in-process hook, not an application service: no controller, no client proxy. An application without
-/// <c>Dignite.Site.Public.Web</c> has no implementation, and a link there fails with
-/// <see cref="SiteErrorCodes.SiteTemplatePreviewUnavailable"/>.
+/// The implementation is <c>Dignite.Site.Admin.Application</c>'s: it signs the token with
+/// <see cref="SitePreviewTokenProtector"/> and points the link at the tenant's site address, the
+/// <c>Site.PrimaryDomain</c> setting. The site reads the token with the same Data Protection keys, so an administration
+/// API deployed apart from the site shares the site's key ring. A hook to replace, not an application service: no
+/// controller, no client proxy.
 /// </para>
 /// </summary>
 public interface ISiteThemePreviewLinkIssuer
@@ -41,7 +40,7 @@ public class SiteThemePreviewLinkRequest
 
     /// <summary>
     /// The site's origin, without a trailing slash (<c>https://acme.com</c>, or <c>https://acme.com/site</c> under a
-    /// path), when the caller knows it. Null lets the issuer take it from the request it is called from.
+    /// path), when the caller knows it. Null lets the issuer take the tenant's site address, <c>Site.PrimaryDomain</c>.
     /// </summary>
     public string? BaseUrl { get; set; }
 }

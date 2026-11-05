@@ -8,8 +8,8 @@ using Volo.Abp.DependencyInjection;
 namespace Dignite.Site.Admin.Themes;
 
 /// <summary>
-/// Stands in for <c>Dignite.Site.Public.Web</c>'s link issuer, which this test host does not load: records each request
-/// and answers with a recognizable address. A singleton, like <see cref="FakeSiteThemePreviewRenderer"/>, so the test
+/// Stands in for the link issuer (<see cref="SiteThemePreviewLinkIssuer"/>, tested on its own), so the app service's tests
+/// need no site address: records each request and answers with a recognizable address. A singleton, like <see cref="FakeSiteThemePreviewRenderer"/>, so the test
 /// reads what the app service asked.
 /// </summary>
 [ExposeServices(typeof(ISiteThemePreviewLinkIssuer), typeof(FakeSiteThemePreviewLinkIssuer))]

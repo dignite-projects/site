@@ -77,9 +77,10 @@ public interface ISiteThemeAdminAppService : IApplicationService
     /// with release <paramref name="releaseId"/>, in place of the live release, and returns its HTML. Nothing is
     /// published or cached for visitors.
     /// <para>
-    /// Needs <c>Dignite.Site.Public.Web</c> in the same application - it is what renders pages - and fails with
-    /// <c>Site:090007</c> without it; a path no page answers fails with <c>Site:090006</c>, a page whose template is
-    /// not in the theme with <c>Site:090009</c>, a template that fails to render with <c>Site:090008</c>.
+    /// Rendered by <c>Dignite.Site.Public.Web</c>: in the same application, or in the application that serves the site,
+    /// named by <c>RemoteServices:SitePublicWeb</c>; with neither it fails with <c>Site:090007</c>. A path no page answers
+    /// fails with <c>Site:090006</c>, a page whose template is not in the theme with <c>Site:090009</c>, a template that
+    /// fails to render with <c>Site:090008</c>.
     /// </para>
     /// </summary>
     Task<SiteThemePreviewDto> PreviewAsync(string path, Guid? releaseId = null);
@@ -90,8 +91,9 @@ public interface ISiteThemeAdminAppService : IApplicationService
     /// minutes, and then for a couple of hours: every page renders with that theme under a banner, until the banner's
     /// exit. Visitors keep seeing the live release.
     /// <para>
-    /// Needs <c>Dignite.Site.Public.Web</c> in the same application - it signs the link with the keys the site reads it
-    /// with - and fails with <c>Site:090007</c> without it.
+    /// The link goes to the tenant's site address, the <c>Site.PrimaryDomain</c> setting, and fails with
+    /// <c>Site:050001</c> when there is none. The site reads its token with the application's Data Protection keys, so an
+    /// administration API deployed apart from the site must share the site's key ring.
     /// </para>
     /// </summary>
     Task<SiteThemePreviewLinkDto> GetPreviewLinkAsync(string? path = null, Guid? releaseId = null);

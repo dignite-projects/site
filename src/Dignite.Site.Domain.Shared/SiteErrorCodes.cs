@@ -78,8 +78,8 @@ public static class SiteErrorCodes
     public const string SiteTemplateDidNotRenderSiteHead = "Site:090005";
 
     // Previewing a page of the site with the working copy or a release. The first is raised by the renderer in
-    // Dignite.Site.Public.Web (no Domain there either), the second by the admin service when no renderer is
-    // registered - an administration API hosted without Dignite.Site.Public.Web.
+    // Dignite.Site.Public.Web (no Domain there either), the second by the admin service when there is no renderer - an
+    // administration API hosted without Dignite.Site.Public.Web and without RemoteServices:SitePublicWeb.
     public const string SiteTemplatePreviewPathNotFound = "Site:090006";
     public const string SiteTemplatePreviewUnavailable = "Site:090007";
 

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Site.Localization;
 using Dignite.Site.Public.Themes;
+using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -22,8 +23,9 @@ namespace Dignite.Site.Public.Preview;
 /// working copy is never rendered without a valid ticket.
 /// <para>
 /// The theme is read through <see cref="ISiteThemePreviewSource"/>, resolved only when a ticket is there and optional:
-/// a host rendering the site against a remote Public API has none, and its visitors then see the live site even with a
-/// valid cookie. Read at most once per request, and again on the next one: a preview of the working copy shows each
+/// an application without one serves the live site even with a valid cookie. A site rendered against a remote Public
+/// API has one through <c>Dignite.Site.Public.HttpApi.Client</c>, which reads the theme over the Public integration
+/// service. Read at most once per request, and again on the next one: a preview of the working copy shows each
 /// save on the next page view.
 /// </para>
 /// </summary>

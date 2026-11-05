@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Themes can be previewed when the administration API and the site are two applications.** 2.0.0 previewed, issued
+  preview links and trial-rendered only with `Dignite.Site.Public.Web` in the administration API's application, so a
+  deployment that serves the site from another application (one that calls the Public API through
+  `Dignite.Site.Public.HttpApi.Client`) could not use Scriban themes safely: a preview failed with `Site:090007`, the
+  trial render skipped every page, and a preview link showed the live site. The two applications now call each other:
+  the administration API has the site render the page (`POST /site-preview/render`, enabled by
+  `RemoteServices:SitePublicWeb`), and the site reads the previewed theme through a new integration service,
+  `ISiteThemePreviewIntegrationService` (`RemoteServices:SitePublicIntegration`, served when the application sets
+  `ExposeIntegrationServices`). Each call carries a token of its own, valid for a minute, signed with the Data Protection
+  keys the two applications share. See [When the Site Runs in Another Application](docs/en/rendering/scriban-templates.md#when-the-site-runs-in-another-application).
+
+### Changed
+
+- **A preview link goes to the tenant's `Site.PrimaryDomain`.** It went to the address the administration API was called
+  at, which is the site's own only in one application. It now uses the address that canonical links and the sitemap use,
+  which also works when every tenant has a domain of its own, and fails with `Site:050001` when it is not set. The link
+  issuer moved from `Dignite.Site.Public.Web` to `Dignite.Site.Admin.Application`, and `SitePreviewTicket`,
+  `SitePreviewTokenProtector` and `SitePreviewOptions` moved from `Dignite.Site.Public.Web` (`Dignite.Site.Public.Preview`)
+  to `Dignite.Site.Common.Application.Contracts` (`Dignite.Site.Themes`). A host that replaces one of them changes its
+  `using`. `SitePreviewConsts.ProtectorPurpose` is now `SitePreviewTokenProtector.Purpose`.
+
+### Fixed
+
+- **The check says when it could not render the pages.** An application with no renderer skipped every page of the
+  [trial render](docs/en/rendering/scriban-templates.md#trial-render) without a word: the check read as a theme whose pages
+  rendered well, and a publish went ahead unchecked. It now reports a warning, `ThemeIssue:TrialRenderUnavailable`, with
+  the number of sample pages left unrendered, whenever the theme renders a page. A publish still goes ahead, as before.
+
 ## [2.0.0] - 2026-11-04
 
 ### Added

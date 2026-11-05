@@ -2681,6 +2681,176 @@
               "displayName": null
             }
           }
+        },
+        "Dignite.Site.Public.Themes.SiteThemePreviewIntegrationController": {
+          "controllerName": "SiteThemePreviewIntegration",
+          "controllerGroupName": "SiteThemePreviewIntegration",
+          "isRemoteService": true,
+          "isIntegrationService": true,
+          "apiVersion": null,
+          "type": "Dignite.Site.Public.Themes.SiteThemePreviewIntegrationController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Public.Themes.ISiteThemePreviewIntegrationService",
+              "name": "ISiteThemePreviewIntegrationService",
+              "methods": [
+                {
+                  "name": "FindSnapshotAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput, Dignite.Site.Public.Application.Contracts",
+                      "type": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput",
+                      "typeSimple": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Themes.SiteThemeSnapshotDto",
+                    "typeSimple": "Dignite.Site.Themes.SiteThemeSnapshotDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "FindAssetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput, Dignite.Site.Public.Application.Contracts",
+                      "type": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput",
+                      "typeSimple": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
+                    "typeSimple": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "FindSnapshotAsyncByInput": {
+              "uniqueName": "FindSnapshotAsyncByInput",
+              "name": "FindSnapshotAsync",
+              "httpMethod": "POST",
+              "url": "integration-api/site-public/theme-preview/snapshot",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput, Dignite.Site.Public.Application.Contracts",
+                  "type": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput",
+                  "typeSimple": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput",
+                  "typeSimple": "Dignite.Site.Public.Themes.SiteThemePreviewSnapshotInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Themes.SiteThemeSnapshotDto",
+                "typeSimple": "Dignite.Site.Themes.SiteThemeSnapshotDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Themes.ISiteThemePreviewIntegrationService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "FindAssetAsyncByInput": {
+              "uniqueName": "FindAssetAsyncByInput",
+              "name": "FindAssetAsync",
+              "httpMethod": "POST",
+              "url": "integration-api/site-public/theme-preview/asset",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput, Dignite.Site.Public.Application.Contracts",
+                  "type": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput",
+                  "typeSimple": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput",
+                  "typeSimple": "Dignite.Site.Public.Themes.SiteThemePreviewAssetInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
+                "typeSimple": "Dignite.Site.Public.Themes.SiteThemeAssetDto",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Public.Themes.ISiteThemePreviewIntegrationService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
         }
       }
     }

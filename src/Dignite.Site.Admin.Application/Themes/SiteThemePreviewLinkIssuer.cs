@@ -1,24 +1,26 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Dignite.Site.Seo;
 using Dignite.Site.Themes;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.MultiTenancy;
 
-namespace Dignite.Site.Public.Preview;
+namespace Dignite.Site.Admin.Themes;
 
 /// <summary>
 /// Issues the links of the site's preview: the requested path on the site, with a token
-/// (<see cref="SitePreviewConsts.QueryKey"/>) that <see cref="SitePreviewResourceFilter"/> exchanges for the preview
-/// cookie. The token names the current tenant and the theme - the working copy or a release - and expires after
-/// <see cref="SitePreviewOptions.TokenLifetime"/>; it carries no permission of its own beyond showing that theme on that
-/// tenant's site, which is why the administration side - not this class - decides who may ask for one.
+/// (<c>?site-preview=</c>) that the site exchanges for the preview cookie. The token names the current tenant and the
+/// theme - the working copy or a release - and expires after <see cref="SitePreviewOptions.TokenLifetime"/>; it carries
+/// no permission of its own beyond showing that theme on that tenant's site, which is why the administration side - not
+/// this class - decides who may ask for one.
 /// <para>
-/// Here and not on the administration side because it is the site that has to read the token back: issuer and verifier
-/// share <see cref="SitePreviewTokenProtector"/> and thus the application's Data Protection keys.
+/// The link goes to the tenant's own address, <see cref="ISiteBaseUrlResolver"/> - the <c>Site.PrimaryDomain</c>
+/// setting, the address canonical links and the sitemap use - so it works when every tenant has a domain of its own and
+/// when the administration API runs in another application than the site. The site reads the token with the same Data
+/// Protection keys (<see cref="SitePreviewTokenProtector"/>), which both applications must share.
 /// </para>
 /// </summary>
 [ExposeServices(typeof(ISiteThemePreviewLinkIssuer), typeof(SiteThemePreviewLinkIssuer))]
@@ -26,26 +28,28 @@ public class SiteThemePreviewLinkIssuer : ISiteThemePreviewLinkIssuer, ITransien
 {
     protected SitePreviewTokenProtector Protector { get; }
     protected ICurrentTenant CurrentTenant { get; }
-    protected IHttpContextAccessor HttpContextAccessor { get; }
+    protected ISiteBaseUrlResolver BaseUrlResolver { get; }
     protected IOptions<SitePreviewOptions> Options { get; }
 
     public SiteThemePreviewLinkIssuer(
         SitePreviewTokenProtector protector,
         ICurrentTenant currentTenant,
-        IHttpContextAccessor httpContextAccessor,
+        ISiteBaseUrlResolver baseUrlResolver,
         IOptions<SitePreviewOptions> options)
     {
         Protector = protector;
         CurrentTenant = currentTenant;
-        HttpContextAccessor = httpContextAccessor;
+        BaseUrlResolver = baseUrlResolver;
         Options = options;
     }
 
-    public virtual Task<SiteThemePreviewLinkDto> IssueAsync(
+    public virtual async Task<SiteThemePreviewLinkDto> IssueAsync(
         SiteThemePreviewLinkRequest request,
         CancellationToken cancellationToken = default)
     {
         Check.NotNull(request, nameof(request));
+
+        var baseUrl = await GetBaseUrlAsync(request, cancellationToken);
 
         var ticket = new SitePreviewTicket(CurrentTenant.Id, request.ReleaseId);
         var token = Protector.Protect(ticket, Options.Value.TokenLifetime, out var expiresAt);
@@ -53,35 +57,33 @@ public class SiteThemePreviewLinkIssuer : ISiteThemePreviewLinkIssuer, ITransien
         var path = NormalizePath(request.Path);
         var separator = path.Contains('?') ? "&" : "?";
 
-        return Task.FromResult(new SiteThemePreviewLinkDto
+        return new SiteThemePreviewLinkDto
         {
-            Url = GetBaseUrl(request) + path + separator + SitePreviewConsts.QueryKey + "=" + Uri.EscapeDataString(token),
+            Url = baseUrl + path + separator + SiteThemePreviewConsts.QueryKey + "=" + Uri.EscapeDataString(token),
             Path = path,
             ReleaseId = request.ReleaseId,
             ExpiresAt = expiresAt.UtcDateTime
-        });
+        };
     }
 
     /// <summary>
-    /// <see cref="SiteThemePreviewLinkRequest.BaseUrl"/> without a trailing slash, else the origin and base path of the
-    /// request this is called from - the administration API's, which is the site's own in an application that serves
-    /// both. A host whose site lives elsewhere overrides this.
+    /// <see cref="SiteThemePreviewLinkRequest.BaseUrl"/> without a trailing slash, else the tenant's site address.
     /// </summary>
-    /// <exception cref="AbpException">Neither is available.</exception>
-    protected virtual string GetBaseUrl(SiteThemePreviewLinkRequest request)
+    /// <exception cref="PrimaryDomainNotConfiguredException">Neither is there.</exception>
+    protected virtual async Task<string> GetBaseUrlAsync(SiteThemePreviewLinkRequest request, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(request.BaseUrl))
         {
             return request.BaseUrl.Trim().TrimEnd('/');
         }
 
-        var httpRequest = HttpContextAccessor.HttpContext?.Request
-                          ?? throw new AbpException(
-                              "A preview link needs the site's address: none was given " +
-                              $"({nameof(SiteThemePreviewLinkRequest)}.{nameof(SiteThemePreviewLinkRequest.BaseUrl)}), " +
-                              "and there is no HTTP request to take it from.");
+        var baseUrl = await BaseUrlResolver.GetBaseUrlAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            throw new PrimaryDomainNotConfiguredException();
+        }
 
-        return httpRequest.Scheme + "://" + httpRequest.Host.ToUriComponent() + httpRequest.PathBase.ToUriComponent();
+        return baseUrl.TrimEnd('/');
     }
 
     /// <summary>

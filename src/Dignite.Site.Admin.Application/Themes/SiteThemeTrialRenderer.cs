@@ -29,8 +29,9 @@ namespace Dignite.Site.Admin.Themes;
 /// <para>
 /// Only the theme's failures are findings: a template that fails at run time or never calls <c>site_head</c>. A path that
 /// resolves to nothing, a page the theme does not render, or any failure of a service along the way is not the theme's, and
-/// is left out. The renderer is <c>Dignite.Site.Public.Web</c>'s, resolved optionally like the preview's: an application
-/// hosted without it renders nothing and finds nothing.
+/// is left out. The renderer is the preview's (<see cref="SiteThemePreviewRendererProvider"/>): an application with none
+/// renders nothing, and says so in a warning when the theme renders any page - a check that rendered nothing must not
+/// read as a check whose pages rendered well.
 /// </para>
 /// </summary>
 public class SiteThemeTrialRenderer : ITransientDependency
@@ -72,7 +73,8 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
     /// <summary>
     /// What rendering the sample with <paramref name="snapshot"/> found: an error per distinct failure, and a warning when
-    /// the sample was cut short. Empty when nothing failed, or when there is no renderer to render with.
+    /// the sample was cut short or could not be rendered at all. Empty when nothing failed, or when the theme renders no
+    /// page.
     /// </summary>
     public virtual async Task<List<SiteThemeIssue>> RenderAsync(
         SiteThemeSnapshotDto snapshot,
@@ -81,13 +83,29 @@ public class SiteThemeTrialRenderer : ITransientDependency
     {
         var issues = new List<SiteThemeIssue>();
 
-        var renderer = LazyServiceProvider.LazyGetService<ISiteThemePreviewRenderer>();
-        if (renderer == null)
+        var paths = await GetSamplePathsAsync(analysis, cancellationToken);
+        if (paths.Count == 0)
         {
             return issues;
         }
 
-        var paths = await GetSamplePathsAsync(analysis, cancellationToken);
+        var renderer = FindRenderer();
+        if (renderer == null)
+        {
+            issues.Add(new SiteThemeIssue(
+                SiteThemeIssueSeverity.Warning,
+                SiteThemeIssueCodes.TrialRenderUnavailable,
+                null,
+                null,
+                null,
+                new Dictionary<string, string>
+                {
+                    ["Total"] = paths.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                }));
+
+            return issues;
+        }
+
         var failures = new Dictionary<string, SiteThemeIssue>(StringComparer.Ordinal);
         var fragmentWarnings = new Dictionary<string, SiteThemeIssue>(StringComparer.Ordinal);
         var stopwatch = Stopwatch.StartNew();
@@ -162,6 +180,15 @@ public class SiteThemeTrialRenderer : ITransientDependency
         }
 
         return issues;
+    }
+
+    /// <summary>
+    /// The renderer of <c>Dignite.Site.Public.Web</c>, or the site's over HTTP for an administration API deployed apart
+    /// from it, or null with neither - see <see cref="SiteThemePreviewRendererProvider"/>.
+    /// </summary>
+    protected virtual ISiteThemePreviewRenderer? FindRenderer()
+    {
+        return LazyServiceProvider.LazyGetRequiredService<SiteThemePreviewRendererProvider>().Find();
     }
 
     /// <summary>
