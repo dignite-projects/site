@@ -31,6 +31,13 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
+    # ABP's own usage telemetry off for every process the job starts. It inspects the machine in the background
+    # (running tools and reading their output), and on 2026-11-05 a race in it crashed the EF Core test host
+    # ("Destination is too short" in Volo.Abp.Internal.Telemetry...SoftwareDetector) after every test had passed.
+    # A CI runner has no usage to report. ABP reads the switch from configuration; tests take environment variables.
+    env:
+      Abp__Telemetry__IsEnabled: "false"
+
     # Keep Site under site/ to match CI's working directories and the artifact paths below.
     defaults:
       run:

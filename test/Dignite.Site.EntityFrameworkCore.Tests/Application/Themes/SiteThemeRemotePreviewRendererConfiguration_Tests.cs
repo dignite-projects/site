@@ -23,7 +23,9 @@ public class SiteThemeRemotePreviewRendererConfiguration_Tests : SiteEntityFrame
         options.Services.ReplaceConfiguration(new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["RemoteServices:" + SiteThemePreviewConsts.RendererRemoteServiceName + ":BaseUrl"] = "http://site.internal:8080/"
+                ["RemoteServices:" + SiteThemePreviewConsts.RendererRemoteServiceName + ":BaseUrl"] = "http://site.internal:8080/",
+                // The configuration is replaced whole, so the CI's Abp__Telemetry__IsEnabled would not reach it.
+                ["Abp:Telemetry:IsEnabled"] = "false"
             })
             .Build());
     }
