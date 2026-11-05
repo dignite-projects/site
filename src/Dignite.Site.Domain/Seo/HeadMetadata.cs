@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Dignite.Site.Seo;
@@ -75,4 +76,37 @@ public class HeadMetadata
     /// Null when there is only one alternate, or none of them is in the default language.
     /// </summary>
     public string? XDefaultUrl { get; }
+
+    /// <summary>
+    /// Whether <see cref="OgImageUrl"/> is the site's default share image (<c>Site.Seo.DefaultShareImage</c>)
+    /// rather than the content's own: a template that has an image of its own for the page, a post's cover say,
+    /// puts it in place of the default but never in place of an image the author chose.
+    /// </summary>
+    public bool IsDefaultOgImage { get; init; }
+
+    /// <summary>
+    /// The size <see cref="OgImageUrl"/> is served at, for <c>og:image:width</c>/<c>og:image:height</c>: an image
+    /// of the file library is cropped to <see cref="OpenGraphConsts"/>' size. Null for an external image, whose
+    /// size is unknown.
+    /// </summary>
+    public int? OgImageWidth { get; init; }
+
+    /// <inheritdoc cref="OgImageWidth"/>
+    public int? OgImageHeight { get; init; }
+
+    /// <summary>The site's name, <c>Site.Branding.AppName</c>, for <c>og:site_name</c>; null when it is not set.</summary>
+    public string? SiteName { get; init; }
+
+    /// <summary>
+    /// The site's primary origin (<see cref="SiteUrlContext.BaseUrl"/>), which every absolute URL here is built on,
+    /// so that a renderer makes the addresses it writes itself - in structured data, say - absolute the same way.
+    /// </summary>
+    public string BaseUrl { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The way from the home page to this route: the page's ancestors (<c>Page.ParentId</c>), the home page first,
+    /// then the page, then the content when the route is one. Derived from the page tree like the canonical URL
+    /// (总体设计 §5.3(2)), for a visible breadcrumb and a <c>BreadcrumbList</c> alike.
+    /// </summary>
+    public IReadOnlyList<BreadcrumbItem> Breadcrumb { get; init; } = Array.Empty<BreadcrumbItem>();
 }

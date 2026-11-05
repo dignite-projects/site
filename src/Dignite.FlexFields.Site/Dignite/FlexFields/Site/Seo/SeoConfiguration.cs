@@ -18,14 +18,17 @@ public static class SeoConfigurationNames
 /// </summary>
 public class SeoConfiguration : FieldConfigurationBase
 {
-    /// <summary>Default value: 60 - Google's practical truncation point for a search result title.</summary>
+    /// <summary>
+    /// In columns (Dignite.Site.Seo.SeoTextWidth: a Chinese, Japanese or Korean character takes two). Default value: 60 -
+    /// Google's practical truncation point for a search result title.
+    /// </summary>
     public int MetaTitleCharLimit
     {
         get => ConfigurationDictionary.GetConfiguration(SeoConfigurationNames.MetaTitleCharLimit, 60);
         set => ConfigurationDictionary.SetConfiguration(SeoConfigurationNames.MetaTitleCharLimit, value);
     }
 
-    /// <summary>Default value: 160 - the conventional SERP snippet length.</summary>
+    /// <summary>In columns, as <see cref="MetaTitleCharLimit"/>. Default value: 160 - the conventional SERP snippet length.</summary>
     public int MetaDescriptionCharLimit
     {
         get => ConfigurationDictionary.GetConfiguration(SeoConfigurationNames.MetaDescriptionCharLimit, 160);

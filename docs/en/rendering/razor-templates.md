@@ -58,6 +58,7 @@ Every template receives a `SiteRenderViewModel`:
 | `PublishedAfter`, `PublishedBefore` | The period that `publishTime` placeholders named, such as the whole of August 2026 for `/news/2026/08`. |
 | `CurrentPage` | The page of a paged list that the request asks for with `?page=2`, or 1; for `<content-list current-page>` and `<site-head-metadata current-page>`. |
 | `HeadMetadata` | The `<head>` metadata of the request; see [The Head](#the-head). |
+| `Breadcrumb` | The way from the home page to the request: each step's `Name`, `Path`, `Url` and `IsCurrent`; see [Breadcrumbs](../seo/index.md#breadcrumbs). |
 
 One template serves the page and the contents beneath it, and branches on `Content`:
 
@@ -169,7 +170,7 @@ Inject the public application services for anything else a template needs:
 
 ## The Head
 
-`site-head-metadata` writes the tags that come from the page: the description, the canonical URL, the robots tag, Open Graph, the Twitter card, the hreflang alternates and `x-default`. The `<title>`, the charset and the viewport stay the template's own:
+`site-head-metadata` writes the tags that come from the page: the description, the canonical URL, the robots tag, Open Graph, the Twitter card, the hreflang alternates and `x-default`, and the structured data the template gives it. The `<title>`, the charset and the viewport stay the template's own:
 
 ````cshtml
 <head>
@@ -185,6 +186,32 @@ Inject the public application services for anything else a template needs:
 | `title` | The title for `og:title`, when the template composes its own, such as a localized archive title. Defaults to `HeadMetadata.MetaTitle`. |
 | `fallback-description` | A description to use when the content has none. |
 | `current-page`, `page-query-key` | The page of a paged list, and its query parameter, `page` by default. Beyond the first page, the canonical URL and the alternates carry the page number. |
+| `image` | A share image for the page, such as a post's cover: used when the content's SEO field has none, in place of the site's default share image. A file library address or an absolute URL. |
+| `og-type` | `website`, the default, or `article`, which also writes `published-time` and `modified-time`. |
+| `published-time`, `modified-time` | The content's publish and last modification times, for `article:published_time` and `article:modified_time`. |
+| `schema` | Structured data: a schema.org node or a list of them, as any value that serializes to a JSON object; a `Dictionary<string, object?>` lets a key be `"@type"`. See [Structured Data](../seo/index.md#structured-data). |
+
+A post with its cover as the share image, and its structured data:
+
+````cshtml
+@{
+    var post = Model.Content!;
+    var article = new Dictionary<string, object?>
+    {
+        ["@type"] = "BlogPosting",
+        ["headline"] = post.GetText("title"),
+        ["image"] = post.GetFileUrl("cover"),
+        ["datePublished"] = post.Content.PublishTime,
+        ["author"] = new Dictionary<string, object?> { ["@type"] = "Person", ["name"] = post.GetText("author") }
+    };
+}
+<site-head-metadata metadata="@Model.HeadMetadata"
+                    image="@post.GetFileUrl("cover")"
+                    og-type="article"
+                    published-time="@post.Content.PublishTime"
+                    modified-time="@post.Content.LastModificationTime"
+                    schema="@article" />
+````
 
 See [SEO](../seo/index.md) for what the metadata contains and where it comes from.
 

@@ -8,6 +8,7 @@ using Dignite.Site.Mcp.Languages;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
 using Dignite.Site.Mcp.Schema;
+using Dignite.Site.Mcp.Seo;
 using Dignite.Site.Mcp.Themes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -57,7 +58,9 @@ public class SiteMcpModule : AbpModule
             .AddTools<DirectoryTools>()
             .AddTools<FileTools>()
             .AddTools<SiteThemeTools>()
+            .AddTools<SiteThemeTransferTools>()
             .AddTools<SiteLanguageTools>()
+            .AddTools<SiteSeoSettingsTools>()
             .AddResources<SiteSchemaResources>()
             .AddResources<SiteThemeResources>()
             .AddInstructions(SiteMcpConsts.Instructions)

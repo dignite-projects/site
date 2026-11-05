@@ -61,12 +61,57 @@ layout = "layouts/landing"
 * `layout = "none"` renders the page template alone, as a complete document.
 * Front matter is not part of the output. It may set nothing but `layout`, to a path in quotes; anything else is an [error](#checking-the-theme). Front matter is read only in a page template: a partial's is ignored, and a layout cannot have one.
 
-A page must call `site_head`, which writes the head metadata of the page: the description, the canonical URL, the robots tag, Open Graph (`og:title` included), the Twitter card and the hreflang alternates. It does not write the `<title>` element, the charset or the viewport, which stay the layout's own: write the title as `<title>{{ head?.meta_title ?? page.display_name }}</title>`. Without `site_head`, the page would lose its [SEO](../seo/index.md) tags. So the rule is enforced twice:
+A page must call `site_head`, which writes the head metadata of the page: the description, the canonical URL, the robots tag, Open Graph (`og:title`, `og:site_name` and `og:locale` included), the Twitter card, the hreflang alternates, and the structured data the template gives it; see [The Head](#the-head). It does not write the `<title>` element, the charset or the viewport, which stay the layout's own: write the title as `<title>{{ head?.meta_title ?? page.display_name }}</title>`. Without `site_head`, the page would lose its [SEO](../seo/index.md) tags. So the rule is enforced twice:
 
 * The [check](#checking-the-theme) refuses a layout, or a page template rendered without a layout, that calls `site_head` nowhere, neither itself nor in a template it includes. A theme with such an error cannot be published.
 * Rendering a page whose render never executed `site_head` fails with the error `Site:090005`, instead of serving a page without the tags.
 
-`site_head` writes the same tags as the `<site-head-metadata>` tag helper of a Razor view. It takes two optional arguments, a title and a description: the title overrides the Open Graph title, and the description is used only when the content has none of its own. For example, `{{ site_head "Archive" }}`. On the second page of a paged list and beyond, the canonical URL and the alternates carry the page number; see [Paging](#paging).
+`site_head` writes the same tags as the `<site-head-metadata>` tag helper of a Razor view. On the second page of a paged list and beyond, the canonical URL and the alternates carry the page number; see [Paging](#paging).
+
+## The Head
+
+`site_head` takes either two optional arguments, a title and a description, or one object of options:
+
+````
+{{ site_head "Archive" }}
+{{ site_head { image: content.fields.cover, type: "article" } }}
+````
+
+| Option | Description |
+|---|---|
+| `title` | Overrides `og:title`, which is the content's title otherwise. |
+| `description` | Used only when the content has no description of its own. |
+| `image` | A share image for the page, used when the content's SEO field has none, in place of the site's default share image: an address, or a file field's value, of which the first file is taken. An image of the file library is cropped to 1200 x 630. |
+| `type` | `og:type`: `website`, the default, or `article`, which also writes the content's `article:published_time` and `article:modified_time`. |
+| `schema` | Structured data: a schema.org node, or a list of them; see below. |
+
+An option that is not in the table, or a `type` that is neither, fails the render.
+
+The share image is the first of: the image of the content's SEO field, the template's `image`, and the site's default share image (`Site.Seo.DefaultShareImage`, see [Settings](../settings.md)). `og:image:alt` is not written: a template that wants it writes its own tag after `site_head`.
+
+### Structured Data
+
+The template decides which schema.org types a page carries and what goes in them, and gives them to `site_head` as `schema`; Site writes them in a `<script type="application/ld+json">` and makes sure they are written correctly:
+
+* Several nodes become one `@graph` under one `@context`; a single node gets the `@context` itself.
+* A property with nothing in it, such as a field that is empty on this content, is left out, at any depth, so a template need not ask first.
+* An address written `~/...` is put in the page's language, as [`url`](#functions) does, and made absolute on the site's primary domain; so is an address of the file library (`/api/site-public/files/...`). Any other text is written as it is.
+* `<`, `>` and `&` are escaped, so a title that holds `</script>` cannot end the script.
+
+Each node must be an object with an `@type`; anything else fails the render. A key such as `@type` is written in quotes:
+
+````
+{{ crumbs = [] }}
+{{ for step in breadcrumb }}
+  {{ crumbs = array.add crumbs { "@type": "ListItem", position: for.index + 1, name: step.name, item: step.url } }}
+{{ end }}
+{{ site_head { schema: [
+  { "@type": "Organization", "@id": "~/#org", name: "Example", url: "~/", logo: "~/logo.png" },
+  { "@type": "BreadcrumbList", itemListElement: crumbs }
+] } }}
+````
+
+`breadcrumb` is the way from the home page to the page being rendered: each step has `name`, `path` (for a link on the page), `url` (absolute, for structured data) and `is_current`. See [Breadcrumbs](../seo/index.md#breadcrumbs).
 
 ## Templates for One Language
 
@@ -224,7 +269,8 @@ A template is given data, and only data: the page and the content being rendered
 | `filter_values`, `field_filters` | What the path gave the route's placeholders, with the keys as the route wrote them: `filter_values["publishTime:yyyy"]`. See [The View Model](razor-templates.md#the-view-model). |
 | `published_after`, `published_before` | The period that `publishTime` placeholders named, as dates, or empty. |
 | `page_no` | The page of a paged list that the request asks for with `?page=2`, or 1. See [Paging](#paging). |
-| `head` | The head metadata of the request, or empty: `meta_title`, `base_meta_title`, `meta_description`, `canonical_url`, `robots_content`, `og_image_url`, `og_type`, `twitter_card_type`, `hreflang_alternates` (each with `culture_name`, `url` and `path`) and `x_default_url`. |
+| `head` | The head metadata of the request, or empty: `meta_title`, `base_meta_title`, `meta_description`, `canonical_url`, `robots_content`, `og_image_url`, `is_default_og_image`, `og_image_width`, `og_image_height`, `og_type`, `twitter_card_type`, `site_name`, `locale`, `locale_alternates`, `base_url`, `hreflang_alternates` (each with `culture_name`, `url` and `path`), `x_default_url` and `breadcrumb`. |
+| `breadcrumb` | The way from the home page to the request: each step has `name`, `path`, `url` and `is_current`. See [The Head](#the-head). |
 | `body` | In a layout only: the rendered page template. |
 
 ### Output Encoding
@@ -243,7 +289,7 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 
 | Function | Description |
 |---|---|
-| `site_head [title] [description]` | Writes the head tags; see [Layouts](#layouts). |
+| `site_head [title] [description]`, `site_head options` | Writes the head tags and the structured data; see [The Head](#the-head). |
 | `t key [fallback]` | A localized text, in the language of the page; `fallback` when the key has no text. It can be piped: `{{ "Key" | t }}`. The texts are the theme's own, in `locales/{culture}.json`, and nothing else. See [Localizing Template Texts](template-localization.md). |
 | `url path [culture]` | The address of a path in a language. Only a path that starts with `~/` gets the language prefix and the application's path base; anything else is returned unchanged. The language of the request by default. |
 | `page_url page_no` | The address of a page of the list the current page is, for a pager; see [Paging](#paging). |
@@ -480,13 +526,31 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | `POST /releases/{id}/set-live` | `SiteAdmin.Themes.Publish` | Makes a release live; an older one is the rollback. |
 | `POST /releases/{id}/restore` | `SiteAdmin.Themes.Edit` | Copies a release back into the working copy. |
 | `GET /preview?path=...&releaseId=...` | `SiteAdmin.Themes` | [Previews](#previewing) the page at the path with the working copy, or with the release when `releaseId` is given. Returns `html`, `path`, `pageName`, `cultureName`, `pageTemplate` (the template rendered, a [version for the page's language](#templates-for-one-language) when it has one) and `layout`. |
+| `GET /export?releaseId=...` | `SiteAdmin.Themes` | The working copy, or the release when `releaseId` is given, as a zip; see [Exporting and Importing](#exporting-and-importing). |
+| `POST /import` | `SiteAdmin.Themes.Edit` | Brings a zip (`File`, multipart) into the working copy, merged or, with `Replace`, replacing it. |
+| `POST /export-links`, `POST /import-links` | `SiteAdmin.Themes`, `SiteAdmin.Themes.Edit` | A one-time link that downloads the export, or that takes a zip as the body of a `PUT` and imports it. |
 | `GET /preview-link?path=...&releaseId=...` | `SiteAdmin.Themes` | A link that opens the site at the path, the home page by default, [in a browser](#in-a-browser) with the working copy, or with the release when `releaseId` is given. Returns `url`, `path`, `releaseId` and `expiresAt`. |
 
 A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`), that is not in the working copy (`Site:090012`) or that is not a layout (`Site:090013`) are answered as business errors.
 
+### Exporting and Importing
+
+The whole theme can be taken out as one zip and brought back in: to build its stylesheet where its templates can be read, to bring many files in at once, or to keep a copy elsewhere. In the zip, each file is at its own path, templates without an extension as they are stored, and `.site-theme.json` holds the default layout.
+
+An import goes into the working copy only: nothing goes live until it is checked and published, as any change is. It is one of two kinds:
+
+* **Merge**, the default: the zip's files are added, or replace the file at their path, and the rest of the working copy stays. A zip that holds only `css/site.css` updates the stylesheet.
+* **Replace**: the working copy becomes the zip; a file it does not have is deleted.
+
+When `.site-theme.json` names a default layout, it becomes the working copy's. The result lists the files added, modified, deleted and unchanged, and the syntax errors of the templates brought in, which are kept as a save keeps them.
+
+A zip with anything wrong is refused whole, with every problem listed (`Site:090014`): a path outside the theme or not of a theme file's shape, an extension no theme file may have, a file that is not UTF-8 text, more than 256 KiB in one file, or more than 1,000 files or 32 MiB in all (`SiteThemePackage.MaxFileCount` and `MaxBytes`). Hidden files, such as `.DS_Store`, and the `__MACOSX/` folder a Mac adds are passed over. The files go at the top of the zip, not inside a folder.
+
+A client that should not carry the bytes itself, such as an AI client over MCP, asks for a **link** instead: good for ten minutes and one use, run as the one who asked for it, like the [upload links of files](../files.md). A download link answers `GET` with the zip; an import link takes the zip as the body of a `PUT`. A link that has expired, has been used, or is not the site's own is refused with `Site:090015`. Behind a gateway, route `api/site-admin/theme/download/*` and `api/site-admin/theme/upload/*` to Site, as `api/site-admin/files/upload/*` is.
+
 ### MCP Tools
 
-The MCP server offers the same operations: `site_list_theme_files`, `site_get_theme_file`, `site_save_theme_file`, `site_rename_theme_file`, `site_delete_theme_file`, `site_update_theme`, `site_check_theme`, `site_preview`, `site_get_preview_link`, `site_publish_theme`, `site_list_releases`, `site_set_live_release` and `site_restore_release`. Files are addressed by path and releases by number. The recommended flow is to save, check and fix every error, preview, and then publish with the check's fingerprint; making an older release live is the rollback. See [Tools](../mcp/tools.md#theme).
+The MCP server offers the same operations: `site_list_theme_files`, `site_get_theme_file`, `site_save_theme_file`, `site_rename_theme_file`, `site_delete_theme_file`, `site_update_theme`, `site_check_theme`, `site_preview`, `site_get_preview_link`, `site_publish_theme`, `site_list_releases`, `site_set_live_release` and `site_restore_release`, and `site_create_theme_download_url` and `site_create_theme_upload_url` for [exporting and importing](#exporting-and-importing). Files are addressed by path and releases by number. The recommended flow is to save, check and fix every error, preview, and then publish with the check's fingerprint; making an older release live is the rollback. See [Tools](../mcp/tools.md#theme).
 
 ## Example
 

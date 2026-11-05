@@ -43,4 +43,8 @@ export enum eSitePolicyNames {
   Languages = 'SiteAdmin.Languages',
   /** Setting them: the default language is the one without a URL prefix, so this moves the address of pages. */
   LanguagesUpdate = 'SiteAdmin.Languages.Update',
+
+  Seo = 'SiteAdmin.Seo',
+  /** Setting the default share image: the one a page without a share image of its own is shared with. */
+  SeoUpdate = 'SiteAdmin.Seo.Update',
 }

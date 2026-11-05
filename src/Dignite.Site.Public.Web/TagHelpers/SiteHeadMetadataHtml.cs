@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
+using System.Xml;
+using Dignite.Site.Files;
 using Dignite.Site.Public.Seo;
+using Dignite.Site.Seo;
+using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
 
@@ -37,10 +41,29 @@ public static class SiteHeadMetadataHtml
         string pageQueryKey,
         HtmlEncoder? encoder = null)
     {
-        var tags = BuildTags(metadata, title, fallbackDescription, url => Paged(url, currentPage, pageQueryKey));
+        return Build(
+            metadata,
+            new SiteHeadOptions { Title = title, FallbackDescription = fallbackDescription },
+            currentPage,
+            pageQueryKey,
+            encoder);
+    }
+
+    /// <summary>
+    /// The tags as HTML, each followed by <see cref="Environment.NewLine"/>, with what the template adds in
+    /// <paramref name="options"/>.
+    /// </summary>
+    public static string Build(
+        HeadMetadataDto? metadata,
+        SiteHeadOptions options,
+        int currentPage,
+        string pageQueryKey,
+        HtmlEncoder? encoder = null)
+    {
+        var tags = BuildTags(metadata, options, url => Paged(url, currentPage, pageQueryKey));
 
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        foreach (var tag in tags)
+        foreach (IHtmlContent tag in tags)
         {
             tag.WriteTo(writer, encoder ?? HtmlEncoder.Default);
             writer.Write(Environment.NewLine);
@@ -60,9 +83,21 @@ public static class SiteHeadMetadataHtml
         string? fallbackDescription,
         Func<string, string> paged)
     {
+        return BuildTags(metadata, new SiteHeadOptions { Title = title, FallbackDescription = fallbackDescription }, paged);
+    }
+
+    /// <summary>
+    /// The tags themselves, with what the template adds in <paramref name="options"/> and the paging of every
+    /// address left to <paramref name="paged"/>.
+    /// </summary>
+    public static IReadOnlyList<TagBuilder> BuildTags(
+        HeadMetadataDto? metadata,
+        SiteHeadOptions options,
+        Func<string, string> paged)
+    {
         var description = !string.IsNullOrWhiteSpace(metadata?.MetaDescription)
             ? metadata!.MetaDescription
-            : fallbackDescription;
+            : options.FallbackDescription;
 
         var tags = new List<TagBuilder>();
 
@@ -82,7 +117,7 @@ public static class SiteHeadMetadataHtml
                 tags.Add(Meta("name", "robots", metadata.RobotsContent));
             }
 
-            tags.Add(Meta("property", "og:title", string.IsNullOrWhiteSpace(title) ? metadata.MetaTitle : title));
+            tags.Add(Meta("property", "og:title", string.IsNullOrWhiteSpace(options.Title) ? metadata.MetaTitle : options.Title));
 
             if (!string.IsNullOrWhiteSpace(description))
             {
@@ -91,19 +126,58 @@ public static class SiteHeadMetadataHtml
 
             tags.Add(Meta("property", "og:url", canonicalUrl));
 
-            if (!string.IsNullOrWhiteSpace(metadata.OgType))
+            var ogType = string.IsNullOrWhiteSpace(options.OgType) ? metadata.OgType : options.OgType;
+            if (!string.IsNullOrWhiteSpace(ogType))
             {
-                tags.Add(Meta("property", "og:type", metadata.OgType));
+                tags.Add(Meta("property", "og:type", ogType));
             }
 
-            if (!string.IsNullOrWhiteSpace(metadata.OgImageUrl))
+            if (!string.IsNullOrWhiteSpace(metadata.SiteName))
             {
-                tags.Add(Meta("property", "og:image", metadata.OgImageUrl));
+                tags.Add(Meta("property", "og:site_name", metadata.SiteName));
             }
 
-            if (!string.IsNullOrWhiteSpace(metadata.TwitterCardType))
+            if (!string.IsNullOrWhiteSpace(metadata.Locale))
             {
-                tags.Add(Meta("name", "twitter:card", metadata.TwitterCardType));
+                tags.Add(Meta("property", "og:locale", metadata.Locale));
+            }
+
+            // Null-safe: a DTO that came over HTTP can carry a null list.
+            foreach (var locale in metadata.LocaleAlternates ?? new List<string>())
+            {
+                tags.Add(Meta("property", "og:locale:alternate", locale));
+            }
+
+            var image = ResolveShareImage(metadata, options.Image);
+            if (image != null)
+            {
+                tags.Add(Meta("property", "og:image", image.Url));
+                if (image.Width != null && image.Height != null)
+                {
+                    tags.Add(Meta("property", "og:image:width", image.Width.Value.ToString(CultureInfo.InvariantCulture)));
+                    tags.Add(Meta("property", "og:image:height", image.Height.Value.ToString(CultureInfo.InvariantCulture)));
+                }
+            }
+
+            if (ogType == SiteHeadOptions.ArticleType)
+            {
+                if (options.PublishedTime != null)
+                {
+                    tags.Add(Meta("property", "article:published_time", FormatTime(options.PublishedTime.Value)));
+                }
+
+                if (options.ModifiedTime != null)
+                {
+                    tags.Add(Meta("property", "article:modified_time", FormatTime(options.ModifiedTime.Value)));
+                }
+            }
+
+            // The card follows the image the page ends up with, as Site decides it for the route's own image: a
+            // template's image makes a large card of a page that would otherwise have none.
+            var twitterCard = image != null ? "summary_large_image" : metadata.TwitterCardType;
+            if (!string.IsNullOrWhiteSpace(twitterCard))
+            {
+                tags.Add(Meta("name", "twitter:card", twitterCard));
             }
 
             foreach (var alternate in metadata.HreflangAlternates)
@@ -117,7 +191,41 @@ public static class SiteHeadMetadataHtml
             }
         }
 
+        if (!string.IsNullOrEmpty(options.JsonLd))
+        {
+            tags.Add(new JsonLdScriptTag(options.JsonLd));
+        }
+
         return tags;
+    }
+
+    /// <summary>
+    /// The share image a page ends up with: the one the content's author chose (its SEO field); else the template's
+    /// <paramref name="templateImage"/>, sized and made absolute the way Site does its own; else the site's default
+    /// share image; else none.
+    /// </summary>
+    public static SiteShareImage? ResolveShareImage(HeadMetadataDto metadata, string? templateImage)
+    {
+        var hasAuthorImage = !string.IsNullOrWhiteSpace(metadata.OgImageUrl) && !metadata.IsDefaultOgImage;
+        if (!hasAuthorImage && !string.IsNullOrWhiteSpace(templateImage))
+        {
+            var url = SiteFileUrl.Absolutize(
+                SiteFileUrl.Sized(templateImage.Trim(), OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight),
+                metadata.BaseUrl ?? string.Empty)!;
+            return SiteFileUrl.IsSiteFile(url)
+                ? new SiteShareImage(url, OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight)
+                : new SiteShareImage(url, null, null);
+        }
+
+        return string.IsNullOrWhiteSpace(metadata.OgImageUrl)
+            ? null
+            : new SiteShareImage(metadata.OgImageUrl, metadata.OgImageWidth, metadata.OgImageHeight);
+    }
+
+    /// <summary>A time as Open Graph's <c>article:*</c> properties take it: ISO 8601, with its offset when it has one.</summary>
+    private static string FormatTime(DateTime time)
+    {
+        return XmlConvert.ToString(time, XmlDateTimeSerializationMode.RoundtripKind);
     }
 
     /// <summary><paramref name="url"/> with the page number, beyond page 1.</summary>
@@ -126,6 +234,34 @@ public static class SiteHeadMetadataHtml
         return currentPage > 1
             ? QueryHelpers.AddQueryString(url, pageQueryKey, currentPage.ToString(CultureInfo.InvariantCulture))
             : url;
+    }
+
+    /// <summary>
+    /// <c>&lt;script type="application/ld+json"&gt;</c> with the structured data, written as it is: SiteJsonLd has escaped
+    /// <c>&lt;</c>, <c>&gt;</c> and <c>&amp;</c> already, so nothing in it can end the script. Written by hand rather than
+    /// by <see cref="TagBuilder"/>, whose encoder would write the type's <c>+</c> as <c>&amp;#x2B;</c>. It stays a
+    /// <see cref="TagBuilder"/>, with the same attribute and content, for a caller that reads the list.
+    /// </summary>
+    private sealed class JsonLdScriptTag : TagBuilder, IHtmlContent
+    {
+        private const string Type = "application/ld+json";
+
+        private readonly string _json;
+
+        public JsonLdScriptTag(string json)
+            : base("script")
+        {
+            _json = json;
+            Attributes["type"] = Type;
+            InnerHtml.AppendHtml(json);
+        }
+
+        void IHtmlContent.WriteTo(TextWriter writer, HtmlEncoder encoder)
+        {
+            writer.Write("<script type=\"" + Type + "\">");
+            writer.Write(_json);
+            writer.Write("</script>");
+        }
     }
 
     private static TagBuilder Meta(string keyAttribute, string key, string content)

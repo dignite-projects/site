@@ -22,6 +22,7 @@ A site has no configuration entity of its own: every tenant is one site, and its
 | `Site.Branding.AppName` | Empty | The site's display name. Empty uses the application's default. |
 | `Site.Branding.LogoUrl` | Empty | The logo shown on a light background. |
 | `Site.Branding.LogoReverseUrl` | Empty | The logo shown on a dark background. |
+| `Site.Seo.DefaultShareImage` | Empty | The image shown when a page shared on a social network has no share image of its own: a file library address or an absolute URL. See [Share Images](seo/index.md#share-images). Set on the SEO tab of the admin UI's Setting Management page, with `PUT /api/site-admin/seo-settings`, or with the `site_set_default_share_image` [MCP tool](mcp/tools.md). |
 
 The `Site.Robots.*` and `Site.EnableLlmsTxt` settings are described in [robots.txt and llms.txt](seo/robots-and-llms-txt.md). The branding settings replace ABP's branding provider, so the theme of an ABP application shows each tenant's own name and logo.
 
@@ -74,10 +75,12 @@ The `Site.Enable` feature, on by default, switches the administration side of Si
 | `SiteAdmin.Contents` | Reading the contents, drafts included, and managing every user's files. |
 | `SiteAdmin.Contents.Create`, `.Update`, `.Delete` | Creating, updating and deleting contents, and uploading, changing and deleting files. |
 | `SiteAdmin.Themes` | Reading the [Scriban theme](rendering/scriban-templates.md): its working copy, its releases and the check, and previewing. |
-| `SiteAdmin.Themes.Edit` | Changing the working copy: saving, renaming and deleting files, the default layout, and restoring a release into it. |
+| `SiteAdmin.Themes.Edit` | Changing the working copy: saving, renaming and deleting files, the default layout, restoring a release into it, and importing a theme package. |
 | `SiteAdmin.Themes.Publish` | Changing what the site renders: publishing the working copy, and making an older release live. |
 | `SiteAdmin.Languages` | Reading the languages the site serves. |
 | `SiteAdmin.Languages.Update` | Setting them. The default language is the one without a URL prefix, so this moves the address of pages. |
+| `SiteAdmin.Seo` | Reading the SEO settings: the default share image. |
+| `SiteAdmin.Seo.Update` | Setting them. |
 
 The file library has no permissions of its own; see [Files](files.md#permissions). The public read API needs no permission. The MCP tools are authorized by the same permissions as the administration API; see [MCP Server](mcp/index.md#authorization).
 

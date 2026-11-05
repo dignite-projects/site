@@ -102,10 +102,10 @@ The `Seo` field type bundles the SEO metadata of a content into one value. Every
 
 | Configuration key | Default | Description |
 |---|---|---|
-| `Seo.MetaTitleCharLimit` | `60` | The advised length of the meta title. |
-| `Seo.MetaDescriptionCharLimit` | `160` | The advised length of the meta description. |
+| `Seo.MetaTitleCharLimit` | `60` | The advised width of the meta title, in columns: a Chinese, Japanese or Korean character takes two. |
+| `Seo.MetaDescriptionCharLimit` | `160` | The advised width of the meta description, in columns. |
 
-The two limits are advice for editors and AI clients; a longer value is not refused, since a search engine truncates a long title rather than rejecting it. See [SEO](seo/index.md) for how the metadata is written into a page's `<head>`.
+The two limits are advice for editors and AI clients: the admin UI counts the columns beside each field, and the MCP tools that store a content return a warning when a value is wider. A longer value is not refused, since a search engine truncates a long title rather than rejecting it; see [Title and Description Length](seo/index.md#title-and-description-length). See [SEO](seo/index.md) for how the metadata is written into a page's `<head>`.
 
 ## See Also
 

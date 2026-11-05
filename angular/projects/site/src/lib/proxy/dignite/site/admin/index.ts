@@ -5,5 +5,6 @@ import * as Files from './files';
 import * as Languages from './languages';
 import * as Pages from './pages';
 import * as Schema from './schema';
+import * as Seo from './seo';
 import * as Themes from './themes';
-export { ContentTypes, Contents, Fields, Files, Languages, Pages, Schema, Themes };
+export { ContentTypes, Contents, Fields, Files, Languages, Pages, Schema, Seo, Themes };

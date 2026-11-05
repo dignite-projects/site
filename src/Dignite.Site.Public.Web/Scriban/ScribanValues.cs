@@ -1,4 +1,9 @@
+using System;
+using System.Collections;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using global::Scriban;
+using global::Scriban.Parsing;
 using global::Scriban.Runtime;
 
 namespace Dignite.Site.Public.Scriban;
@@ -62,5 +67,73 @@ public static class ScribanValues
     public static ScriptObject ObjectFromJson(JsonElement element)
     {
         return FromJson(element) as ScriptObject ?? new ScriptObject();
+    }
+    /// <summary>
+    /// Template data to JSON - the way back, for what a template hands to Site as JSON (the structured data of
+    /// <c>site_head</c>): objects become <see cref="JsonObject"/> with their keys as the template wrote them, lists
+    /// <see cref="JsonArray"/>, and strings, booleans, numbers and dates their JSON values. Anything else is written
+    /// as the template would write it, as a string.
+    /// </summary>
+    public static JsonNode? ToJsonNode(TemplateContext context, SourceSpan span, object? value)
+    {
+        switch (value)
+        {
+            case null:
+                return null;
+            case string text:
+                return JsonValue.Create(text);
+            case ScribanRawHtml html:
+                return JsonValue.Create(html.Value);
+            case bool flag:
+                return JsonValue.Create(flag);
+            case int number:
+                return JsonValue.Create(number);
+            case long number:
+                return JsonValue.Create(number);
+            case decimal number:
+                return JsonValue.Create(number);
+            case double number:
+                return JsonValue.Create(number);
+            case float number:
+                return JsonValue.Create(number);
+            case DateTime time:
+                return JsonValue.Create(time);
+            case DateTimeOffset time:
+                return JsonValue.Create(time);
+            // Before IScriptObject: a ScriptArray is one too, with members of its own (size, ...).
+            case ScriptArray array:
+            {
+                var result = new JsonArray();
+                foreach (var item in array)
+                {
+                    result.Add(ToJsonNode(context, span, item));
+                }
+
+                return result;
+            }
+            case IScriptObject obj:
+            {
+                var result = new JsonObject();
+                foreach (var name in obj.GetMembers())
+                {
+                    obj.TryGetValue(context, span, name, out var member);
+                    result[name] = ToJsonNode(context, span, member);
+                }
+
+                return result;
+            }
+            case IEnumerable items:
+            {
+                var result = new JsonArray();
+                foreach (var item in items)
+                {
+                    result.Add(ToJsonNode(context, span, item));
+                }
+
+                return result;
+            }
+            default:
+                return JsonValue.Create(context.ObjectToString(value));
+        }
     }
 }

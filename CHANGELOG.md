@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A page has a share image when its author chose none.** The new setting `Site.Seo.DefaultShareImage` - an image of the
+  file library or an absolute URL - is the `og:image` of every page whose SEO field has none, and a template can give one of
+  its own in between, such as a post's cover: `site_head { image: content.fields.cover }`, or `image` on
+  `<site-head-metadata>`. The author's image wins over the template's, and the template's over the default. An image of the
+  file library is cropped to 1200 x 630, as before, and now written with `og:image:width` and `og:image:height`. The setting
+  is set on a new **SEO** tab of Setting Management (`provideSiteSettingTabs()` adds it with the Languages tab), with
+  `GET`/`PUT api/site-admin/seo-settings`, or with the new MCP tool `site_set_default_share_image`, under two new
+  permissions, `SiteAdmin.Seo` and `SiteAdmin.Seo.Update`. `HeadMetadataDto` tells the default from the author's image with
+  `IsDefaultOgImage`. See [Share Images](docs/en/seo/index.md#share-images).
+- **The head carries the site's name and its languages.** `site_head` and `<site-head-metadata>` write `og:site_name`, from
+  `Site.Branding.AppName` when it is set, and `og:locale` and `og:locale:alternate`, the page's language and its
+  translations' as Open Graph writes them (`ja_JP`, `zh_CN`, `en_US`), and `HeadMetadataDto` has them as `SiteName`, `Locale`
+  and `LocaleAlternates`. **A host that wrote these tags itself removes its own, or they are written twice.**
+- **A template can say a page is an article.** `site_head { type: "article" }`, or `og-type="article"` with
+  `published-time` and `modified-time` on `<site-head-metadata>`, writes `og:type` `article` with
+  `article:published_time` and `article:modified_time`. `og:type` was always `website`.
+- **Structured data is written for the template, correctly.** The template decides which schema.org types a page carries,
+  as before (design doc 5.4, GitHub issue #40), and now gives them to `site_head { schema: ... }` or `schema` on
+  `<site-head-metadata>`: Site writes them in one `<script type="application/ld+json">`, several nodes in one `@graph`,
+  without empty properties, with `~/` and file library addresses made absolute on the primary domain, and with `<`, `>` and
+  `&` escaped so that no text can end the script. A node without `@type` fails the render, which the theme check's trial
+  render finds before a publish. See [Structured Data](docs/en/rendering/scriban-templates.md#structured-data).
+- **Every request has its breadcrumb.** The home page, the page's ancestors by their parent page, the page and the
+  content, each named by its title in the language viewed, with a site-relative `path` and an absolute `url`: `breadcrumb` in
+  a Scriban template, `Model.Breadcrumb` in a Razor one, `HeadMetadataDto.Breadcrumb` for an external front end - for a
+  visible breadcrumb and a `BreadcrumbList` alike. See [Breadcrumbs](docs/en/seo/index.md#breadcrumbs).
+- **A theme can be taken out as one zip and brought back in.** `GET api/site-admin/theme/export` downloads the working
+  copy, or a release, with each file at its path and the default layout in `.site-theme.json`; `POST
+  api/site-admin/theme/import` brings a zip into the working copy, merged (the zip's files added or replacing theirs) or
+  replacing it, and lists what changed and the syntax errors of the templates brought in. Nothing goes live. A zip with
+  anything wrong is refused whole, every problem listed (`Site:090014`). An AI client asks for a one-time link instead -
+  the new MCP tools `site_create_theme_download_url` and `site_create_theme_upload_url`, and `POST
+  api/site-admin/theme/export-links` and `import-links` - so that the bytes go between the site and the disk and never
+  through the model; a used or expired link is refused with `Site:090015`. The Theme screen has **Export** and **Import**
+  buttons, and an **Export** for each release. See [Exporting and Importing](docs/en/rendering/scriban-templates.md#exporting-and-importing).
+- **The MCP tools that store a content say when its SEO title or description is too wide.** `site_create_content` and
+  `site_update_content` return `warnings` when a value is wider than the SEO field's limit; the content is stored all the
+  same.
+
+### Changed
+
+- **The SEO field's limits are widths, not lengths.** `Seo.MetaTitleCharLimit` and `Seo.MetaDescriptionCharLimit` count
+  columns, where a Chinese, Japanese or Korean character takes two, as a search result does: 30 kanji fill a 60-column
+  title. The keys and their defaults are unchanged; the admin UI's counters count columns. See
+  [Title and Description Length](docs/en/seo/index.md#title-and-description-length).
+
+### Migrate
+
+- **Existing roles do not have the new permissions** `SiteAdmin.Seo` and `SiteAdmin.Seo.Update`. Run the host's
+  `--migrate-database` (or its migrator), whose seed grants every permission to the `admin` role of the host and of each
+  tenant; another role is granted them in the permission dialog. No schema changes.
+- **A host behind a gateway** routes `api/site-admin/theme/download/*` and `api/site-admin/theme/upload/*` to Site, as it
+  does `api/site-admin/files/upload/*`; the links start with `SiteMcpFileOptions.UploadBaseUrl` when it is set.
+- **A derived class**: `SiteHeadMetadataHtml.BuildTags` and `Build` have an overload taking `SiteHeadOptions`, which the
+  tag helper and `site_head` now call; `ContentTools` takes an optional `IFieldAdminAppService`.
+- **The Admin C# client proxies were generated again**, with `SiteSeoSettingsAdminClientProxy` and
+  `SiteThemeTransferAdminClientProxy`; `site-admin-generate-proxy.json` now also describes the languages and the file upload
+  link endpoints, which it had missed since 2.0.0.
+
 ## [2.1.0] - 2026-11-05
 
 ### Added

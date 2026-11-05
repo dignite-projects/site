@@ -34,6 +34,12 @@ public class McpContentSummary
     /// </summary>
     public string[]? StoredFields { get; set; }
 
+    /// <summary>
+    /// After a create or an update: what the client should know about what it stored - an SEO title or description wider
+    /// than a search result shows. Advice only; the content was stored. Left out when there is nothing to say.
+    /// </summary>
+    public string[]? Warnings { get; set; }
+
     /// <summary>In a list, when it was asked for: the values, keyed by field name. Left out otherwise.</summary>
     public IDictionary<string, object?>? FieldValues { get; set; }
 }

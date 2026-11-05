@@ -5,6 +5,7 @@ import { Subject, of, throwError } from 'rxjs';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
+import { SiteThemeTransferAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-transfer-admin.service';
 import type { SiteThemeCheckDto, SiteThemeFileDto } from '../../proxy/dignite/site/admin/themes/models';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { ThemeWorkbenchComponent } from './theme-workbench.component';
@@ -53,6 +54,7 @@ describe('ThemeWorkbenchComponent', () => {
       providers: [
         ThemeWorkbenchComponent,
         { provide: SiteThemeAdminService, useValue: service },
+        { provide: SiteThemeTransferAdminService, useValue: {} },
         { provide: PageAdminService, useValue: pageService },
         { provide: FieldAdminService, useValue: fieldService },
         { provide: ConfirmationService, useValue: confirmation },

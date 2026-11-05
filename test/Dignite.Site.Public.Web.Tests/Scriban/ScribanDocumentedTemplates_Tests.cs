@@ -94,6 +94,29 @@ public class ScribanDocumentedTemplates_Tests
         {{ end }}
         """;
 
+    /// <summary>The structured data example of "The Head" in scriban-templates.md.</summary>
+    public const string StructuredData = """
+        {{ crumbs = [] }}
+        {{ for step in breadcrumb }}
+          {{ crumbs = array.add crumbs { "@type": "ListItem", position: for.index + 1, name: step.name, item: step.url } }}
+        {{ end }}
+        {{ site_head { schema: [
+          { "@type": "Organization", "@id": "~/#org", name: "Example", url: "~/", logo: "~/logo.png" },
+          { "@type": "BreadcrumbList", itemListElement: crumbs }
+        ] } }}
+        """;
+
+    [Fact]
+    public async Task The_Structured_Data_Example_Should_Write_One_Graph()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync(StructuredData);
+
+        html.ShouldContain("<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@graph\":[{\"@type\":\"Organization\"");
+        // A file-like address gets no language prefix, as url "~/logo.png" does not.
+        html.ShouldContain("\"logo\":\"/logo.png\"");
+        html.ShouldContain("{\"@type\":\"BreadcrumbList\"}");
+    }
+
     [Fact]
     public async Task The_Category_Menu_Should_List_The_Options_Of_A_Select_Field()
     {

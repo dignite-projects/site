@@ -19,6 +19,7 @@ import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-a
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
+import { SiteThemeTransferAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-transfer-admin.service';
 import type {
   SiteReleaseDto,
   SiteThemeCheckDto,
@@ -26,6 +27,7 @@ import type {
   SiteThemeFileDto,
   SiteThemeFileSummaryDto,
   SiteThemeFileUsagesDto,
+  SiteThemeImportResultDto,
   SiteThemeIssueDto,
   SiteThemeSyntaxErrorDto,
 } from '../../proxy/dignite/site/admin/themes/models';
@@ -200,6 +202,7 @@ interface ThemeTreeRow {
 })
 export class ThemeWorkbenchComponent implements OnInit {
   private readonly themeService = inject(SiteThemeAdminService);
+  private readonly transferService = inject(SiteThemeTransferAdminService);
   private readonly pageService = inject(PageAdminService);
   private readonly fieldService = inject(FieldAdminService);
   private readonly permission = inject(PermissionService);
@@ -210,6 +213,7 @@ export class ThemeWorkbenchComponent implements OnInit {
   readonly statuses = SiteThemeFileStatus;
   readonly severities = SiteThemeIssueSeverity;
 
+  readonly canExport = this.permission.getGrantedPolicy(eSitePolicyNames.Themes);
   readonly canEdit = this.permission.getGrantedPolicy(eSitePolicyNames.ThemesEdit);
   readonly canPublish = this.permission.getGrantedPolicy(eSitePolicyNames.ThemesPublish);
 
@@ -281,6 +285,12 @@ export class ThemeWorkbenchComponent implements OnInit {
   readonly publishCheck = signal<SiteThemeCheckDto | undefined>(undefined);
   readonly publishComment = signal('');
   readonly publishError = signal<string | null>(null);
+
+  readonly isImportOpen = signal(false);
+  readonly importFile = signal<File | null>(null);
+  /** Merge (false) or replace (true): whether the working copy loses the files the package does not have. */
+  readonly importReplace = signal(false);
+  readonly importResult = signal<SiteThemeImportResultDto | undefined>(undefined);
 
   readonly isReleasesOpen = signal(false);
   readonly releases = signal<SiteReleaseDto[]>([]);
@@ -878,6 +888,74 @@ export class ThemeWorkbenchComponent implements OnInit {
       });
   }
 
+  // Export and import.
+
+  /** Downloads the working copy as a zip package, or a release's when one is given. */
+  exportTheme(release?: SiteReleaseDto): void {
+    if (release && !release.id) {
+      return;
+    }
+
+    // Named here as the server names it: a Content-Disposition header is not readable across origins.
+    this.transferService.export(release?.id).subscribe(blob =>
+      downloadBlob(blob, release ? `theme-release-${release.number}.zip` : 'theme-working-copy.zip'),
+    );
+  }
+
+  openImport(): void {
+    this.importFile.set(null);
+    this.importReplace.set(false);
+    this.importResult.set(undefined);
+    this.isImportOpen.set(true);
+  }
+
+  onImportFileChange(event: Event): void {
+    this.importFile.set((event.target as HTMLInputElement).files?.[0] ?? null);
+    this.importResult.set(undefined);
+  }
+
+  /**
+   * Writes the package into the working copy; nothing goes live. A package with any invalid entry is refused whole,
+   * and ABP's error handler shows the problems. The result stays in the dialog, as the author reads what changed.
+   */
+  importTheme(): void {
+    const file = this.importFile();
+    if (!file || !this.canEdit || this.isBusy()) {
+      return;
+    }
+
+    const body = new FormData();
+    body.append('File', file, file.name);
+    body.append('Replace', String(this.importReplace()));
+
+    this.isBusy.set(true);
+    this.transferService.import(body).subscribe({
+      next: result => {
+        this.isBusy.set(false);
+        this.importResult.set(result);
+
+        // Tabs of files the package touched would show what is no longer there; those with unsaved edits stay.
+        const touched = new Set([...result.added, ...result.modified, ...result.deleted]);
+        this.openFiles.update(files => files.filter(open => !touched.has(open.path) || isDirty(open)));
+        if (!this.openFiles().some(open => open.path === this.activePath())) {
+          this.activePath.set(this.openFiles()[0]?.path);
+        }
+
+        this.refreshTheme();
+        this.refreshFiles();
+        this.runCheck();
+      },
+      error: () => this.isBusy.set(false),
+    });
+  }
+
+  /** The files with syntax errors in an import result, with their errors; empty when there are none. */
+  syntaxErrorsOf(result: SiteThemeImportResultDto): { path: string; errors: SiteThemeSyntaxErrorDto[] }[] {
+    return Object.entries(result.syntaxErrors ?? {})
+      .filter(([, errors]) => errors.length > 0)
+      .map(([path, errors]) => ({ path, errors }));
+  }
+
   // Releases.
 
   openReleases(): void {
@@ -985,6 +1063,18 @@ export class ThemeWorkbenchComponent implements OnInit {
       this.collapsed.set(next);
     }
   }
+}
+
+/** Saves a blob to disk through a link click; the object address is released once the click has been handled. */
+function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url));
 }
 
 function isDirty(file: ThemeOpenFile): boolean {

@@ -128,6 +128,13 @@ public class ScribanRenderModelBuilder : ITransientDependency
         globals.SetValue("page_no", viewModel.CurrentPage, false);
         globals.SetValue("head", viewModel.HeadMetadata == null ? null : FromDto(viewModel.HeadMetadata), false);
 
+        var breadcrumb = new ScriptArray();
+        foreach (var item in viewModel.Breadcrumb)
+        {
+            breadcrumb.Add(FromDto(item));
+        }
+        globals.SetValue("breadcrumb", breadcrumb, false);
+
         return globals;
     }
 
