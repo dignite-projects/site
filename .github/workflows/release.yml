@@ -322,7 +322,7 @@ jobs:
             const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
             for (const [name, range] of Object.entries(pkg.dependencies || {})) {
               // Only a pre-release range: a stable one (^10.7.0) is on npmjs under its own name, and
-              // GitHub Packages keeps abp-modules' pre-releases only, so aliasing it fails the install.
+              // GitHub Packages keeps the pre-releases of abp-modules only, so aliasing it fails the install.
               if (name.startsWith("@dignite/") && range.includes("-")) {
                 pkg.dependencies[name] = `npm:@dignite-projects/${name.slice("@dignite/".length)}@${range}`;
               }
