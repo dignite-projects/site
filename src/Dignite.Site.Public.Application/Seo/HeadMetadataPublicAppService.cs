@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Routing;
@@ -98,8 +99,39 @@ public class HeadMetadataPublicAppService : SitePublicAppService, IHeadMetadataP
             HreflangAlternates = metadata.HreflangAlternates
                 .Select(a => new HreflangAlternateDto { CultureName = a.CultureName, Url = a.Url, Path = a.Path })
                 .ToList(),
-            XDefaultUrl = metadata.XDefaultUrl
+            XDefaultUrl = metadata.XDefaultUrl,
+            IsDefaultOgImage = metadata.IsDefaultOgImage,
+            OgImageWidth = metadata.OgImageWidth,
+            OgImageHeight = metadata.OgImageHeight,
+            SiteName = metadata.SiteName,
+            Locale = OpenGraphLocale.From(metadata.CultureName),
+            LocaleAlternates = BuildLocaleAlternates(metadata),
+            BaseUrl = metadata.BaseUrl,
+            Breadcrumb = metadata.Breadcrumb
+                .Select((item, index) => new BreadcrumbItemDto
+                {
+                    Name = item.Name,
+                    Path = item.Path,
+                    Url = item.Url,
+                    IsCurrent = index == metadata.Breadcrumb.Count - 1
+                })
+                .ToList()
         };
+    }
+
+    /// <summary>
+    /// <c>og:locale:alternate</c>: each other language the route has a translation in, once, as Open Graph writes
+    /// it. Two languages with the same territory (<c>zh-Hans</c> and <c>zh-CN</c>) collapse into one.
+    /// </summary>
+    protected virtual List<string> BuildLocaleAlternates(HeadMetadata metadata)
+    {
+        var current = OpenGraphLocale.From(metadata.CultureName);
+        return metadata.HreflangAlternates
+            .Select(a => OpenGraphLocale.From(a.CultureName))
+            .Where(locale => locale != null && locale != current)
+            .Select(locale => locale!)
+            .Distinct()
+            .ToList();
     }
 
     /// <summary>

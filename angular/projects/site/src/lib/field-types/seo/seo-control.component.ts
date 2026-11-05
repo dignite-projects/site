@@ -10,6 +10,7 @@ import { FieldTypeControlBase } from '@dignite/ng.flex-fields';
 import { FileModalComponent } from '../../files/components/file-modal/file-modal.component';
 import { FilePreviewComponent } from '../../files/previews/file-preview.component';
 import type { FileDescriptorDto } from '../../proxy/dignite/site/admin/files';
+import { seoTextColumns } from './seo-text-width';
 import { SeoConfiguration } from './seo-configuration';
 import type { SeoFieldValue } from './seo-field-value';
 import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-og-image';
@@ -87,12 +88,13 @@ export class SeoControlComponent extends FieldTypeControlBase {
     this.setOgImage('');
   }
 
+  /** In columns, as the limits are: a Chinese, Japanese or Korean character takes two (seoTextColumns). */
   get metaTitleLength(): number {
-    return String(this.seoGroup?.get('metaTitle')?.value ?? '').length;
+    return seoTextColumns(String(this.seoGroup?.get('metaTitle')?.value ?? ''));
   }
 
   get metaDescriptionLength(): number {
-    return String(this.seoGroup?.get('metaDescription')?.value ?? '').length;
+    return seoTextColumns(String(this.seoGroup?.get('metaDescription')?.value ?? ''));
   }
 
   get metaTitleCharLimit(): number {

@@ -1,3 +1,4 @@
+import type { IRemoteStreamContent } from '../../../../volo/abp/content/models';
 import type { SiteThemeFileStatus } from '../../themes/site-theme-file-status.enum';
 import type { SiteThemeIssueSeverity } from '../../themes/site-theme-issue-severity.enum';
 import type { SiteThemeUsageKindDto } from './site-theme-usage-kind-dto.enum';
@@ -122,4 +123,31 @@ export interface SiteThemeSyntaxErrorDto {
 export interface UpdateSiteThemeDto {
   defaultLayout?: string;
   concurrencyStamp?: string;
+}
+
+export interface CreateSiteThemeExportLinkInput {
+  releaseId?: string | null;
+}
+
+export interface CreateSiteThemeImportLinkInput {
+  replace?: boolean;
+}
+
+export interface ImportSiteThemeInput {
+  file: IRemoteStreamContent;
+  replace?: boolean;
+}
+
+export interface SiteThemeImportResultDto {
+  added?: string[];
+  modified?: string[];
+  deleted?: string[];
+  unchanged?: string[];
+  defaultLayoutSet?: boolean;
+  syntaxErrors?: Record<string, SiteThemeSyntaxErrorDto[]>;
+}
+
+export interface SiteThemeTransferLinkDto {
+  path?: string;
+  expiresAt?: string;
 }

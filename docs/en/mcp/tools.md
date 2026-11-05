@@ -27,6 +27,12 @@ The `site://schema` resource returns the same document, with the same permission
 
 A site serves only `en` until its languages are set, so a client that writes content in another language sets them first. The tool replaces the list: read the current one from the schema's `enabledLanguages` and send it back with the change. Tags are checked and stored in their canonical form, such as `zh-Hans`; a tag that is not a language, or an empty list, is refused.
 
+## SEO
+
+| Tool | Permission | Description |
+|---|---|---|
+| `site_set_default_share_image` | `SiteAdmin.Seo.Update` | Sets the image shown when a page shared on a social network has no share image of its own, with `url`: the url of an image of the file library, or an absolute URL; an empty string removes it. See [Share Images](../seo/index.md#share-images). |
+
 Changing the languages moves addresses. The default language's pages have no prefix, so a new default takes the unprefixed addresses and the old one's pages move under `/{language}/`; and a language left out is no longer served, though its contents are kept and come back when the language is added again. The setting is stored through ABP's [Setting Management](https://abp.io/docs/latest/modules/setting-management), which `Dignite.Site.Domain` depends on.
 
 ## Pages
@@ -114,7 +120,7 @@ A content is addressed by `page`, `cultureName` and `slug`, an empty string for 
 
 `site_list_contents` takes the optional filters `page`, `contentType` (which needs `page`), `cultureName`, `status` and `filter` (over the slug only), and `skipCount` and `maxResultCount`, 20 by default.
 
-The write and list tools say where a content is, by names, and do not send its values back: `site_create_content` and `site_update_content` return the `page`, `contentType`, `cultureName`, `slug`, `status` and `publishTime`, and `storedFields`, the names of the values that were stored, so a value the content type does not declare shows as missing from it; `site_list_contents` returns the same for each row, with the values only when `includeFieldValues` is true. `site_get_content` reads the values.
+The write and list tools say where a content is, by names, and do not send its values back: `site_create_content` and `site_update_content` return the `page`, `contentType`, `cultureName`, `slug`, `status` and `publishTime`, and `storedFields`, the names of the values that were stored, so a value the content type does not declare shows as missing from it, and `warnings` when the SEO title or description is wider than a search result shows ([Title and Description Length](../seo/index.md#title-and-description-length)); `site_list_contents` returns the same for each row, with the values only when `includeFieldValues` is true. `site_get_content` reads the values.
 
 ## Routing
 
@@ -142,6 +148,8 @@ It answers with where the path leads - `matched`, `kind`, `cultureName`, the `pa
 | `site_list_releases` | `SiteAdmin.Themes` | Lists the releases, newest first, with which one is live. |
 | `site_set_live_release` | `SiteAdmin.Themes.Publish` | Makes the release with the number `release` live; an older one is the rollback. |
 | `site_restore_release` | `SiteAdmin.Themes.Edit` | Replaces the working copy with the release with the number `release`. Nothing goes live. Destructive. |
+| `site_create_theme_download_url` | `SiteAdmin.Themes` | Returns a one-time link, good for ten minutes, that downloads the working copy, or the release with the number `release`, as a zip, and the commands that save it (one for POSIX shells and cmd.exe, one for PowerShell). See [Exporting and Importing](../rendering/scriban-templates.md#exporting-and-importing). |
+| `site_create_theme_upload_url` | `SiteAdmin.Themes.Edit` | Returns a one-time link that takes a theme zip as the body of a `PUT` and brings it into the working copy, with `mode`: `merge`, the default, or `replace`; and the commands that send it. Nothing goes live. |
 
 The theme is not part of the schema: its files are addressed by path, and `site_list_theme_files` returns them; releases are addressed by number. Saving changes only the working copy. Save, check and fix every error the check reports, preview a path, and then publish with the check's fingerprint; a publish is refused when the working copy changed since the check. The HTML of `site_preview` comes in parts of at most 32 KiB, or of `maxHtmlLength` when that is smaller: then `isTruncated` is true, `htmlLength` is the full length and `nextOffset` is the `offset` that returns the part after this one; a client repeats the call with it until `nextOffset` is null and reads a page of any size, the parts put together being the page. A client that only needs to know that a page renders asks for a few thousand characters.
 

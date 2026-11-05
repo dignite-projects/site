@@ -50,4 +50,13 @@ public static class SiteSettings
         public const string LogoUrl = GroupName + ".Branding.LogoUrl";
         public const string LogoReverseUrl = GroupName + ".Branding.LogoReverseUrl";
     }
+
+    public static class Seo
+    {
+        /// <summary>
+        /// The share image (<c>og:image</c>) of a page that has none of its own: neither its SEO field nor the
+        /// template gives one. A file library address or an absolute URL; empty writes no <c>og:image</c>.
+        /// </summary>
+        public const string DefaultShareImage = GroupName + ".Seo.DefaultShareImage";
+    }
 }

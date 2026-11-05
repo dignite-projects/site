@@ -49,6 +49,13 @@ public class SiteRenderViewModel
     public HeadMetadataDto? HeadMetadata { get; init; }
 
     /// <summary>
+    /// The way from the home page to this route - <see cref="HeadMetadataDto.Breadcrumb"/>, empty when there is no
+    /// head metadata - for a visible breadcrumb and a <c>BreadcrumbList</c> alike.
+    /// </summary>
+    public IReadOnlyList<BreadcrumbItemDto> Breadcrumb =>
+        (IReadOnlyList<BreadcrumbItemDto>?)HeadMetadata?.Breadcrumb ?? Array.Empty<BreadcrumbItemDto>();
+
+    /// <summary>
     /// The 1-based page of a paged list that the request asked for with its page query parameter
     /// (<c>SiteScribanOptions.PageQueryKey</c>, <c>?page=2</c>), read by <see cref="SiteRenderPageNumber"/>: 1
     /// when the request names none, or names something that is not a page number. What a Razor view passes to

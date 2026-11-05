@@ -44,4 +44,35 @@ public class HeadMetadataDto
     public List<HreflangAlternateDto> HreflangAlternates { get; set; } = new();
 
     public string? XDefaultUrl { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="OgImageUrl"/> is the site's default share image (<c>Site.Seo.DefaultShareImage</c>) rather
+    /// than one the content's author chose; a renderer with an image of its own for the page - a post's cover, say -
+    /// puts it in place of the default, never in place of the author's.
+    /// </summary>
+    public bool IsDefaultOgImage { get; set; }
+
+    /// <summary>The size <see cref="OgImageUrl"/> is served at - 1200 x 630 for an image of the file library; null for an external one.</summary>
+    public int? OgImageWidth { get; set; }
+
+    /// <inheritdoc cref="OgImageWidth"/>
+    public int? OgImageHeight { get; set; }
+
+    /// <summary>The site's name, for <c>og:site_name</c>; null when <c>Site.Branding.AppName</c> is not set.</summary>
+    public string? SiteName { get; set; }
+
+    /// <summary>The page's language as <c>og:locale</c> writes it, such as <c>ja_JP</c>.</summary>
+    public string? Locale { get; set; }
+
+    /// <summary>The other languages of <see cref="HreflangAlternates"/>, as <c>og:locale:alternate</c> writes them.</summary>
+    public List<string> LocaleAlternates { get; set; } = new();
+
+    /// <summary>
+    /// The site's primary origin, which every absolute URL here is built on - for a renderer that makes the
+    /// addresses it writes itself, in structured data say, absolute the same way.
+    /// </summary>
+    public string BaseUrl { get; set; } = default!;
+
+    /// <summary>The way from the home page to this route: the page's ancestors, the page, then the content.</summary>
+    public List<BreadcrumbItemDto> Breadcrumb { get; set; } = new();
 }

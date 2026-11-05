@@ -24,10 +24,10 @@
     "Seo:NoIndex": "不索引",
     "Seo:NoIndexHint": "把该内容排除出站点地图，并输出 noindex robots 标签。",
     "Seo:NoMetaTitle": "（无 Meta 标题）",
-    "Seo:MetaTitleCharLimit": "Meta 标题字数上限",
-    "Seo:MetaDescriptionCharLimit": "Meta 描述字数上限",
+    "Seo:MetaTitleCharLimit": "Meta 标题宽度上限（列）",
+    "Seo:MetaDescriptionCharLimit": "Meta 描述宽度上限（列）",
     "Seo:OverCharLimitHint": "已超出建议长度",
-    "Seo:CharLimitAdvisoryHint": "这两个上限只是参考，不是校验。搜索引擎对过长的标题或描述是截断而非拒绝，所以超出后仍可正常保存。",
+    "Seo:CharLimitAdvisoryHint": "按显示宽度计算，搜索结果是按宽度截断的：一个中日韩文字算 2 列。这两个上限只是参考，不是校验。搜索引擎对过长的标题或描述是截断而非拒绝，所以超出后仍可正常保存。",
     "File:FileContainerName": "文件容器",
     "File:UploadFileMultiple": "允许多选文件",
     "File:ContainerNotConfigured": "该字段尚未配置文件容器，请先在字段配置中设置容器后再使用。"

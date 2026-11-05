@@ -9,7 +9,7 @@
 
 Site derives what search engines need from the site's own data, so it never drifts from what the site serves:
 
-* The **head metadata** of every page and content: title, description, canonical URL, robots, Open Graph, Twitter card and hreflang alternates.
+* The **head metadata** of every page and content: title, description, canonical URL, robots, Open Graph, Twitter card and hreflang alternates, the page's **breadcrumb**, and a safe way to write the **structured data** a template chooses.
 * A **[sitemap](sitemap-and-feeds.md)** of every page and published content, and **[feeds](sitemap-and-feeds.md#feeds)** of each page.
 * **[robots.txt](robots-and-llms-txt.md)** with switches for search, AI training and AI search crawlers, and an optional **[llms.txt](robots-and-llms-txt.md)**.
 
@@ -22,7 +22,7 @@ All of them follow four rules:
 
 ## Head Metadata
 
-A template writes the head metadata with the `site-head-metadata` tag helper; see [The Head](../rendering/razor-templates.md#the-head). For a request, it holds:
+A template writes the head metadata with `site_head` in a [Scriban template](../rendering/scriban-templates.md#the-head), or with the `site-head-metadata` tag helper in a [Razor template](../rendering/razor-templates.md#the-head). For a request, it holds:
 
 | Tag | Value |
 |---|---|
@@ -30,7 +30,10 @@ A template writes the head metadata with the `site-head-metadata` tag helper; se
 | `description`, `og:description` | The SEO field's `metaDescription`. Without one there is no tag. |
 | `canonical`, `og:url` | The absolute URL of the content or the page, in its language. |
 | `robots` | `noindex`, when the content is marked so or the request is a [truncated filtered view](#filtered-views); otherwise no tag. |
-| `og:image` | The SEO field's `ogImage`; see [Share Images](#share-images). |
+| `og:type` | `website`, or `article` when the template says so, with `article:published_time` and `article:modified_time` from the content. |
+| `og:site_name` | The `Site.Branding.AppName` [setting](../settings.md); without one there is no tag. |
+| `og:locale`, `og:locale:alternate` | The page's language and the languages of its translations, as Open Graph writes them: `ja` is `ja_JP`, `zh-Hans` is `zh_CN`, `en` is `en_US`. |
+| `og:image`, `og:image:width`, `og:image:height` | See [Share Images](#share-images). |
 | `twitter:card` | `summary_large_image` with an image, `summary` without. |
 | `hreflang` alternates, `x-default` | See [Hreflang Alternates](#hreflang-alternates). |
 
@@ -40,7 +43,17 @@ The title and the description of a content come from the [SEO field](../field-ty
 
 ### Share Images
 
-An `og:image` from the site's [file library](../files.md) is requested at 1200 x 630, cropped to fill, and made absolute on the primary domain. An image at any other absolute URL is used as it is. Without a share image, there is no `og:image` tag; Site does not guess one from other fields.
+The share image of a page is the first of:
+
+1. the `ogImage` of the content's SEO field, which its author chose;
+2. the image the template gives `site_head` (or `site-head-metadata`), such as a post's cover;
+3. the site's default share image, the `Site.Seo.DefaultShareImage` [setting](../settings.md).
+
+Without any, there is no `og:image` tag; Site does not guess one from other fields. An image from the site's [file library](../files.md) is requested at 1200 x 630, cropped to fill, made absolute on the primary domain, and written with `og:image:width` and `og:image:height`. An image at any other absolute URL is used as it is, without a size. `og:image:alt` is left to the template.
+
+### Title and Description Length
+
+A search result shows about 60 columns of a title and 160 of a description, where a Chinese, Japanese or Korean character takes two columns. The SEO field's limits are in columns, and they are advice, not rules: the admin UI counts the columns beside each field, and the MCP tools that store a content say in `warnings` when a title or a description is wider. Nothing is cut when the page is rendered: a search engine rewrites a snippet as it sees fit, and a cut would add an ellipsis the page does not have.
 
 ### noindex
 
@@ -73,10 +86,21 @@ A declared view whose date values do not form a whole period, such as a month wi
 
 Beyond the first page of a list, the canonical URL and every alternate carry the page number, `?page=2`, since page 2 lists different contents than page 1. Pass the page number to `site-head-metadata` with `current-page`.
 
+## Breadcrumbs
+
+Every request carries its breadcrumb, derived from the page tree like the canonical URL: the home page, the page's ancestors by their parent page, the page, and the content when the request names one. Each step is named by its title in the language being viewed: a page by its own content's title, or its display name without one. An inactive ancestor is left out, and a page's own content (the one with an empty slug) is the page's step, not one more. Each step has a site-relative `path`, for a link on the page, and an absolute `url`, for structured data. A Scriban template reads it as `breadcrumb`, a Razor template as `Model.Breadcrumb`, and an external front end in the head metadata.
+
+## Structured Data
+
+Which schema.org types a page carries, and what goes in them, depends on what each site publishes, so the template decides it, and gives the nodes to `site_head` as `schema` (or to `site-head-metadata`). Site writes them correctly: in one `@graph`, without empty properties, with `~/` and file library addresses made absolute on the primary domain, and with `<`, `>` and `&` escaped so that no text can end the script. See [Structured Data](../rendering/scriban-templates.md#structured-data).
+
+Google still shows rich results for `Organization`, `WebSite`, `BreadcrumbList`, `Article` and `Product`; `FAQPage` and `HowTo` no longer earn one, though AI assistants read them.
+
 ## What Site Leaves to the Template
 
 * `<title>` itself, charset and viewport: the template knows its branding.
-* JSON-LD structured data: its vocabulary depends on what each site publishes, so the template writes it.
+* The shape of the structured data, as above.
+* Statistics and site verification tags: written in the layout.
 * Redirects of old URLs: Site keeps no redirect table, so a changed slug or route is a new address.
 
 ## See Also

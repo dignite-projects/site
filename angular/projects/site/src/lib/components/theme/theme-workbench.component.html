@@ -22,6 +22,21 @@
       >
         <i class="fa fa-eye me-1"></i>{{ 'Site::PreviewTheme' | abpLocalization }}
       </button>
+      @if (canExport) {
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [title]="'Site::ExportThemeHint' | abpLocalization"
+          (click)="exportTheme()"
+        >
+          <i class="fa fa-download me-1"></i>{{ 'Site::ExportTheme' | abpLocalization }}
+        </button>
+      }
+      @if (canEdit) {
+        <button type="button" class="btn btn-outline-secondary" (click)="openImport()">
+          <i class="fa fa-file-import me-1"></i>{{ 'Site::ImportTheme' | abpLocalization }}
+        </button>
+      }
       <button type="button" class="btn btn-outline-secondary" (click)="openReleases()">
         <i class="fa fa-history me-1"></i>{{ 'Site::Releases' | abpLocalization }}
       </button>
@@ -487,6 +502,108 @@
   </ng-template>
 </abp-modal>
 
+<!-- Import. -->
+<abp-modal [visible]="isImportOpen()" (visibleChange)="isImportOpen.set($event)" [busy]="isBusy()" [options]="{ size: 'lg' }">
+  <ng-template #abpHeader>
+    <h3>{{ 'Site::ImportTheme' | abpLocalization }}</h3>
+  </ng-template>
+  <ng-template #abpBody>
+    @if (importResult(); as result) {
+      <div class="alert alert-success">{{ 'Site::ImportThemeDone' | abpLocalization }}</div>
+      @if (result.defaultLayoutSet) {
+        <p>{{ 'Site::ImportThemeDefaultLayoutSet' | abpLocalization }}</p>
+      }
+      @if (result.added.length) {
+        <h6 class="mb-1">{{ 'Site::ImportThemeAdded' | abpLocalization: result.added.length }}</h6>
+        <ul class="mb-3">
+          @for (path of result.added; track path) {
+            <li><code>{{ path }}</code></li>
+          }
+        </ul>
+      }
+      @if (result.modified.length) {
+        <h6 class="mb-1">{{ 'Site::ImportThemeModified' | abpLocalization: result.modified.length }}</h6>
+        <ul class="mb-3">
+          @for (path of result.modified; track path) {
+            <li><code>{{ path }}</code></li>
+          }
+        </ul>
+      }
+      @if (result.deleted.length) {
+        <h6 class="mb-1">{{ 'Site::ImportThemeDeleted' | abpLocalization: result.deleted.length }}</h6>
+        <ul class="mb-3">
+          @for (path of result.deleted; track path) {
+            <li><code>{{ path }}</code></li>
+          }
+        </ul>
+      }
+      <p class="text-muted mb-3">{{ 'Site::ImportThemeUnchanged' | abpLocalization: result.unchanged.length }}</p>
+      @let withErrors = syntaxErrorsOf(result);
+      @if (withErrors.length) {
+        <h6 class="mb-1 text-danger">{{ 'Site::ImportThemeSyntaxErrors' | abpLocalization }}</h6>
+        <ul class="mb-0">
+          @for (item of withErrors; track item.path) {
+            <li>
+              <code>{{ item.path }}</code>
+              <ul>
+                @for (error of item.errors; track $index) {
+                  <li>{{ error.line }}:{{ error.column }} {{ error.message }}</li>
+                }
+              </ul>
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+      <p class="text-muted">{{ 'Site::ImportThemeHint' | abpLocalization }}</p>
+      <div class="mb-3">
+        <label class="form-label" for="site-theme-import-file">{{ 'Site::ImportThemeFile' | abpLocalization }}</label>
+        <input
+          id="site-theme-import-file"
+          type="file"
+          class="form-control"
+          accept=".zip,application/zip"
+          (change)="onImportFileChange($event)"
+        />
+      </div>
+      <div class="form-check mb-2">
+        <input
+          id="site-theme-import-merge"
+          type="radio"
+          class="form-check-input"
+          name="site-theme-import-mode"
+          [checked]="!importReplace()"
+          (change)="importReplace.set(false)"
+        />
+        <label class="form-check-label" for="site-theme-import-merge">{{ 'Site::ImportThemeMerge' | abpLocalization }}</label>
+        <small class="form-text text-muted d-block">{{ 'Site::ImportThemeMergeHint' | abpLocalization }}</small>
+      </div>
+      <div class="form-check">
+        <input
+          id="site-theme-import-replace"
+          type="radio"
+          class="form-check-input"
+          name="site-theme-import-mode"
+          [checked]="importReplace()"
+          (change)="importReplace.set(true)"
+        />
+        <label class="form-check-label" for="site-theme-import-replace">{{ 'Site::ImportThemeReplace' | abpLocalization }}</label>
+        <small class="form-text text-muted d-block">{{ 'Site::ImportThemeReplaceHint' | abpLocalization }}</small>
+      </div>
+    }
+  </ng-template>
+  <ng-template #abpFooter>
+    <button type="button" class="btn btn-secondary" abpClose>
+      {{ (importResult() ? 'AbpUi::Close' : 'AbpUi::Cancel') | abpLocalization }}
+    </button>
+    @if (!importResult()) {
+      <abp-button iconClass="fa fa-file-import" [loading]="isBusy()" [disabled]="!importFile()" (click)="importTheme()">
+        {{ 'Site::ImportTheme' | abpLocalization }}
+      </abp-button>
+    }
+  </ng-template>
+</abp-modal>
+
 <!-- Releases. -->
 <abp-modal [visible]="isReleasesOpen()" (visibleChange)="isReleasesOpen.set($event)" [options]="{ size: 'xl' }">
   <ng-template #abpHeader>
@@ -526,6 +643,16 @@
                 >
                   <i class="fa fa-eye me-1"></i>{{ 'Site::PreviewTheme' | abpLocalization }}
                 </button>
+                @if (canExport) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary me-1"
+                    [title]="'Site::ExportReleaseHint' | abpLocalization"
+                    (click)="exportTheme(release)"
+                  >
+                    <i class="fa fa-download me-1"></i>{{ 'Site::ExportTheme' | abpLocalization }}
+                  </button>
+                }
                 @if (canPublish && !release.isLive) {
                   <button type="button" class="btn btn-sm btn-outline-primary me-1" (click)="makeLive(release)">
                     {{ 'Site::MakeReleaseLive' | abpLocalization }}

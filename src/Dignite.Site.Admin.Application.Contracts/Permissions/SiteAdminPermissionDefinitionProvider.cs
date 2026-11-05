@@ -41,6 +41,9 @@ public class SiteAdminPermissionDefinitionProvider : PermissionDefinitionProvide
         var languages = myGroup.AddPermission(SiteAdminPermissions.Languages.Default, L("Permission:Languages"));
         languages.AddChild(SiteAdminPermissions.Languages.Update, L("Permission:Update"));
 
+        var seo = myGroup.AddPermission(SiteAdminPermissions.Seo.Default, L("Permission:Seo"));
+        seo.AddChild(SiteAdminPermissions.Seo.Update, L("Permission:Update"));
+
         // With Site.Enable off these permissions read as not granted, which is what takes the admin menu
         // away: the Angular routes hide on requiredPolicy, and application-configuration reports what the
         // checker says. Every permission needs it, children included - ABP checks each one on its own, a

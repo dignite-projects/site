@@ -449,6 +449,81 @@ public class SiteThemeManager : DomainService
         await ThemeRepository.UpdateAsync(theme, autoSave: true, cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Brings a package (<see cref="SiteThemePackage"/>) into the working copy: each of its files is added, or replaces
+    /// the file at its path; with <paramref name="replace"/>, a file of the working copy that the package does not have
+    /// is deleted too, as restoring a release does. The default layout is set when the package names one. Nothing goes
+    /// live, and nothing is checked here: the working copy may hold what does not parse, and the check reports it.
+    /// </summary>
+    public virtual async Task<SiteThemeImport> ImportAsync(
+        SiteTheme theme,
+        SiteThemePackageContent package,
+        bool replace,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new SiteThemeImport();
+        var working = (await FileRepository.GetListAsync(theme.Id, cancellationToken))
+            .ToDictionary(file => file.Path, StringComparer.Ordinal);
+
+        foreach (var (path, body) in package.Files.OrderBy(file => file.Key, StringComparer.Ordinal))
+        {
+            if (working.Remove(path, out var existing))
+            {
+                if (existing.ContentHash == SiteThemePaths.ComputeContentHash(body))
+                {
+                    result.Unchanged.Add(path);
+                    continue;
+                }
+
+                existing.SetBody(body);
+                await FileRepository.UpdateAsync(existing, cancellationToken: cancellationToken);
+                result.Modified.Add(path);
+                continue;
+            }
+
+            await FileRepository.InsertAsync(
+                new SiteThemeFile(GuidGenerator.Create(), theme.Id, path, body, CurrentTenant.Id),
+                cancellationToken: cancellationToken);
+            result.Added.Add(path);
+        }
+
+        if (replace && working.Count > 0)
+        {
+            await FileRepository.DeleteManyAsync(working.Values, cancellationToken: cancellationToken);
+            result.Deleted.AddRange(working.Keys.OrderBy(path => path, StringComparer.Ordinal));
+        }
+
+        if (package.HasDefaultLayout)
+        {
+            theme.SetDefaultLayout(package.DefaultLayout);
+            await ThemeRepository.UpdateAsync(theme, autoSave: true, cancellationToken: cancellationToken);
+            result.DefaultLayoutSet = true;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The files of the working copy, or of the release <paramref name="releaseId"/>, with the default layout that goes
+    /// with them - what an export packs.
+    /// </summary>
+    public virtual async Task<(IReadOnlyDictionary<string, string> Files, string? DefaultLayout)> GetFilesForExportAsync(
+        SiteTheme theme,
+        Guid? releaseId,
+        CancellationToken cancellationToken = default)
+    {
+        if (releaseId == null)
+        {
+            var files = await FileRepository.GetListAsync(theme.Id, cancellationToken);
+            return (files.ToDictionary(file => file.Path, file => file.Body, StringComparer.Ordinal), theme.DefaultLayout);
+        }
+
+        var release = await GetReleaseAsync(theme, releaseId.Value, cancellationToken);
+        var contents = await ReleaseRepository.GetContentsAsync(release.Id, includeAssetBodies: true, cancellationToken);
+        return (contents.ToDictionary(content => content.Path, content => content.Body ?? string.Empty, StringComparer.Ordinal),
+            release.DefaultLayout);
+    }
+
     /// <summary>The routable and unroutable pages alike, as the check reads them: a page switched off today may be switched on tomorrow.</summary>
     public virtual async Task<List<SiteThemePageTemplate>> GetPageTemplatesAsync(CancellationToken cancellationToken = default)
     {

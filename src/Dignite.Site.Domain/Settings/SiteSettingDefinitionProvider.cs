@@ -31,7 +31,9 @@ public class SiteSettingDefinitionProvider : SettingDefinitionProvider
             new SettingDefinition(SiteSettings.Branding.LogoUrl, "",
                 L("DisplayName:Site.Branding.LogoUrl"), L("Description:Site.Branding.LogoUrl"), true),
             new SettingDefinition(SiteSettings.Branding.LogoReverseUrl, "",
-                L("DisplayName:Site.Branding.LogoReverseUrl"), L("Description:Site.Branding.LogoReverseUrl"), true)
+                L("DisplayName:Site.Branding.LogoReverseUrl"), L("Description:Site.Branding.LogoReverseUrl"), true),
+            new SettingDefinition(SiteSettings.Seo.DefaultShareImage, "",
+                L("DisplayName:Site.Seo.DefaultShareImage"), L("Description:Site.Seo.DefaultShareImage"), true)
         );
     }
 

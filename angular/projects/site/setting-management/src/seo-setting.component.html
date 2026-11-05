@@ -1,0 +1,49 @@
+<h4 class="mb-1">{{ 'Site::Seo' | abpLocalization }}</h4>
+
+<div class="mb-3">
+  <label class="form-label d-block fw-semibold">
+    {{ 'Site::DisplayName:Site.Seo.DefaultShareImage' | abpLocalization }}
+  </label>
+  @if (image()) {
+    <div class="mb-2">
+      <site-file-preview
+        width="240px"
+        type="image/*"
+        [src]="image()"
+        [name]="'Site::DisplayName:Site.Seo.DefaultShareImage' | abpLocalization"
+        [resizeWidth]="imageWidth"
+        [resizeHeight]="imageHeight"
+      ></site-file-preview>
+    </div>
+  } @else {
+    <p class="text-muted mb-2">{{ 'Site::Seo:NoImage' | abpLocalization }}</p>
+  }
+
+  <ng-container *abpPermission="policies.SeoUpdate">
+    <div>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="pickerOpen.set(true)">
+        <i class="fa fa-image me-1" aria-hidden="true"></i>{{ 'Site::Seo:SelectImage' | abpLocalization }}
+      </button>
+      @if (image()) {
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-2" (click)="removeImage()">
+          <i class="fa fa-trash me-1" aria-hidden="true"></i>{{ 'AbpUi::Delete' | abpLocalization }}
+        </button>
+      }
+    </div>
+  </ng-container>
+  <small class="form-text text-muted d-block mt-2">{{ 'Site::Seo:Hint' | abpLocalization }}</small>
+</div>
+
+<ng-container *abpPermission="policies.SeoUpdate">
+  <button type="button" class="btn btn-primary" [disabled]="!isDirty() || saving()" (click)="save()">
+    <i class="fa fa-check me-1"></i>{{ 'AbpUi::Save' | abpLocalization }}
+  </button>
+
+  <site-file-modal
+    [visible]="pickerOpen()"
+    (visibleChange)="pickerOpen.set($event)"
+    [multiple]="false"
+    [fileContainerName]="imageContainerName"
+    (selectFilefn)="onPicked($event)"
+  ></site-file-modal>
+</ng-container>

@@ -106,6 +106,12 @@ public static class SiteErrorCodes
     /// </summary>
     public const string SiteThemeDefaultLayoutNotALayout = "Site:090013";
 
+    /// <summary>A theme package that cannot be imported; Data["Problems"] lists what is wrong, one per line.</summary>
+    public const string SiteThemePackageInvalid = "Site:090014";
+
+    /// <summary>A theme download or upload link that has expired, has been used, or was not issued by this site.</summary>
+    public const string SiteThemeTransferLinkInvalid = "Site:090015";
+
     // The site's languages (Site.EnabledLanguages), set through SiteLanguageManager.
 
     /// <summary>A list of languages with none in it: a site has to serve at least one.</summary>

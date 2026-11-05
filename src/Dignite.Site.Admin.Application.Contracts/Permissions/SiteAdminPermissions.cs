@@ -62,6 +62,15 @@ public class SiteAdminPermissions
         public const string Update = Default + ".Update";
     }
 
+    public static class Seo
+    {
+        /// <summary>Reading the site's SEO settings: the default share image.</summary>
+        public const string Default = GroupName + ".Seo";
+
+        /// <summary>Setting them.</summary>
+        public const string Update = Default + ".Update";
+    }
+
     public static string[] GetAll()
     {
         return ReflectionHelper.GetPublicConstantsRecursively(typeof(SiteAdminPermissions));

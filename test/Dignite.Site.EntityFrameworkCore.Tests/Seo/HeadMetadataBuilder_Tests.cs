@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -675,6 +675,101 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         metadata.HreflangAlternates.Select(a => a.CultureName).OrderBy(c => c, StringComparer.Ordinal)
             .ShouldBe(new[] { japanese, SiteTestData.ChineseCulture });
         metadata.XDefaultUrl.ShouldBeNull();
+    }
+
+    /// <summary>A page whose author chose no share image gets the site's default, marked as the default.</summary>
+    [Fact]
+    public async Task OgImageUrl_Should_Fall_Back_To_The_Default_Share_Image()
+    {
+        _settings.Set(SiteSettings.Seo.DefaultShareImage, "/api/site-public/files/images/share.jpg");
+
+        var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
+
+        metadata.OgImageUrl.ShouldBe("https://acme.example/api/site-public/files/images/share.jpg?Width=1200&Height=630");
+        metadata.IsDefaultOgImage.ShouldBeTrue();
+        metadata.OgImageWidth.ShouldBe(1200);
+        metadata.OgImageHeight.ShouldBe(630);
+    }
+
+    /// <summary>An image the author chose wins over the default; an external one has no known size.</summary>
+    [Fact]
+    public async Task OgImageUrl_Should_Keep_The_Authors_Image_Over_The_Default()
+    {
+        _settings.Set(SiteSettings.Seo.DefaultShareImage, "/api/site-public/files/images/share.jpg");
+        var contentTypeId = await CreateSeoEnabledContentTypeAsync();
+        var slug = $"own-image-{Guid.NewGuid():N}";
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, slug, SiteTestData.PublishTime, ContentStatus.Published,
+            new Dictionary<string, object?>
+            {
+                ["title"] = "Has an image",
+                [SeoFieldNames.FieldName] = new SeoFieldValue { OgImage = "https://cdn.example/share.jpg" }
+            }));
+
+        var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
+
+        metadata.OgImageUrl.ShouldBe("https://cdn.example/share.jpg");
+        metadata.IsDefaultOgImage.ShouldBeFalse();
+        metadata.OgImageWidth.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SiteName_Should_Be_The_Branding_Name_And_BaseUrl_The_Primary_Domain()
+    {
+        (await BuildAsync("/about", SiteTestData.EnglishCulture)).SiteName.ShouldBeNull();
+
+        _settings.Set(SiteSettings.Branding.AppName, " Acme ");
+        var metadata = await BuildAsync("/about", SiteTestData.EnglishCulture);
+
+        metadata.SiteName.ShouldBe("Acme");
+        metadata.BaseUrl.ShouldBe(BaseUrl);
+    }
+
+    /// <summary>A content of a root page: the home page, the page, the content.</summary>
+    [Fact]
+    public async Task Breadcrumb_Should_Lead_From_The_Home_Page_To_The_Content()
+    {
+        var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
+
+        metadata.Breadcrumb.Select(b => b.Path).ShouldBe(new[] { "/", "/blog", "/blog/my-trip" });
+        metadata.Breadcrumb.Select(b => b.Url).ShouldBe(new[] { $"{BaseUrl}/", $"{BaseUrl}/blog", $"{BaseUrl}/blog/my-trip" });
+        metadata.Breadcrumb[1].Name.ShouldBe("Blog");
+        metadata.Breadcrumb[2].Name.ShouldBe("My trip");
+    }
+
+    [Fact]
+    public async Task Breadcrumb_Of_The_Home_Page_Should_Be_The_Home_Page_Alone()
+    {
+        var metadata = await BuildAsync("/", SiteTestData.EnglishCulture);
+
+        metadata.Breadcrumb.Select(b => b.Path).ShouldBe(new[] { "/" });
+    }
+
+    /// <summary>A page's own content (its bare address) is the page's step, named by the content's title.</summary>
+    [Fact]
+    public async Task Breadcrumb_Should_Not_Repeat_A_Page_For_Its_Own_Content()
+    {
+        var metadata = await BuildAsync("/about", SiteTestData.EnglishCulture);
+
+        metadata.Breadcrumb.Select(b => b.Path).ShouldBe(new[] { "/", "/about" });
+        metadata.Breadcrumb[^1].Name.ShouldBe(metadata.Title);
+    }
+
+    /// <summary>A page below another: its ancestors in order, an inactive one left out, in the language viewed.</summary>
+    [Fact]
+    public async Task Breadcrumb_Should_Follow_The_Page_Tree_And_Leave_Out_Inactive_Ancestors()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var section = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            $"section-{suffix}", "Section", $"/section-{suffix}", isActive: false, parentId: SiteTestData.AboutPageId));
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            $"team-{suffix}", "Team", $"/team-{suffix}", parentId: section.Id));
+
+        var metadata = await BuildAsync($"/team-{suffix}", SiteTestData.ChineseCulture);
+
+        metadata.Breadcrumb.Select(b => b.Path).ShouldBe(new[] { "/zh-Hans", "/zh-Hans/about", $"/zh-Hans/team-{suffix}" });
+        metadata.Breadcrumb[^1].Name.ShouldBe("Team");
     }
 
     private async Task<HeadMetadata> BuildAsync(string path, string cultureName)

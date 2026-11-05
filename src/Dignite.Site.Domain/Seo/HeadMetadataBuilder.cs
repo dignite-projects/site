@@ -10,8 +10,10 @@ using Dignite.Site.Fields;
 using Dignite.Site.Files;
 using Dignite.Site.Pages;
 using Dignite.Site.Routing;
+using Dignite.Site.Settings;
 using Microsoft.Extensions.Logging;
 using Volo.Abp.Domain.Services;
+using Volo.Abp.Settings;
 
 namespace Dignite.Site.Seo;
 
@@ -36,6 +38,12 @@ public class HeadMetadataBuilder : DomainService
     protected ContentSummaryResolver SummaryResolver { get; }
 
     protected IContentRepository ContentRepository { get; }
+
+    // Resolved lazily rather than through the constructor, so that a host's class derived from this one keeps
+    // compiling: both are used only by the share-image default, the site name and the breadcrumb.
+    protected IPageRepository PageRepository => LazyServiceProvider.LazyGetRequiredService<IPageRepository>();
+
+    protected ISettingProvider SettingProvider => LazyServiceProvider.LazyGetRequiredService<ISettingProvider>();
 
     public HeadMetadataBuilder(
         SiteUrlBuilder urlBuilder,
@@ -167,12 +175,25 @@ public class HeadMetadataBuilder : DomainService
 
         var xDefaultUrl = SelectXDefaultUrl(hreflangAlternates, context);
 
+        // The site's default share image, for a page whose author chose none (Site.Seo.DefaultShareImage).
+        var isDefaultOgImage = false;
+        if (ogImageUrl == null)
+        {
+            ogImageUrl = await ReadDefaultOgImageAsync(context);
+            isDefaultOgImage = ogImageUrl != null;
+        }
+
+        var breadcrumb = await BuildBreadcrumbAsync(
+            page, content, title, baseTitle, canonicalUrl, cultureName, context, includeUnpublished, asOf, cancellationToken);
+
         // The content's own CultureName is authoritative when there is one; the requested language is only
         // a fallback for a bare page match, which carries no language of its own.
         var effectiveCultureName = content?.CultureName
                                    ?? (CultureNameNormalizer.TryNormalize(cultureName, out var normalized)
                                        ? normalized
                                        : context.DefaultCultureName);
+
+        var siteName = await SettingProvider.GetOrNullAsync(SiteSettings.Branding.AppName);
 
         return new HeadMetadata(
             title,
@@ -183,7 +204,136 @@ public class HeadMetadataBuilder : DomainService
             effectiveCultureName,
             includeUnpublished || contentNoIndex || (isFilteredView && !isDeclaredFilteredView),
             hreflangAlternates,
-            xDefaultUrl);
+            xDefaultUrl)
+        {
+            IsDefaultOgImage = isDefaultOgImage,
+            // Only an image of the file library is served at a known size: it is cropped to it (SiteFileUrl.Sized).
+            OgImageWidth = SiteFileUrl.IsSiteFile(ogImageUrl) ? OpenGraphConsts.ImageWidth : null,
+            OgImageHeight = SiteFileUrl.IsSiteFile(ogImageUrl) ? OpenGraphConsts.ImageHeight : null,
+            SiteName = string.IsNullOrWhiteSpace(siteName) ? null : siteName.Trim(),
+            BaseUrl = context.BaseUrl,
+            Breadcrumb = breadcrumb
+        };
+    }
+
+    /// <summary>
+    /// <c>Site.Seo.DefaultShareImage</c> as an <c>og:image</c>: sized and made absolute the way the SEO field's own
+    /// image is (<see cref="ReadOgImage"/>). Null when the setting is empty.
+    /// </summary>
+    protected virtual async Task<string?> ReadDefaultOgImageAsync(SiteUrlContext context)
+    {
+        var value = await SettingProvider.GetOrNullAsync(SiteSettings.Seo.DefaultShareImage);
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : SiteFileUrl.Absolutize(
+                SiteFileUrl.Sized(value.Trim(), OpenGraphConsts.ImageWidth, OpenGraphConsts.ImageHeight),
+                context.BaseUrl);
+    }
+
+    /// <summary>
+    /// <see cref="HeadMetadata.Breadcrumb"/>: the page's ancestors by <see cref="Page.ParentId"/>, with the home page
+    /// in front when it is not one of them, then the page, then the content.
+    /// <para>
+    /// Each page is named the way its own head is titled, in the language being viewed: the title of its own
+    /// empty-slug content when that is visible, else its <see cref="Page.DisplayName"/>. The page being rendered
+    /// is named by <paramref name="baseTitle"/> - a filtered view's title without the filter values, since the
+    /// step stands for the page, not for the view - and a content by <paramref name="title"/>. The page's own
+    /// content (empty slug) is the page's step, not one more. An inactive
+    /// ancestor has no address a visitor could follow and is left out. A page tree is a few levels deep, so the
+    /// ancestors are read one by one.
+    /// </para>
+    /// </summary>
+    protected virtual async Task<IReadOnlyList<BreadcrumbItem>> BuildBreadcrumbAsync(
+        Page page,
+        Content? content,
+        string title,
+        string baseTitle,
+        string canonicalUrl,
+        string cultureName,
+        SiteUrlContext context,
+        bool includeUnpublished,
+        DateTime asOf,
+        CancellationToken cancellationToken)
+    {
+        var chain = new List<Page> { page };
+        var seen = new HashSet<Guid> { page.Id };
+        var parentId = page.ParentId;
+        // A parent that no longer exists ends the walk, and so does a cycle, which the page manager refuses but an
+        // edit straight in the database could still make.
+        while (parentId.HasValue && seen.Add(parentId.Value))
+        {
+            var parent = await PageRepository.FindAsync(parentId.Value, includeDetails: false, cancellationToken);
+            if (parent == null)
+            {
+                break;
+            }
+
+            chain.Add(parent);
+            parentId = parent.ParentId;
+        }
+
+        chain.Reverse();
+
+        if (!chain[0].IsHomeRoute())
+        {
+            var home = await PageRepository.FindHomePageAsync(includeDetails: false, cancellationToken);
+            if (home != null && home.IsActive && !seen.Contains(home.Id))
+            {
+                chain.Insert(0, home);
+            }
+        }
+
+        // A page's own content - the one its bare address shows, with an empty slug - is the page itself, not a
+        // step below it.
+        var isPageContent = content != null && string.IsNullOrEmpty(content.Slug);
+
+        var items = new List<BreadcrumbItem>();
+        foreach (var step in chain)
+        {
+            var isCurrentPage = step.Id == page.Id;
+            if (!isCurrentPage && !step.IsActive)
+            {
+                continue;
+            }
+
+            var name = !isCurrentPage
+                ? await ResolvePageTitleAsync(step, cultureName, includeUnpublished, asOf, cancellationToken)
+                : content == null
+                    ? baseTitle
+                    : isPageContent
+                        ? title
+                        : await ResolvePageTitleAsync(step, cultureName, includeUnpublished, asOf, cancellationToken);
+
+            items.Add(new BreadcrumbItem(
+                name,
+                UrlBuilder.BuildPagePath(context, step, cultureName),
+                UrlBuilder.BuildPageUrl(context, step, cultureName)));
+        }
+
+        if (content != null && !isPageContent)
+        {
+            items.Add(new BreadcrumbItem(title, UrlBuilder.BuildContentPath(context, page, content), canonicalUrl));
+        }
+
+        return items;
+    }
+
+    /// <summary>A page's title in <paramref name="cultureName"/>, as its own head would have it (see <see cref="BuildBreadcrumbAsync"/>).</summary>
+    protected virtual async Task<string> ResolvePageTitleAsync(
+        Page page,
+        string cultureName,
+        bool includeUnpublished,
+        DateTime asOf,
+        CancellationToken cancellationToken)
+    {
+        var pageContent = await FindPageContentAsync(page, cultureName, includeUnpublished, asOf, cancellationToken);
+        if (pageContent == null)
+        {
+            return page.DisplayName;
+        }
+
+        var lookup = await SummaryResolver.CreateLookupAsync(page.Id, cancellationToken);
+        return SummaryResolver.Resolve(pageContent, lookup, page.DisplayName).Title;
     }
 
     /// <summary>

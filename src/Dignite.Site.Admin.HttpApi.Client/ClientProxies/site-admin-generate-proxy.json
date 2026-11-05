@@ -235,7 +235,11 @@
                 "type": "Dignite.Site.Contents.ContentDto",
                 "typeSimple": "Dignite.Site.Contents.ContentDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -343,7 +347,11 @@
                 "type": "Dignite.Site.Contents.ContentDto",
                 "typeSimple": "Dignite.Site.Contents.ContentDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -549,7 +557,11 @@
                 "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Contents.ContentDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Contents.ContentDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -605,7 +617,11 @@
                 "type": "Dignite.Site.Contents.ContentDto",
                 "typeSimple": "Dignite.Site.Contents.ContentDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -691,7 +707,11 @@
                 "type": "Dignite.Site.Contents.ContentDto",
                 "typeSimple": "Dignite.Site.Contents.ContentDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -1004,7 +1024,11 @@
                 "type": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "typeSimple": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -1060,7 +1084,11 @@
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -1088,7 +1116,11 @@
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.ContentTypes.ContentTypeDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -1170,7 +1202,11 @@
                 "type": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "typeSimple": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -1226,7 +1262,11 @@
                 "type": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "typeSimple": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -1312,7 +1352,11 @@
                 "type": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "typeSimple": "Dignite.Site.ContentTypes.ContentTypeDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -1387,554 +1431,6 @@
                 }
               ],
               "implementFrom": "Dignite.Site.Admin.ContentTypes.IContentTypeAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            }
-          }
-        },
-        "Dignite.Site.Admin.Files.DirectoryAdminController": {
-          "controllerName": "DirectoryAdmin",
-          "controllerGroupName": "DirectoryAdmin",
-          "isRemoteService": true,
-          "isIntegrationService": false,
-          "apiVersion": null,
-          "type": "Dignite.Site.Admin.Files.DirectoryAdminController",
-          "summary": null,
-          "remarks": null,
-          "description": null,
-          "displayName": null,
-          "interfaces": [
-            {
-              "type": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "name": "IDirectoryAdminAppService",
-              "methods": [
-                {
-                  "name": "GetAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "GetListAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
-                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "CreateAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "UpdateAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "MoveAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "DeleteAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "System.Void",
-                    "typeSimple": "System.Void",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                }
-              ]
-            }
-          ],
-          "actions": {
-            "GetAsyncById": {
-              "uniqueName": "GetAsyncById",
-              "name": "GetAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/files/directories/{id}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "GetListAsyncByInput": {
-              "uniqueName": "GetListAsyncByInput",
-              "name": "GetListAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/files/directories",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "ContainerName",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
-                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "CreateAsyncByInput": {
-              "uniqueName": "CreateAsyncByInput",
-              "name": "CreateAsync",
-              "httpMethod": "POST",
-              "url": "api/site-admin/files/directories",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "UpdateAsyncByIdAndInput": {
-              "uniqueName": "UpdateAsyncByIdAndInput",
-              "name": "UpdateAsync",
-              "httpMethod": "PUT",
-              "url": "api/site-admin/files/directories/{id}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "MoveAsyncByIdAndInput": {
-              "uniqueName": "MoveAsyncByIdAndInput",
-              "name": "MoveAsync",
-              "httpMethod": "PUT",
-              "url": "api/site-admin/files/directories/{id}/move",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "DeleteAsyncById": {
-              "uniqueName": "DeleteAsyncById",
-              "name": "DeleteAsync",
-              "httpMethod": "DELETE",
-              "url": "api/site-admin/files/directories/{id}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "System.Void",
-                "typeSimple": "System.Void",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -2196,7 +1692,11 @@
                 "type": "Dignite.Site.Fields.FieldDto",
                 "typeSimple": "Dignite.Site.Fields.FieldDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -2252,7 +1752,11 @@
                 "type": "Dignite.Site.Fields.FieldDto",
                 "typeSimple": "Dignite.Site.Fields.FieldDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -2308,7 +1812,11 @@
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -2364,7 +1872,11 @@
                 "type": "Dignite.Site.Fields.FieldDto",
                 "typeSimple": "Dignite.Site.Fields.FieldDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -2450,7 +1962,11 @@
                 "type": "Dignite.Site.Fields.FieldDto",
                 "typeSimple": "Dignite.Site.Fields.FieldDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -2536,7 +2052,11 @@
                 "type": "Dignite.Site.Fields.FieldDto",
                 "typeSimple": "Dignite.Site.Fields.FieldDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -2628,7 +2148,11 @@
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldTypeDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Fields.FieldTypeDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -2639,6 +2163,574 @@
                 }
               ],
               "implementFrom": "Dignite.Site.Admin.Fields.IFieldAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.Site.Admin.Files.DirectoryAdminController": {
+          "controllerName": "DirectoryAdmin",
+          "controllerGroupName": "DirectoryAdmin",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Admin.Files.DirectoryAdminController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
+              "name": "IDirectoryAdminAppService",
+              "methods": [
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "GetListAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "CreateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "UpdateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "MoveAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "DeleteAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetAsyncById": {
+              "uniqueName": "GetAsyncById",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/files/directories/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "GetListAsyncByInput": {
+              "uniqueName": "GetListAsyncByInput",
+              "name": "GetListAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/files/directories",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "ContainerName",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "CreateAsyncByInput": {
+              "uniqueName": "CreateAsyncByInput",
+              "name": "CreateAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/files/directories",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UpdateAsyncByIdAndInput": {
+              "uniqueName": "UpdateAsyncByIdAndInput",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "api/site-admin/files/directories/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "MoveAsyncByIdAndInput": {
+              "uniqueName": "MoveAsyncByIdAndInput",
+              "name": "MoveAsync",
+              "httpMethod": "PUT",
+              "url": "api/site-admin/files/directories/{id}/move",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DeleteAsyncById": {
+              "uniqueName": "DeleteAsyncById",
+              "name": "DeleteAsync",
+              "httpMethod": "DELETE",
+              "url": "api/site-admin/files/directories/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [
+                    "GuidRouteConstraint"
+                  ],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void",
+                "summary": null,
+                "contentTypes": null,
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -2726,6 +2818,29 @@
                   "returnValue": {
                     "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
                     "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "CreateUploadTicketAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Files.FileUploadTicketDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.FileUploadTicketDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
@@ -2857,7 +2972,11 @@
                 "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
                 "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": null,
@@ -2998,7 +3117,11 @@
                 "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.FileDescriptorDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.FileDescriptorDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": null,
@@ -3079,12 +3202,126 @@
                 "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
                 "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
               "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "CreateUploadTicketAsyncByInput": {
+              "uniqueName": "CreateUploadTicketAsyncByInput",
+              "name": "CreateUploadTicketAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/files/upload-tickets",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.FileUploadTicketDto",
+                "typeSimple": "Dignite.Site.Admin.Files.FileUploadTicketDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": null,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UploadByTicketAsyncByTicket": {
+              "uniqueName": "UploadByTicketAsyncByTicket",
+              "name": "UploadByTicketAsync",
+              "httpMethod": "PUT",
+              "url": "api/site-admin/files/upload/{ticket}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "ticket",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "ticket",
+                  "name": "ticket",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
+                "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": true,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Files.FileAdminController",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -3158,7 +3395,11 @@
                 "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
                 "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": null,
@@ -3262,12 +3503,168 @@
                 "type": "Dignite.Site.Admin.Files.FileContainerConfigurationDto",
                 "typeSimple": "Dignite.Site.Admin.Files.FileContainerConfigurationDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": null,
               "authorizeDatas": [],
               "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.Site.Admin.Languages.SiteLanguageAdminController": {
+          "controllerName": "SiteLanguageAdmin",
+          "controllerGroupName": "SiteLanguageAdmin",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Admin.Languages.SiteLanguageAdminController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Admin.Languages.ISiteLanguageAdminAppService",
+              "name": "ISiteLanguageAdminAppService",
+              "methods": [
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                    "typeSimple": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "UpdateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto",
+                      "typeSimple": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                    "typeSimple": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetAsync": {
+              "uniqueName": "GetAsync",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/languages",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                "typeSimple": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Languages",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Languages.ISiteLanguageAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UpdateAsyncByInput": {
+              "uniqueName": "UpdateAsyncByInput",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "api/site-admin/languages",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto",
+                  "typeSimple": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto",
+                  "typeSimple": "Dignite.Site.Admin.Languages.UpdateSiteLanguagesDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                "typeSimple": "Dignite.Site.Admin.Languages.SiteLanguagesDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Languages",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Languages.Update",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Languages.ISiteLanguageAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -3484,7 +3881,11 @@
                 "type": "Dignite.Site.Pages.PageDto",
                 "typeSimple": "Dignite.Site.Pages.PageDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -3540,7 +3941,11 @@
                 "type": "Dignite.Site.Pages.PageDto",
                 "typeSimple": "Dignite.Site.Pages.PageDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -3611,7 +4016,11 @@
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Pages.PageDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Pages.PageDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -3667,7 +4076,11 @@
                 "type": "Dignite.Site.Pages.PageDto",
                 "typeSimple": "Dignite.Site.Pages.PageDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -3753,7 +4166,11 @@
                 "type": "Dignite.Site.Pages.PageDto",
                 "typeSimple": "Dignite.Site.Pages.PageDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -3878,7 +4295,11 @@
                 "type": "Dignite.Site.Admin.Schema.SiteSchemaDto",
                 "typeSimple": "Dignite.Site.Admin.Schema.SiteSchemaDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -3897,6 +4318,158 @@
                 }
               ],
               "implementFrom": "Dignite.Site.Admin.Schema.ISiteSchemaAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.Site.Admin.Seo.SiteSeoSettingsAdminController": {
+          "controllerName": "SiteSeoSettingsAdmin",
+          "controllerGroupName": "SiteSeoSettingsAdmin",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Admin.Seo.SiteSeoSettingsAdminController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Admin.Seo.ISiteSeoSettingsAdminAppService",
+              "name": "ISiteSeoSettingsAdminAppService",
+              "methods": [
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                    "typeSimple": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "UpdateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto",
+                      "typeSimple": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                    "typeSimple": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetAsync": {
+              "uniqueName": "GetAsync",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/seo-settings",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                "typeSimple": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Seo",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Seo.ISiteSeoSettingsAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UpdateAsyncByInput": {
+              "uniqueName": "UpdateAsyncByInput",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "api/site-admin/seo-settings",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto",
+                  "typeSimple": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto",
+                  "typeSimple": "Dignite.Site.Admin.Seo.UpdateSiteSeoSettingsDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                "typeSimple": "Dignite.Site.Admin.Seo.SiteSeoSettingsDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Seo",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Seo.Update",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Seo.ISiteSeoSettingsAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -4312,7 +4885,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteThemeDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4368,7 +4945,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteThemeDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4400,7 +4981,11 @@
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteThemeFileSummaryDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteThemeFileSummaryDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4456,7 +5041,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4512,7 +5101,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4572,7 +5165,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteThemeRenameResultDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeRenameResultDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4692,7 +5289,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteThemeFileUsagesDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeFileUsagesDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4720,7 +5321,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4776,7 +5381,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteReleaseDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4808,7 +5417,11 @@
                 "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteReleaseDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Themes.SiteReleaseDto>",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4864,7 +5477,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteReleaseDetailDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDetailDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -4946,7 +5563,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteReleaseFileContentDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseFileContentDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -5002,7 +5623,11 @@
                 "type": "Dignite.Site.Admin.Themes.SiteReleaseDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteReleaseDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -5148,7 +5773,11 @@
                 "type": "Dignite.Site.Themes.SiteThemePreviewDto",
                 "typeSimple": "Dignite.Site.Themes.SiteThemePreviewDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -5230,7 +5859,11 @@
                 "type": "Dignite.Site.Themes.SiteThemePreviewLinkDto",
                 "typeSimple": "Dignite.Site.Themes.SiteThemePreviewLinkDto",
                 "summary": null,
-                "contentTypes": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
                 "isRemoteStream": false
               },
               "allowAnonymous": false,
@@ -5241,6 +5874,493 @@
                 }
               ],
               "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            }
+          }
+        },
+        "Dignite.Site.Admin.Themes.SiteThemeTransferAdminController": {
+          "controllerName": "SiteThemeTransferAdmin",
+          "controllerGroupName": "SiteThemeTransferAdmin",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "Dignite.Site.Admin.Themes.SiteThemeTransferAdminController",
+          "summary": null,
+          "remarks": null,
+          "description": null,
+          "displayName": null,
+          "interfaces": [
+            {
+              "type": "Dignite.Site.Admin.Themes.ISiteThemeTransferAdminAppService",
+              "name": "ISiteThemeTransferAdminAppService",
+              "methods": [
+                {
+                  "name": "ExportAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "releaseId",
+                      "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                      "type": "System.Guid?",
+                      "typeSimple": "string?",
+                      "isOptional": true,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Content.IRemoteStreamContent",
+                    "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": true
+                  }
+                },
+                {
+                  "name": "ImportAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Themes.ImportSiteThemeInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.ImportSiteThemeInput",
+                      "typeSimple": "Dignite.Site.Admin.Themes.ImportSiteThemeInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeImportResultDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeImportResultDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "CreateExportLinkAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput",
+                      "typeSimple": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "CreateImportLinkAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput",
+                      "typeSimple": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                    "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "ExportAsyncByReleaseId": {
+              "uniqueName": "ExportAsyncByReleaseId",
+              "name": "ExportAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/export",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "releaseId",
+                  "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": true,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "releaseId",
+                  "name": "releaseId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Content.IRemoteStreamContent",
+                "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": true
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeTransferAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "ImportAsyncByInput": {
+              "uniqueName": "ImportAsyncByInput",
+              "name": "ImportAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/theme/import",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Themes.ImportSiteThemeInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.ImportSiteThemeInput",
+                  "typeSimple": "Dignite.Site.Admin.Themes.ImportSiteThemeInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "File",
+                  "jsonName": null,
+                  "type": "Volo.Abp.Content.IRemoteStreamContent",
+                  "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "FormFile",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Replace",
+                  "jsonName": null,
+                  "type": "System.Boolean",
+                  "typeSimple": "boolean",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Form",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeImportResultDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeImportResultDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Themes.Edit",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeTransferAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "CreateExportLinkAsyncByInput": {
+              "uniqueName": "CreateExportLinkAsyncByInput",
+              "name": "CreateExportLinkAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/theme/export-links",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput",
+                  "typeSimple": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput",
+                  "typeSimple": "Dignite.Site.Admin.Themes.CreateSiteThemeExportLinkInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeTransferAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "CreateImportLinkAsyncByInput": {
+              "uniqueName": "CreateImportLinkAsyncByInput",
+              "name": "CreateImportLinkAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/theme/import-links",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput",
+                  "typeSimple": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput",
+                  "typeSimple": "Dignite.Site.Admin.Themes.CreateSiteThemeImportLinkInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeTransferLinkDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": "SiteAdmin.Themes",
+                  "roles": null
+                },
+                {
+                  "policy": "SiteAdmin.Themes.Edit",
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Themes.ISiteThemeTransferAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "DownloadByTicketAsyncByTicket": {
+              "uniqueName": "DownloadByTicketAsyncByTicket",
+              "name": "DownloadByTicketAsync",
+              "httpMethod": "GET",
+              "url": "api/site-admin/theme/download/{ticket}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "ticket",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "ticket",
+                  "name": "ticket",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Content.IRemoteStreamContent",
+                "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": true
+              },
+              "allowAnonymous": true,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Themes.SiteThemeTransferAdminController",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "UploadByTicketAsyncByTicket": {
+              "uniqueName": "UploadByTicketAsyncByTicket",
+              "name": "UploadByTicketAsync",
+              "httpMethod": "PUT",
+              "url": "api/site-admin/theme/upload/{ticket}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "ticket",
+                  "typeAsString": "System.String, System.Private.CoreLib",
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "ticket",
+                  "name": "ticket",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Themes.SiteThemeImportResultDto",
+                "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeImportResultDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": true,
+              "authorizeDatas": [],
+              "implementFrom": "Dignite.Site.Admin.Themes.SiteThemeTransferAdminController",
               "summary": null,
               "remarks": null,
               "description": null,

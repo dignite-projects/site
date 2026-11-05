@@ -3,14 +3,18 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Contents;
+using Dignite.Site.Admin.Fields;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Contents;
 using Dignite.Site.Mcp.Naming;
+using Dignite.Site.Seo;
 using Microsoft.AspNetCore.Authorization;
 using ModelContextProtocol.Server;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Authorization;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Timing;
 using Volo.Abp.Validation;
@@ -36,14 +40,19 @@ public class ContentTools : ITransientDependency
 
     protected IClock Clock { get; }
 
+    /// <summary>Reads the SEO field's width limits for <see cref="CheckSeoWidthAsync"/>; null uses the defaults.</summary>
+    protected IFieldAdminAppService? FieldAppService { get; }
+
     public ContentTools(
         IContentAdminAppService contentAppService,
         SiteMcpNameResolver nameResolver,
-        IClock clock)
+        IClock clock,
+        IFieldAdminAppService? fieldAppService = null)
     {
         ContentAppService = contentAppService;
         NameResolver = nameResolver;
         Clock = clock;
+        FieldAppService = fieldAppService;
     }
 
     [McpServerTool(Name = "site_list_contents", Title = "List contents", ReadOnly = true)]
@@ -133,7 +142,9 @@ public class ContentTools : ITransientDependency
         "the content type's field definitions; a value for a field the type does not declare is dropped, " +
         "and a missing required value is rejected with the field named. Returns where the content landed - page, " +
         "content type, language, slug, status, publish time - and storedFields, the names of the values kept: one " +
-        "missing from it was dropped. The values are not echoed back; read them with site_get_content.")]
+        "missing from it was dropped. The values are not echoed back; read them with site_get_content. warnings, " +
+        "when present, says that the SEO title or description is wider than a search result shows (a Chinese or " +
+        "Japanese character counts as two columns): the content is stored, but shorten it.")]
     [Authorize(SiteAdminPermissions.Contents.Create)]
     public virtual async Task<McpContentSummary> CreateContentAsync(
         [Description("Page name, from site_get_schema.")]
@@ -173,7 +184,9 @@ public class ContentTools : ITransientDependency
             FieldValues = fieldValues
         });
 
-        return ToSummary(created, includeFieldValues: false, storedFields: true);
+        var createdSummary = ToSummary(created, includeFieldValues: false, storedFields: true);
+        createdSummary.Warnings = await CheckSeoWidthAsync(created);
+        return createdSummary;
     }
 
     [McpServerTool(Name = "site_update_content", Title = "Update a content", Idempotent = true)]
@@ -182,7 +195,9 @@ public class ContentTools : ITransientDependency
         "so this can publish a draft, or reschedule, without resending the body. Supplying fieldValues " +
         "REPLACES the whole set: read the content first and send it back with your edits merged in, or " +
         "omit it entirely. Returns where the content is now, and storedFields, the names of its values; " +
-        "the values are not echoed back.")]
+        "the values are not echoed back. warnings, when present, says that the SEO title or description is wider " +
+        "than a search result shows (a Chinese or Japanese character counts as two columns): the content is " +
+        "stored, but shorten it.")]
     [Authorize(SiteAdminPermissions.Contents.Update)]
     public virtual async Task<McpContentSummary> UpdateContentAsync(
         [Description("Page name, from site_get_schema.")]
@@ -221,7 +236,94 @@ public class ContentTools : ITransientDependency
             ContentTypeId = contentTypeId
         });
 
-        return ToSummary(updated, includeFieldValues: false, storedFields: true);
+        var updatedSummary = ToSummary(updated, includeFieldValues: false, storedFields: true);
+        updatedSummary.Warnings = await CheckSeoWidthAsync(updated);
+        return updatedSummary;
+    }
+
+    /// <summary>
+    /// What a client should know about the content it has just stored: an SEO title or description wider than the
+    /// SEO field's limits (<see cref="SeoTextWidth"/>), which a search result would cut. Null when there is nothing to
+    /// say. Advice only - the content is stored either way.
+    /// </summary>
+    protected virtual async Task<string[]?> CheckSeoWidthAsync(ContentDto content)
+    {
+        if (!content.FieldValues.TryGetValue(SeoTextWidth.SeoFieldName, out var raw) || raw == null)
+        {
+            return null;
+        }
+
+        var value = raw is JsonElement element ? element : JsonSerializer.SerializeToElement(raw, raw.GetType());
+        if (value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var (titleLimit, descriptionLimit) = await ReadSeoWidthLimitsAsync();
+        var warnings = SeoTextWidth.Check(
+            ReadString(value, "metaTitle"), ReadString(value, "metaDescription"), titleLimit, descriptionLimit);
+
+        return warnings.Count == 0 ? null : warnings.ToArray();
+    }
+
+    /// <summary>
+    /// The SEO field's limits as its configuration sets them. A client allowed to write contents but not to read the field
+    /// library gets the defaults, as the admin UI would show them.
+    /// </summary>
+    protected virtual async Task<(int Title, int Description)> ReadSeoWidthLimitsAsync()
+    {
+        var title = SeoTextWidth.DefaultMetaTitleLimit;
+        var description = SeoTextWidth.DefaultMetaDescriptionLimit;
+        if (FieldAppService == null)
+        {
+            return (title, description);
+        }
+
+        try
+        {
+            var configuration = (await FieldAppService.FindByNameAsync(SeoTextWidth.SeoFieldName))?.Configuration;
+            if (configuration != null)
+            {
+                title = ReadInt(configuration, SeoTextWidth.MetaTitleLimitKey) ?? title;
+                description = ReadInt(configuration, SeoTextWidth.MetaDescriptionLimitKey) ?? description;
+            }
+        }
+        catch (AbpAuthorizationException)
+        {
+            // The defaults, as above.
+        }
+
+        return (title, description);
+    }
+
+    private static string? ReadString(JsonElement value, string name)
+    {
+        foreach (var property in value.EnumerateObject())
+        {
+            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                property.Value.ValueKind == JsonValueKind.String)
+            {
+                return property.Value.GetString();
+            }
+        }
+
+        return null;
+    }
+
+    private static int? ReadInt(IDictionary<string, object?> configuration, string key)
+    {
+        if (!configuration.TryGetValue(key, out var value) || value == null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            JsonElement { ValueKind: JsonValueKind.Number } number when number.TryGetInt32(out var n) => n,
+            JsonElement { ValueKind: JsonValueKind.String } text when int.TryParse(text.GetString(), out var n) => n,
+            IConvertible convertible when int.TryParse(convertible.ToString(System.Globalization.CultureInfo.InvariantCulture), out var n) => n,
+            _ => null
+        };
     }
 
     /// <summary>

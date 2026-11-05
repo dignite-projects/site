@@ -24,10 +24,10 @@
     "Seo:NoIndex": "No index",
     "Seo:NoIndexHint": "Exclude this content from the sitemap and emit a noindex robots tag.",
     "Seo:NoMetaTitle": "(no meta title)",
-    "Seo:MetaTitleCharLimit": "Meta title character limit",
-    "Seo:MetaDescriptionCharLimit": "Meta description character limit",
+    "Seo:MetaTitleCharLimit": "Meta title width limit (columns)",
+    "Seo:MetaDescriptionCharLimit": "Meta description width limit (columns)",
     "Seo:OverCharLimitHint": "over the suggested length",
-    "Seo:CharLimitAdvisoryHint": "These limits are guidance, not validation. A search engine truncates an over-long title or description rather than rejecting it, so a longer value still saves.",
+    "Seo:CharLimitAdvisoryHint": "Counted in columns, as a search result is limited by width: a Chinese, Japanese or Korean character takes two. These limits are guidance, not validation. A search engine truncates an over-long title or description rather than rejecting it, so a longer value still saves.",
     "File:FileContainerName": "File container",
     "File:UploadFileMultiple": "Allow multiple files",
     "File:ContainerNotConfigured": "This field has no file container configured yet. Set one in the field's configuration before it can be used."
