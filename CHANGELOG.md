@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-05
+
 ### Added
 
 - **Themes can be previewed when the administration API and the site are two applications.** 2.0.0 previewed, issued
@@ -1977,7 +1979,8 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/dignite-projects/site/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/dignite-projects/site/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/dignite-projects/site/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/dignite-projects/site/releases/tag/v1.0.0
