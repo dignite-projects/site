@@ -55,11 +55,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   title. The keys and their defaults are unchanged; the admin UI's counters count columns. See
   [Title and Description Length](docs/en/seo/index.md#title-and-description-length).
 
+### Fixed
+
+- **The host has one theme, like a tenant, on SQL Server.** The unique index that keeps a tenant to one theme
+  (`IX_SiteThemes_TenantId`) did not cover the host: EF Core's SQL Server provider gives a unique index over a nullable
+  column a `[TenantId] IS NOT NULL` filter, which the host's NULL never passes. Two requests at the same moment, before
+  the host had a theme, each made one with its own pair of starting files; the administration API and the site read the
+  older one, and the other was left over. `IX_SiteThemeBlobs_TenantId_ContentHash` had the same filter, so a host body
+  could be stored twice. Both indexes now have no filter, and SQL Server counts the host's NULL as one value. The second
+  of two such requests no longer fails on the index either: `SiteThemeManager` creates the theme in a unit of work of
+  its own (`CreateAsync`) and, when the index refuses it, reads the theme the other request made. The theme is read in
+  creation time and then id order, so that two rows made in the same instant still read as the same one. SQLite,
+  PostgreSQL and MySQL treat NULLs as distinct in a unique index, so there the index still does not cover the host.
+
+  **Applications using the EF Core provider on SQL Server need a migration**: `dotnet ef migrations add` in the project
+  that holds Site's tables drops and recreates the two indexes without a `filter`. The theme index cannot be created
+  while the host has two themes, so run this script first, or put it at the start of that migration's `Up` with
+  `migrationBuilder.Sql(...)`. It keeps the host theme that has work in it (a release, a changed default layout, a file
+  edited or added), or, when neither has, the older one, which is the one the administration API showed; deletes the
+  other with its files; and keeps one row of each host body stored twice. When both host themes have work in them, it
+  deletes nothing and stops with an error that lists them. The Host project's SQLite database needs no migration.
+
+```sql
+SET QUOTED_IDENTIFIER ON; -- sqlcmd starts with it off, and a delete from a table with a filtered index needs it
+SET XACT_ABORT ON;
+SET NOCOUNT ON;
+BEGIN TRANSACTION;
+
+-- Every host theme, and whether anyone worked in it: a release, a layout setting changed, or a file edited or added
+-- after the theme was made (the skeleton's two files are made with it).
+DECLARE @HostThemes TABLE (Id uniqueidentifier PRIMARY KEY, CreationTime datetime2 NOT NULL, Used bit NOT NULL);
+INSERT INTO @HostThemes (Id, CreationTime, Used)
+SELECT t.Id, t.CreationTime,
+       CASE WHEN t.LiveReleaseId IS NOT NULL
+              OR t.LastModificationTime IS NOT NULL
+              OR EXISTS (SELECT 1 FROM [SiteReleases] r WHERE r.ThemeId = t.Id)
+              OR EXISTS (SELECT 1 FROM [SiteThemeFiles] f
+                         WHERE f.ThemeId = t.Id
+                           AND (f.LastModificationTime IS NOT NULL
+                                OR f.Path NOT IN (N'layouts/default', N'css/site.css')
+                                OR f.CreationTime > DATEADD(MINUTE, 1, t.CreationTime)))
+            THEN 1 ELSE 0 END
+FROM [SiteThemes] t
+WHERE t.TenantId IS NULL;
+
+IF (SELECT COUNT(*) FROM @HostThemes WHERE Used = 1) > 1
+BEGIN
+    SELECT * FROM @HostThemes;
+    THROW 50000, N'More than one host theme has work in it. Nothing was deleted: keep one by hand.', 1;
+END;
+
+-- The one used, or else the one the administration API reads (the oldest).
+DECLARE @Keep uniqueidentifier = (SELECT TOP 1 Id FROM @HostThemes ORDER BY Used DESC, CreationTime, Id);
+
+SELECT Id, Used, CASE WHEN Id = @Keep THEN N'kept' ELSE N'deleted' END AS Outcome FROM @HostThemes;
+
+DELETE FROM [SiteThemeFiles] WHERE ThemeId IN (SELECT Id FROM @HostThemes WHERE Id <> @Keep);
+DELETE FROM [SiteThemes] WHERE Id IN (SELECT Id FROM @HostThemes WHERE Id <> @Keep);
+
+-- A host body stored twice: the copies are the same text (the hash is of the body), so one stays.
+WITH Copies AS (
+    SELECT ROW_NUMBER() OVER (PARTITION BY ContentHash ORDER BY CreationTime, Id) AS Number
+    FROM [SiteThemeBlobs]
+    WHERE TenantId IS NULL)
+DELETE FROM Copies WHERE Number > 1;
+
+COMMIT;
+```
+
 ### Migrate
 
 - **Existing roles do not have the new permissions** `SiteAdmin.Seo` and `SiteAdmin.Seo.Update`. Run the host's
   `--migrate-database` (or its migrator), whose seed grants every permission to the `admin` role of the host and of each
-  tenant; another role is granted them in the permission dialog. No schema changes.
+  tenant; another role is granted them in the permission dialog.
+- **On SQL Server, the two theme indexes change** (see Fixed): add a migration in the project that holds Site's tables,
+  and run the cleanup script first when the host may have two themes. The other database providers need nothing.
 - **A host behind a gateway** routes `api/site-admin/theme/download/*` and `api/site-admin/theme/upload/*` to Site, as it
   does `api/site-admin/files/upload/*`; the links start with `SiteMcpFileOptions.UploadBaseUrl` when it is set.
 - **A derived class**: `SiteHeadMetadataHtml.BuildTags` and `Build` have an overload taking `SiteHeadOptions`, which the

@@ -223,8 +223,12 @@ public static class SiteDbContextModelCreatingExtensions
 
             b.Property(t => t.DefaultLayout).HasMaxLength(SiteThemeConsts.MaxPathLength);
 
-            // One theme per tenant, for now.
-            b.HasIndex(t => t.TenantId).IsUnique();
+            // One theme per tenant, for now - the host included. SQL Server puts "TenantId IS NOT NULL" on a unique
+            // index over a nullable column unless the filter is set, which left the host (TenantId NULL) free to have
+            // two. Unfiltered, SQL Server counts NULL as one value, so the host gets one row like a tenant.
+            // Providers that treat NULLs as distinct (SQLite, PostgreSQL, MySQL) still take a second host row; there
+            // SiteThemeManager creates it only after looking for one, and the repository always reads the same one.
+            b.HasIndex(t => t.TenantId).IsUnique().HasFilter(null);
         });
 
         builder.Entity<SiteThemeFile>(b =>
@@ -277,8 +281,10 @@ public static class SiteDbContextModelCreatingExtensions
             b.Property(x => x.ContentHash).IsRequired().HasMaxLength(SiteThemeConsts.ContentHashLength);
             b.Property(x => x.Body).IsRequired();
 
-            // A content is stored once per tenant; a release file finds its body by this pair.
-            b.HasIndex(x => new { x.TenantId, x.ContentHash }).IsUnique();
+            // A content is stored once per tenant; a release file finds its body by this pair. Unfiltered for the
+            // same reason as the theme's index: a second host row for a hash would give each of its release files
+            // two bodies in the join that reads them.
+            b.HasIndex(x => new { x.TenantId, x.ContentHash }).IsUnique().HasFilter(null);
         });
     }
 }
