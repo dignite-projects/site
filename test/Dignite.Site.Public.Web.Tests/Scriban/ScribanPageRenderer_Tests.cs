@@ -112,6 +112,20 @@ public class ScribanPageRenderer_Tests
         strict.Message.ShouldContain("title");
     }
 
+    /// <summary>
+    /// What the docs warn of: inside an object literal <c>this</c> is the object being built, so a layout passing an
+    /// optional variable to <c>site_head</c> reads it into a variable first.
+    /// </summary>
+    [Fact]
+    public async Task This_Inside_An_Object_Literal_Should_Be_The_Object_Being_Built()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync(
+            "{{ title = \"Mine\" }}",
+            "{{ site_head }}[{{ o = { t: this.title } }}{{ o.t ?? \"empty\" }}][{{ og_title = this.title }}{{ p = { t: og_title } }}{{ p.t }}]{{ body }}");
+
+        html.ShouldEndWith("[empty][Mine]");
+    }
+
     [Fact]
     public async Task A_Render_That_Never_Calls_Site_Head_Should_Fail()
     {

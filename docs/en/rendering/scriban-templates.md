@@ -58,6 +58,8 @@ Reading a variable that nothing has assigned is an error, as a misspelt name is,
 
 The same goes for a variable a template assigns once and then reuses, as a partial included many times may: `{{ if !this.categories }}{{ categories = find_page "blog" }}{{ end }}`.
 
+Inside an object literal, `this` is the object being built, not the page's variables: `site_head { title: this.title }` always passes empty. Read the variable first, `{{ og_title = this.title ?? page.display_name }}`, and pass that: `site_head { title: og_title }`.
+
 A page template chooses its layout in **front matter**: a first line `+++`, then `layout =` and the layout's path in quotes, then a line `+++`:
 
 ````
