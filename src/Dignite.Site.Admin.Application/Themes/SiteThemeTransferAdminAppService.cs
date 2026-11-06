@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -149,8 +150,12 @@ public class SiteThemeTransferAdminAppService : SiteAdminAppService, ISiteThemeT
         {
             if (buffer.Length + read > SiteThemePackage.MaxBytes)
             {
-                throw new BusinessException(SiteErrorCodes.SiteThemePackageInvalid)
-                    .WithData("Problems", $"The package is more than {SiteThemePackage.MaxBytes} bytes.");
+                throw new SiteThemePackageInvalidException(new[]
+                {
+                    new SiteThemePackageProblem(
+                        SiteThemePackageProblemCodes.PackageTooLarge,
+                        Value: SiteThemePackage.MaxBytes.ToString(CultureInfo.InvariantCulture))
+                });
             }
 
             buffer.Write(chunk, 0, read);

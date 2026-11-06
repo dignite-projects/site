@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   copy, or a release, with each file at its path and the default layout in `.site-theme.json`; `POST
   api/site-admin/theme/import` brings a zip into the working copy, merged (the zip's files added or replacing theirs) or
   replacing it, and lists what changed and the syntax errors of the templates brought in. Nothing goes live. A zip with
-  anything wrong is refused whole, every problem listed (`Site:090014`). An AI client asks for a one-time link instead -
+  anything wrong is refused whole, every problem listed in the language of the request (`Site:090014`). An AI client asks for a one-time link instead -
   the new MCP tools `site_create_theme_download_url` and `site_create_theme_upload_url`, and `POST
   api/site-admin/theme/export-links` and `import-links` - so that the bytes go between the site and the disk and never
   through the model; a used or expired link is refused with `Site:090015`. The Theme screen has **Export** and **Import**
@@ -123,6 +123,9 @@ DELETE FROM Copies WHERE Number > 1;
 
 COMMIT;
 ```
+
+- **The admin's delete messages show their text.** Deleting a page, content type, content, field or theme file said
+  `SuccessfullyDeleted`, a key ABP does not have; they now use ABP's `AbpUi::DeletedSuccessfully`.
 
 ### Migrate
 

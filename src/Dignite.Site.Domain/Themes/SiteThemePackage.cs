@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Volo.Abp;
 
 namespace Dignite.Site.Themes;
 
@@ -63,10 +63,10 @@ public static class SiteThemePackage
     /// Hidden files (a segment starting with a dot, such as <c>.DS_Store</c>) and the <c>__MACOSX/</c> folder that a
     /// zip made on a Mac carries are skipped.
     /// </summary>
-    /// <exception cref="BusinessException"><see cref="SiteErrorCodes.SiteThemePackageInvalid"/>, with Data["Problems"] listing what is wrong.</exception>
+    /// <exception cref="SiteThemePackageInvalidException">Listing what is wrong.</exception>
     public static SiteThemePackageContent Read(Stream zip)
     {
-        var problems = new List<string>();
+        var problems = new List<SiteThemePackageProblem>();
         var files = new Dictionary<string, string>(StringComparer.Ordinal);
         var hasDefaultLayout = false;
         string? defaultLayout = null;
@@ -78,7 +78,7 @@ public static class SiteThemePackage
         }
         catch (InvalidDataException)
         {
-            throw Invalid(new[] { "The package is not a zip file." });
+            throw new SiteThemePackageInvalidException(new[] { new SiteThemePackageProblem(SiteThemePackageProblemCodes.NotZip) });
         }
 
         using (archive)
@@ -94,14 +94,14 @@ public static class SiteThemePackage
 
                 if (name.Contains('\\') || name.StartsWith('/') || name.Split('/').Any(segment => segment is ".." or "."))
                 {
-                    problems.Add($"{name}: not a path inside the theme.");
+                    problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.OutsideTheme, name));
                     continue;
                 }
 
                 totalBytes += entry.Length;
                 if (totalBytes > MaxBytes)
                 {
-                    problems.Add($"The files are more than {MaxBytes} bytes unpacked.");
+                    problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.FilesTooLarge, Value: MaxBytes.ToString(CultureInfo.InvariantCulture)));
                     break;
                 }
 
@@ -113,26 +113,26 @@ public static class SiteThemePackage
 
                 if (files.Count >= MaxFileCount)
                 {
-                    problems.Add($"The package has more than {MaxFileCount} files.");
+                    problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.TooManyFiles, Value: MaxFileCount.ToString(CultureInfo.InvariantCulture)));
                     break;
                 }
 
                 var path = SiteThemePaths.Normalize(name);
                 if (!SiteThemePaths.IsValid(path))
                 {
-                    problems.Add($"{name}: not a valid path for a theme file (letters, digits, '_' and '-', separated by '/').");
+                    problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.InvalidPath, name));
                     continue;
                 }
 
                 if (!SiteThemePaths.IsAllowed(path))
                 {
-                    problems.Add($"{name}: '.{SiteThemePaths.GetExtension(path)}' is not an extension a theme file may have; a template has none.");
+                    problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.ExtensionNotAllowed, name, "." + SiteThemePaths.GetExtension(path)));
                     continue;
                 }
 
                 if (!files.TryAdd(path, string.Empty))
                 {
-                    problems.Add($"{name}: the package holds this path twice.");
+                    problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.DuplicatePath, name));
                     continue;
                 }
 
@@ -145,7 +145,7 @@ public static class SiteThemePackage
 
                 if (body.Length > SiteThemeConsts.MaxBodyLength)
                 {
-                    problems.Add($"{name}: longer than the {SiteThemeConsts.MaxBodyLength} characters a theme file may hold.");
+                    problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.FileTooLong, name, SiteThemeConsts.MaxBodyLength.ToString(CultureInfo.InvariantCulture)));
                     files.Remove(path);
                     continue;
                 }
@@ -156,7 +156,7 @@ public static class SiteThemePackage
 
         if (problems.Count > 0)
         {
-            throw Invalid(problems);
+            throw new SiteThemePackageInvalidException(problems);
         }
 
         return new SiteThemePackageContent(files, hasDefaultLayout, defaultLayout);
@@ -168,7 +168,7 @@ public static class SiteThemePackage
                || (name != ManifestName && name.Split('/').Any(segment => segment.StartsWith('.') && segment is not (".." or ".")));
     }
 
-    private static (bool HasDefaultLayout, string? DefaultLayout) ReadManifest(ZipArchiveEntry entry, List<string> problems)
+    private static (bool HasDefaultLayout, string? DefaultLayout) ReadManifest(ZipArchiveEntry entry, List<SiteThemePackageProblem> problems)
     {
         var text = ReadText(entry, ManifestName, problems);
         if (text == null)
@@ -180,7 +180,7 @@ public static class SiteThemePackage
         {
             if (JsonNode.Parse(text) is not JsonObject manifest)
             {
-                problems.Add($"{ManifestName}: not a JSON object.");
+                problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.ManifestNotObject, ManifestName));
                 return (false, null);
             }
 
@@ -199,18 +199,18 @@ public static class SiteThemePackage
                 return (true, string.IsNullOrWhiteSpace(path) ? null : SiteThemePaths.Normalize(path));
             }
 
-            problems.Add($"{ManifestName}: defaultLayout must be the path of a template, or null.");
+            problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.ManifestDefaultLayout, ManifestName));
             return (false, null);
         }
         catch (JsonException)
         {
-            problems.Add($"{ManifestName}: not valid JSON.");
+            problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.ManifestNotJson, ManifestName));
             return (false, null);
         }
     }
 
     /// <summary>The entry as UTF-8 text without a byte order mark; null, with a problem added, when it is not UTF-8.</summary>
-    private static string? ReadText(ZipArchiveEntry entry, string name, List<string> problems)
+    private static string? ReadText(ZipArchiveEntry entry, string name, List<SiteThemePackageProblem> problems)
     {
         using var stream = entry.Open();
         using var buffer = new MemoryStream();
@@ -223,7 +223,7 @@ public static class SiteThemePackage
             buffer.Write(chunk, 0, read);
             if (buffer.Length >= limit)
             {
-                problems.Add($"{name}: holds more than its size in the package says.");
+                problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.SizeMismatch, name));
                 return null;
             }
         }
@@ -235,7 +235,7 @@ public static class SiteThemePackage
         }
         catch (DecoderFallbackException)
         {
-            problems.Add($"{name}: not UTF-8 text. A theme holds text files only; fonts and images go in the file library.");
+            problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.NotUtf8, name));
             return null;
         }
     }
@@ -246,12 +246,6 @@ public static class SiteThemePackage
         using var stream = entry.Open();
         var bytes = StrictUtf8.GetBytes(body);
         stream.Write(bytes, 0, bytes.Length);
-    }
-
-    private static BusinessException Invalid(IEnumerable<string> problems)
-    {
-        return new BusinessException(SiteErrorCodes.SiteThemePackageInvalid)
-            .WithData("Problems", string.Join(Environment.NewLine, problems));
     }
 }
 

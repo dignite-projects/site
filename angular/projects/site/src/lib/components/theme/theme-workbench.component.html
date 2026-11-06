@@ -514,7 +514,7 @@
         <p>{{ 'Site::ImportThemeDefaultLayoutSet' | abpLocalization }}</p>
       }
       @if (result.added.length) {
-        <h6 class="mb-1">{{ 'Site::ImportThemeAdded' | abpLocalization: result.added.length }}</h6>
+        <h6 class="mb-1">{{ 'Site::ImportThemeAdded' | abpLocalization: result.added.length.toString() }}</h6>
         <ul class="mb-3">
           @for (path of result.added; track path) {
             <li><code>{{ path }}</code></li>
@@ -522,7 +522,7 @@
         </ul>
       }
       @if (result.modified.length) {
-        <h6 class="mb-1">{{ 'Site::ImportThemeModified' | abpLocalization: result.modified.length }}</h6>
+        <h6 class="mb-1">{{ 'Site::ImportThemeModified' | abpLocalization: result.modified.length.toString() }}</h6>
         <ul class="mb-3">
           @for (path of result.modified; track path) {
             <li><code>{{ path }}</code></li>
@@ -530,14 +530,14 @@
         </ul>
       }
       @if (result.deleted.length) {
-        <h6 class="mb-1">{{ 'Site::ImportThemeDeleted' | abpLocalization: result.deleted.length }}</h6>
+        <h6 class="mb-1">{{ 'Site::ImportThemeDeleted' | abpLocalization: result.deleted.length.toString() }}</h6>
         <ul class="mb-3">
           @for (path of result.deleted; track path) {
             <li><code>{{ path }}</code></li>
           }
         </ul>
       }
-      <p class="text-muted mb-3">{{ 'Site::ImportThemeUnchanged' | abpLocalization: result.unchanged.length }}</p>
+      <p class="text-muted mb-3">{{ 'Site::ImportThemeUnchanged' | abpLocalization: result.unchanged.length.toString() }}</p>
       @let withErrors = syntaxErrorsOf(result);
       @if (withErrors.length) {
         <h6 class="mb-1 text-danger">{{ 'Site::ImportThemeSyntaxErrors' | abpLocalization }}</h6>

@@ -3,15 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Localization;
 using Dignite.Site.Mcp.Themes;
 using Dignite.Site.Themes;
+using Microsoft.Extensions.Localization;
 using Shouldly;
 using Volo.Abp;
 using Volo.Abp.Content;
+using Volo.Abp.Localization;
 using Volo.Abp.Validation;
 using Xunit;
 
@@ -169,7 +173,7 @@ public class SiteThemeTransfer_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task A_Package_With_Anything_Wrong_Should_Be_Refused_Whole()
     {
-        var exception = await Should.ThrowAsync<BusinessException>(() => ImportAsync(Zip(new Dictionary<string, string>
+        var exception = await Should.ThrowAsync<SiteThemePackageInvalidException>(() => ImportAsync(Zip(new Dictionary<string, string>
         {
             ["Events"] = "<p>fine</p>",
             ["../outside"] = "x",
@@ -178,10 +182,12 @@ public class SiteThemeTransfer_Tests : SiteEntityFrameworkCoreTestBase
         })));
 
         exception.Code.ShouldBe(SiteErrorCodes.SiteThemePackageInvalid);
-        var problems = (string)exception.Data["Problems"]!;
-        problems.ShouldContain("../outside");
-        problems.ShouldContain("post.html");
-        problems.ShouldContain("Bad Name");
+        exception.Problems.ShouldBe(new[]
+        {
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.OutsideTheme, "../outside"),
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.ExtensionNotAllowed, "post.html", ".html"),
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.InvalidPath, "Bad Name")
+        }, ignoreOrder: true);
         (await _themeAppService.GetFilesAsync()).Items.Select(f => f.Path).ShouldNotContain("Events");
     }
 
@@ -195,11 +201,62 @@ public class SiteThemeTransfer_Tests : SiteEntityFrameworkCoreTestBase
             stream.Write(new byte[] { 0xFF, 0xFE, 0x00, 0xC3 }, 0, 4);
         }
 
-        (await Should.ThrowAsync<BusinessException>(() => ImportAsync(buffer.ToArray())))
-            .Data["Problems"]!.ToString()!.ShouldContain("not UTF-8");
+        (await Should.ThrowAsync<SiteThemePackageInvalidException>(() => ImportAsync(buffer.ToArray())))
+            .Problems.ShouldBe(new[] { new SiteThemePackageProblem(SiteThemePackageProblemCodes.NotUtf8, "css/site.css") });
 
-        (await Should.ThrowAsync<BusinessException>(() => ImportAsync(Encoding.UTF8.GetBytes("not a zip"))))
-            .Code.ShouldBe(SiteErrorCodes.SiteThemePackageInvalid);
+        (await Should.ThrowAsync<SiteThemePackageInvalidException>(() => ImportAsync(Encoding.UTF8.GetBytes("not a zip"))))
+            .Problems.ShouldBe(new[] { new SiteThemePackageProblem(SiteThemePackageProblemCodes.NotZip) });
+    }
+
+    [Theory]
+    [InlineData("en", "Bad Name: not a valid path for a theme file")]
+    [InlineData("ja", "Bad Name：テーマファイルのパスとして無効です")]
+    [InlineData("zh-Hans", "Bad Name：不是有效的主题文件路径")]
+    public void A_Refused_Package_Should_Be_Told_In_The_Language_Of_The_Request(string culture, string expected)
+    {
+        var exception = new SiteThemePackageInvalidException(new[]
+        {
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.InvalidPath, "Bad Name"),
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.TooManyFiles, Value: "1000")
+        });
+
+        using (CultureHelper.Use(culture))
+        {
+            var message = exception.LocalizeMessage(new LocalizationContext(ServiceProvider));
+            message.ShouldContain(expected);
+            message.ShouldContain("1000");
+            message.ShouldNotContain("{");
+        }
+    }
+
+    [Theory]
+    [InlineData("ja")]
+    [InlineData("zh-Hans")]
+    public void Every_Package_Problem_Should_Have_A_Message_In_Each_Language(string culture)
+    {
+        var localizer = GetRequiredService<IStringLocalizer<SiteResource>>();
+        var codes = typeof(SiteThemePackageProblemCodes)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.IsLiteral)
+            .Select(field => (string)field.GetRawConstantValue()!)
+            .ToList();
+        codes.Count.ShouldBeGreaterThan(10);
+
+        Dictionary<string, string> english;
+        using (CultureHelper.Use("en"))
+        {
+            english = codes.ToDictionary(code => code, code => localizer[code].Value);
+        }
+
+        using (CultureHelper.Use(culture))
+        {
+            foreach (var code in codes)
+            {
+                english[code].ShouldNotBe(code, "no English message for " + code);
+                // A language without the key falls back to English, so a message equal to the English one is missing.
+                localizer[code].Value.ShouldNotBe(english[code], "no " + culture + " message for " + code);
+            }
+        }
     }
 
     [Fact]

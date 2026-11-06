@@ -106,7 +106,10 @@ public static class SiteErrorCodes
     /// </summary>
     public const string SiteThemeDefaultLayoutNotALayout = "Site:090013";
 
-    /// <summary>A theme package that cannot be imported; Data["Problems"] lists what is wrong, one per line.</summary>
+    /// <summary>
+    /// A theme package that cannot be imported. The message's <c>{Problems}</c> lists what is wrong, one per line, in the
+    /// language of the request (<c>SiteThemePackageInvalidException</c>, <see cref="Themes.SiteThemePackageProblemCodes"/>).
+    /// </summary>
     public const string SiteThemePackageInvalid = "Site:090014";
 
     /// <summary>A theme download or upload link that has expired, has been used, or was not issued by this site.</summary>

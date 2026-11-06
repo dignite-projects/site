@@ -96,7 +96,7 @@ describe('PagesComponent', () => {
 
       expect(remove).toHaveBeenCalledWith('blog');
       expect(getList).toHaveBeenCalledTimes(1);
-      expect(success).toHaveBeenCalledWith('AbpUi::SuccessfullyDeleted');
+      expect(success).toHaveBeenCalledWith('AbpUi::DeletedSuccessfully');
     });
   });
 });

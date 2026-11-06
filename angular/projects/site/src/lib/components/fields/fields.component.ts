@@ -311,7 +311,7 @@ export class FieldsComponent {
           // message, which already explains to remove it from an arrangement instead.
           this.fieldService.delete(field.id!).subscribe(() => {
             this.refreshLibrary();
-            this.toaster.success('AbpUi::SuccessfullyDeleted');
+            this.toaster.success('AbpUi::DeletedSuccessfully');
           });
         }
       });
@@ -417,7 +417,7 @@ export class FieldsComponent {
           if (status === Confirmation.Status.confirm) {
             forkJoin(fields.map(field => this.updateFieldGroupName(field, null))).subscribe(() => {
               this.refreshLibrary();
-              this.toaster.success('AbpUi::SuccessfullyDeleted');
+              this.toaster.success('AbpUi::DeletedSuccessfully');
             });
           }
         });

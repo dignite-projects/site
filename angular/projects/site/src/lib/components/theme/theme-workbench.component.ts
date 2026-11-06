@@ -807,7 +807,7 @@ export class ThemeWorkbenchComponent implements OnInit {
             this.activePath.set(this.openFiles()[0]?.path);
           }
 
-          this.toaster.success('AbpUi::SuccessfullyDeleted');
+          this.toaster.success('AbpUi::DeletedSuccessfully');
           this.refreshFiles();
           this.runCheck();
         });
