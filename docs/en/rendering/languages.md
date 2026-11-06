@@ -85,19 +85,17 @@ var cultureName = await siteLanguageContext.GetCurrentCultureNameAsync();
 
 ## Language Switcher
 
-`SiteLanguageSwitcher` returns one item per enabled language, in the configured order. On a Site page, an item links to the page's own translation when it has one, and to that language's home page when it does not. Translations come from the page's hreflang alternates, so a translation that is `noindex` or unpublished counts as missing. On any other page, every item links to a home page. The labels and the markup are the host's:
+`SiteLanguageSwitcher` returns one item per enabled language, in the configured order. On a Site page, an item links to the page's own translation when it has one, and to that language's home page when it does not. Translations come from the page's hreflang alternates, so a translation that is `noindex` or unpublished counts as missing. On any other page, every item links to a home page. The markup is the host's, and so is the label: `item.NativeName` is the language's name in itself, such as `日本語` or `Français`, with its first letter capitalized, from the runtime's culture data, which can differ a little between operating systems.
 
 ````cshtml
 @inject SiteLanguageSwitcher Switcher
-@using System.Globalization
 
 <nav aria-label="Language">
   @foreach (var item in await Switcher.GetItemsAsync())
   {
-      var culture = CultureInfo.GetCultureInfo(item.CultureName);
       <a href="@item.Url" hreflang="@item.CultureName" lang="@item.CultureName"
          aria-current="@(item.IsCurrent ? "true" : null)" data-site-lang="@item.CultureName">
-        @culture.TextInfo.ToTitleCase(culture.NativeName)
+        @item.NativeName
       </a>
   }
 </nav>

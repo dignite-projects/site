@@ -44,8 +44,9 @@ namespace Dignite.Site.Public.Scriban;
 /// <item><term><c>culture</c>, <c>default_culture</c></term><description>The page's language and the site's
 /// default one, e.g. <c>"ja"</c> and <c>"en"</c>.</description></item>
 /// <item><term><c>languages</c></term><description>One per enabled language, in configured order:
-/// <c>{ culture_name, url, is_current, is_translation }</c> - <c>url</c> is this page's translation when it has
-/// one, that language's home page otherwise.</description></item>
+/// <c>{ culture_name, native_name, url, is_current, is_translation }</c> - <c>native_name</c> is the language's
+/// name in itself ("日本語"), <c>url</c> is this page's translation when it has one, that language's home page
+/// otherwise.</description></item>
 /// <item><term><c>filter_values</c></term><description>Every route placeholder value, keyed as the route names
 /// it (<c>filter_values["publishTime:yyyy"]</c>).</description></item>
 /// <item><term><c>field_filters</c></term><description>The same minus <c>publishTime</c> - what
@@ -56,6 +57,9 @@ namespace Dignite.Site.Public.Scriban;
 /// (<see cref="SiteRenderViewModel.CurrentPage"/>): 1 unless the request's page query parameter says
 /// otherwise. What a template passes <c>contents</c> as <c>page_no</c>; <c>site_head</c> and <c>page_url</c>
 /// read it themselves.</description></item>
+/// <item><term><c>query</c></term><description>The request's query string, each parameter's first value by its name in
+/// lower case (<see cref="SiteRenderViewModel.Query"/>): <c>query.service</c> on <c>/start?service=design</c>, null for a
+/// parameter the request does not have. A visitor's text: written HTML-encoded like every value.</description></item>
 /// <item><term><c>head</c></term><description>The SEO head metadata, or null: <c>meta_title</c>,
 /// <c>base_meta_title</c>, <c>meta_description</c>, <c>canonical_url</c>, <c>robots_content</c>,
 /// <c>og_image_url</c>, <c>og_type</c>, <c>twitter_card_type</c>, <c>hreflang_alternates</c> (each
@@ -126,6 +130,7 @@ public class ScribanRenderModelBuilder : ITransientDependency
         globals.SetValue("published_after", viewModel.PublishedAfter, false);
         globals.SetValue("published_before", viewModel.PublishedBefore, false);
         globals.SetValue("page_no", viewModel.CurrentPage, false);
+        globals.SetValue("query", BuildQuery(viewModel.Query), false);
         globals.SetValue("head", viewModel.HeadMetadata == null ? null : FromDto(viewModel.HeadMetadata), false);
 
         var breadcrumb = new ScriptArray();
@@ -280,6 +285,21 @@ public class ScribanRenderModelBuilder : ITransientDependency
     protected static ScriptObject FromDto(object dto)
     {
         return ScribanValues.ObjectFromJson(JsonSerializer.SerializeToElement(dto, dto.GetType(), DtoJsonOptions));
+    }
+
+    /// <summary>
+    /// The request's query parameters by name in lower case: the request's names are read without regard to case, as
+    /// ASP.NET Core reads them, so <c>query.service</c> finds <c>?Service=design</c> too.
+    /// </summary>
+    protected static ScriptObject BuildQuery(IReadOnlyDictionary<string, string> query)
+    {
+        var result = new ScriptObject();
+        foreach (var (name, value) in query)
+        {
+            result.SetValue(name.ToLowerInvariant(), value, false);
+        }
+
+        return result;
     }
 
     protected static ScriptObject BuildStrings(IReadOnlyDictionary<string, string>? values)

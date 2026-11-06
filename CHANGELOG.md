@@ -49,6 +49,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The MCP tools that store a content say when its SEO title or description is too wide.** `site_create_content` and
   `site_update_content` return `warnings` when a value is wider than the SEO field's limit; the content is stored all the
   same.
+- **A Scriban template does what a Razor view did**, found by turning a whole Razor site into a theme:
+  - `contents` and `content_counts` take `field_filters` (`{ category: "news", featured: true }`), `published_after` and
+    `published_before`, so a block lists the featured cases or this month's posts, and an archive page lists the posts of
+    its child page with the route's own filters passed on. On the current page they add to the route's filters.
+  - `adjacent_contents` gives the older and the newer content beside `content` (`{ previous, next }`), as
+    `IContentPublicAppService.GetAdjacentAsync` gives a Razor view, however many contents the page has.
+  - `t` fills a text's placeholders, as `L["key", arguments]` does: `t "Pager:Page" null page_no total`, numbers and
+    dates formatted in the page's language.
+  - `query` holds the request's query string, by lower-case name: `query.service` on `/start?service=design`.
+  - `languages` items have `native_name`, the language's name in itself (`日本語`, `Français`), and so does
+    `SiteLanguageSwitchItem.NativeName` for a Razor view.
+  - `app_file_url "/libs/abp/core/abp.js"` addresses a file of the application's web root with a version from its
+    content, as `asp-append-version` does.
+  - `text_width` measures a text in a search result's columns, as the SEO field's limits do.
+
+  The Layouts section of [Scriban Templates](docs/en/rendering/scriban-templates.md#layouts) also says how a layout reads
+  a variable only some of its pages assign (`this.title ?? page.display_name`), and the function table that
+  `render_field name true` writes the value without its label.
 
 ### Changed
 
@@ -61,6 +79,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be unpacked onto a disk. Saving or renaming a file to such a path is refused with `Site:090016`, an import that would
   leave one is refused whole (`ThemePackage:PathIsFolder` in `Site:090014`), and the check reports a working copy that
   still holds one (`ThemeIssue:PathIsFolder`, an error). See [The Theme](docs/en/rendering/scriban-templates.md#the-theme).
+- **The trial render covers a large site, and says why it stopped.** It renders up to 100 addresses (60 before), adds the
+  second page of each list with more than one content (`?page=2`), and renders each template version once as a list, once
+  as a detail of each content type and once as a later page before it renders any a second time, so the addresses a large
+  site leaves out repeat branches that were rendered; the order of the routes used to leave the last pages out
+  altogether. A run that does not render the whole sample says which bound it met: `ThemeIssue:TrialRenderIncomplete` now
+  means only that the sample is larger than 100 addresses, `ThemeIssue:TrialRenderOutOfTime` that the 30 seconds ran out,
+  and `ThemeIssue:TrialRenderStopped` that an address failed for a reason that is not the theme's, naming it. See
+  [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
+- **A preview that cannot be rendered is not answered `403`.** The admin API answered every preview error with ABP's
+  status for a business error, which reads as a missing permission. It answers `Site:090006` (no page at the path) with
+  `404`; `Site:090005`, `Site:090008` and `Site:090009` (the theme does not render the page) with `422`; and
+  `Site:090007` (nothing to render with) with `501`. The other theme errors keep `403`: the theme screen reads a `409`
+  as another save of the same file.
 
 ### Fixed
 
@@ -132,6 +163,9 @@ COMMIT;
 
 - **The admin's delete messages show their text.** Deleting a page, content type, content, field or theme file said
   `SuccessfullyDeleted`, a key ABP does not have; they now use ABP's `AbpUi::DeletedSuccessfully`.
+- **A rich-text field keeps its `mailto:` and `tel:` links.** The rich-text view's sanitizer allowed `http` and `https`
+  links only, so an email or phone link in a content lost its address on the site. Dignite.Abp.FlexFields 10.7.3 allows
+  both.
 
 ### Migrate
 
@@ -146,7 +180,15 @@ COMMIT;
 - **A host behind a gateway** routes `api/site-admin/theme/download/*` and `api/site-admin/theme/upload/*` to Site, as it
   does `api/site-admin/files/upload/*`; the links start with `SiteMcpFileOptions.UploadBaseUrl` when it is set.
 - **A derived class**: `SiteHeadMetadataHtml.BuildTags` and `Build` have an overload taking `SiteHeadOptions`, which the
-  tag helper and `site_head` now call; `ContentTools` takes an optional `IFieldAdminAppService`.
+  tag helper and `site_head` now call; `ContentTools` takes an optional `IFieldAdminAppService`. `ContentListQuery` has
+  `FindAdjacentAsync`, with `GetContentTypesAsync` and `ToListItem` taken out of `QueryAsync` and `PrepareAsync`;
+  `SiteThemeTrialRenderer` has `ToIncompleteIssue`, `GetTemplatePath` and `GetTemplateVersion`, and
+  `GetSamplePathsAsync` returns the sample in its new order.
+- **A client that read the trial render's warnings**: `ThemeIssue:TrialRenderIncomplete` no longer stands for a run
+  stopped by a failure or by the time; look for `ThemeIssue:TrialRenderStopped` and `ThemeIssue:TrialRenderOutOfTime`
+  too. **A client of the preview API** that took its `403` for an error of the preview gets `404`, `422` or `501` (see
+  Changed).
+- **Dignite.Abp.FlexFields 10.7.3**: `DigniteAbpModulesVersion` in a host that pins it is raised to 10.7.3 with Site.
 - **The Admin C# client proxies were generated again**, with `SiteSeoSettingsAdminClientProxy` and
   `SiteThemeTransferAdminClientProxy`; `site-admin-generate-proxy.json` now also describes the languages and the file upload
   link endpoints, which it had missed since 2.0.0.

@@ -143,7 +143,7 @@ public class SiteThemeRemotePreviewRenderer_Tests : SiteEntityFrameworkCoreTestB
         var check = await _themeAppService.CheckAsync();
 
         check.HasErrors.ShouldBeFalse();
-        check.Issues.ShouldHaveSingleItem().Code.ShouldBe(SiteThemeIssueCodes.TrialRenderIncomplete);
+        check.Issues.ShouldHaveSingleItem().Code.ShouldBe(SiteThemeIssueCodes.TrialRenderStopped);
         _site.Calls.ShouldHaveSingleItem();
     }
 

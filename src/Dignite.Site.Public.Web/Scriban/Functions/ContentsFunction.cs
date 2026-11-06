@@ -22,7 +22,15 @@ namespace Dignite.Site.Public.Scriban.Functions;
 /// <item><c>max</c> - page size, default 20, at most <see cref="MaxPageSize"/>.</item>
 /// <item><c>page_no</c> - 1-based page number, default 1, at most <see cref="MaxPageNumber"/>.</item>
 /// <item><c>filter</c> - a text filter.</item>
+/// <item><c>field_filters</c> - an object of field names and values, as a route's placeholders filter: only contents
+/// whose field holds the value (<c>{ category: "news", featured: true }</c>). The field must be one the content type
+/// marks Searchable, or the filter is ignored, as a route's is. On the current page it is added to the route's own.</item>
+/// <item><c>published_after</c>, <c>published_before</c> - dates bounding <c>publish_time</c>, both inclusive, as a
+/// route's <c>publishTime</c> placeholders bound it. On the current page they replace the route's.</item>
 /// </list>
+/// With <c>page</c>, none of the current route's filters apply: a template lists another page's slice by passing them,
+/// <c>contents { page: "blog-post", field_filters: field_filters, published_after: published_after,
+/// published_before: published_before }</c>, as an archive page listing the posts of a child page does.
 /// Returns <c>{ items, total_count, max_result_count, current_page }</c>; each item has the shape of
 /// <c>content</c> (<see cref="ScribanRenderModelBuilder.BuildContent(Routing.ContentRenderViewModel)"/>), its
 /// <c>field_list</c> holding only the fields the content type shows in lists. An unknown option name is an
@@ -43,7 +51,10 @@ public class ContentsFunction : SiteScriptFunction
     /// </summary>
     public const int MaxPageNumber = int.MaxValue / MaxPageSize;
 
-    private static readonly string[] OptionNames = { "page", "content_type", "max", "page_no", "filter" };
+    private static readonly string[] OptionNames =
+    {
+        "page", "content_type", "max", "page_no", "filter", "field_filters", "published_after", "published_before"
+    };
 
     protected ScribanRenderScope Scope { get; }
     protected ContentListQuery Query { get; }
@@ -82,15 +93,16 @@ public class ContentsFunction : SiteScriptFunction
             return BuildResult(new ScriptArray(), 0, maxResultCount, currentPage);
         }
 
+        var (fieldFilters, publishedAfter, publishedBefore) = GetFilters(context, span, options, viewModel, isCurrentPage);
         var list = await Query.QueryAsync(new ContentListQueryRequest
         {
             Page = page,
             CultureName = viewModel.CultureName,
             ContentTypeName = GetOptionString(context, span, options, "content_type"),
             Filter = GetOptionString(context, span, options, "filter"),
-            FieldFilters = isCurrentPage ? viewModel.FieldFilters : null,
-            PublishedAfter = isCurrentPage ? viewModel.PublishedAfter : null,
-            PublishedBefore = isCurrentPage ? viewModel.PublishedBefore : null,
+            FieldFilters = fieldFilters,
+            PublishedAfter = publishedAfter,
+            PublishedBefore = publishedBefore,
             MaxResultCount = maxResultCount,
             CurrentPage = currentPage
         });

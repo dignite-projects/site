@@ -96,8 +96,22 @@ public static class SiteThemeIssueCodes
     /// </summary>
     public const string FragmentReferenceNotFound = Prefix + "FragmentReferenceNotFound";
 
-    /// <summary>The trial render stopped before the whole sample was rendered, for the time it took. Data: Rendered, Total.</summary>
+    /// <summary>
+    /// The trial render rendered part of the sample: the site has more sample addresses than a check renders. One of each
+    /// template version and way it renders came first, so what is left out repeats what was rendered. Data: Rendered,
+    /// Total, Max.
+    /// </summary>
     public const string TrialRenderIncomplete = Prefix + "TrialRenderIncomplete";
+
+    /// <summary>The trial render ran out of the time a check gives it before the whole sample was rendered. Data: Rendered, Total, Seconds.</summary>
+    public const string TrialRenderOutOfTime = Prefix + "TrialRenderOutOfTime";
+
+    /// <summary>
+    /// The trial render stopped at an address that failed for a reason that is not the theme's - a service the render
+    /// needs failed, or the site that renders it did not answer - and rendered nothing after it; the application's log
+    /// has the failure. Data: Path, Rendered, Total.
+    /// </summary>
+    public const string TrialRenderStopped = Prefix + "TrialRenderStopped";
 
     /// <summary>
     /// The trial render rendered nothing: the application has no renderer, as an administration API deployed apart from

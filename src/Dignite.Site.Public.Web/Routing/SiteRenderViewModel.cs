@@ -64,6 +64,13 @@ public class SiteRenderViewModel
     /// </summary>
     public int CurrentPage { get; init; } = 1;
 
+    /// <summary>
+    /// The request's query string, each parameter's first value by name (<see cref="SiteRenderQuery"/>): what a
+    /// Scriban template sees as <c>query</c> - <c>/start?service=design</c> preselecting a choice. Set by whoever
+    /// renders the request, the live site or a preview, which reads it from the previewed path; empty when there is none.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Query { get; set; } = SiteRenderQuery.Empty;
+
     /// <summary>Populated for RouteMatchKindDto.ContentOfPage / .Content. Null for RouteMatchKindDto.Page - a front end queries a list itself (总体设计 §7's "rendering is handed to the front end"), this no longer pre-fetches one.</summary>
     public ContentRenderViewModel? Content { get; init; }
 }

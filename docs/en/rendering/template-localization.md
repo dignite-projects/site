@@ -35,7 +35,7 @@ A template reads a text with `t`, in the language of the page:
 <a href="{{ url "~/blog" }}">{{ t "Blog:Name" "Blog" }}</a>
 ````
 
-The second argument is the fallback for a key the theme has not written; without one, the key is shown. `t` looks in the page's language, then in its parent languages and then in the site's default language, the order described under [Lookup Order](#lookup-order). It does not read the files a host ships for its Razor views, so what a theme shows is what its release holds. See [Scriban Templates](scriban-templates.md#functions) for `t`.
+The second argument is the fallback for a key the theme has not written; without one, the key is shown. Arguments after it fill the text's placeholders, formatted in the language of the page, as `L["key", arguments]` does in a Razor view: with the texts above, `{{ t "Archive:Month" null published_after }}` is `2026年8月の記事` on a page of August 2026. Pass `null` as the fallback to give arguments without one. `t` looks in the page's language, then in its parent languages and then in the site's default language, the order described under [Lookup Order](#lookup-order). It does not read the files a host ships for its Razor views, so what a theme shows is what its release holds. See [Scriban Templates](scriban-templates.md#functions) for `t`.
 
 The check before a publish reports a file in `locales/` that does not parse, has no `culture` or `texts`, has a text that is not a string, or does not say its own language, and two files for the same language. Each is an error, so a theme with one cannot be published. The files in `locales/` are never reported as unused.
 

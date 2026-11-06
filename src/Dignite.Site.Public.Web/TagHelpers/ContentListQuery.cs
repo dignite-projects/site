@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
+using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
@@ -64,17 +65,11 @@ public class ContentListQuery : ITransientDependency
         var items = new List<ContentRenderViewModel>(contents.Items.Count);
         foreach (var content in contents.Items)
         {
-            if (!contentTypesById.TryGetValue(content.ContentTypeId, out var contentType))
+            // A content whose type was removed since it was written is skipped, not allowed to break the list.
+            if (ToListItem(content, contentTypesById, fieldsById) is { } item)
             {
-                continue; // content type removed since this content was written - skip, don't break the list
+                items.Add(item);
             }
-
-            items.Add(new ContentRenderViewModel
-            {
-                Content = content,
-                ContentType = contentType,
-                Fields = SiteRenderFieldMapper.Build(content, contentType, fieldsById, listFieldsOnly: true)
-            });
         }
 
         return new ContentListRenderViewModel
@@ -84,6 +79,43 @@ public class ContentListQuery : ITransientDependency
             MaxResultCount = request.MaxResultCount,
             CurrentPage = request.CurrentPage
         };
+    }
+
+    /// <summary>
+    /// The contents either side of <paramref name="contentId"/> among its page's published contents in its language, by
+    /// publish time - what <see cref="IContentPublicAppService.GetAdjacentAsync"/> finds, for "older" and "newer" links -
+    /// each shaped as <see cref="QueryAsync"/> shapes a list's items. With <paramref name="contentTypeName"/>, among the
+    /// contents of that type only; both null when the page has no content type of that name.
+    /// </summary>
+    public virtual async Task<(ContentRenderViewModel? Previous, ContentRenderViewModel? Next)> FindAdjacentAsync(
+        PageDto page,
+        Guid contentId,
+        string? contentTypeName = null)
+    {
+        var contentTypes = await GetContentTypesAsync(page);
+
+        Guid? contentTypeId = null;
+        if (!string.IsNullOrEmpty(contentTypeName))
+        {
+            contentTypeId = contentTypes.FirstOrDefault(ct => string.Equals(ct.Name, contentTypeName, StringComparison.Ordinal))?.Id;
+            if (contentTypeId == null)
+            {
+                return (null, null);
+            }
+        }
+
+        var adjacent = await ContentAppService.GetAdjacentAsync(contentId, new GetAdjacentContentsInput { ContentTypeId = contentTypeId });
+        if (adjacent.Previous == null && adjacent.Next == null)
+        {
+            return (null, null);
+        }
+
+        var contentTypesById = contentTypes.ToDictionary(ct => ct.Id);
+        var fieldsById = await GetFieldsByIdAsync(contentTypes.SelectMany(ct => ct.Fields).Select(f => f.FieldId));
+
+        return (
+            adjacent.Previous == null ? null : ToListItem(adjacent.Previous, contentTypesById, fieldsById),
+            adjacent.Next == null ? null : ToListItem(adjacent.Next, contentTypesById, fieldsById));
     }
 
     /// <summary>
@@ -162,11 +194,7 @@ public class ContentListQuery : ITransientDependency
     {
         var page = request.Page;
 
-        // Non-null here means some earlier read (GetAsync/GetByRouteAsync/FindByNameAsync) already fetched
-        // it - route resolution's own PageDto mapping leaves it null on purpose (总体设计 §2.3). A page found
-        // by name always has it (FindByNameAsync uses includeDetails: true); only a route-resolved Page still
-        // pays for this round trip.
-        var contentTypes = page.ContentTypes ?? (await ContentTypeAppService.GetListByPageAsync(page.Id)).Items;
+        var contentTypes = await GetContentTypesAsync(page);
         var contentTypesById = contentTypes.ToDictionary(ct => ct.Id);
 
         var contentTypeId = request.ContentTypeId;
@@ -207,6 +235,35 @@ public class ContentListQuery : ITransientDependency
     {
         var colonIndex = key.IndexOf(':');
         return colonIndex < 0 ? key : key[..colonIndex];
+    }
+
+    /// <summary>The page's content types.</summary>
+    protected virtual async Task<IReadOnlyList<ContentTypeDto>> GetContentTypesAsync(PageDto page)
+    {
+        // Non-null here means some earlier read (GetAsync/GetByRouteAsync/FindByNameAsync) already fetched
+        // it - route resolution's own PageDto mapping leaves it null on purpose (总体设计 §2.3). A page found
+        // by name always has it (FindByNameAsync uses includeDetails: true); only a route-resolved Page still
+        // pays for this round trip.
+        return page.ContentTypes ?? (await ContentTypeAppService.GetListByPageAsync(page.Id)).Items;
+    }
+
+    /// <summary>A content as a list shows it - only the fields its type shows in lists - or null when its type is gone.</summary>
+    protected virtual ContentRenderViewModel? ToListItem(
+        ContentDto content,
+        IReadOnlyDictionary<Guid, ContentTypeDto> contentTypesById,
+        IReadOnlyDictionary<Guid, FieldDto> fieldsById)
+    {
+        if (!contentTypesById.TryGetValue(content.ContentTypeId, out var contentType))
+        {
+            return null;
+        }
+
+        return new ContentRenderViewModel
+        {
+            Content = content,
+            ContentType = contentType,
+            Fields = SiteRenderFieldMapper.Build(content, contentType, fieldsById, listFieldsOnly: true)
+        };
     }
 
     protected record PreparedContentQuery(

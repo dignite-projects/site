@@ -111,6 +111,7 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
         var currentPage = SiteRenderPageNumber.Parse(queryString, Options.Value.PageQueryKey);
         var viewModel = await SiteRenderViewModelBuilder.BuildAsync(match, headMetadata, FieldAppService, currentPage)
                         ?? throw PathNotFound(path); // a content match with nothing to render - a 404 live, too
+        viewModel.Query = SiteRenderQuery.Parse(queryString);
 
         var renderSet = new SiteThemeRenderSet(request.Snapshot);
         var templatePath = SiteThemePaths.Normalize(SiteRenderViewModelBuilder.ResolveTemplateName(match.Page.Template));

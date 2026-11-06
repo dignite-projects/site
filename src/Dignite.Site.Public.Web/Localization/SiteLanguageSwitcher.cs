@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Public.Seo;
@@ -14,7 +15,8 @@ namespace Dignite.Site.Public.Localization;
 /// are grouped by their natural key (总体设计 §2.4), the same grouping hreflang is derived from, so the
 /// translations are read straight off <see cref="HeadMetadataDto.HreflangAlternates"/>.
 /// <para>
-/// Only the data: the markup, and the languages' labels, are the host's. In a layout:
+/// Only the data: the markup is the host's, and so is the label, though each item carries the language's own name in
+/// itself (<see cref="SiteLanguageSwitchItem.NativeName"/>) for a host that has none of its own. In a layout:
 /// <c>@inject SiteLanguageSwitcher Switcher</c>, then
 /// <c>@foreach (var item in await Switcher.GetItemsAsync()) { ... }</c>.
 /// </para>
@@ -54,6 +56,7 @@ public class SiteLanguageSwitcher : ITransientDependency
                 return new SiteLanguageSwitchItem
                 {
                     CultureName = cultureName,
+                    NativeName = GetNativeName(cultureName),
                     Url = translation != null
                         ? GetTranslationUrl(translation, pathBase)
                         : pathBase + languages.ApplyCulturePrefix("/", cultureName),
@@ -75,6 +78,26 @@ public class SiteLanguageSwitcher : ITransientDependency
     {
         return string.IsNullOrEmpty(translation.Path) ? translation.Url : pathBase + translation.Path;
     }
+
+    /// <summary>
+    /// The language's name in itself, as the runtime knows it - "日本語", "中文（简体）", "Français" - with its first
+    /// letter capitalized the way the language does, for a list label; the culture name when the runtime has none.
+    /// </summary>
+    protected virtual string GetNativeName(string cultureName)
+    {
+        try
+        {
+            var culture = CultureInfo.GetCultureInfo(cultureName);
+            var name = culture.NativeName;
+            return string.IsNullOrEmpty(name) || culture.Equals(CultureInfo.InvariantCulture)
+                ? cultureName
+                : culture.TextInfo.ToUpper(name[0]) + name[1..];
+        }
+        catch (CultureNotFoundException)
+        {
+            return cultureName;
+        }
+    }
 }
 
 /// <summary>One language in a language switcher - see <see cref="SiteLanguageSwitcher"/>.</summary>
@@ -82,6 +105,13 @@ public class SiteLanguageSwitchItem
 {
     /// <summary>The language, normalized (<c>zh-Hans</c>) - also what the host's <c>hreflang</c>/<c>lang</c> attributes want.</summary>
     public string CultureName { get; set; } = default!;
+
+    /// <summary>
+    /// The language's name in itself ("日本語", "中文（简体）"), first letter capitalized; the culture name when the
+    /// runtime does not know the language. The words come from the runtime's culture data, which may differ a little
+    /// between operating systems.
+    /// </summary>
+    public string NativeName { get; set; } = default!;
 
     /// <summary>Where the switcher links to: host-relative, PathBase included.</summary>
     public string Url { get; set; } = default!;
