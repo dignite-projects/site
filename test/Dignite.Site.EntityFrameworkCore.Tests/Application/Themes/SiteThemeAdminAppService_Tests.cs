@@ -300,8 +300,10 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// The sample is what a visitor would open: each page's own address and one published content per content type -
-    /// the blog has an article and a gallery - and no draft.
+    /// The sample is what a visitor would open: each page's own address, one published content per content type - the
+    /// blog has an article and a gallery - and no draft, and the second page of the blog, which has two contents. Every
+    /// page renders through Default, so its first address as a list, as each kind of detail and as a later page come
+    /// first, in the order of the routes, and the addresses that repeat a branch after them.
     /// </summary>
     [Fact]
     public async Task The_Check_Should_Render_A_Sample_Of_The_Pages_With_The_Working_Copy()
@@ -315,11 +317,9 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         _previewRenderer.Requests.Select(request => request.Path).ShouldBe(
             new[]
             {
-                "/", "/about", "/blog",
-                "/blog/" + SiteTestData.TripSlug, "/blog/" + SiteTestData.GallerySlug,
-                "/news", "/news/2026-07/launch"
-            },
-            ignoreOrder: true);
+                "/", "/blog/" + SiteTestData.TripSlug, "/blog/" + SiteTestData.GallerySlug, "/blog?page=2", "/news/2026-07/launch",
+                "/about", "/blog", "/news"
+            });
         _previewRenderer.Requests.ShouldAllBe(request => request.Snapshot.ReleaseId == null);
         _previewRenderer.Requests.ShouldAllBe(
             request => request.Snapshot.Files.Single(file => file.Path == "Default").Body == "<p>draft</p>");
@@ -447,12 +447,14 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         await SaveAsync("Default", "<p>x</p>");
         _previewRenderer.Failure = new InvalidOperationException("the database went away");
 
+        using var english = CultureHelper.Use("en");
         var check = await _themeAppService.CheckAsync();
 
         check.HasErrors.ShouldBeFalse();
         var issue = check.Issues.ShouldHaveSingleItem();
-        issue.Code.ShouldBe(SiteThemeIssueCodes.TrialRenderIncomplete);
+        issue.Code.ShouldBe(SiteThemeIssueCodes.TrialRenderStopped);
         issue.Severity.ShouldBe(SiteThemeIssueSeverity.Warning);
+        issue.Message.ShouldStartWith("The trial render stopped at / after 0 of 8 sample pages:");
         _previewRenderer.Requests.ShouldHaveSingleItem();
     }
 

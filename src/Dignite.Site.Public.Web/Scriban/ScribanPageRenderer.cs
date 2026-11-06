@@ -29,8 +29,9 @@ namespace Dignite.Site.Public.Scriban;
 /// renders the page template alone.
 /// <para>
 /// Both templates see the same globals (<see cref="ScribanRenderModelBuilder"/>) and functions
-/// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>page_url</c>, <c>file_url</c>, <c>asset_url</c>, <c>contents</c>,
-/// <c>content_counts</c>, <c>render_field</c>, <c>find_page</c>, <c>field_definitions</c>, <c>html_raw</c>); a
+/// (<c>site_head</c>, <c>t</c>, <c>url</c>, <c>page_url</c>, <c>file_url</c>, <c>asset_url</c>, <c>app_file_url</c>,
+/// <c>contents</c>, <c>content_counts</c>, <c>adjacent_contents</c>, <c>render_field</c>, <c>find_page</c>,
+/// <c>field_definitions</c>, <c>text_width</c>, <c>html_raw</c>); a
 /// variable the page template assigns (<c>{{ title = "..." }}</c>) is visible to the
 /// layout, which is how a page hands its layout a title. Each template renders in its own sandboxed context
 /// (<see cref="ScribanSandbox"/>) with its own output bound; the time budget covers both.
@@ -189,8 +190,11 @@ public class ScribanPageRenderer : ITransientDependency
         globals.SetValue(PageUrlFunction.Name, new PageUrlFunction(scope, LanguageContext, UrlHelperFactory, pageQueryKey), true);
         globals.SetValue(FileUrlFunction.Name, new FileUrlFunction(), true);
         globals.SetValue(AssetUrlFunction.Name, new AssetUrlFunction(scope, UrlHelperFactory), true);
+        globals.SetValue(AppFileUrlFunction.Name, new AppFileUrlFunction(scope), true);
         globals.SetValue(ContentsFunction.Name, new ContentsFunction(scope, ContentListQuery, ModelBuilder), true);
         globals.SetValue(ContentCountsFunction.Name, new ContentCountsFunction(scope, ContentListQuery), true);
+        globals.SetValue(AdjacentContentsFunction.Name, new AdjacentContentsFunction(scope, ContentListQuery, ModelBuilder), true);
+        globals.SetValue(TextWidthFunction.Name, new TextWidthFunction(), true);
         globals.SetValue(RenderFieldFunction.Name, new RenderFieldFunction(scope, PartialRenderer), true);
         globals.SetValue(FindPageFunction.Name, new FindPageFunction(scope, ContentListQuery, ModelBuilder), true);
         globals.SetValue(FieldDefinitionsFunction.Name, new FieldDefinitionsFunction(scope, FieldAppService, ModelBuilder), true);

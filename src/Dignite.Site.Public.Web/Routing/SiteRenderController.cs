@@ -111,6 +111,8 @@ public class SiteRenderController : AbpController
             return NotFound();
         }
 
+        viewModel.Query = SiteRenderQuery.From(HttpContext.Request.Query);
+
         // For the view's language helpers (GitHub issue #75): the site's languages straight from the match,
         // rather than a second read of the setting the match was resolved with, and the head metadata the
         // switcher finds this page's translations in. Only once the page is certain to render - a 404 must not

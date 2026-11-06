@@ -103,6 +103,51 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
         ex.Code.ShouldBe(SiteErrorCodes.SiteThemeFileExtensionNotAllowed);
     }
 
+    /// <summary>
+    /// A template has no extension, so its path is a folder's name: Products/Campus beside Products/Campus/Pricing would
+    /// be a file and a folder at once, which no disk can hold. Refused either way round; an existing file is still saved.
+    /// </summary>
+    [Fact]
+    public async Task Should_Refuse_A_Path_That_Would_Be_A_File_And_A_Folder()
+    {
+        await SaveAsync("Products/Campus", "<p>product</p>");
+
+        var below = await Should.ThrowAsync<BusinessException>(() => SaveAsync("Products/Campus/Pricing", "<p>pricing</p>"));
+        below.Code.ShouldBe(SiteErrorCodes.SiteThemePathIsFolder);
+        below.Data["Path"].ShouldBe("Products/Campus/Pricing");
+        below.Data["Other"].ShouldBe("Products/Campus");
+
+        await SaveAsync("Products/Pricing/Plans", "<p>plans</p>");
+        var above = await Should.ThrowAsync<BusinessException>(() => SaveAsync("Products/Pricing", "<p>pricing</p>"));
+        above.Code.ShouldBe(SiteErrorCodes.SiteThemePathIsFolder);
+        above.Data["Other"].ShouldBe("Products/Pricing/Plans");
+
+        // Neighbours that only share the start of a name are no folder of each other, and a language version is a file.
+        await SaveAsync("Products/CampusPricing", "<p>ok</p>");
+        await SaveAsync("Products/Campus.ja", "<p>ja</p>");
+        await SaveAsync("Products/Campus", "<p>saved again</p>");
+    }
+
+    [Fact]
+    public async Task Should_Refuse_A_Rename_That_Would_Make_A_File_And_A_Folder()
+    {
+        await SaveAsync("Products/Campus", "<p>product</p>");
+        await SaveAsync("Products/Campus.ja", "<p>ja</p>");
+        await SaveAsync("Pricing", "<p>pricing</p>");
+
+        var ex = await Should.ThrowAsync<BusinessException>(() => WithUnitOfWorkAsync(async () =>
+            await _manager.RenameFileAsync(await _manager.GetOrCreateAsync(), "Pricing", "Products/Campus/Pricing", updateReferences: false)));
+        ex.Code.ShouldBe(SiteErrorCodes.SiteThemePathIsFolder);
+        ex.Data["Other"].ShouldBe("Products/Campus");
+
+        // Moving the template itself below its old name is fine: it is no longer there to be in the way, and its
+        // language version moves with it.
+        await WithUnitOfWorkAsync(async () =>
+            await _manager.RenameFileAsync(await _manager.GetOrCreateAsync(), "Products/Campus", "Products/Campus/Index", updateReferences: false));
+        await WithUnitOfWorkAsync(async () =>
+            await _manager.RenameFileAsync(await _manager.GetOrCreateAsync(), "Pricing", "Products/Campus/Pricing", updateReferences: false));
+    }
+
     [Fact]
     public async Task Should_Refuse_A_Save_With_A_Stale_Concurrency_Stamp()
     {

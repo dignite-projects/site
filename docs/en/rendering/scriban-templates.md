@@ -33,6 +33,8 @@ The same template can play more than one part.
 
 A path is made of segments separated by `/`. A segment is letters, digits, `_` and `-`, starting with a letter, a digit or `_`; only the last segment may have an extension, as in `menu.min.js`. A leading slash and surrounding spaces are removed when a path is saved or looked up. The extension of a static file must be one of `css`, `js`, `mjs`, `json`, `map`, `txt`, `svg`, `xml`, `webmanifest`, `ics` and `csv`; a file with any other extension is refused, so that a template is not saved as `post.html` by mistake. The one other extension is a language, which makes the file the template's [version for that language](#templates-for-one-language).
 
+The paths of a theme make a file tree, as a disk holds one: a path is a file or a folder, never both. A template has no extension, so its path is the name a folder would have: a template `Products/Campus` and a file `Products/Campus/Pricing` cannot both be in a theme. Name the one `Products/Campus/Index`, or the other `Products/CampusPricing`. Saving or renaming a file to such a path is refused (`Site:090016`), an [import](#exporting-and-importing) that would leave one is refused whole, and the [check](#checking-the-theme) reports one that a working copy still holds.
+
 By default a file can be at most 256 KiB.
 
 ## Choosing the Engine
@@ -47,6 +49,16 @@ There is no setting on the page: the engine follows from which of the two exists
 ## Layouts
 
 A layout is a complete document with `{{ body }}` where the page goes. The page template is rendered first, and its output is available to the layout as `body`; variables that the page template assigns are visible to the layout too. With a layout, the page templates write only what goes inside `<body>`; see the [example](#example).
+
+Reading a variable that nothing has assigned is an error, as a misspelt name is, so that a typo fails the [trial render](#trial-render) instead of writing nothing. A layout that takes a variable only some of its pages assign, such as a title of their own, reads it through `this`, which gives empty for a variable that is not there:
+
+````
+<title>{{ this.title ?? page.display_name }}</title>
+````
+
+The same goes for a variable a template assigns once and then reuses, as a partial included many times may: `{{ if !this.categories }}{{ categories = find_page "blog" }}{{ end }}`.
+
+Inside an object literal, `this` is the object being built, not the page's variables: `site_head { title: this.title }` always passes empty. Read the variable first, `{{ og_title = this.title ?? page.display_name }}`, and pass that: `site_head { title: og_title }`.
 
 A page template chooses its layout in **front matter**: a first line `+++`, then `layout =` and the layout's path in quotes, then a line `+++`:
 
@@ -111,7 +123,15 @@ Each node must be an object with an `@type`; anything else fails the render. A k
 ] } }}
 ````
 
-`breadcrumb` is the way from the home page to the page being rendered: each step has `name`, `path` (for a link on the page), `url` (absolute, for structured data) and `is_current`. See [Breadcrumbs](../seo/index.md#breadcrumbs).
+`breadcrumb` is the way from the home page to the page being rendered: each step has `name`, `path` (for a link on the page), `url` (absolute, for structured data), `page_name`, `slug` (on a content's step) and `is_current`. `name` is the page's title, which can be long for a breadcrumb; to label the steps with the theme's own texts, look them up by `page_name`, keeping `name` as the fallback:
+
+````
+{{ for step in breadcrumb }}
+  <a href="{{ step.path }}">{{ step.slug ? step.name : (t ("Breadcrumb:" + step.page_name) step.name) }}</a>
+{{ end }}
+````
+
+See [Breadcrumbs](../seo/index.md#breadcrumbs).
 
 ## Templates for One Language
 
@@ -165,6 +185,7 @@ These are errors, and a theme with any of them cannot be published:
 * A layout, or a page template rendered without a layout, never calls `site_head`, not even in what it includes.
 * A file in `locales/` is not a valid file of the theme's [texts](template-localization.md#texts-in-a-scriban-theme), or two files hold the texts of the same language.
 * A [version for one language](#templates-for-one-language) has no template to be the version of.
+* A file's path is also the folder of other files, as `Products/Campus` is of `Products/Campus/Pricing`; see [The Theme](#the-theme).
 
 The versions of a template are checked as the template is: the versions of a layout must write `body` and call `site_head`, those of a page template have their front matter and their layout checked, and those of an included template have their `include`s followed.
 
@@ -181,7 +202,13 @@ Each finding names its file and, where it has one, the line and the column, with
 
 Reading the templates cannot find everything: a variable that does not exist, or a partial that fails on one kind of content, passes the reading and breaks the page when it renders. So once the reading finds no error, the check also **renders a sample of the site's pages with the working copy**, and a template that fails to render is an error, reported at the template, line and column of the failure, with the address that exposed it. Publishing renders the sample again and is refused when it fails, so the theme that goes live is one that rendered.
 
-The sample is what a visitor would open, for each page rendered by a template of the theme: the page's own address in each language the site serves, and one published content for each content type and language under the page, since a list and a detail run different parts of a template. Drafts are not rendered. The sample is bounded, at 60 addresses and 30 seconds; when it is cut short the check says so in a warning. A page the theme has no template for is not rendered, as a Razor view renders it.
+The sample is what a visitor would open, for each page rendered by a template of the theme: the page's own address in each language the site serves, one published content for each content type and language under the page, and the second page of the list (`?page=2`) in each language with more than one content, since a list, a detail and a later page run different parts of a template. Drafts are not rendered. A page the theme has no template for is not rendered, as a Razor view renders it.
+
+The sample is bounded, at 100 addresses and 30 seconds. Within the bound, each template, and each of its [versions for a language](#templates-for-one-language), is rendered once as a list, once as a detail of each content type and once as a later page before any of them is rendered a second time, so the addresses a large site leaves out repeat what was rendered. When the run does not render the whole sample, a warning says why:
+
+* `ThemeIssue:TrialRenderIncomplete`: the sample has more addresses than the bound.
+* `ThemeIssue:TrialRenderOutOfTime`: the 30 seconds ran out.
+* `ThemeIssue:TrialRenderStopped`: an address failed for a reason that is not the theme's, such as a service the render needs, and the run stopped there. The warning names the address; the application's log has the failure.
 
 Only the theme's failures are findings. An address that leads nowhere, or a failure of the site itself while rendering, is not.
 
@@ -214,6 +241,8 @@ A preview renders saved files, so save first. It fails with one of these errors:
 * `Site:090009` when the page's `Template` is not a template of the previewed theme, so a Razor view renders it.
 
 A render that fails, through a run-time error, a template that does not parse or a limit, fails the preview with `Site:090008`, naming the template and, for a run-time error, the line and the column. A render that never executes `site_head` fails with `Site:090005`, as the live page does.
+
+The admin API answers these errors with a status of their own, rather than ABP's `403` for a business error, which would read as a missing permission: `404` for `Site:090006`; `422` for `Site:090005`, `Site:090008` and `Site:090009`; and `501` for `Site:090007`.
 
 You can preview over the [admin API](#managing-the-theme), which returns the HTML with the page, the template and the layout it was rendered with, and over MCP, with `site_preview`, so that an AI client can check its own changes before it publishes; see [MCP Tools](#mcp-tools). An AI client that has a browser also looks at the site as a visitor would: `site_get_preview_link` returns the [browser preview](#in-a-browser) link for a path, which it opens and takes a screenshot of, where `site_preview` gives it the markup and the head tags a screenshot does not show.
 
@@ -265,12 +294,13 @@ A template is given data, and only data: the page and the content being rendered
 | `field_list` | The fields of `content`, in the content type's order, without the SEO field. Each has `name`, `display_name`, `field_type_name`, `required` and `value`. An empty list when there is no content; the same list as `content.field_list`. |
 | `culture` | The language of the request, such as `en` or `zh-Hans`. |
 | `default_culture` | The site's default language. |
-| `languages` | The site's languages, for a language switcher. Each has `culture_name`, `url`, `is_current` and `is_translation`, whether the current content exists in that language. |
+| `languages` | The site's languages, for a language switcher. Each has `culture_name`; `native_name`, the language's name in itself, such as `日本語` or `Français`, with its first letter capitalized; `url`; `is_current`; and `is_translation`, whether the current content exists in that language. |
 | `filter_values`, `field_filters` | What the path gave the route's placeholders, with the keys as the route wrote them: `filter_values["publishTime:yyyy"]`. See [The View Model](razor-templates.md#the-view-model). |
 | `published_after`, `published_before` | The period that `publishTime` placeholders named, as dates, or empty. |
 | `page_no` | The page of a paged list that the request asks for with `?page=2`, or 1. See [Paging](#paging). |
+| `query` | The query string of the request: each parameter's first value, by its name in lower case, such as `query.service` on `/start?service=design`; empty for a parameter the request does not have. It is the visitor's text: it is encoded when written, like any value, and is best compared with the values the template expects before it chooses anything. A [preview](#previewing) has the query string of the previewed path. |
 | `head` | The head metadata of the request, or empty: `meta_title`, `base_meta_title`, `meta_description`, `canonical_url`, `robots_content`, `og_image_url`, `is_default_og_image`, `og_image_width`, `og_image_height`, `og_type`, `twitter_card_type`, `site_name`, `locale`, `locale_alternates`, `base_url`, `hreflang_alternates` (each with `culture_name`, `url` and `path`), `x_default_url` and `breadcrumb`. |
-| `breadcrumb` | The way from the home page to the request: each step has `name`, `path`, `url` and `is_current`. See [The Head](#the-head). |
+| `breadcrumb` | The way from the home page to the request: each step has `name`, `path`, `url`, `page_name`, `slug` and `is_current`. See [The Head](#the-head). |
 | `body` | In a layout only: the rendered page template. |
 
 ### Output Encoding
@@ -290,30 +320,37 @@ Besides Scriban's own `string`, `array`, `math`, `date`, `regex` and the like, a
 | Function | Description |
 |---|---|
 | `site_head [title] [description]`, `site_head options` | Writes the head tags and the structured data; see [The Head](#the-head). |
-| `t key [fallback]` | A localized text, in the language of the page; `fallback` when the key has no text. It can be piped: `{{ "Key" | t }}`. The texts are the theme's own, in `locales/{culture}.json`, and nothing else. See [Localizing Template Texts](template-localization.md). |
+| `t key [fallback] [arguments...]` | A localized text, in the language of the page; `fallback` when the key has no text. Arguments fill the text's placeholders, as `L["key", arguments]` does in a Razor view: `{0}`, `{1:N0}`, `{0:yyyy-MM}`, numbers and dates formatted in the language of the page, at most 10. Pass `null` as the fallback to give arguments without one: `t "Pager:Page" null page_no`. A text with a placeholder no argument fills fails the render. It can be piped: `{{ "Key" | t }}`. The texts are the theme's own, in `locales/{culture}.json`, and nothing else. See [Localizing Template Texts](template-localization.md). |
 | `url path [culture]` | The address of a path in a language. Only a path that starts with `~/` gets the language prefix and the application's path base; anything else is returned unchanged. The language of the request by default. |
 | `page_url page_no` | The address of a page of the list the current page is, for a pager; see [Paging](#paging). |
 | `file_url url width [height]` | The address of a stored image resized to the given size, from a file field's value. |
 | `contents [options]` | Lists published contents; see below. |
 | `content_counts options` | How many published contents carry each value of a field; see [Counting Contents by a Field](#counting-contents-by-a-field). |
-| `render_field name [show_in_list]` | Renders a field of `content` with the view of its field type, as `<flex-field-view>` does. |
+| `adjacent_contents [options]` | The contents published just before and just after `content`; see [Older and Newer Contents](#older-and-newer-contents). |
+| `render_field name [show_in_list]` | Renders a field of `content` with the view of its field type, as `<flex-field-view>` does. With `show_in_list` true it renders the value alone, without the field's label, as a list shows it. |
 | `find_page name` | A page by its name, with its content types; see [Pages and Field Definitions](#pages-and-field-definitions). |
 | `field_definitions fields` | The definitions of fields, with their configuration, keyed by field name; see [Pages and Field Definitions](#pages-and-field-definitions). |
 | `html_raw value` | Marks a value as trusted HTML; see [Output Encoding](#output-encoding). |
 | `include path [arguments]` | Renders another template in place; see [Partials](#partials). |
 | `asset_url path` | The address of a [static file](#static-files) of the theme, with the hash of its content, such as `/site-assets/css/site.css?v=7b58...6970`. |
+| `app_file_url path` | The address of a file the application serves from its web root, not the theme, such as `app_file_url "/libs/abp/core/abp.js"`: under the application's path base, with a version from the file's content, as `asp-append-version` writes it in a Razor view, so a browser that keeps it for long never keeps an old one. The path starts with `/`. |
+| `text_width text` | How many columns a text takes in a search result: two for a Chinese, Japanese or Korean character, one for any other. It is the measure of the limits of the [SEO field](../seo/index.md), for a template that decides whether a title still fits with the site's name after it. |
 
 `contents` takes an object with these keys, all optional, and returns the page of contents with `items`, `total_count`, `max_result_count` and `current_page`:
 
 | Key | Description |
 |---|---|
-| `page` | The name of the page to list. Omit it to list the current page, with the current route's `field_filters`, `published_after` and `published_before` applied. |
+| `page` | The name of the page to list. Omit it to list the current page, with the current route's `field_filters`, `published_after` and `published_before` applied. With a `page`, none of the route's filters apply. |
 | `content_type` | The name of a content type of that page. |
 | `max` | The page size, 20 by default and at most 100. |
 | `page_no` | The 1-based page number, 1 by default. Pass the request's, `page_no: page_no`, to follow the address; see [Paging](#paging). A page past the end gives an empty list. |
 | `filter` | A text filter over the slug. |
+| `field_filters` | An object of field names and values: only the contents whose field holds the value, such as `{ category: "news", featured: true }`. The field must be one that a content type of the page marks **Searchable**, as for a route placeholder; a filter on any other is ignored. On the current page it adds to the route's filters, and replaces the route's value of a field both name. |
+| `published_after`, `published_before` | Dates that bound `publish_time`, both included: a date, or a text such as `"2026-01-01"`. On the current page they replace the route's. |
 
 A key that is not in the table is an error, and a `page` that does not exist gives an empty list. Contents are listed newest first, and only published ones. Each item has the shape of `content`, except that its `field_list` holds only the fields marked Show In List.
+
+To list another page with the current route's filters, as an archive page that lists the posts of its child page does, pass them on: `contents { page: "posts", field_filters: field_filters, published_after: published_after, published_before: published_before }`.
 
 ````
 {{ news = contents { page: "news", max: 5 } }}
@@ -350,9 +387,10 @@ The name of the query parameter is the host's `SiteScribanOptions.PageQueryKey`,
 | Key | Description |
 |---|---|
 | `field` | Required. The name of the field to group by. |
-| `page` | The name of the page to count. Omit it to count the current page, with the current route's `field_filters`, `published_after` and `published_before` applied. With a `page`, none of the route's filters apply, and all of that page's published contents are counted. |
+| `page` | The name of the page to count. Omit it to count the current page, with the current route's `field_filters`, `published_after` and `published_before` applied. With a `page`, none of the route's filters apply, and all of that page's published contents are counted, unless the keys below filter them. |
 | `content_type` | The name of a content type of that page. Omit it to count the contents of all of the page's content types. |
 | `filter` | A text filter over the slug. |
+| `field_filters`, `published_after`, `published_before` | Filters, as `contents` takes them. |
 | `max` | The most groups to return, 100 by default and at most 1000. |
 
 It counts the contents that `contents` lists with the same keys, so a count and the list beside it always speak of the same contents. A layout is shared by every page, so a `content_counts` in a layout without a `page` counts whichever page is being rendered, and gives nothing on a page that lacks the field. Name the `page` there. Three things differ from `contents`:
@@ -378,6 +416,18 @@ It counts the contents that `contents` lists with the same keys, so a count and 
         {{ end }}
     {{ end }}
 {{ end }}
+````
+
+### Older and Newer Contents
+
+`adjacent_contents` returns the contents either side of `content`, among the published contents of its page in its language, by publish time, for "older" and "newer" links: `previous`, the next older one, and `next`, the next newer one, each shaped like an item of `contents`, or empty when there is none that way. Both are empty on a page that renders no content. It takes an object with one optional key, `content_type`, which keeps both to the contents of that content type of the page. It is what `IContentPublicAppService.GetAdjacentAsync` gives a Razor view, and it finds them however many contents the page has, which looking for `content` among the items of `contents`, at most 100 at a time, would not.
+
+````
+{{ around = adjacent_contents }}
+<nav>
+    {{ if around.previous }}<a href="{{ around.previous.url }}">{{ around.previous.fields.title }}</a>{{ end }}
+    {{ if around.next }}<a href="{{ around.next.url }}">{{ around.next.fields.title }}</a>{{ end }}
+</nav>
 ````
 
 ### Pages and Field Definitions
@@ -531,7 +581,7 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | `POST /export-links`, `POST /import-links` | `SiteAdmin.Themes`, `SiteAdmin.Themes.Edit` | A one-time link that downloads the export, or that takes a zip as the body of a `PUT` and imports it. |
 | `GET /preview-link?path=...&releaseId=...` | `SiteAdmin.Themes` | A link that opens the site at the path, the home page by default, [in a browser](#in-a-browser) with the working copy, or with the release when `releaseId` is given. Returns `url`, `path`, `releaseId` and `expiresAt`. |
 
-A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`), that is not in the working copy (`Site:090012`) or that is not a layout (`Site:090013`) are answered as business errors.
+A file whose extension no static file may have (`Site:090004`), a save or rename to a path that is a file and a folder at once (`Site:090016`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`), that is not in the working copy (`Site:090012`) or that is not a layout (`Site:090013`) are answered as business errors.
 
 ### Exporting and Importing
 
@@ -544,7 +594,7 @@ An import goes into the working copy only: nothing goes live until it is checked
 
 When `.site-theme.json` names a default layout, it becomes the working copy's. The result lists the files added, modified, deleted and unchanged, and the syntax errors of the templates brought in, which are kept as a save keeps them.
 
-A zip with anything wrong is refused whole, with every problem listed (`Site:090014`): a path outside the theme or not of a theme file's shape, an extension no theme file may have, a file that is not UTF-8 text, more than 256 KiB in one file, or more than 1,000 files or 32 MiB in all (`SiteThemePackage.MaxFileCount` and `MaxBytes`). Hidden files, such as `.DS_Store`, and the `__MACOSX/` folder a Mac adds are passed over. The files go at the top of the zip, not inside a folder.
+A zip with anything wrong is refused whole, with every problem listed (`Site:090014`): a path outside the theme or not of a theme file's shape, an extension no theme file may have, a file that is not UTF-8 text, a path that would be a file and a folder at once, more than 256 KiB in one file, or more than 1,000 files or 32 MiB in all (`SiteThemePackage.MaxFileCount` and `MaxBytes`). Hidden files, such as `.DS_Store`, and the `__MACOSX/` folder a Mac adds are passed over. The files go at the top of the zip, not inside a folder.
 
 A client that should not carry the bytes itself, such as an AI client over MCP, asks for a **link** instead: good for ten minutes and one use, run as the one who asked for it, like the [upload links of files](../files.md). A download link answers `GET` with the zip; an import link takes the zip as the body of a `PUT`. A link that has expired, has been used, or is not the site's own is refused with `Site:090015`. Behind a gateway, route `api/site-admin/theme/download/*` and `api/site-admin/theme/upload/*` to Site, as `api/site-admin/files/upload/*` is.
 

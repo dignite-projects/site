@@ -195,7 +195,7 @@ export class ContentTypesComponent {
           this.contentTypeService.delete(contentType.id!).subscribe(() => {
             this.load();
             this.referenceData.invalidateContentTypes();
-            this.toaster.success('AbpUi::SuccessfullyDeleted');
+            this.toaster.success('AbpUi::DeletedSuccessfully');
           });
         }
       });

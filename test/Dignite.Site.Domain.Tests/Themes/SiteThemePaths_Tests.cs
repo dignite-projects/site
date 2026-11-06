@@ -7,6 +7,26 @@ namespace Dignite.Site.Themes;
 public class SiteThemePaths_Tests
 {
     [Theory]
+    [InlineData("Products/Campus/Pricing", "Products/Campus")]
+    [InlineData("Products/Campus", "Products/Campus/Pricing")]
+    [InlineData("a/b/c/d", "a/b")]
+    [InlineData("Products", "Products/Campus/Pricing")]
+    public void A_Path_That_Is_Another_Ones_Folder_Should_Conflict(string path, string other)
+    {
+        SiteThemePaths.FindFolderConflict(path, new[] { "layouts/default", other }).ShouldBe(other);
+    }
+
+    [Theory]
+    [InlineData("Products/Campus", "Products/CampusPricing")]
+    [InlineData("Products/Campus", "Products/Campus.ja")]
+    [InlineData("Products/Campus", "Products/Campus")]
+    [InlineData("css/site.css", "css/site")]
+    public void Paths_That_Are_No_Folder_Of_Each_Other_Should_Not_Conflict(string path, string other)
+    {
+        SiteThemePaths.FindFolderConflict(path, new[] { other }).ShouldBeNull();
+    }
+
+    [Theory]
     [InlineData(" /layouts/default ", "layouts/default")]
     [InlineData("Events", "Events")]
     [InlineData("/assets/site.css", "assets/site.css")]

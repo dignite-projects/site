@@ -95,7 +95,7 @@ describe('FieldsComponent', () => {
       component.delete(field('title'));
 
       expect(remove).toHaveBeenCalledWith('title');
-      expect(success).toHaveBeenCalledWith('AbpUi::SuccessfullyDeleted');
+      expect(success).toHaveBeenCalledWith('AbpUi::DeletedSuccessfully');
     });
   });
 });

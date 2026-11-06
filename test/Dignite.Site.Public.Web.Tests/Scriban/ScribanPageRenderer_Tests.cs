@@ -11,6 +11,8 @@ using Dignite.Site.Public.Scriban.Functions;
 using Dignite.Site.Public.TagHelpers;
 using Dignite.Site.Themes;
 using global::Scriban.Syntax;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Shouldly;
 using Volo.Abp;
 using Xunit;
@@ -90,6 +92,38 @@ public class ScribanPageRenderer_Tests
             "<title>{{ title }}</title>{{ site_head }}{{ body }}");
 
         html.ShouldStartWith("<title>Our story</title>");
+    }
+
+    /// <summary>
+    /// Variables are strict: a layout reading one its page did not assign fails. Read through <c>this</c>, a variable
+    /// that is not there is null instead - the documented way for a layout to take an optional one from its pages.
+    /// </summary>
+    [Fact]
+    public async Task A_Layout_Should_Read_A_Variable_Its_Page_May_Leave_Out_Through_This()
+    {
+        const string layout = "{{ site_head }}<title>{{ this.title ?? page.display_name }}</title>{{ body }}";
+        var renderer = new ScribanTestRenderer();
+
+        (await renderer.RenderAsync("{{ title = \"Mine\" }}<p>x</p>", layout)).ShouldEndWith("<title>Mine</title><p>x</p>");
+        (await renderer.RenderAsync("<p>x</p>", layout)).ShouldEndWith("<title>About us</title><p>x</p>");
+
+        var strict = await Record.ExceptionAsync(() => renderer.RenderAsync("<p>x</p>", "{{ site_head }}<title>{{ title ?? \"none\" }}</title>{{ body }}"));
+        strict.ShouldNotBeNull();
+        strict.Message.ShouldContain("title");
+    }
+
+    /// <summary>
+    /// What the docs warn of: inside an object literal <c>this</c> is the object being built, so a layout passing an
+    /// optional variable to <c>site_head</c> reads it into a variable first.
+    /// </summary>
+    [Fact]
+    public async Task This_Inside_An_Object_Literal_Should_Be_The_Object_Being_Built()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync(
+            "{{ title = \"Mine\" }}",
+            "{{ site_head }}[{{ o = { t: this.title } }}{{ o.t ?? \"empty\" }}][{{ og_title = this.title }}{{ p = { t: og_title } }}{{ p.t }}]{{ body }}");
+
+        html.ShouldEndWith("[empty][Mine]");
     }
 
     [Fact]
@@ -533,6 +567,224 @@ public class ScribanPageRenderer_Tests
             "{{ content_counts { field: \"category\", limit: 5 } }}", HeadOnlyLayout));
         misspelt.ShouldNotBeNull();
         misspelt.Message.ShouldContain("limit");
+    }
+
+    /// <summary>
+    /// Another page's slice, filtered as its route would filter it: the options' field values - text, a ticked box,
+    /// an empty value left out - and publish dates, as a date or as text.
+    /// </summary>
+    [Fact]
+    public async Task Contents_Of_Another_Page_Should_Take_Its_Filters_From_The_Options()
+    {
+        var renderer = new ScribanTestRenderer();
+        renderer.ContentListQuery.PagesByName["news"] = ScribanTestRenderer.Page();
+
+        await renderer.RenderAsync(
+            "{{ list = contents { page: \"news\", field_filters: { category: \"travel\", featured: true, empty: \"\" }, " +
+            "published_after: date.parse \"2026-01-01\", published_before: \"2026-12-31T23:59:59\" } }}{{ list.total_count }}",
+            HeadOnlyLayout);
+
+        var request = renderer.ContentListQuery.Requests.ShouldHaveSingleItem();
+        request.FieldFilters.ShouldNotBeNull();
+        request.FieldFilters!.OrderBy(f => f.Key).ShouldBe(new[]
+        {
+            new KeyValuePair<string, string>("category", "travel"),
+            new KeyValuePair<string, string>("featured", "true")
+        });
+        request.PublishedAfter.ShouldBe(new DateTime(2026, 1, 1));
+        request.PublishedBefore.ShouldBe(new DateTime(2026, 12, 31, 23, 59, 59));
+    }
+
+    /// <summary>On the current page the options add to the route's filters: a field they name and a bound they set replace the route's.</summary>
+    [Fact]
+    public async Task Contents_Of_The_Current_Page_Should_Add_The_Options_Filters_To_The_Routes()
+    {
+        var renderer = new ScribanTestRenderer();
+        var viewModel = ScribanTestRenderer.PageViewModel();
+
+        await renderer.RenderAsync(
+            ScribanTestRenderer.RenderSet(
+                "{{ list = contents { field_filters: { category: \"design\", featured: true }, published_after: \"2026-06-01\" } }}",
+                HeadOnlyLayout),
+            viewModel);
+
+        var request = renderer.ContentListQuery.Requests.ShouldHaveSingleItem();
+        request.FieldFilters!.OrderBy(f => f.Key).ShouldBe(new[]
+        {
+            new KeyValuePair<string, string>("category", "design"),
+            new KeyValuePair<string, string>("featured", "true")
+        });
+        request.PublishedAfter.ShouldBe(new DateTime(2026, 6, 1));
+        request.PublishedBefore.ShouldBe(viewModel.PublishedBefore);
+        viewModel.FieldFilters["category"].ShouldBe("engineering");
+    }
+
+    [Fact]
+    public async Task Contents_With_Filters_Of_The_Wrong_Kind_Should_Fail_Naming_The_Option()
+    {
+        var notAnObject = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            "{{ contents { field_filters: \"category\" } }}", HeadOnlyLayout));
+        notAnObject.ShouldBeAssignableTo<ScriptRuntimeException>();
+        notAnObject!.Message.ShouldContain("field_filters");
+
+        var notADate = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            "{{ contents { published_after: \"last year\" } }}", HeadOnlyLayout));
+        notADate.ShouldBeAssignableTo<ScriptRuntimeException>();
+        notADate!.Message.ShouldContain("published_after");
+    }
+
+    [Fact]
+    public async Task Content_Counts_Of_Another_Page_Should_Take_Its_Filters_From_The_Options()
+    {
+        var renderer = new ScribanTestRenderer();
+        renderer.ContentListQuery.PagesByName["news"] = ScribanTestRenderer.Page();
+
+        await renderer.RenderAsync(
+            "{{ content_counts { field: \"category\", page: \"news\", field_filters: { featured: true }, published_before: \"2026-07-01\" } | array.size }}",
+            HeadOnlyLayout);
+
+        var (request, _, _) = renderer.ContentListQuery.CountRequests.ShouldHaveSingleItem();
+        request.FieldFilters!.ShouldBe(new[] { new KeyValuePair<string, string>("featured", "true") });
+        request.PublishedAfter.ShouldBeNull();
+        request.PublishedBefore.ShouldBe(new DateTime(2026, 7, 1));
+    }
+
+    [Fact]
+    public async Task Adjacent_Contents_Should_Give_The_Older_And_The_Newer_Content()
+    {
+        var renderer = new ScribanTestRenderer();
+        renderer.ContentListQuery.Previous = ScribanTestRenderer.Content("older", "Older post");
+        renderer.ContentListQuery.Next = ScribanTestRenderer.Content("newer", "Newer post");
+        var viewModel = ScribanTestRenderer.ContentViewModel();
+
+        var html = await renderer.RenderAsync(
+            ScribanTestRenderer.RenderSet(
+                "{{ around = adjacent_contents { content_type: \"post\" } }}{{ around.previous.slug }}|{{ around.next.fields.Title }}|{{ around.next.url }}",
+                HeadOnlyLayout),
+            viewModel);
+
+        html.ShouldEndWith("older|Newer post|/ja/about/newer");
+        var (page, contentId, contentTypeName) = renderer.ContentListQuery.AdjacentRequests.ShouldHaveSingleItem();
+        page.ShouldBeSameAs(viewModel.Page);
+        contentId.ShouldBe(viewModel.Content!.Content.Id);
+        contentTypeName.ShouldBe("post");
+    }
+
+    /// <summary>Null at either end; on a list page, with no content to be either side of, both null without asking.</summary>
+    [Fact]
+    public async Task Adjacent_Contents_Should_Be_Null_At_Either_End_And_On_A_List_Page()
+    {
+        const string template = "{{ around = adjacent_contents }}{{ around.previous == null }}|{{ around.next == null }}";
+
+        var atTheEnd = new ScribanTestRenderer();
+        atTheEnd.ContentListQuery.Previous = ScribanTestRenderer.Content("older", "Older post");
+        (await atTheEnd.RenderAsync(ScribanTestRenderer.RenderSet(template, HeadOnlyLayout), ScribanTestRenderer.ContentViewModel()))
+            .ShouldEndWith("false|true");
+
+        var onAList = new ScribanTestRenderer();
+        (await onAList.RenderAsync(ScribanTestRenderer.RenderSet(template, HeadOnlyLayout), ScribanTestRenderer.PageViewModel()))
+            .ShouldEndWith("true|true");
+        onAList.ContentListQuery.AdjacentRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Adjacent_Contents_With_A_Misspelt_Option_Should_Fail()
+    {
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            ScribanTestRenderer.RenderSet("{{ adjacent_contents { type: \"post\" } }}", HeadOnlyLayout),
+            ScribanTestRenderer.ContentViewModel()));
+
+        ex.ShouldBeAssignableTo<ScriptRuntimeException>();
+        ex!.Message.ShouldContain("`type`");
+    }
+
+    /// <summary>Arguments fill a text's placeholders as composite formatting does, numbers and dates in the page's language.</summary>
+    [Fact]
+    public async Task T_Should_Fill_The_Texts_Placeholders_In_The_Pages_Language()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
+            "[{{ t \"Pager:Page\" null 2 5 }}][{{ t \"Price\" null 1234567 }}][{{ t \"Archive\" null (date.parse \"2026-08-15\") }}]" +
+            "[{{ t \"Missing\" \"{0} items\" 3 }}][{{ t \"Pager:Page\" }}]",
+            HeadOnlyLayout,
+            assets: new Dictionary<string, string>
+            {
+                ["locales/ja.json"] =
+                    "{ \"culture\": \"ja\", \"texts\": { \"Pager:Page\": \"{0} / {1} ページ\", \"Price\": \"{0:N0} 円\", \"Archive\": \"{0:yyyy年M月}の記事\" } }"
+            }));
+
+        html.ShouldEndWith("[2 / 5 ページ][1,234,567 円][2026年8月の記事][3 items][{0} / {1} ページ]");
+    }
+
+    [Fact]
+    public async Task T_With_Too_Few_Arguments_Should_Fail_Naming_The_Text()
+    {
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(ScribanTestRenderer.RenderSet(
+            "{{ t \"Pager:Page\" null 2 }}",
+            HeadOnlyLayout,
+            assets: new Dictionary<string, string>
+            {
+                ["locales/ja.json"] = "{ \"culture\": \"ja\", \"texts\": { \"Pager:Page\": \"{0} / {1}\" } }"
+            })));
+
+        ex.ShouldBeAssignableTo<ScriptRuntimeException>();
+        ex!.Message.ShouldContain("'Pager:Page'");
+    }
+
+    [Fact]
+    public async Task Text_Width_Should_Count_A_Wide_Character_Twice()
+    {
+        var html = await new ScribanTestRenderer().RenderAsync(
+            "[{{ text_width \"日本語ab\" }}][{{ text_width \"About – Acme\" }}][{{ text_width \"\" }}][{{ text_width null }}]", HeadOnlyLayout);
+
+        html.ShouldEndWith("[8][12][0][0]");
+    }
+
+    [Fact]
+    public async Task App_File_Url_Should_Address_A_File_Of_The_Application_With_Its_Version()
+    {
+        var renderer = new ScribanTestRenderer();
+        renderer.Host.HttpContext.Request.PathBase = "/site";
+        const string template = "[{{ app_file_url \"/libs/abp/core/abp.js\" }}][{{ app_file_url \"~/images/logo.svg?x=1\" }}]";
+
+        (await renderer.RenderAsync(template, HeadOnlyLayout)).ShouldEndWith("[/site/libs/abp/core/abp.js][/site/images/logo.svg?x=1]");
+
+        renderer.Host.HttpContext.RequestServices = new WithFileVersions(renderer.Host.HttpContext.RequestServices);
+        (await renderer.RenderAsync(template, HeadOnlyLayout))
+            .ShouldEndWith("[/site/libs/abp/core/abp.js?v=hash][/site/images/logo.svg?x=1&amp;v=hash]");
+    }
+
+    [Theory]
+    [InlineData("libs/abp/core/abp.js")]
+    [InlineData("//cdn.example/abp.js")]
+    [InlineData("https://cdn.example/abp.js")]
+    public async Task App_File_Url_Of_A_Path_That_Is_Not_The_Applications_Should_Fail(string path)
+    {
+        var ex = await Record.ExceptionAsync(() => new ScribanTestRenderer().RenderAsync(
+            "{{ app_file_url \"" + path + "\" }}", HeadOnlyLayout));
+
+        ex.ShouldBeAssignableTo<ScriptRuntimeException>();
+        ex!.Message.ShouldContain("starting with /");
+    }
+
+    /// <summary>The request's services with a file version provider that versions every file alike, as asp-append-version would.</summary>
+    private sealed class WithFileVersions : IServiceProvider, IFileVersionProvider
+    {
+        private readonly IServiceProvider _inner;
+
+        public WithFileVersions(IServiceProvider inner)
+        {
+            _inner = inner;
+        }
+
+        public object? GetService(Type serviceType)
+        {
+            return serviceType == typeof(IFileVersionProvider) ? this : _inner.GetService(serviceType);
+        }
+
+        public string AddFileVersionToPath(PathString requestPathBase, string path)
+        {
+            return path + (path.Contains('?') ? "&" : "?") + "v=hash";
+        }
     }
 
     [Fact]

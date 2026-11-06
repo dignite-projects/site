@@ -332,6 +332,21 @@ public class FakeContentListQuery : ContentListQuery
         return Task.FromResult<IReadOnlyList<ContentFieldValueCountDto>>(Counts.ToList());
     }
 
+    public List<(PageDto Page, Guid ContentId, string? ContentTypeName)> AdjacentRequests { get; } = new();
+
+    /// <summary>What <see cref="FindAdjacentAsync"/> answers as the older content.</summary>
+    public ContentRenderViewModel? Previous { get; set; }
+
+    /// <summary>What <see cref="FindAdjacentAsync"/> answers as the newer content.</summary>
+    public ContentRenderViewModel? Next { get; set; }
+
+    public override Task<(ContentRenderViewModel? Previous, ContentRenderViewModel? Next)> FindAdjacentAsync(
+        PageDto page, Guid contentId, string? contentTypeName = null)
+    {
+        AdjacentRequests.Add((page, contentId, contentTypeName));
+        return Task.FromResult((Previous, Next));
+    }
+
     public override Task<ContentListRenderViewModel> QueryAsync(ContentListQueryRequest request)
     {
         Requests.Add(request);

@@ -296,10 +296,12 @@ jobs:
       # setup-node's registry-url input points npm at for the rest of the job; a plain ~/.npmrc is
       # silently ignored (this bit us once already in abp-modules' own release.yml).
       #
-      # Every @dignite/* dependency (currently just ng.flex-fields) needs the same scope swap: the
-      # packed package.json still names it "@dignite/ng.flex-fields", the public npmjs name that
-      # only exists once the stable release ships there - pre-release, only @dignite-projects/*
-      # does. Rewritten to the npm alias form ("@dignite/ng.flex-fields":
+      # A @dignite/* dependency on a pre-release (currently only ever ng.flex-fields) needs the same
+      # scope swap: the packed package.json still names it "@dignite/ng.flex-fields", the public
+      # npmjs name, and a pre-release of it exists only as @dignite-projects/* on GitHub Packages. A
+      # dependency on a stable range is left alone - abp-modules' stable releases are on npmjs, and
+      # GitHub Packages keeps only its pre-releases, so 2.2.0-preview.1, which aliased ^10.7.0 there,
+      # could not be installed. Rewritten to the npm alias form ("@dignite/ng.flex-fields":
       # "npm:@dignite-projects/ng.flex-fields@<range>") rather than a plain key rename, so the
       # dependency is still installed under the name the compiled bundle's bare-specifier imports
       # expect, while actually resolving from @dignite-projects on GitHub Packages -
@@ -319,7 +321,9 @@ jobs:
             const pkgPath = path.join(process.env.PKG_DIR, "package.json");
             const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
             for (const [name, range] of Object.entries(pkg.dependencies || {})) {
-              if (name.startsWith("@dignite/")) {
+              // Only a pre-release range: a stable one (^10.7.0) is on npmjs under its own name, and
+              // GitHub Packages keeps the pre-releases of abp-modules only, so aliasing it fails the install.
+              if (name.startsWith("@dignite/") && range.includes("-")) {
                 pkg.dependencies[name] = `npm:@dignite-projects/${name.slice("@dignite/".length)}@${range}`;
               }
             }

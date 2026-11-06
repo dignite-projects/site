@@ -106,11 +106,20 @@ public static class SiteErrorCodes
     /// </summary>
     public const string SiteThemeDefaultLayoutNotALayout = "Site:090013";
 
-    /// <summary>A theme package that cannot be imported; Data["Problems"] lists what is wrong, one per line.</summary>
+    /// <summary>
+    /// A theme package that cannot be imported. The message's <c>{Problems}</c> lists what is wrong, one per line, in the
+    /// language of the request (<c>SiteThemePackageInvalidException</c>, <see cref="Themes.SiteThemePackageProblemCodes"/>).
+    /// </summary>
     public const string SiteThemePackageInvalid = "Site:090014";
 
     /// <summary>A theme download or upload link that has expired, has been used, or was not issued by this site.</summary>
     public const string SiteThemeTransferLinkInvalid = "Site:090015";
+
+    /// <summary>
+    /// A theme file saved or renamed to a path that would make one path a file and a folder at once
+    /// (<c>Products/Campus</c> beside <c>Products/Campus/Pricing</c>); Data["Path"], and Data["Other"], the file in the way.
+    /// </summary>
+    public const string SiteThemePathIsFolder = "Site:090016";
 
     // The site's languages (Site.EnabledLanguages), set through SiteLanguageManager.
 

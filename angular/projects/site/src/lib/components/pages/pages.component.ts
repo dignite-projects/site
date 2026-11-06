@@ -312,7 +312,7 @@ export class PagesComponent {
         if (status === Confirmation.Status.confirm) {
           this.pageService.delete(page.id!).subscribe(() => {
             this.applyFilters();
-            this.toaster.success('AbpUi::SuccessfullyDeleted');
+            this.toaster.success('AbpUi::DeletedSuccessfully');
           });
         }
       });

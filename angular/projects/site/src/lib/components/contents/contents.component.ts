@@ -527,7 +527,7 @@ export class ContentsComponent {
         if (status === Confirmation.Status.confirm) {
           this.contentService.delete(content.id!).subscribe(() => {
             this.list.get();
-            this.toaster.success('AbpUi::SuccessfullyDeleted');
+            this.toaster.success('AbpUi::DeletedSuccessfully');
           });
         }
       });

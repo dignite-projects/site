@@ -70,6 +70,26 @@ public class SiteThemeAnalyzer_Tests
         analysis.Layouts.ShouldBe(new[] { "layouts/default", "layouts/split", "shell" });
     }
 
+    /// <summary>A working copy from before the rule, or a restored release, can hold a path that is a file and a folder.</summary>
+    [Fact]
+    public void Should_Report_A_File_Whose_Path_Is_Also_A_Folder()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = Layout,
+                ["Products/Campus"] = "<p>product</p>",
+                ["Products/Campus/Pricing"] = "<p>pricing</p>",
+                ["Products/CampusTrial"] = "<p>trial</p>"
+            },
+            pages: new[] { ("campus", "Products/Campus"), ("pricing", "Products/Campus/Pricing"), ("trial", "Products/CampusTrial") });
+
+        var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.PathIsFolder);
+        issue.Severity.ShouldBe(SiteThemeIssueSeverity.Error);
+        issue.Path.ShouldBe("Products/Campus");
+        issue.Data["Other"].ShouldBe("Products/Campus/Pricing");
+    }
+
     [Fact]
     public void Should_Report_A_Syntax_Error_At_Its_Position()
     {

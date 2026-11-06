@@ -106,8 +106,25 @@ public class ScribanRenderModelBuilder_Tests
         english["url"].ShouldBe("/about");
         english["is_current"].ShouldBe(false);
         english["is_translation"].ShouldBe(true);
+        english["native_name"].ShouldBe("English");
+        ((ScriptObject)languages[1]!)["native_name"].ShouldBe("日本語");
 
         ((ScriptObject)languages[1]!)["is_current"].ShouldBe(true);
+    }
+
+    /// <summary>The request's query parameters, each by its name in lower case; none on a request without a query string.</summary>
+    [Fact]
+    public async Task Query_Should_Hold_The_Requests_Parameters_By_Lower_Case_Name()
+    {
+        var viewModel = ScribanTestRenderer.PageViewModel();
+        viewModel.Query = Routing.SiteRenderQuery.Parse("?Service=design&tab=");
+
+        var query = Get<ScriptObject>(await BuildAsync(viewModel), "query");
+
+        query["service"].ShouldBe("design");
+        query["tab"].ShouldBe("");
+        query.ContainsKey("Service").ShouldBeFalse();
+        Get<ScriptObject>(await BuildAsync(ScribanTestRenderer.PageViewModel()), "query").Count.ShouldBe(0);
     }
 
     [Fact]

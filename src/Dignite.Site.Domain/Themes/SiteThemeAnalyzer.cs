@@ -220,6 +220,7 @@ public static class SiteThemeAnalyzer
             ReportSyntaxAndFrontMatter();
             ReportTextFiles();
             ReportLanguageVersionsWithoutTemplate();
+            ReportPathsThatAreFolders();
             ReadPages(pages);
             ReadDefaultLayout();
             ReadReferences();
@@ -318,6 +319,26 @@ public static class SiteThemeAnalyzer
                     && !IsTemplate(templatePath))
                 {
                     Error(SiteThemeIssueCodes.LanguageVersionWithoutTemplate, path, null, null, ("Template", templatePath));
+                }
+            }
+        }
+
+        /// <summary>
+        /// A file whose path is also the folder of others (<c>Products/Campus</c> beside <c>Products/Campus/Pricing</c>):
+        /// saving, renaming and importing refuse to make one, but a working copy from before that, or a restored release,
+        /// can hold it, and it would not publish into a theme that can be exported to a disk.
+        /// </summary>
+        private void ReportPathsThatAreFolders()
+        {
+            var paths = _files.Keys.OrderBy(path => path, StringComparer.Ordinal).ToList();
+            foreach (var path in paths)
+            {
+                var below = paths.FirstOrDefault(other => other.Length > path.Length + 1
+                                                          && other[path.Length] == '/'
+                                                          && other.StartsWith(path, StringComparison.Ordinal));
+                if (below != null)
+                {
+                    Error(SiteThemeIssueCodes.PathIsFolder, path, null, null, ("Other", below));
                 }
             }
         }

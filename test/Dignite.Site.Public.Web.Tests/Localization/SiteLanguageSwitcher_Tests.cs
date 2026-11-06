@@ -44,6 +44,8 @@ public class SiteLanguageSwitcher_Tests
         items.Select(i => i.CultureName).ShouldBe(new[] { "en", "ja", "fr" });
         items.Select(i => i.Url).ShouldBe(new[] { "/blog/my-trip", "/ja/blog/my-trip", "/fr/blog/my-trip" });
         items.ShouldAllBe(i => i.IsTranslation);
+        // Each language named in itself, as a switcher offers it to its readers; capitalized like a menu item, French "français" too.
+        items.Select(i => i.NativeName).ShouldBe(new[] { "English", "日本語", "Français" });
     }
 
     /// <summary>

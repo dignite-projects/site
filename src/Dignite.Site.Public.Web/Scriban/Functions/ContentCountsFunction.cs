@@ -24,6 +24,7 @@ namespace Dignite.Site.Public.Scriban.Functions;
 /// <item><c>content_type</c> - only contents of the page's content type of this name.</item>
 /// <item><c>filter</c> - a text filter.</item>
 /// <item><c>max</c> - the most groups, default 100, at most <see cref="MaxGroups"/>.</item>
+/// <item><c>field_filters</c>, <c>published_after</c>, <c>published_before</c> - as <c>contents</c> takes them.</item>
 /// </list>
 /// Returns a list of <c>{ value, count }</c>, most numerous first: <c>value</c> is the field's value as text (a
 /// select field's option value - its label is in the field's definition, see <c>field_definitions</c>), <c>count</c>
@@ -38,7 +39,10 @@ public class ContentCountsFunction : SiteScriptFunction
     /// <summary>The most groups a template may ask for in one call.</summary>
     public const int MaxGroups = 1000;
 
-    private static readonly string[] OptionNames = { "field", "page", "content_type", "filter", "max" };
+    private static readonly string[] OptionNames =
+    {
+        "field", "page", "content_type", "filter", "max", "field_filters", "published_after", "published_before"
+    };
 
     protected ScribanRenderScope Scope { get; }
     protected ContentListQuery Query { get; }
@@ -76,6 +80,7 @@ public class ContentCountsFunction : SiteScriptFunction
             return new ScriptArray();
         }
 
+        var (fieldFilters, publishedAfter, publishedBefore) = GetFilters(context, span, options, viewModel, isCurrentPage);
         var counts = await Query.CountByFieldAsync(
             new ContentListQueryRequest
             {
@@ -83,9 +88,9 @@ public class ContentCountsFunction : SiteScriptFunction
                 CultureName = viewModel.CultureName,
                 ContentTypeName = GetOptionString(context, span, options, "content_type"),
                 Filter = GetOptionString(context, span, options, "filter"),
-                FieldFilters = isCurrentPage ? viewModel.FieldFilters : null,
-                PublishedAfter = isCurrentPage ? viewModel.PublishedAfter : null,
-                PublishedBefore = isCurrentPage ? viewModel.PublishedBefore : null
+                FieldFilters = fieldFilters,
+                PublishedAfter = publishedAfter,
+                PublishedBefore = publishedBefore
             },
             fieldName,
             maxGroups);

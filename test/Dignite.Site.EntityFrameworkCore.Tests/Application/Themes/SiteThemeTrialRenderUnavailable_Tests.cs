@@ -39,7 +39,7 @@ public class SiteThemeTrialRenderUnavailable_Tests : SiteEntityFrameworkCoreTest
         issue.Code.ShouldBe(SiteThemeIssueCodes.TrialRenderUnavailable);
         issue.Severity.ShouldBe(SiteThemeIssueSeverity.Warning);
         issue.Path.ShouldBeNull();
-        issue.Message.ShouldContain("7");
+        issue.Message.ShouldContain("8");
         issue.Message.ShouldContain("Dignite.Site.Public.Web");
 
         // A warning: the publish goes ahead, as it did before the warning was there.

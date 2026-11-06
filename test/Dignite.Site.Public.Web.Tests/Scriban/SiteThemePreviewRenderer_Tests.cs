@@ -163,6 +163,21 @@ public class SiteThemePreviewRenderer_Tests
         preview.Html.ShouldEndWith("<p>2|/ja/about|/ja/about?page=3</p></body></html>");
     }
 
+    /// <summary>
+    /// The previewed path's query string is the page's <c>query</c>, as a visitor's request would be - not the admin
+    /// call's: each name's first value, the name in lower case whatever case the address writes it in.
+    /// </summary>
+    [Fact]
+    public async Task A_Query_String_On_The_Path_Should_Be_The_Pages_Query()
+    {
+        var fixture = new Fixture(PageMatch());
+
+        var preview = await fixture.RenderAsync(
+            Theme("<p>{{ query.service }}|{{ query.missing ?? \"none\" }}|{{ query.page }}</p>"), "/ja/about?Service=design&service=other&page=2");
+
+        preview.Html.ShouldEndWith("<p>design|none|2</p></body></html>");
+    }
+
     [Fact]
     public async Task The_Preview_Should_Describe_The_Page_It_Rendered()
     {

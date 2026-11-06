@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Dignite.Site.Public.Routing;
 using global::Scriban;
 using global::Scriban.Parsing;
 using global::Scriban.Runtime;
@@ -86,6 +89,92 @@ public abstract class SiteScriptFunction : IScriptCustomFunction
         return options != null && options.TryGetValue(context, span, name, out var value) && value != null
             ? context.ToInt(span, value)
             : null;
+    }
+
+    /// <summary>A date member of an options object - a date, or a text that reads as one - null when missing.</summary>
+    protected static DateTime? GetOptionDate(TemplateContext context, SourceSpan span, ScriptObject? options, string name)
+    {
+        if (options == null || !options.TryGetValue(context, span, name, out var value) || value == null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            DateTime date => date,
+            DateTimeOffset offset => offset.UtcDateTime,
+            string text when DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed) => parsed,
+            _ => throw new ScriptRuntimeException(span, $"The option `{name}` takes a date, e.g. date.parse \"2026-01-01\".")
+        };
+    }
+
+    /// <summary>
+    /// An object member of an options object as field name to value, each value as text (<c>true</c> for a ticked box,
+    /// <c>design</c> for an option); null when missing. An empty value is left out.
+    /// </summary>
+    protected static Dictionary<string, string>? GetOptionStringMap(TemplateContext context, SourceSpan span, ScriptObject? options, string name)
+    {
+        if (options == null || !options.TryGetValue(context, span, name, out var value) || value == null)
+        {
+            return null;
+        }
+
+        if (value is not ScriptObject map)
+        {
+            throw new ScriptRuntimeException(span, $"The option `{name}` takes an object of field names and values, e.g. {{ category: \"news\" }}.");
+        }
+
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var key in map.GetMembers())
+        {
+            map.TryGetValue(context, span, key, out var item);
+            var text = item switch
+            {
+                null => null,
+                bool flag => flag ? "true" : "false",
+                _ => context.ObjectToString(item)
+            };
+
+            if (!string.IsNullOrEmpty(text))
+            {
+                result[key] = text;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The filters a list or a count applies: on the current page, the route's (<c>field_filters</c>,
+    /// <c>published_after</c>, <c>published_before</c>), with the options' own on top of them - a field the options name
+    /// replaces the route's value for it, a bound the options set replaces the route's; on another page, the options'
+    /// alone, since that page's route did not answer this request.
+    /// </summary>
+    protected static (IReadOnlyDictionary<string, string>? FieldFilters, DateTime? PublishedAfter, DateTime? PublishedBefore) GetFilters(
+        TemplateContext context, SourceSpan span, ScriptObject? options, SiteRenderViewModel viewModel, bool isCurrentPage)
+    {
+        var fieldFilters = GetOptionStringMap(context, span, options, "field_filters");
+        var publishedAfter = GetOptionDate(context, span, options, "published_after");
+        var publishedBefore = GetOptionDate(context, span, options, "published_before");
+
+        if (!isCurrentPage)
+        {
+            return (fieldFilters, publishedAfter, publishedBefore);
+        }
+
+        IReadOnlyDictionary<string, string> merged = viewModel.FieldFilters;
+        if (fieldFilters is { Count: > 0 })
+        {
+            var combined = new Dictionary<string, string>(viewModel.FieldFilters, StringComparer.OrdinalIgnoreCase);
+            foreach (var (field, value) in fieldFilters)
+            {
+                combined[field] = value;
+            }
+
+            merged = combined;
+        }
+
+        return (merged, publishedAfter ?? viewModel.PublishedAfter, publishedBefore ?? viewModel.PublishedBefore);
     }
 
     /// <summary>A string argument, null when missing or empty.</summary>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -56,6 +57,34 @@ public static class SiteThemePaths
     public static bool IsTemplate(string path)
     {
         return !IsAsset(path);
+    }
+
+    /// <summary>
+    /// The first of <paramref name="others"/> that <paramref name="path"/> cannot sit beside because one of the two would
+    /// be a file and a folder at once - <c>Products/Campus</c> beside <c>Products/Campus/Pricing</c>, either way round -
+    /// or null. A template has no extension, so its path is the name a folder would have; a theme like that could not be
+    /// written out to a disk, as an export is meant to be. <paramref name="path"/> itself among the others is ignored.
+    /// </summary>
+    public static string? FindFolderConflict(string path, IEnumerable<string> others)
+    {
+        foreach (var other in others)
+        {
+            if (other.Length != path.Length
+                && (IsInFolder(path, other) || IsInFolder(other, path)))
+            {
+                return other;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether <paramref name="path"/> is below <paramref name="folder"/>: <c>a/b/c</c> is below <c>a</c> and <c>a/b</c>.</summary>
+    private static bool IsInFolder(string path, string folder)
+    {
+        return path.Length > folder.Length + 1
+               && path[folder.Length] == '/'
+               && path.StartsWith(folder, StringComparison.Ordinal);
     }
 
     /// <summary>
