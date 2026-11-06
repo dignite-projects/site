@@ -242,7 +242,11 @@ public class HeadMetadataBuilder : DomainService
     /// is named by <paramref name="baseTitle"/> - a filtered view's title without the filter values, since the
     /// step stands for the page, not for the view - and a content by <paramref name="title"/>. The page's own
     /// content (empty slug) is the page's step, not one more. An inactive
-    /// ancestor has no address a visitor could follow and is left out. A page tree is a few levels deep, so the
+    /// ancestor has no address a visitor could follow and is left out. So is a page whose route requires a slug
+    /// when its own address is that of a step before it - a post page under its blog (<c>/blog/{yyyy}/{MM}/{slug}</c>
+    /// below <c>/blog</c>), a page of documents at the root (<c>/{slug}</c>): that address shows the earlier page,
+    /// which <see cref="SiteRouteResolver"/> puts first, so the page has none of its own and the content
+    /// beneath it follows the earlier page directly. A page tree is a few levels deep, so the
     /// ancestors and their own contents are read one by one; what names a content's title - the content types of the
     /// pages and the field library - is read once for all the steps, since the head of every page asks for it.
     /// </para>
@@ -293,6 +297,7 @@ public class HeadMetadataBuilder : DomainService
 
         // Each step with the name it already has (the page being rendered), or the page content that will name it.
         var steps = new List<(Page Page, string? Name, Content? PageContent)>();
+        var stepPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var step in chain)
         {
             var isCurrentPage = step.Id == page.Id;
@@ -300,6 +305,16 @@ public class HeadMetadataBuilder : DomainService
             {
                 continue;
             }
+
+            // A page that needs a slug, at an address an earlier step already stands at, has no address of its own.
+            // The page being rendered as a list keeps its step whatever its route: the request is its address.
+            var ownPath = step.GetPath();
+            if (!(isCurrentPage && content == null) && RequiresSlug(step) && stepPaths.Contains(ownPath))
+            {
+                continue;
+            }
+
+            stepPaths.Add(ownPath);
 
             if (isCurrentPage && content == null)
             {
@@ -351,6 +366,12 @@ public class HeadMetadataBuilder : DomainService
         }
 
         return items;
+    }
+
+    /// <summary>Whether the page's route requires a slug: <c>{slug}</c> or <c>{slug:REGEX}</c>, not <c>{slug?}</c>.</summary>
+    protected static bool RequiresSlug(Page page)
+    {
+        return PageRoute.HasSlug(page.Route) && !PageRoute.IsSlugOptional(page.Route);
     }
 
     /// <summary>

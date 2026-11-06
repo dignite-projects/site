@@ -774,6 +774,74 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         metadata.Breadcrumb[^1].Name.ShouldBe("Team");
     }
 
+    /// <summary>
+    /// A post page below its blog - <c>/notes/{yyyy}/{MM}/{slug}</c> under <c>/notes</c> - has no address of its own:
+    /// its bare address is the blog's. The post follows the blog directly, with no step for the post page.
+    /// </summary>
+    [Fact]
+    public async Task Breadcrumb_Should_Leave_Out_A_Page_Whose_Address_Is_Its_Parents()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var notes = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync($"notes-{suffix}", "Notes", $"/notes-{suffix}"));
+        var note = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            $"note-{suffix}", "博客帖子", $@"/notes-{suffix}/{{publishTime:yyyy:^\d{{4}}$}}/{{publishTime:MM:^(0[1-9]|1[0-2])$}}/{{slug}}",
+            parentId: notes.Id));
+        await CreateTitledContentAsync(note.Id, "hello", "Hello");
+
+        var metadata = await BuildAsync($"/notes-{suffix}/2026/07/hello", SiteTestData.EnglishCulture);
+
+        metadata.Breadcrumb.Select(b => b.Path).ShouldBe(new[] { "/", $"/notes-{suffix}", $"/notes-{suffix}/2026/07/hello" });
+        metadata.Breadcrumb.Select(b => b.PageName).ShouldBe(new[] { "home", $"notes-{suffix}", $"note-{suffix}" });
+        metadata.Breadcrumb.Select(b => b.Name).ShouldNotContain("博客帖子");
+    }
+
+    /// <summary>
+    /// A page of documents at the root - <c>/{slug:...}</c> - shares the home page's address, so a document follows
+    /// the home page directly.
+    /// </summary>
+    [Fact]
+    public async Task Breadcrumb_Should_Leave_Out_A_Root_Page_Of_Documents()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var legal = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            $"legal-{suffix}", "法律信息", $"/{{slug:^(privacy-{suffix}|terms-{suffix})$}}"));
+        await CreateTitledContentAsync(legal.Id, $"privacy-{suffix}", "Privacy Policy");
+
+        var metadata = await BuildAsync($"/privacy-{suffix}", SiteTestData.EnglishCulture);
+
+        metadata.Breadcrumb.Select(b => b.Path).ShouldBe(new[] { "/", $"/privacy-{suffix}" });
+        metadata.Breadcrumb[^1].Name.ShouldBe("Privacy Policy");
+    }
+
+    /// <summary>A page that needs a slug but owns its bare address - nothing else is there - keeps its step: that address lists it.</summary>
+    [Fact]
+    public async Task Breadcrumb_Should_Keep_A_Slug_Page_That_Owns_Its_Address()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var news = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync($"news-{suffix}", "News", $"/news-{suffix}/{{slug}}"));
+        await CreateTitledContentAsync(news.Id, "first", "First");
+
+        var metadata = await BuildAsync($"/news-{suffix}/first", SiteTestData.EnglishCulture);
+
+        metadata.Breadcrumb.Select(b => b.Path).ShouldBe(new[] { "/", $"/news-{suffix}", $"/news-{suffix}/first" });
+    }
+
+    /// <summary>A content type with the title field on <paramref name="pageId"/>, and one published English content of it.</summary>
+    private async Task CreateTitledContentAsync(Guid pageId, string slug, string title)
+    {
+        var contentTypeId = await WithUnitOfWorkAsync(async () =>
+        {
+            var titleField = await _fieldRepository.GetAsync(SiteTestData.TitleFieldId);
+            var contentType = await _contentTypeManager.CreateAsync(
+                pageId, $"item-{Guid.NewGuid():N}", "Item", fields: new[] { new ContentTypeField(titleField.Id, order: 0) });
+            return contentType.Id;
+        });
+
+        await WithUnitOfWorkAsync(() => _contentManager.CreateAsync(
+            contentTypeId, SiteTestData.EnglishCulture, slug, SiteTestData.PublishTime, ContentStatus.Published,
+            new Dictionary<string, object?> { ["title"] = title }));
+    }
+
     private async Task<HeadMetadata> BuildAsync(string path, string cultureName)
     {
         return await WithUnitOfWorkAsync(async () =>
