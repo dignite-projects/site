@@ -58,7 +58,7 @@ Every template receives a `SiteRenderViewModel`:
 | `PublishedAfter`, `PublishedBefore` | The period that `publishTime` placeholders named, such as the whole of August 2026 for `/news/2026/08`. |
 | `CurrentPage` | The page of a paged list that the request asks for with `?page=2`, or 1; for `<content-list current-page>` and `<site-head-metadata current-page>`. |
 | `HeadMetadata` | The `<head>` metadata of the request; see [The Head](#the-head). |
-| `Breadcrumb` | The way from the home page to the request: each step's `Name`, `Path`, `Url` and `IsCurrent`; see [Breadcrumbs](../seo/index.md#breadcrumbs). |
+| `Breadcrumb` | The way from the home page to the request: each step's `Name`, `Path`, `Url`, `PageName`, `Slug` and `IsCurrent`; see [Breadcrumbs](../seo/index.md#breadcrumbs). |
 
 One template serves the page and the contents beneath it, and branches on `Content`:
 

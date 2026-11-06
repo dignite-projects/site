@@ -736,6 +736,8 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         metadata.Breadcrumb.Select(b => b.Url).ShouldBe(new[] { $"{BaseUrl}/", $"{BaseUrl}/blog", $"{BaseUrl}/blog/my-trip" });
         metadata.Breadcrumb[1].Name.ShouldBe("Blog");
         metadata.Breadcrumb[2].Name.ShouldBe("My trip");
+        metadata.Breadcrumb.Select(b => b.PageName).ShouldBe(new[] { "home", "blog", "blog" });
+        metadata.Breadcrumb.Select(b => b.Slug).ShouldBe(new[] { null, null, "my-trip" });
     }
 
     [Fact]

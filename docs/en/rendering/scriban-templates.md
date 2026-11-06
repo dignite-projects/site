@@ -111,7 +111,15 @@ Each node must be an object with an `@type`; anything else fails the render. A k
 ] } }}
 ````
 
-`breadcrumb` is the way from the home page to the page being rendered: each step has `name`, `path` (for a link on the page), `url` (absolute, for structured data) and `is_current`. See [Breadcrumbs](../seo/index.md#breadcrumbs).
+`breadcrumb` is the way from the home page to the page being rendered: each step has `name`, `path` (for a link on the page), `url` (absolute, for structured data), `page_name`, `slug` (on a content's step) and `is_current`. `name` is the page's title, which can be long for a breadcrumb; to label the steps with the theme's own texts, look them up by `page_name`, keeping `name` as the fallback:
+
+````
+{{ for step in breadcrumb }}
+  <a href="{{ step.path }}">{{ step.slug ? step.name : (t ("Breadcrumb:" + step.page_name) step.name) }}</a>
+{{ end }}
+````
+
+See [Breadcrumbs](../seo/index.md#breadcrumbs).
 
 ## Templates for One Language
 
@@ -270,7 +278,7 @@ A template is given data, and only data: the page and the content being rendered
 | `published_after`, `published_before` | The period that `publishTime` placeholders named, as dates, or empty. |
 | `page_no` | The page of a paged list that the request asks for with `?page=2`, or 1. See [Paging](#paging). |
 | `head` | The head metadata of the request, or empty: `meta_title`, `base_meta_title`, `meta_description`, `canonical_url`, `robots_content`, `og_image_url`, `is_default_og_image`, `og_image_width`, `og_image_height`, `og_type`, `twitter_card_type`, `site_name`, `locale`, `locale_alternates`, `base_url`, `hreflang_alternates` (each with `culture_name`, `url` and `path`), `x_default_url` and `breadcrumb`. |
-| `breadcrumb` | The way from the home page to the request: each step has `name`, `path`, `url` and `is_current`. See [The Head](#the-head). |
+| `breadcrumb` | The way from the home page to the request: each step has `name`, `path`, `url`, `page_name`, `slug` and `is_current`. See [The Head](#the-head). |
 | `body` | In a layout only: the rendered page template. |
 
 ### Output Encoding

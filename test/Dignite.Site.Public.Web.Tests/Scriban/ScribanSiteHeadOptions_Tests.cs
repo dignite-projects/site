@@ -38,8 +38,8 @@ public class ScribanSiteHeadOptions_Tests
         },
         Breadcrumb = new List<BreadcrumbItemDto>
         {
-            new() { Name = "ホーム", Path = "/ja", Url = "https://acme.example/ja" },
-            new() { Name = "会社概要", Path = "/ja/about", Url = "https://acme.example/ja/about", IsCurrent = true }
+            new() { Name = "ホーム", Path = "/ja", Url = "https://acme.example/ja", PageName = "home" },
+            new() { Name = "会社概要", Path = "/ja/about", Url = "https://acme.example/ja/about", PageName = "about", IsCurrent = true }
         }
     };
 
@@ -135,10 +135,35 @@ public class ScribanSiteHeadOptions_Tests
     public async Task Breadcrumb_Should_Be_Template_Data()
     {
         var html = await new ScribanTestRenderer().RenderAsync(
-            "{{ site_head }}{{ for c in breadcrumb }}[{{ c.name }}|{{ c.path }}|{{ c.is_current }}]{{ end }}",
+            "{{ site_head }}{{ for c in breadcrumb }}[{{ c.name }}|{{ c.path }}|{{ c.page_name }}|{{ c.is_current }}]{{ end }}",
             viewModel: ViewModel(Metadata()));
 
-        html.ShouldContain("[ホーム|/ja|false][会社概要|/ja/about|true]");
+        html.ShouldContain("[ホーム|/ja|home|false][会社概要|/ja/about|about|true]");
+    }
+
+    /// <summary>
+    /// The breadcrumb example of "The Head" in scriban-templates.md, verbatim: a step whose page has a text of its own in
+    /// the theme is labelled with it, the others keep their name.
+    /// </summary>
+    [Fact]
+    public async Task Breadcrumb_Steps_Can_Be_Labelled_With_The_Themes_Own_Texts()
+    {
+        const string template = """
+            {{ site_head }}
+            {{ for step in breadcrumb }}
+              <a href="{{ step.path }}">{{ step.slug ? step.name : (t ("Breadcrumb:" + step.page_name) step.name) }}</a>
+            {{ end }}
+            """;
+        var renderSet = ScribanTestRenderer.RenderSet(new Dictionary<string, string>
+        {
+            [ScribanTestRenderer.PagePath] = template,
+            ["locales/ja.json"] = "{ \"culture\": \"ja\", \"texts\": { \"Breadcrumb:about\": \"概要\" } }"
+        });
+
+        var html = await new ScribanTestRenderer().RenderAsync(renderSet, ViewModel(Metadata()));
+
+        html.ShouldContain("<a href=\"/ja\">ホーム</a>");
+        html.ShouldContain("<a href=\"/ja/about\">概要</a>");
     }
 
     [Theory]

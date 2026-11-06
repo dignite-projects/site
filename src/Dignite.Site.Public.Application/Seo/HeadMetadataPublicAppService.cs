@@ -113,6 +113,8 @@ public class HeadMetadataPublicAppService : SitePublicAppService, IHeadMetadataP
                     Name = item.Name,
                     Path = item.Path,
                     Url = item.Url,
+                    PageName = item.PageName,
+                    Slug = item.Slug,
                     IsCurrent = index == metadata.Breadcrumb.Count - 1
                 })
                 .ToList()

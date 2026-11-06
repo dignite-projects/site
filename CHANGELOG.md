@@ -32,7 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `&` escaped so that no text can end the script. A node without `@type` fails the render, which the theme check's trial
   render finds before a publish. See [Structured Data](docs/en/rendering/scriban-templates.md#structured-data).
 - **Every request has its breadcrumb.** The home page, the page's ancestors by their parent page, the page and the
-  content, each named by its title in the language viewed, with a site-relative `path` and an absolute `url`: `breadcrumb` in
+  content, each named by its title in the language viewed, with a site-relative `path`, an absolute `url`, and its page's
+  name and the content's slug, for a template that labels the steps with texts of its own: `breadcrumb` in
   a Scriban template, `Model.Breadcrumb` in a Razor one, `HeadMetadataDto.Breadcrumb` for an external front end - for a
   visible breadcrumb and a `BreadcrumbList` alike. See [Breadcrumbs](docs/en/seo/index.md#breadcrumbs).
 - **A theme can be taken out as one zip and brought back in.** `GET api/site-admin/theme/export` downloads the working

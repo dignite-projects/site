@@ -341,12 +341,13 @@ public class HeadMetadataBuilder : DomainService
             items.Add(new BreadcrumbItem(
                 name,
                 UrlBuilder.BuildPagePath(context, step, cultureName),
-                UrlBuilder.BuildPageUrl(context, step, cultureName)));
+                UrlBuilder.BuildPageUrl(context, step, cultureName),
+                step.Name));
         }
 
         if (content != null && !isPageContent)
         {
-            items.Add(new BreadcrumbItem(title, UrlBuilder.BuildContentPath(context, page, content), canonicalUrl));
+            items.Add(new BreadcrumbItem(title, UrlBuilder.BuildContentPath(context, page, content), canonicalUrl, page.Name, content.Slug));
         }
 
         return items;
