@@ -179,6 +179,13 @@ public class SiteThemeManager : DomainService
 
         if (file == null)
         {
+            var paths = (await FileRepository.GetSummariesAsync(theme.Id, cancellationToken)).Select(summary => summary.Path);
+            var conflict = SiteThemePaths.FindFolderConflict(normalized, paths);
+            if (conflict != null)
+            {
+                throw new BusinessException(SiteErrorCodes.SiteThemePathIsFolder).WithData("Path", normalized).WithData("Other", conflict);
+            }
+
             file = new SiteThemeFile(GuidGenerator.Create(), theme.Id, normalized, body, CurrentTenant.Id);
             return await FileRepository.InsertAsync(file, autoSave: true, cancellationToken: cancellationToken);
         }
@@ -242,6 +249,14 @@ public class SiteThemeManager : DomainService
                     throw new BusinessException(SiteErrorCodes.SiteThemeFileAlreadyExists).WithData("Path", moved.NewPath);
                 }
             }
+        }
+
+        // The files that stay where they are; the renamed file and its language versions move away from theirs.
+        var staying = files.Where(f => f.Id != file.Id && movedVersions.All(moved => moved.File.Id != f.Id)).Select(f => f.Path);
+        var conflict = SiteThemePaths.FindFolderConflict(targetPath, staying);
+        if (conflict != null)
+        {
+            throw new BusinessException(SiteErrorCodes.SiteThemePathIsFolder).WithData("Path", targetPath).WithData("Other", conflict);
         }
 
         file.SetPath(targetPath);
@@ -493,7 +508,9 @@ public class SiteThemeManager : DomainService
     /// Brings a package (<see cref="SiteThemePackage"/>) into the working copy: each of its files is added, or replaces
     /// the file at its path; with <paramref name="replace"/>, a file of the working copy that the package does not have
     /// is deleted too, as restoring a release does. The default layout is set when the package names one. Nothing goes
-    /// live, and nothing is checked here: the working copy may hold what does not parse, and the check reports it.
+    /// live, and the templates are not checked here: the working copy may hold what does not parse, and the check reports
+    /// it. Only the shape of the result is: a package that would make a path a file and a folder at once is refused
+    /// whole (<see cref="SiteThemePackageProblemCodes.PathIsFolder"/>), as saving such a file is.
     /// </summary>
     public virtual async Task<SiteThemeImport> ImportAsync(
         SiteTheme theme,
@@ -504,6 +521,35 @@ public class SiteThemeManager : DomainService
         var result = new SiteThemeImport();
         var working = (await FileRepository.GetListAsync(theme.Id, cancellationToken))
             .ToDictionary(file => file.Path, StringComparer.Ordinal);
+
+        // What the working copy will hold must be a file tree, as a save keeps it: no path a file and a folder at once,
+        // between the package's own files or between one of them and a file that stays. Refused whole, before anything
+        // is written, like the package's other problems.
+        var resulting = replace
+            ? package.Files.Keys.ToList()
+            : package.Files.Keys.Union(working.Keys, StringComparer.Ordinal).ToList();
+        var problems = new List<SiteThemePackageProblem>();
+        var reportedPairs = new HashSet<(string, string)>();
+        foreach (var path in package.Files.Keys.OrderBy(path => path, StringComparer.Ordinal))
+        {
+            var conflict = SiteThemePaths.FindFolderConflict(path, resulting);
+            if (conflict == null)
+            {
+                continue;
+            }
+
+            // Two of the package's own files in each other's way are one problem, not two.
+            var pair = string.CompareOrdinal(path, conflict) < 0 ? (path, conflict) : (conflict, path);
+            if (reportedPairs.Add(pair))
+            {
+                problems.Add(new SiteThemePackageProblem(SiteThemePackageProblemCodes.PathIsFolder, path, conflict));
+            }
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new SiteThemePackageInvalidException(problems);
+        }
 
         foreach (var (path, body) in package.Files.OrderBy(file => file.Key, StringComparer.Ordinal))
         {

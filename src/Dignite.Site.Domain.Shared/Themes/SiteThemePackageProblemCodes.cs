@@ -33,6 +33,12 @@ public static class SiteThemePackageProblemCodes
     /// <summary>{Entry} is in the package twice.</summary>
     public const string DuplicatePath = Prefix + "DuplicatePath";
 
+    /// <summary>
+    /// {Entry} and {Value} would make one path a file and a folder at once (<c>Products/Campus</c> and
+    /// <c>Products/Campus/Pricing</c>), both in the package or one of them a file of the working copy that stays.
+    /// </summary>
+    public const string PathIsFolder = Prefix + "PathIsFolder";
+
     /// <summary>{Entry} holds more than its size in the zip says.</summary>
     public const string SizeMismatch = Prefix + "SizeMismatch";
 

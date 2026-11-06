@@ -33,6 +33,8 @@ The same template can play more than one part.
 
 A path is made of segments separated by `/`. A segment is letters, digits, `_` and `-`, starting with a letter, a digit or `_`; only the last segment may have an extension, as in `menu.min.js`. A leading slash and surrounding spaces are removed when a path is saved or looked up. The extension of a static file must be one of `css`, `js`, `mjs`, `json`, `map`, `txt`, `svg`, `xml`, `webmanifest`, `ics` and `csv`; a file with any other extension is refused, so that a template is not saved as `post.html` by mistake. The one other extension is a language, which makes the file the template's [version for that language](#templates-for-one-language).
 
+The paths of a theme make a file tree, as a disk holds one: a path is a file or a folder, never both. A template has no extension, so its path is the name a folder would have: a template `Products/Campus` and a file `Products/Campus/Pricing` cannot both be in a theme. Name the one `Products/Campus/Index`, or the other `Products/CampusPricing`. Saving or renaming a file to such a path is refused (`Site:090016`), an [import](#exporting-and-importing) that would leave one is refused whole, and the [check](#checking-the-theme) reports one that a working copy still holds.
+
 By default a file can be at most 256 KiB.
 
 ## Choosing the Engine
@@ -173,6 +175,7 @@ These are errors, and a theme with any of them cannot be published:
 * A layout, or a page template rendered without a layout, never calls `site_head`, not even in what it includes.
 * A file in `locales/` is not a valid file of the theme's [texts](template-localization.md#texts-in-a-scriban-theme), or two files hold the texts of the same language.
 * A [version for one language](#templates-for-one-language) has no template to be the version of.
+* A file's path is also the folder of other files, as `Products/Campus` is of `Products/Campus/Pricing`; see [The Theme](#the-theme).
 
 The versions of a template are checked as the template is: the versions of a layout must write `body` and call `site_head`, those of a page template have their front matter and their layout checked, and those of an included template have their `include`s followed.
 
@@ -539,7 +542,7 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | `POST /export-links`, `POST /import-links` | `SiteAdmin.Themes`, `SiteAdmin.Themes.Edit` | A one-time link that downloads the export, or that takes a zip as the body of a `PUT` and imports it. |
 | `GET /preview-link?path=...&releaseId=...` | `SiteAdmin.Themes` | A link that opens the site at the path, the home page by default, [in a browser](#in-a-browser) with the working copy, or with the release when `releaseId` is given. Returns `url`, `path`, `releaseId` and `expiresAt`. |
 
-A file whose extension no static file may have (`Site:090004`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`), that is not in the working copy (`Site:090012`) or that is not a layout (`Site:090013`) are answered as business errors.
+A file whose extension no static file may have (`Site:090004`), a save or rename to a path that is a file and a folder at once (`Site:090016`), a rename onto an existing path (`Site:090001`) and a default layout that is not a template path (`Site:090011`), that is not in the working copy (`Site:090012`) or that is not a layout (`Site:090013`) are answered as business errors.
 
 ### Exporting and Importing
 
@@ -552,7 +555,7 @@ An import goes into the working copy only: nothing goes live until it is checked
 
 When `.site-theme.json` names a default layout, it becomes the working copy's. The result lists the files added, modified, deleted and unchanged, and the syntax errors of the templates brought in, which are kept as a save keeps them.
 
-A zip with anything wrong is refused whole, with every problem listed (`Site:090014`): a path outside the theme or not of a theme file's shape, an extension no theme file may have, a file that is not UTF-8 text, more than 256 KiB in one file, or more than 1,000 files or 32 MiB in all (`SiteThemePackage.MaxFileCount` and `MaxBytes`). Hidden files, such as `.DS_Store`, and the `__MACOSX/` folder a Mac adds are passed over. The files go at the top of the zip, not inside a folder.
+A zip with anything wrong is refused whole, with every problem listed (`Site:090014`): a path outside the theme or not of a theme file's shape, an extension no theme file may have, a file that is not UTF-8 text, a path that would be a file and a folder at once, more than 256 KiB in one file, or more than 1,000 files or 32 MiB in all (`SiteThemePackage.MaxFileCount` and `MaxBytes`). Hidden files, such as `.DS_Store`, and the `__MACOSX/` folder a Mac adds are passed over. The files go at the top of the zip, not inside a folder.
 
 A client that should not carry the bytes itself, such as an AI client over MCP, asks for a **link** instead: good for ten minutes and one use, run as the one who asked for it, like the [upload links of files](../files.md). A download link answers `GET` with the zip; an import link takes the zip as the body of a `PUT`. A link that has expired, has been used, or is not the site's own is refused with `Site:090015`. Behind a gateway, route `api/site-admin/theme/download/*` and `api/site-admin/theme/upload/*` to Site, as `api/site-admin/files/upload/*` is.
 

@@ -56,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   columns, where a Chinese, Japanese or Korean character takes two, as a search result does: 30 kanji fill a 60-column
   title. The keys and their defaults are unchanged; the admin UI's counters count columns. See
   [Title and Description Length](docs/en/seo/index.md#title-and-description-length).
+- **A theme's paths are a file tree: one path is not a file and a folder at once.** A template has no extension, so a
+  template `Products/Campus` beside a file `Products/Campus/Pricing` made one path both, and an exported theme could not
+  be unpacked onto a disk. Saving or renaming a file to such a path is refused with `Site:090016`, an import that would
+  leave one is refused whole (`ThemePackage:PathIsFolder` in `Site:090014`), and the check reports a working copy that
+  still holds one (`ThemeIssue:PathIsFolder`, an error). See [The Theme](docs/en/rendering/scriban-templates.md#the-theme).
 
 ### Fixed
 
@@ -130,6 +135,9 @@ COMMIT;
 
 ### Migrate
 
+- **A working copy whose path is a file and a folder at once** no longer publishes: the check reports
+  `ThemeIssue:PathIsFolder` at the file. Rename one of the two - `Products/Campus` to `Products/Campus/Index`, say, with
+  the pages whose `Template` named it - before the next publish. A live release keeps working as it is.
 - **Existing roles do not have the new permissions** `SiteAdmin.Seo` and `SiteAdmin.Seo.Update`. Run the host's
   `--migrate-database` (or its migrator), whose seed grants every permission to the `admin` role of the host and of each
   tenant; another role is granted them in the permission dialog.

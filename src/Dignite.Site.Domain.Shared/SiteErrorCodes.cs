@@ -115,6 +115,12 @@ public static class SiteErrorCodes
     /// <summary>A theme download or upload link that has expired, has been used, or was not issued by this site.</summary>
     public const string SiteThemeTransferLinkInvalid = "Site:090015";
 
+    /// <summary>
+    /// A theme file saved or renamed to a path that would make one path a file and a folder at once
+    /// (<c>Products/Campus</c> beside <c>Products/Campus/Pricing</c>); Data["Path"], and Data["Other"], the file in the way.
+    /// </summary>
+    public const string SiteThemePathIsFolder = "Site:090016";
+
     // The site's languages (Site.EnabledLanguages), set through SiteLanguageManager.
 
     /// <summary>A list of languages with none in it: a site has to serve at least one.</summary>

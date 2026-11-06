@@ -74,6 +74,13 @@ public static class SiteThemeIssueCodes
     public const string LanguageVersionWithoutTemplate = Prefix + "LanguageVersionWithoutTemplate";
 
     /// <summary>
+    /// The file's path is also the folder of other files (<c>Products/Campus</c> and <c>Products/Campus/Pricing</c>), so
+    /// the theme could not be written out to a disk. A save, a rename and an import refuse to make this; a working copy
+    /// from before that, or a restored release, can still hold it. Reported at the file. Data: Other, the first file below.
+    /// </summary>
+    public const string PathIsFolder = Prefix + "PathIsFolder";
+
+    /// <summary>
     /// Rendering a sample page with the working copy failed - a template error only a render finds. Reported at the
     /// template and place the message names, else at the page's template as a whole. Data: Path (the sample address
     /// that failed), Message.

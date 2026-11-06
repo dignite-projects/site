@@ -170,6 +170,46 @@ public class SiteThemeTransfer_Tests : SiteEntityFrameworkCoreTestBase
         result.Added.ShouldBe(new[] { "Events" });
     }
 
+    /// <summary>
+    /// What an import leaves must be a file tree, as a save keeps it: a package whose files, or whose files and those of the
+    /// working copy that stay, would make a path a file and a folder at once is refused whole, before anything is written.
+    /// A replace leaves only the package's files, so what was in the working copy is no longer in the way.
+    /// </summary>
+    [Fact]
+    public async Task A_Package_That_Would_Make_A_Path_A_File_And_A_Folder_Should_Be_Refused()
+    {
+        var own = await Should.ThrowAsync<SiteThemePackageInvalidException>(() => ImportAsync(Zip(new Dictionary<string, string>
+        {
+            ["Products/Campus"] = "<p>product</p>",
+            ["Products/Campus/Pricing"] = "<p>pricing</p>",
+            ["Products/Campus/Trial"] = "<p>trial</p>"
+        })));
+        own.Problems.ShouldBe(new[]
+        {
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.PathIsFolder, "Products/Campus", "Products/Campus/Pricing"),
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.PathIsFolder, "Products/Campus/Trial", "Products/Campus")
+        });
+        (await _themeAppService.GetFilesAsync()).Items.Select(f => f.Path).ShouldNotContain("Products/Campus");
+
+        await SaveAsync("Products/Campus", "<p>product</p>");
+        var merged = await Should.ThrowAsync<SiteThemePackageInvalidException>(() => ImportAsync(Zip(new Dictionary<string, string>
+        {
+            ["Products/Campus/Pricing"] = "<p>pricing</p>"
+        })));
+        merged.Problems.ShouldBe(new[]
+        {
+            new SiteThemePackageProblem(SiteThemePackageProblemCodes.PathIsFolder, "Products/Campus/Pricing", "Products/Campus")
+        });
+
+        var replaced = await ImportAsync(Zip(new Dictionary<string, string>
+        {
+            ["layouts/default"] = Layout,
+            ["Products/Campus/Pricing"] = "<p>pricing</p>"
+        }), replace: true);
+        replaced.Deleted.ShouldContain("Products/Campus");
+        replaced.Added.ShouldContain("Products/Campus/Pricing");
+    }
+
     [Fact]
     public async Task A_Package_With_Anything_Wrong_Should_Be_Refused_Whole()
     {
