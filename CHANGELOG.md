@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The unsaved dot on a tab of the Theme screen is half the size**, and sits in the middle of the file name's line.
+
+### Fixed
+
+- **Opening a theme file written with `\r\n` line breaks no longer marks it unsaved.** CodeMirror reads every line break
+  as `\n`, and the Theme screen's code editor compared the file's text with that document: on the editor's next update
+  they differed, so it replaced the whole document and emitted it as an edit. The tab showed the unsaved dot and **Save**
+  was on before anything was typed, and saving would have rewritten every line break of the file. A theme taken out of
+  a Windows checkout and imported is written this way. The editor now compares the value it is given with the text it
+  last took or emitted, puts a reloaded file in without taking it for an edit, and writes an edit back with the file's
+  own line break - `\r\n` when every line break of the file is one, `\n` otherwise - so that editing a line changes that
+  line. Stored files are not touched: their text, content hashes and the check's fingerprint stay as they are.
+
 ## [2.2.0] - 2026-11-06
 
 ### Added

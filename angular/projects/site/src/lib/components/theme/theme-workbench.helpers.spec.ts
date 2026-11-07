@@ -8,6 +8,7 @@ import {
   isAssetPath,
   isLanguageVersionPath,
   languageOf,
+  lineBreakOf,
   normalizeThemePath,
   pageTemplatePath,
   snippetFor,
@@ -75,6 +76,18 @@ describe('theme workbench helpers', () => {
       ['robots.txt', 'text'],
     ])('highlights %s as %s', (path, language) => {
       expect(languageOf(path)).toBe(language);
+    });
+
+    it.each([
+      ['a\r\nb\r\n', '\r\n'],
+      ['a\nb\n', '\n'],
+      ['a\r\nb\nc', '\n'],
+      ['\nb\r\n', '\n'],
+      ['a\rb\r\n', '\n'],
+      ['one line', '\n'],
+      ['', '\n'],
+    ])('writes %j back with %j', (text, lineBreak) => {
+      expect(lineBreakOf(text)).toBe(lineBreak);
     });
   });
 

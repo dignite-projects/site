@@ -85,6 +85,15 @@ export function themePathProblem(path: string): string | null {
   return null;
 }
 
+/**
+ * The line break a file's text is written with: `\r\n` when every line break in it is one (a file written on Windows),
+ * otherwise `\n`. The code editor turns every line break into `\n` as it reads a file, and writes the file's text back
+ * with this one, so that editing a line does not rewrite every line break of the file.
+ */
+export function lineBreakOf(text: string): '\n' | '\r\n' {
+  return /\r\n/.test(text) && !/(?:^|[^\r])\n|\r(?!\n)/.test(text) ? '\r\n' : '\n';
+}
+
 /** The language the code editor highlights a file in, by its extension. */
 export type ThemeEditorLanguage = 'html' | 'css' | 'javascript' | 'text';
 

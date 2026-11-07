@@ -13,10 +13,13 @@ import {
 import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
-import { Compartment, EditorState, Extension } from '@codemirror/state';
+import { Annotation, Compartment, EditorState, Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
-import type { ThemeEditorLanguage } from './theme-workbench.helpers';
+import { lineBreakOf, type ThemeEditorLanguage } from './theme-workbench.helpers';
+
+/** Marks the change that puts a new {@link CodeEditorComponent.value} in the editor: nobody edited the document. */
+const VALUE_SET = Annotation.define<true>();
 
 /**
  * A code editor over CodeMirror 6, used for the files of a theme.
@@ -27,8 +30,13 @@ import type { ThemeEditorLanguage } from './theme-workbench.helpers';
  *
  * {@link documentKey} names the file being edited. When it changes, the editor starts a new editing state for the new
  * file, so undo never reaches into another file. While it stays the same, the document is owned by CodeMirror as the
- * user types; {@link value} only matters when it differs from the document (the file was reloaded, say), in which
- * case the whole document is replaced. A value the editor itself just emitted therefore comes back as a no-op.
+ * user types; {@link value} only matters when it differs from the text the editor was last given or last emitted (the
+ * file was reloaded, say), in which case the whole document is replaced - without a {@link valueChange}, as nobody
+ * edited it. A value the editor itself just emitted therefore comes back as a no-op.
+ *
+ * CodeMirror reads every line break as `\n`, so the document of a file written with `\r\n` is not the file's text. The
+ * editor never compares the two: it compares {@link value} with the text it holds, and emits the document with the
+ * file's own line break ({@link lineBreakOf}). Opening a file is not an edit, and editing a line of it changes that line.
  */
 @Component({
   selector: 'site-code-editor',
@@ -47,6 +55,9 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
   private readonly readOnlyCompartment = new Compartment();
   private readonly languageCompartment = new Compartment();
   private currentKey: string | undefined;
+  // The text the document stands for - the value last given or the text last emitted - and its line break.
+  private text = '';
+  private lineBreak: '\n' | '\r\n' = '\n';
 
   // A signal, so the effects below run again once the view exists - it is created in ngAfterViewInit, after
   // their first run.
@@ -68,8 +79,12 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
         return;
       }
 
-      if (value !== view.state.doc.toString()) {
-        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
+      if (value !== this.text) {
+        this.hold(value);
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: value },
+          annotations: VALUE_SET.of(true),
+        });
       }
     });
 
@@ -92,7 +107,13 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
     this.view.set(new EditorView({ parent: this.host().nativeElement, state: this.createState(this.value()) }));
   }
 
+  private hold(text: string): void {
+    this.text = text;
+    this.lineBreak = lineBreakOf(text);
+  }
+
   private createState(doc: string): EditorState {
+    this.hold(doc);
     return EditorState.create({
       doc,
       extensions: [
@@ -102,8 +123,9 @@ export class CodeEditorComponent implements AfterViewInit, OnDestroy {
         EDITOR_THEME,
         this.readOnlyCompartment.of(readOnlyExtensions(this.readonly())),
         EditorView.updateListener.of(update => {
-          if (update.docChanged) {
-            this.valueChange.emit(update.state.doc.toString());
+          if (update.transactions.some(tr => tr.docChanged && !tr.annotation(VALUE_SET))) {
+            this.text = update.state.doc.sliceString(0, undefined, this.lineBreak);
+            this.valueChange.emit(this.text);
           }
         }),
       ],
