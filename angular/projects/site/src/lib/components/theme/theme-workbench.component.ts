@@ -178,6 +178,12 @@ interface ThemeTreeRow {
       white-space: nowrap;
     }
 
+    /* Half the size of the file name, centered on its line rather than sitting on its baseline. */
+    .theme-tab-unsaved {
+      font-size: 0.5em;
+      vertical-align: middle;
+    }
+
     .theme-field-snippet {
       white-space: pre-wrap;
       word-break: break-all;

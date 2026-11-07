@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The unsaved dot on a tab of the Theme screen is half the size**, and sits in the middle of the file name's line.
+
 ### Fixed
 
 - **Opening a theme file written with `\r\n` line breaks no longer marks it unsaved.** CodeMirror reads every line break

@@ -138,7 +138,7 @@
                     [title]="file.path"
                     (click)="activePath.set(file.path)"
                   >
-                    {{ file.path.split('/').pop() }}@if (isDirty(file)) { <span class="text-warning" [title]="'Site::UnsavedChanges' | abpLocalization">●</span> }
+                    {{ file.path.split('/').pop() }}@if (isDirty(file)) { <span class="text-warning theme-tab-unsaved" [title]="'Site::UnsavedChanges' | abpLocalization">●</span> }
                     <button
                       type="button"
                       class="btn-close btn-sm ms-1 align-middle"
