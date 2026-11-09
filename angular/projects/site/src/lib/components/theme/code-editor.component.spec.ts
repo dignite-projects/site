@@ -1,8 +1,19 @@
+import { LocalizationService } from '@abp/ng.core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { EditorState } from '@codemirror/state';
+import { EditorView, logException } from '@codemirror/view';
 import { CodeEditorComponent } from './code-editor.component';
 
 describe('CodeEditorComponent', () => {
   const windowsFile = '<div>\r\n  {{ page.title }}\r\n</div>\r\n';
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: LocalizationService, useValue: { instant: (key: string) => key } }],
+    });
+  });
+
+  afterEach(() => vi.restoreAllMocks());
 
   function render(value: string, documentKey = 'Events') {
     const fixture = TestBed.createComponent(CodeEditorComponent);
@@ -68,5 +79,60 @@ describe('CodeEditorComponent', () => {
     fixture.componentInstance.insert('x\r\n');
 
     expect(emitted).toEqual(['x\n<p>\n</p>']);
+  });
+
+  describe('when it fails', () => {
+    // What CodeMirror throws when the application loaded two copies of @codemirror/state.
+    const duplicateState = 'Unrecognized extension value in extension set ([object Object]). This sometimes happens '
+      + 'because multiple instances of @codemirror/state are loaded, breaking instanceof checks.';
+
+    const alertOf = (fixture: ComponentFixture<CodeEditorComponent>) =>
+      (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]')?.textContent ?? '';
+    const hostOf = (fixture: ComponentFixture<CodeEditorComponent>) =>
+      (fixture.nativeElement as HTMLElement).lastElementChild as HTMLElement;
+
+    beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => undefined));
+
+    it('says why where the editor would be when it cannot open a file, and edits nothing', () => {
+      vi.spyOn(EditorState, 'create').mockImplementationOnce(() => {
+        throw new Error(duplicateState);
+      });
+
+      const { fixture, emitted } = render('<p>x</p>');
+      fixture.componentInstance.insert('y');
+
+      expect(alertOf(fixture)).toContain('Site::CodeEditorFailed');
+      expect(alertOf(fixture)).toContain('Site::CodeEditorFailedHint');
+      expect(alertOf(fixture)).toContain('multiple instances of @codemirror/state');
+      expect(hostOf(fixture).hidden).toBe(true);
+      expect(emitted).toEqual([]);
+    });
+
+    it('tries again when another file is opened', () => {
+      vi.spyOn(EditorState, 'create').mockImplementationOnce(() => {
+        throw new Error(duplicateState);
+      });
+
+      const { fixture, emitted } = render('<p>x</p>');
+      set(fixture, { documentKey: 'Other', value: '<p>other</p>' });
+      fixture.componentInstance.insert('y');
+
+      expect(alertOf(fixture)).toBe('');
+      expect(hostOf(fixture).hidden).toBe(false);
+      expect(emitted).toEqual(['y<p>other</p>']);
+    });
+
+    it('shows an exception CodeMirror caught after the file opened, and keeps the editor', () => {
+      const { fixture, emitted } = render('<p>x</p>');
+      const view = EditorView.findFromDOM((fixture.nativeElement as HTMLElement).querySelector('.cm-editor') as HTMLElement);
+
+      logException(view!.state, new Error('CodeMirror plugin crashed'));
+      fixture.detectChanges();
+      fixture.componentInstance.insert('y');
+
+      expect(alertOf(fixture)).toContain('CodeMirror plugin crashed');
+      expect(hostOf(fixture).hidden).toBe(false);
+      expect(emitted).toEqual(['y<p>x</p>']);
+    });
   });
 });

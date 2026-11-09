@@ -54,10 +54,16 @@ here.
 
 ### Code editor dependency (CodeMirror)
 
-The Templates screen edits Scriban templates in CodeMirror 6 (`codemirror`, `@codemirror/lang-html`,
-`@codemirror/state`, `@codemirror/view` - all MIT, all declared as this package's own `dependencies`, so
-`npm install @dignite/ng.site` brings them). The screen is lazy-loaded with the `/site` routes, so the editor stays
-out of the host's initial bundle. It needs no stylesheet from the host.
+The Theme screen edits a theme's files in CodeMirror 6 (`codemirror`, `@codemirror/lang-html`,
+`@codemirror/lang-css`, `@codemirror/lang-javascript`, `@codemirror/language`, `@codemirror/state`,
+`@codemirror/view` - all MIT, all declared as this package's own `dependencies`, so `npm install @dignite/ng.site`
+brings them). The screen is lazy-loaded with the `/site` routes, so the editor stays out of the host's initial bundle.
+It needs no stylesheet from the host.
+
+CodeMirror and Lezer work only with one copy of each of their packages in the application. A host whose lockfile
+already had older entries for them - Yarn 1 in particular keeps those entries - can end up with two, and the editor
+then shows an error where the file would be. How to find and merge the copies:
+[When the Code Editor Shows an Error](https://github.com/dignite-projects/site/blob/main/docs/en/admin-ui.md#when-the-code-editor-shows-an-error).
 
 ### Required global styles (ng-zorro-antd)
 

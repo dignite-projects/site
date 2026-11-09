@@ -203,7 +203,7 @@ jobs:
         working-directory: site/angular
         run: |
           node ../.github/scripts/check-angular-package-duplicates.mjs node_modules \
-            @dignite @abp ng-zorro-antd \
+            @dignite @abp ng-zorro-antd @codemirror @lezer \
             @angular/core @angular/common @angular/forms @angular/router @angular/cdk
 
       # No lint step here: `ng lint site` currently fails on ~14 pre-existing violations (component

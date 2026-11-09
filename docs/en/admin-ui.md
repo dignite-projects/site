@@ -117,6 +117,46 @@ Several controls are `ng-zorro-antd` components that render their panels in an o
 
 The three `inject: false` bundles are loaded at run time by their file names, `ng-zorro-antd-tree.css`, `ng-zorro-antd-select.css` and `ckeditor5.css`, so they must keep those names: injected, a production build would give them hashed names. Without these entries the build succeeds, but tree and select panels render unstyled and the CKEditor field renders empty.
 
+## When the Code Editor Shows an Error
+
+The code editor of the **Theme** screen is CodeMirror 6, which works only with one copy of each of these packages in the application: `@codemirror/state`, `@codemirror/view`, `@codemirror/language`, `@lezer/common`, `@lezer/lr` and `@lezer/highlight`. A second copy fails neither the install nor the build. Instead, the editor shows an error where the file would be, such as *Unrecognized extension value in extension set* with *multiple instances of @codemirror/state*, or a `TypeError` from inside `@lezer/common`.
+
+It happens in an application whose lockfile already had entries for these packages, for instance because the application used CodeMirror before. Every version range involved accepts the newest version, but a package manager that keeps the lockfile's entries installs the new versions next to the old ones instead of replacing them. Yarn 1 does so every time, and npm and pnpm can too.
+
+List the copies:
+
+````bash
+npm ls @codemirror/state @codemirror/view @codemirror/language @lezer/common @lezer/lr @lezer/highlight
+````
+
+With Yarn 1, `yarn why @lezer/common` lists them one package at a time, and with pnpm, `pnpm why`. Then deduplicate, which rewrites the lockfile so that each version range resolves to one version, and commit the lockfile:
+
+````bash
+# Yarn 1
+npx yarn-deduplicate && yarn install
+
+# npm (an ABP Angular application installs with --legacy-peer-deps)
+npm dedupe --legacy-peer-deps
+
+# pnpm
+pnpm dedupe
+````
+
+If a second copy remains because a package of the application asks for a range the others cannot share, pin each of these packages to one version: `resolutions` in `package.json` with Yarn 1, `overrides` with npm, `pnpm.overrides` with pnpm. Take the newest version the listing shows for each, for example:
+
+````json
+"resolutions": {
+  "@codemirror/language": "^6.13.1",
+  "@codemirror/state": "^6.7.6",
+  "@codemirror/view": "^6.43.15",
+  "@lezer/common": "^1.5.5",
+  "@lezer/highlight": "^1.2.5",
+  "@lezer/lr": "^1.4.12"
+}
+````
+
+Deduplicating also merges a second copy of `@angular/cdk` or `ng-zorro-antd`, which the same lockfile can hold, for instance one nested under `ng-zorro-antd/node_modules`.
+
 ## Using the Package in Your Own Screens
 
 Besides `SITE_ROUTES`, `@dignite/ng.site` exports what its screens are built on:

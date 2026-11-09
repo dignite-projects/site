@@ -145,6 +145,15 @@ jobs:
       #                   @angular/cli, @angular/compiler-cli, @angular/language-service) where a
       #                   nested second copy is ordinary and harmless, and would only teach people
       #                   to ignore this check.
+      #   @codemirror, @lezer - the Theme screen's code editor. Not DI, but the same failure shape:
+      #                   CodeMirror tells extensions apart with `instanceof` and Lezer tells syntax
+      #                   nodes apart by module-scoped NodeProp ids, so two copies of
+      #                   @codemirror/state make the editor throw on creation and two of
+      #                   @lezer/common make parsing throw - nothing fails at install or build time.
+      #                   Yarn Classic produces exactly that split when a bump leaves the lockfile's
+      #                   older entries in place; it is what a consumer of 2.2.0 hit. Whole scopes:
+      #                   none of their packages is build tooling, and a nested copy of any of them
+      #                   means the lockfile split.
       # Deliberately out: tslib, which genuinely IS installed twice here (2.8.1 at the root, 1.14.1
       # nested under tsyringe) and is fine that way - it is stateless inline helpers, no tokens, no
       # identity. rxjs is a borderline case (two copies break `instanceof Observable`, not DI) left
@@ -155,7 +164,7 @@ jobs:
         working-directory: site/angular
         run: |
           node ../.github/scripts/check-angular-package-duplicates.mjs node_modules \
-            @dignite @abp ng-zorro-antd \
+            @dignite @abp ng-zorro-antd @codemirror @lezer \
             @angular/core @angular/common @angular/forms @angular/router @angular/cdk
 
       # No lint step, matching release.yml: `ng lint site` currently fails on ~14 pre-existing

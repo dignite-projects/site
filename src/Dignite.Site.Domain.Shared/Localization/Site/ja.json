@@ -258,6 +258,8 @@
     "ThemeUsage:Layout": "layout",
     "ThemeUsage:DefaultLayout": "既定のレイアウト",
     "ThemeSyntaxErrors": "構文エラー",
+    "CodeEditorFailed": "コードエディターでエラーが発生しました。",
+    "CodeEditorFailedHint": "多くの場合、アプリケーションに CodeMirror または Lezer のパッケージ（@codemirror/state、@lezer/common など）が複数インストールされていることが原因です。アプリケーションの開発者が npm ls @codemirror/state @lezer/common で重複を確認し、解消してください。",
     "ThemeCheck": "チェック",
     "ThemeCheckClean": "問題は見つかりませんでした。",
     "ThemeCheckNotRun": "公開する前にチェックを実行して、問題がないか確認してください。",
