@@ -9,25 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **A JPEG or PNG is served as WebP to a browser that takes it.** `/api/site-public/files/` serves lossy WebP for a JPEG
-  and lossless WebP for a PNG, so a screenshot, a logo or a picture with text keeps every pixel and its transparency,
+- **Images are served as WebP to a browser that takes it.** `/api/site-public/files/` serves a stored WebP as it is
+  and a PNG as lossless WebP, so a screenshot, a logo or a picture with text keeps every pixel and its transparency,
   to a request whose `Accept` lists `image/webp`, with `Vary: Accept`; a request that does not, such as a social
-  network fetching an `og:image`, gets the stored format. At its stored size a picture stays as stored when its WebP
-  would be no smaller; a GIF and a WebP are never converted, and the download address always serves the stored file.
-  `?Format=webp` or `?Format=original` fixes the format (`GetFileInput.Format`, values in `SiteFileFormats`). Every
-  image is rendered from the stored picture in one decode and one encode. A process keeps rendered images in memory,
-  renders an image once however many requests ask for it at the same time, and runs at most half its processor count
-  of renderings at once; `SiteImageRenderingOptions` sets these and the encoding qualities. See
+  network fetching an `og:image`, gets a JPEG made from a stored WebP (PNG when it has transparency) and anything else
+  as stored. At its stored size a PNG stays as stored when its WebP would be no smaller; a GIF is never converted, and
+  the download address always serves the stored file. `?Format=webp`, `?Format=jpeg` or `?Format=original` fixes the
+  format (`GetFileInput.Format`, values in `SiteFileFormats`). A process keeps rendered images in memory, renders an
+  image once however many requests ask for it at the same time, and runs at most half its processor count of
+  renderings at once; `SiteImageRenderingOptions` sets these and the encoding qualities. See
   [Serving Files](docs/en/files.md#serving-files).
 
 ### Changed
 
-- **An uploaded image keeps its quality.** The `images` container no longer re-encodes an upload at quality 85, and
-  shrinks only a picture larger than 4096 x 4096 (was 1920 x 1920), so a picture that fits is stored with its image as
-  uploaded and a full-width image stays sharp on a high-density screen. What it removes instead is the metadata a
-  design tool piles into a JPEG or PNG - Extended XMP, the Photoshop image resources, comments, a PNG's text chunks -
-  copying every other byte: a 1984 x 935 banner exported from Photoshop was 18 MB, of which 0.9 MB was the image, and
-  is stored as 0.95 MB with the same pixels. The limit of `images` is 25 MB (was 10 MB), on the file as sent. Images
+- **A JPEG uploaded to `images` is stored as WebP.** It is re-encoded once as lossy WebP at quality 85, turned upright
+  by its EXIF orientation and shrunk in the same step, so what is stored, and what a browser downloads, is small: a
+  1984 x 935 banner exported from Photoshop, 18 MB of which 0.9 MB was the image and the rest Extended XMP, is stored
+  as about 90 KB. The file is named `.webp`, its recorded type is `image/webp` and its listed name takes the `.webp`
+  extension. A PNG keeps every pixel, less the metadata a design tool writes into its text chunks; a GIF and a WebP
+  are kept as they are. A picture wider than 2560 or taller than 4096 pixels is shrunk (was 1920 x 1920); a tall
+  graphic is not shrunk for its height below 4096, the largest picture the read side renders. The limit of `images`
+  is 25 MB (was 10 MB), on the file as sent. A file's recorded type and size are those of what is stored. Images
   stored by an earlier version stay as they were stored. See [Containers](docs/en/files.md#containers).
 - **`FilePublicAppService` takes `ImageVariantRenderer` and `RenderedImageCache`** instead of `IImageResizer`, and its
   decode-timeout members are gone: a subclass changes its constructor.

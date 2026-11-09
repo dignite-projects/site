@@ -17,7 +17,7 @@ The rules are the containers' configuration (`SiteAdminApplicationModule`), and 
 
 | Container | Accepts | Size limit | On upload |
 |---|---|---|---|
-| `images` | JPEG, PNG, GIF, WebP | 25 MB | The metadata a design tool piles into a JPEG or PNG and nothing displaying it reads is removed, without touching the image (see below). A picture larger than 4096 x 4096 is then shrunk to fit, keeping its aspect ratio, and turned upright by the photo's EXIF orientation, which the shrunk picture does not keep; one that fits keeps its image exactly as uploaded. The images a page shows are rendered from it when they are served; see [Serving Files](#serving-files). |
+| `images` | JPEG, PNG, GIF, WebP | 25 MB | A **JPEG is stored as WebP** (lossy, quality 85), turned upright by the photo's EXIF orientation: the file is named `.webp` and its type is `image/webp`. A PNG keeps every pixel, and a GIF or WebP is kept as it is. The metadata a design tool piles into a PNG and nothing displaying it reads is removed (see below). A picture wider than 2560 or taller than 4096 pixels is shrunk to fit, keeping its aspect ratio. The images a page shows are served from what is stored; see [Serving Files](#serving-files). |
 | `attachments` | PDF, Word, Excel, PowerPoint (both the legacy and the Open XML formats), text, CSV, ZIP | 20 MB | Stored as uploaded. |
 | `theme-assets` | ICO, WOFF2, WOFF, TTF, OTF | 5 MB | Stored as uploaded. The binary files a [theme](rendering/scriban-templates.md) links, such as the favicon and web fonts. Written with the theme's permission; see [Permissions](#permissions). |
 
@@ -29,12 +29,12 @@ A file's type is **detected from its bytes**, never taken from the uploader's cl
 * A file whose content contradicts the kind of its extension, such as a PDF named `report.png`, is refused with `Dignite.Abp.BlobStoring:ContentTypeMismatch`. A picture named with another picture's extension, such as a PNG named `photo.jpg`, is stored as what it is.
 * A file larger than the container's limit is refused with `Dignite.Abp.BlobStoring:ContentTooLarge`, and a picture beyond 8192 x 8192 or 50 million pixels with `Dignite.Abp.BlobStoring.Imaging:ImageTooLarge`.
 
-The size limit of `images` applies to the file as it is sent. What is removed from a picture in `images` is dropped as it is, with every other byte copied unchanged:
+The size limit of `images` applies to the file as it is sent, so a design export carrying megabytes of metadata is accepted:
 
-* From a JPEG: Extended XMP, the Photoshop image resources and comments. Extended XMP is where Photoshop puts the part of its XMP that does not fit in one segment, typically `photoshop:DocumentAncestors`, the ID of every document ever pasted or placed into the file, which can grow to many megabytes in an image under one. EXIF (with the orientation), the main XMP packet, the ICC profile and the Adobe segment are kept.
-* From a PNG: the text chunks (`tEXt`, `zTXt`, `iTXt`, where Photoshop writes its XMP) and `tIME`. Every other chunk is kept.
+* A JPEG is re-encoded as WebP, which keeps the image and its colour profile and nothing else, so none of that metadata is stored. Photoshop in particular can write many megabytes of Extended XMP (`photoshop:DocumentAncestors`, the ID of every document ever pasted or placed into the file) into an image under one: an 18 MB banner whose image was 0.9 MB is stored as a WebP of about 90 KB.
+* From a PNG, the text chunks (`tEXt`, `zTXt`, `iTXt`, where Photoshop writes its XMP) and `tIME` are dropped, and every other byte is copied unchanged.
 
-The recorded size of a file is what is stored.
+The recorded type and size of a file are those of what is stored. A JPEG uploaded as `photo.jpg` is listed as `photo.webp`.
 
 Uploading the same bytes into the same container twice stores them once: the second file is a new entry in the library that refers to the bytes already stored.
 
@@ -98,11 +98,13 @@ An absolute address that a user typed into a field, such as the address of an ex
 `GET` and `HEAD` on `/api/site-public/files/{containerName}/{blobName}` serve a file anonymously. The endpoint serves only the two Site containers: another container, a deleted file and an unknown name are all answered with `404`.
 
 * `?Width=` and `?Height=` resize an image on the way out, up to 4096 pixels a side; with both given, the image is cropped to fill the box. The source can be at most 4096 x 4096. Anything that is not an image is served as stored, and so is a GIF.
-* A JPEG or PNG is served as **WebP** to a request whose `Accept` header lists `image/webp`, as every current browser's does for an image: lossy for a JPEG, lossless for a PNG, so a screenshot, a logo or a picture with text keeps every pixel and its transparency. Served at its stored size, a picture stays as stored when its WebP would be no smaller. A GIF and a WebP are never converted, and a request that does not list `image/webp`, such as a social network fetching an `og:image`, gets the stored format.
-* `?Format=webp` or `?Format=original` fixes the format whatever the request's `Accept`; without it, or with `auto`, the format is chosen as above.
+* A request whose `Accept` header lists `image/webp`, as every current browser's does for an image, gets **WebP**: a stored WebP (every JPEG uploaded to `images`) as it is, a PNG as lossless WebP, so a screenshot, a logo or a picture with text keeps every pixel and its transparency, and a JPEG stored by an earlier version as lossy WebP. Served at its stored size, a PNG or JPEG stays as stored when its WebP would be no smaller.
+* A request that does not list `image/webp`, such as a social network fetching an `og:image`, gets a **JPEG** made from a stored WebP (a PNG when the WebP has transparency), and any other picture as stored.
+* A GIF is never converted.
+* `?Format=webp`, `?Format=jpeg` or `?Format=original` (the stored format) fixes the format whatever the request's `Accept`; without it, or with `auto`, the format is chosen as above.
 * A rendered image, resized or converted, is turned upright by the photo's EXIF orientation, which the rendering does not keep.
 * `/api/site-public/files/download/{containerName}/{blobName}?fileName=` serves the file as an attachment with the given file name, always as stored.
-* Responses carry an `ETag`, `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`. The address of a JPEG or PNG without `?Format=` also carries `Vary: Accept`.
+* Responses carry an `ETag`, `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`. The address of a JPEG, PNG or WebP without `?Format=` also carries `Vary: Accept`.
 
 A CDN or proxy that caches these responses must key them on `Accept` as `Vary` says; one that ignores `Vary` would hand the WebP it cached for a browser to a client that cannot read it.
 

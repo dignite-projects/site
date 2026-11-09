@@ -116,7 +116,8 @@ public class SiteAdminApplicationModule : AbpModule
     /// <see cref="SiteFileTypes"/>, matched against the type detected from the bytes, never the uploader's
     /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), then
     /// <see cref="ImageMetadataStripContributor"/> (drops the metadata a design tool piles into a JPEG or PNG, keeping
-    /// every byte of the image), then <c>ImageResize</c> (shrinks a picture
+    /// every byte of the image), then <see cref="JpegToWebpContributor"/> (stores a JPEG as lossy WebP at quality 85,
+    /// turned upright and fitted to the box in the same decode), then <c>ImageResize</c> (shrinks a picture
     /// that exceeds the box, keeping its aspect ratio, turned upright by its EXIF orientation first -
     /// <see cref="UprightSkiaSharpImageResizerContributor"/>; a picture that fits is stored as uploaded, and there is
     /// no minimum size). No GZip: the containers' stored format stays the plain file. Only <see cref="SiteFileContainerNames.Images"/>
@@ -126,13 +127,12 @@ public class SiteAdminApplicationModule : AbpModule
     /// stored byte, 10 s) rejects an oversized picture with <c>Dignite.Abp.BlobStoring.Imaging:ImageTooLarge</c>.
     /// </para>
     /// <para>
-    /// <b>The image is kept.</b> No <c>ImageCompress</c>: a lossy re-encode on upload cannot be undone, and
-    /// every image the site shows is rendered from what is stored (<c>FilePublicAppService</c>: resized, and WebP
-    /// for a browser that takes it), so a picture stored already re-encoded loses quality twice. The box is
-    /// <see cref="SiteImageConsts.MaxDimension"/>, the largest source the read side renders, so a picture that fits
-    /// the box - a 12-megapixel phone photo among them - keeps its image exactly as uploaded, less only the
-    /// metadata <see cref="ImageMetadataStripContributor"/> drops, and a high-density screen still gets a sharp
-    /// full-width image.
+    /// <b>What is stored is small.</b> A JPEG - a photo, or a design exported as one - is stored as WebP, which a
+    /// browser is served as it is; what is stored and what a page downloads stay small, at the cost of one more lossy
+    /// encode for a resized rendering. A PNG keeps its pixels (a screenshot or a logo, lossless; served as lossless WebP
+    /// when that is smaller), a GIF and a WebP are kept. No <c>ImageCompress</c>, which would re-encode a WebP or PNG
+    /// again. The box is <see cref="SiteImageConsts.MaxUploadWidth"/> wide and <see cref="SiteImageConsts.MaxDimension"/>
+    /// tall, the largest source the read side renders, so a tall graphic is not shrunk for its height alone.
     /// </para>
     /// <para>
     /// SVG, HTML and script types are deliberately absent from every list - <see cref="SiteFileTypes"/> lists
@@ -175,9 +175,10 @@ public class SiteAdminApplicationModule : AbpModule
                     config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.Images);
                 });
                 container.AddImageMetadataStripContributor();
+                container.StoreJpegAsWebp(quality: 85);
                 container.AddImageResizeContributor(config =>
                 {
-                    config.MaxWidth = SiteImageConsts.MaxDimension;
+                    config.MaxWidth = SiteImageConsts.MaxUploadWidth;
                     config.MaxHeight = SiteImageConsts.MaxDimension;
                 });
                 ConfigureContentPermissions(container);

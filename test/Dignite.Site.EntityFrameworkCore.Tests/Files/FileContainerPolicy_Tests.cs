@@ -84,7 +84,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// What a client is told a container does to an image is read from the container's own configuration: images
-    /// are shrunk to fit but not re-encoded, the other containers store what they are given.
+    /// are shrunk to fit and re-encoded (a JPEG is stored as WebP), the other containers store what they are given.
     /// </summary>
     [Fact]
     public async Task The_Container_Configuration_Reports_What_It_Does_To_An_Image()
@@ -92,9 +92,9 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
         var fileAppService = GetRequiredService<Dignite.Site.Admin.Files.IFileAdminAppService>();
 
         var images = await fileAppService.GetContainerConfigurationAsync(SiteFileContainerNames.Images);
-        images.ImageMaxWidth.ShouldBe(4096);
+        images.ImageMaxWidth.ShouldBe(2560);
         images.ImageMaxHeight.ShouldBe(4096);
-        images.CompressesImages.ShouldBeFalse();
+        images.CompressesImages.ShouldBeTrue();
 
         foreach (var name in new[] { SiteFileContainerNames.Attachments, SiteFileContainerNames.ThemeAssets })
         {
@@ -266,16 +266,58 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
         var stored = await ReadAsync(descriptor);
         var info = TestFiles.Identify(stored);
 
-        info.Width.ShouldBe(4096);
-        info.Height.ShouldBe(1024); // aspect ratio kept
-        info.Format.ShouldBe(SKEncodedImageFormat.Jpeg);
-        descriptor.MimeType.ShouldBe("image/jpeg");
+        info.Width.ShouldBe(2560);
+        info.Height.ShouldBe(640); // aspect ratio kept
+        info.Format.ShouldBe(SKEncodedImageFormat.Webp); // a JPEG is stored as WebP, shrunk in the same encode
+        descriptor.MimeType.ShouldBe("image/webp");
         // The recorded size is what is stored, not what was uploaded.
         descriptor.Size.ShouldBe(stored.Length);
     }
 
     /// <summary>
-    /// A phone stores a portrait photo sideways and records the turn in its EXIF orientation. Shrinking the photo
+    /// A wide PNG is shrunk by the resize contributor and stays a PNG: only a JPEG is stored as WebP.
+    /// </summary>
+    [Fact]
+    public async Task Png_Wider_Than_The_Images_Container_Limit_Is_Scaled_Down_And_Stays_A_Png()
+    {
+        var descriptor = await UploadAsync(SiteFileContainerNames.Images, "wide.png", TestFiles.Png(3000, 600));
+
+        var info = TestFiles.Identify(await ReadAsync(descriptor));
+
+        (info.Width, info.Height, info.Format).ShouldBe((2560, 512, SKEncodedImageFormat.Png));
+        descriptor.MimeType.ShouldBe("image/png");
+        descriptor.BlobName.ShouldEndWith(".png");
+    }
+
+    /// <summary>
+    /// A JPEG is stored as lossy WebP: the blob is named <c>.webp</c>, the type recorded is <c>image/webp</c> and the
+    /// display name takes the <c>.webp</c> extension, so a download is named for what it is. The same JPEG uploaded again
+    /// is a reference to that WebP, with its type.
+    /// </summary>
+    [Fact]
+    public async Task Jpeg_Is_Stored_As_Webp()
+    {
+        var jpeg = TestFiles.Jpeg(1200, 800);
+
+        var descriptor = await UploadAsync(SiteFileContainerNames.Images, "photo.jpg", jpeg);
+
+        var stored = await ReadAsync(descriptor);
+        var info = TestFiles.Identify(stored);
+        (info.Width, info.Height, info.Format).ShouldBe((1200, 800, SKEncodedImageFormat.Webp));
+        descriptor.MimeType.ShouldBe("image/webp");
+        descriptor.BlobName.ShouldMatch(@"^[0-9a-f]{32}\.webp$");
+        descriptor.Name.ShouldBe("photo.webp");
+        descriptor.Size.ShouldBe(stored.Length);
+
+        var again = await UploadAsync(SiteFileContainerNames.Images, "photo-again.jpg", jpeg);
+        again.IsReference().ShouldBeTrue();
+        again.MimeType.ShouldBe("image/webp");
+        again.Name.ShouldBe("photo-again.webp");
+        again.BlobName.ShouldEndWith(".webp");
+    }
+
+    /// <summary>
+    /// A phone stores a portrait photo sideways and records the turn in its EXIF orientation. Storing the photo as WebP
     /// re-encodes it without the EXIF, so it is turned upright first: the stored picture is upright, fits the box with
     /// its long side, and has no orientation left that a browser would apply a second time.
     /// </summary>
@@ -294,7 +336,7 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
         using var data = SKData.CreateCopy(stored);
         using var codec = SKCodec.Create(data);
         codec.ShouldNotBeNull();
-        codec.EncodedFormat.ShouldBe(SKEncodedImageFormat.Jpeg);
+        codec.EncodedFormat.ShouldBe(SKEncodedImageFormat.Webp);
         codec.EncodedOrigin.ShouldBe(SKEncodedOrigin.TopLeft);
         codec.Info.Width.ShouldBe(2048);
         codec.Info.Height.ShouldBe(4096);
@@ -311,18 +353,16 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// A picture that fits the box is the original, byte for byte: every image the site shows is rendered from it,
-    /// so a lossy re-encode on upload would only be a loss the rendering cannot undo.
+    /// A PNG or WebP that fits the box is the original, byte for byte: a PNG keeps every pixel, and a WebP is already
+    /// what a JPEG is stored as. (A JPEG is converted: <see cref="Jpeg_Is_Stored_As_Webp"/>.)
     /// </summary>
     [Theory]
-    [InlineData("photo.jpg")]
     [InlineData("drawing.png")]
     [InlineData("picture.webp")]
     public async Task Image_That_Fits_The_Images_Container_Is_Stored_As_Uploaded(string fileName)
     {
         var bytes = Path.GetExtension(fileName) switch
         {
-            ".jpg" => TestFiles.Jpeg(1200, 800),
             ".png" => TestFiles.Png(1200, 800),
             _ => TestFiles.Webp(1200, 800)
         };
@@ -335,12 +375,11 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
 
     /// <summary>
     /// A JPEG exported from Photoshop can carry megabytes of Extended XMP (<c>photoshop:DocumentAncestors</c>), the
-    /// Photoshop image resources and comments. They are dropped, and every other byte stays: EXIF, the main XMP
-    /// packet, the Adobe segment and the image itself, so the stored file is the upload less those segments.
-    /// Above the 10 MB a picture could be before, and accepted: the limit is on what is sent.
+    /// Photoshop image resources and comments - here over 12 MB around a 640 x 400 image. It is accepted (the limit is
+    /// on what is sent) and stored as a WebP of the image alone: none of that metadata survives into it.
     /// </summary>
     [Fact]
-    public async Task Jpeg_Metadata_A_Design_Tool_Piles_Up_Is_Dropped_On_Upload()
+    public async Task Jpeg_Metadata_A_Design_Tool_Piles_Up_Is_Not_Stored()
     {
         var jpeg = TestFiles.Jpeg(640, 400);
         var exif = JpegSegment(0xE1, Concat("Exif\0\0"u8.ToArray(), new byte[]
@@ -369,9 +408,13 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
         var descriptor = await UploadAsync(SiteFileContainerNames.Images, "banner.jpg", upload);
 
         var stored = await ReadAsync(descriptor);
-        stored.ShouldBe(Concat(jpeg[..2], exif, xmp, adobe, jpeg[2..]));
+        var info = TestFiles.Identify(stored);
+        (info.Width, info.Height, info.Format).ShouldBe((640, 400, SKEncodedImageFormat.Webp));
+        stored.Length.ShouldBeLessThan(1024 * 1024);
+        Encoding.ASCII.GetString(stored).ShouldNotContain("DocumentAncestors");
+        Encoding.ASCII.GetString(stored).ShouldNotContain("rdf:li");
         descriptor.Size.ShouldBe(stored.Length);
-        descriptor.MimeType.ShouldBe("image/jpeg");
+        descriptor.MimeType.ShouldBe("image/webp");
     }
 
     /// <summary>The text chunks of a PNG - where Photoshop writes its XMP - go; every other chunk stays.</summary>
