@@ -120,7 +120,7 @@ In a template, build a resized address with `SiteFileUrl.Sized` from the `Dignit
 <img src="@SiteFileUrl.Sized(imageUrl, 400, 300)" alt="" />
 ````
 
-`Sized` replaces a size already on the address and keeps its other query parameters.
+`Sized` replaces a size already on the address and keeps its other query parameters. Either size may be `null`: the other alone scales the picture in proportion, and with neither the address is returned as it is.
 
 ### Serving Files from the Public Web Application
 

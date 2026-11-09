@@ -363,6 +363,25 @@ public class ScribanPageRenderer_Tests
         html.ShouldContain("Width=300&amp;Height=200");
     }
 
+    /// <summary>
+    /// A template that wants the image as stored leaves the width off, or passes <c>null</c> for it: neither is an
+    /// error, and neither writes <c>Width=0</c>.
+    /// </summary>
+    [Fact]
+    public async Task File_Url_Should_Take_A_Size_Only_When_Given()
+    {
+        const string url = "/api/site-public/files/images/a.png";
+
+        var html = await new ScribanTestRenderer().RenderAsync(
+            $"[{{{{ file_url \"{url}\" }}}}][{{{{ file_url \"{url}\" null }}}}][{{{{ file_url \"{url}\" null 200 }}}}][{{{{ file_url null 300 }}}}]",
+            HeadOnlyLayout);
+
+        html.ShouldEndWith(
+            $"[{ScribanTestRenderer.Encoder.Encode(url)}][{ScribanTestRenderer.Encoder.Encode(url)}]" +
+            $"[{ScribanTestRenderer.Encoder.Encode(url + "?Height=200")}][]");
+        html.ShouldNotContain("Width=0");
+    }
+
     /// <summary>Under the host's base path, never with the page's language prefix (this page is /ja/about).</summary>
     [Fact]
     public async Task Asset_Url_Should_Carry_The_Content_Hash()

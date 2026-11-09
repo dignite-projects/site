@@ -67,6 +67,23 @@ public class SiteFileUrl_Tests
             .ShouldBe("https://x/api/site-public/files/abc?Width=400&Height=300");
     }
 
+    /// <summary>
+    /// A size not given is left off the address, not written as <c>Width=0</c>: one side alone is scaled in
+    /// proportion by the endpoint, and none at all is the address as it is.
+    /// </summary>
+    [Fact]
+    public void Leaves_Off_A_Size_That_Is_Not_Given()
+    {
+        SiteFileUrl.Sized("https://x/api/site-public/files/abc", null, 300)
+            .ShouldBe("https://x/api/site-public/files/abc?Height=300");
+        SiteFileUrl.Sized("https://x/api/site-public/files/abc?__tenant=42", null)
+            .ShouldBe("https://x/api/site-public/files/abc?__tenant=42");
+        SiteFileUrl.Sized("https://x/api/site-public/files/abc")
+            .ShouldBe("https://x/api/site-public/files/abc");
+        SiteFileUrl.Sized("https://x/api/site-public/files/abc?Width=80", null, 300)
+            .ShouldBe("https://x/api/site-public/files/abc?Height=300");
+    }
+
     [Fact]
     public void Replaces_A_Size_Already_On_The_Address()
     {

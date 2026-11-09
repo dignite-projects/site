@@ -13,7 +13,7 @@ namespace Dignite.Site.Public.Templating;
 public static class SiteFileUrl
 {
     /// <inheritdoc cref="Dignite.Site.Files.SiteFileUrl.Sized"/>
-    public static string? Sized(string? url, int width, int? height = null)
+    public static string? Sized(string? url, int? width = null, int? height = null)
     {
         return Dignite.Site.Files.SiteFileUrl.Sized(url, width, height);
     }
