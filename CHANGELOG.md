@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-09
+
 ### Added
 
 - **Images are served as WebP to a browser that takes it.** `/api/site-public/files/` serves a stored WebP as it is
@@ -33,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stored by an earlier version stay as they were stored. See [Containers](docs/en/files.md#containers).
 - **`FilePublicAppService` takes `ImageVariantRenderer` and `RenderedImageCache`** instead of `IImageResizer`, and its
   decode-timeout members are gone: a subclass changes its constructor.
+- `FileContainerConfigurationDto.CompressesImages` (and `compressesImages` of `site_list_file_containers`) is `true`
+  for `images` again: a JPEG is re-encoded as WebP.
 - Depends on Dignite ABP Modules 10.7.5, whose `ImageMetadataStripContributor` and public `ImageHeaderReader` the
   above uses.
 - **The unsaved dot on a tab of the Theme screen is half the size**, and sits in the middle of the file name's line.
@@ -2229,7 +2233,8 @@ downstream services can consume them via `PackageReference` instead of a cross-r
 - NuGet packaging infrastructure: versioned `common.props`, a release GitHub Actions workflow, and
   this changelog.
 
-[Unreleased]: https://github.com/dignite-projects/site/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/dignite-projects/site/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/dignite-projects/site/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/dignite-projects/site/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/dignite-projects/site/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/dignite-projects/site/compare/v1.0.1...v2.0.0
