@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Threading.Tasks;
 using Dignite.Site.Files;
 using Microsoft.AspNetCore.Http;
@@ -21,6 +23,12 @@ namespace Dignite.Site.Public.Files;
 /// database or the blob. <c>Cache-Control</c> is public for a day rather than <c>immutable</c>, because a file
 /// can be deleted, and a day bounds how long a shared cache keeps serving one that was.
 /// </para>
+/// <para>
+/// <b>WebP.</b> Unless <c>?Format=</c> says otherwise, a JPEG or PNG is served as WebP to a request whose
+/// <c>Accept</c> lists <c>image/webp</c>, so its address answers with <c>Vary: Accept</c> and the ETag says which of
+/// the two it is; any other file's address does neither. The download address serves the stored file, whatever the
+/// request takes.
+/// </para>
 /// </summary>
 [RemoteService(Name = SitePublicRemoteServiceConsts.RemoteServiceName)]
 [Area(SitePublicRemoteServiceConsts.ModuleName)]
@@ -41,6 +49,23 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
     [Route("{containerName}/{*blobName}")]
     public virtual async Task<IRemoteStreamContent> GetAsync(string containerName, string blobName, GetFileInput input)
     {
+        // Auto is decided here, the one place that sees the request; the application service gets a format. A public
+        // web application that calls Site through the client proxy decides it from its own visitor's Accept, and
+        // the proxy passes the decided format on.
+        var format = SiteFileFormats.Normalize(input.Format);
+        if (format == SiteFileFormats.Auto)
+        {
+            input.Format = AcceptsWebp() ? SiteFileFormats.Webp : SiteFileFormats.Original;
+            if (MayBeServedAsWebp(blobName))
+            {
+                Response.Headers.Append(HeaderNames.Vary, HeaderNames.Accept);
+            }
+        }
+        else
+        {
+            input.Format = format;
+        }
+
         var entityTag = CreateEntityTag(blobName, input);
         if (IsNotModified(entityTag))
         {
@@ -61,7 +86,7 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
     [Route("download/{containerName}/{*blobName}")]
     public virtual async Task<IRemoteStreamContent> DownloadAsync(string containerName, string blobName, string? fileName = null)
     {
-        var input = new GetFileInput();
+        var input = new GetFileInput { Format = SiteFileFormats.Original };
         var entityTag = CreateEntityTag(blobName, input);
         if (IsNotModified(entityTag))
         {
@@ -79,10 +104,52 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
         var size = (input.Width ?? 0) > 0 || (input.Height ?? 0) > 0
             ? $"-{(input.Width ?? 0).ToString(CultureInfo.InvariantCulture)}x{(input.Height ?? 0).ToString(CultureInfo.InvariantCulture)}"
             : string.Empty;
+        var format = input.Format == SiteFileFormats.Webp && MayBeServedAsWebp(blobName) ? "-webp" : string.Empty;
 
         // Quoted-string content may not contain '"' or '\'; a blob name is generated, but be strict anyway.
-        var opaque = (blobName + size).Replace("\"", string.Empty).Replace("\\", string.Empty);
+        var opaque = (blobName + size + format).Replace("\"", string.Empty).Replace("\\", string.Empty);
         return new EntityTagHeaderValue($"\"{opaque}\"");
+    }
+
+    /// <summary>
+    /// Whether the file at <paramref name="blobName"/> can be served as WebP, told from the name alone so a
+    /// <c>304</c> needs no lookup: a blob name ends in the extension of its detected type, and only a JPEG or PNG is
+    /// converted. A name without an extension, as an early version gave, may be either.
+    /// </summary>
+    protected virtual bool MayBeServedAsWebp(string blobName)
+    {
+        var extension = Path.GetExtension(blobName);
+        return extension.IsNullOrEmpty() ||
+               extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+               extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+               extension.Equals(".png", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Whether the request's <c>Accept</c> header lists <c>image/webp</c> (and does not refuse it with
+    /// <c>q=0</c>). A wildcard does not count: <c>*/*</c> is what a crawler that reads only JPEG and PNG sends too.
+    /// </summary>
+    protected virtual bool AcceptsWebp()
+    {
+        IList<MediaTypeHeaderValue> accept;
+        try
+        {
+            accept = Request.GetTypedHeaders().Accept;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
+        foreach (var mediaType in accept)
+        {
+            if (mediaType.MediaType.Equals("image/webp", StringComparison.OrdinalIgnoreCase))
+            {
+                return mediaType.Quality is not 0d;
+            }
+        }
+
+        return false;
     }
 
     protected virtual bool IsNotModified(EntityTagHeaderValue entityTag)

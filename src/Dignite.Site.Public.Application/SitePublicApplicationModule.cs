@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using SkiaSharp;
 using Volo.Abp.Imaging;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
@@ -15,10 +14,10 @@ namespace Dignite.Site.Public;
     typeof(SiteCommonApplicationModule),
     typeof(AbpDddApplicationModule),
     typeof(AbpMapperlyModule),
-    // The localization of the Dignite.Abp.BlobStoring.Imaging error codes the public read endpoint's
-    // ?Width=&Height= resize reports.
+    // The localization of the Dignite.Abp.BlobStoring.Imaging error codes the public read endpoint reports.
     typeof(AbpBlobStoringImagingModule),
-    // IImageResizer (SkiaSharp) for that resize.
+    // SkiaSharp, which ImageVariantRenderer draws with directly (its settings are SiteImageRenderingOptions, not
+    // ABP's resizer options).
     typeof(AbpImagingSkiaSharpModule)
     )]
 public class SitePublicApplicationModule : AbpModule
@@ -26,13 +25,5 @@ public class SitePublicApplicationModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         context.Services.AddMapperlyObjectMapper<SitePublicApplicationModule>();
-
-        // ABP's SkiaSharp default is nearest-neighbour sampling, which wrecks a ?Width= downscale; the same
-        // values and the measurements behind them as SiteAdminApplicationModule.ConfigureImaging.
-        Configure<SkiaSharpResizerOptions>(options =>
-        {
-            options.SKSamplingOptions = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
-            options.Quality = 85;
-        });
     }
 }
