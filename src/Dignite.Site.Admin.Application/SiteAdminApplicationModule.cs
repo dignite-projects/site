@@ -106,7 +106,7 @@ public class SiteAdminApplicationModule : AbpModule
     /// package prescribes: <c>MaxSize</c> (bytes; rejects a larger upload with
     /// <c>Dignite.Abp.BlobStoring:ContentTooLarge</c>), <c>AllowedContentTypes</c> (the MIME types of
     /// <see cref="SiteFileTypes"/>, matched against the type detected from the bytes, never the uploader's
-    /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), then Site's own
+    /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), then
     /// <see cref="ImageMetadataStripContributor"/> (drops the metadata a design tool piles into a JPEG or PNG, keeping
     /// every byte of the image), then <c>ImageResize</c> (shrinks a picture
     /// that exceeds the box, keeping its aspect ratio; a picture that fits is stored as uploaded, and there is
@@ -165,7 +165,7 @@ public class SiteAdminApplicationModule : AbpModule
                 {
                     config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.Images);
                 });
-                container.PipelineContributors.TryAdd<ImageMetadataStripContributor>();
+                container.AddImageMetadataStripContributor();
                 container.AddImageResizeContributor(config =>
                 {
                     config.MaxWidth = SiteImageConsts.MaxDimension;

@@ -160,7 +160,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 
         using (var probe = new MemoryStream(source, writable: false))
         {
-            var dimensions = ImageDimensionReader.Read(probe);
+            var dimensions = ImageHeaderReader.Read(probe);
             if (dimensions == null)
             {
                 return RenderedImage.Stored;
