@@ -49,12 +49,6 @@ public class SiteAdminApplicationModule : AbpModule
     /// </summary>
     private const long ImagesContainerMaxSizeInBytes = 25 * 1024 * 1024;
 
-    /// <summary>
-    /// The box a picture uploaded to <see cref="SiteFileContainerNames.Images"/> is shrunk to fit: 4096 x 4096, the
-    /// largest source <c>FilePublicAppService</c> renders.
-    /// </summary>
-    private const int ImagesContainerMaxDimension = 4096;
-
     /// <summary>Largest upload to <see cref="SiteFileContainerNames.ThemeAssets"/>: 5 MB, more than any icon or font a page loads.</summary>
     private const long ThemeAssetsContainerMaxSizeInBytes = 5 * 1024 * 1024;
 
@@ -88,8 +82,8 @@ public class SiteAdminApplicationModule : AbpModule
     /// where the default scored 9-33 dB (zone plate, noisy photo-like image and a UI screenshot, shrunk to
     /// 1920/800/400 px); bicubic (Mitchell, Catmull-Rom) samples a fixed 4x4 neighbourhood and was barely
     /// better than nearest past a 2x reduction. Quality 85 rather than ABP's 75 for the JPEG/WebP
-    /// re-encode of a picture shrunk to fit. <c>SitePublicApplicationModule</c> sets the same values for
-    /// the images rendered on read, as either module may be hosted without the other.
+    /// re-encode of a picture shrunk to fit. The images rendered on read do not go through ABP's resizer: their
+    /// settings are <c>SiteImageRenderingOptions</c>, with the same sampling.
     /// </summary>
     private void ConfigureImaging()
     {
@@ -126,7 +120,7 @@ public class SiteAdminApplicationModule : AbpModule
     /// <b>The image is kept.</b> No <c>ImageCompress</c>: a lossy re-encode on upload cannot be undone, and
     /// every image the site shows is rendered from what is stored (<c>FilePublicAppService</c>: resized, and WebP
     /// for a browser that takes it), so a picture stored already re-encoded loses quality twice. The box is
-    /// <see cref="ImagesContainerMaxDimension"/>, the largest source the read side renders, so a picture that fits
+    /// <see cref="SiteImageConsts.MaxDimension"/>, the largest source the read side renders, so a picture that fits
     /// the box - a 12-megapixel phone photo among them - keeps its image exactly as uploaded, less only the
     /// metadata <see cref="ImageMetadataStripContributor"/> drops, and a high-density screen still gets a sharp
     /// full-width image.
@@ -174,8 +168,8 @@ public class SiteAdminApplicationModule : AbpModule
                 container.PipelineContributors.TryAdd<ImageMetadataStripContributor>();
                 container.AddImageResizeContributor(config =>
                 {
-                    config.MaxWidth = ImagesContainerMaxDimension;
-                    config.MaxHeight = ImagesContainerMaxDimension;
+                    config.MaxWidth = SiteImageConsts.MaxDimension;
+                    config.MaxHeight = SiteImageConsts.MaxDimension;
                 });
                 ConfigureContentPermissions(container);
             });

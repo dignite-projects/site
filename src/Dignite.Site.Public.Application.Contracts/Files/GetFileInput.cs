@@ -11,10 +11,9 @@ public class GetFileInput
     public int? Height { get; set; }
 
     /// <summary>
-    /// Whether the caller takes WebP: a JPEG or PNG is then served as WebP (lossy for a JPEG, lossless for a PNG).
-    /// Asked at its stored size, the picture stays as stored when its WebP comes out no smaller; a GIF and a WebP are
-    /// never converted. The HTTP endpoint also sets it when the request's
-    /// <c>Accept</c> header lists <c>image/webp</c>, as every current browser's does for an image.
+    /// The format to serve an image in, one of <see cref="SiteFileFormats"/>; empty is <see cref="SiteFileFormats.Auto"/>.
+    /// With <see cref="SiteFileFormats.Webp"/> a JPEG is served as lossy WebP and a PNG as lossless WebP; asked at its
+    /// stored size, a picture stays as stored when its WebP comes out no smaller. A GIF and a WebP are never converted.
     /// </summary>
-    public bool AcceptWebp { get; set; }
+    public string? Format { get; set; }
 }

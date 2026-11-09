@@ -99,11 +99,14 @@ An absolute address that a user typed into a field, such as the address of an ex
 
 * `?Width=` and `?Height=` resize an image on the way out, up to 4096 pixels a side; with both given, the image is cropped to fill the box. The source can be at most 4096 x 4096. Anything that is not an image is served as stored, and so is a GIF.
 * A JPEG or PNG is served as **WebP** to a request whose `Accept` header lists `image/webp`, as every current browser's does for an image: lossy for a JPEG, lossless for a PNG, so a screenshot, a logo or a picture with text keeps every pixel and its transparency. Served at its stored size, a picture stays as stored when its WebP would be no smaller. A GIF and a WebP are never converted, and a request that does not list `image/webp`, such as a social network fetching an `og:image`, gets the stored format.
+* `?Format=webp` or `?Format=original` fixes the format whatever the request's `Accept`; without it, or with `auto`, the format is chosen as above.
 * A rendered image, resized or converted, is turned upright by the photo's EXIF orientation, which the rendering does not keep.
 * `/api/site-public/files/download/{containerName}/{blobName}?fileName=` serves the file as an attachment with the given file name, always as stored.
-* Responses carry an `ETag`, `Cache-Control: public, max-age=86400`, `Vary: Accept` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`.
+* Responses carry an `ETag`, `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`. The address of a JPEG or PNG without `?Format=` also carries `Vary: Accept`.
 
-A CDN or proxy that caches these responses must key them on `Accept` as `Vary` says; one that ignores `Vary` would hand the WebP it cached for a browser to a client that cannot read it. Rendered images are kept in the server's memory for ten minutes, so a CDN in front is what keeps the conversion from being repeated.
+A CDN or proxy that caches these responses must key them on `Accept` as `Vary` says; one that ignores `Vary` would hand the WebP it cached for a browser to a client that cannot read it.
+
+Rendering is done in the server process and bounded there: a rendered image is kept in memory (64 MB, ten minutes), requests for an image that is being rendered wait for that rendering, and at most half the processor count of images render at once. `SiteImageRenderingOptions` changes these numbers and the encoding qualities. A CDN in front keeps the rendering from being repeated beyond that.
 
 In a template, build a resized address with `SiteFileUrl.Sized` from the `Dignite.Site.Public.Templating` namespace; in Angular, use `sizedFileUrl` from `@dignite/ng.site`:
 

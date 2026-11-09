@@ -2,31 +2,28 @@ using System;
 using Microsoft.Extensions.Options;
 using SkiaSharp;
 using Volo.Abp.DependencyInjection;
-using Volo.Abp.Imaging;
 
 namespace Dignite.Site.Public.Files;
 
 /// <summary>
-/// Renders the image the public read endpoint serves from a stored picture: turned upright, resized when a size is
-/// asked, and encoded as WebP when the caller takes it. Everything is rendered from the stored picture in one decode
-/// and one encode, so a served image is never a re-encode of a re-encode.
+/// Carries out an <see cref="ImageRendition"/> on a stored picture: turned upright, resized when the rendition has a
+/// size, and encoded as it says - in one decode and one encode, so a served image is never a re-encode of a
+/// re-encode. It decides nothing about what to render; <c>FilePublicAppService</c> does.
 /// <para>
-/// <b>Formats.</b> JPEG, PNG and WebP are rendered; anything else (a GIF) is not, and is served as stored. With WebP
-/// a JPEG is encoded lossy at <see cref="SkiaSharpResizerOptions.Quality"/>, and a PNG lossless: a PNG is usually a
-/// screenshot, a logo or a drawing with text, whose edges lossy WebP blurs, since it always stores colour at half
-/// the resolution of brightness. Lossless WebP keeps every pixel and the transparency. Without WebP a picture keeps
-/// its own format, as ABP's resizer does.
+/// <b>Formats.</b> JPEG, PNG and WebP are decoded. <see cref="ImageRenditionEncoding.SourceFormat"/> encodes a picture
+/// in its own format (a WebP lossy); the WebP encodings use <see cref="SiteImageRenderingOptions.WebpQuality"/> and
+/// <see cref="SiteImageRenderingOptions.LosslessWebpEffort"/>.
 /// </para>
 /// <para>
 /// <b>Upright.</b> A camera writes a photo sideways and records how to turn it in its EXIF orientation, which a
 /// browser applies to the stored file. Re-encoding drops the EXIF, so the orientation is applied to the pixels here.
-/// ABP's SkiaSharp resizer does not (<c>SKBitmap.Decode</c> ignores it), which is why the read side no longer
-/// goes through <c>IImageResizer</c>.
+/// ABP's SkiaSharp resizer does not (<c>SKBitmap.Decode</c> ignores it), which is why the read side does not go
+/// through <c>IImageResizer</c>.
 /// </para>
 /// <para>
 /// A size is applied as ABP's <c>ImageResizeMode.Crop</c> does, so an address resized before renders the same
 /// box: one side given, scaled to it with the other in proportion; both given, scaled to cover the box and
-/// cropped to it around the centre. The sampling is <see cref="SkiaSharpResizerOptions.SKSamplingOptions"/>.
+/// cropped to it around the centre. The sampling is <see cref="SiteImageRenderingOptions.Sampling"/>.
 /// </para>
 /// </summary>
 public class ImageVariantRenderer : ITransientDependency
@@ -35,53 +32,28 @@ public class ImageVariantRenderer : ITransientDependency
     public const string PngMimeType = "image/png";
     public const string WebpMimeType = "image/webp";
 
-    /// <summary>
-    /// Lossless WebP's effort, 0-100: what libwebp spends to find a smaller encoding of the same pixels; the image
-    /// is identical whatever the value. On a 3840 x 2160 PNG, 25 took 0.6 s where libwebp's default of 75 took 3.9 s,
-    /// for a file 1% larger.
-    /// </summary>
-    protected const float LosslessWebpEffort = 25;
+    protected SiteImageRenderingOptions Options { get; }
 
-    protected SkiaSharpResizerOptions Options { get; }
-
-    public ImageVariantRenderer(IOptions<SkiaSharpResizerOptions> options)
+    public ImageVariantRenderer(IOptions<SiteImageRenderingOptions> options)
     {
         Options = options.Value;
     }
 
-    /// <summary>Whether a picture of <paramref name="mimeType"/> is served as WebP to a caller that takes it.</summary>
-    public static bool ConvertsToWebp(string? mimeType)
-    {
-        return string.Equals(mimeType, JpegMimeType, StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(mimeType, PngMimeType, StringComparison.OrdinalIgnoreCase);
-    }
-
     /// <summary>
-    /// The image to serve for the picture in <paramref name="source"/>, or <c>null</c> to serve the stored picture
-    /// as it is: a format this does not render, or - with no size asked - a WebP no smaller than the stored file.
-    /// The caller has bounded the picture's size from its header before calling.
+    /// Renders <paramref name="rendition"/> from the picture in <paramref name="source"/>, which the caller has bounded
+    /// by its header.
     /// </summary>
+    /// <exception cref="NotSupportedException">The content is not a JPEG, PNG or WebP this can decode.</exception>
     /// <exception cref="InvalidOperationException">The picture's pixels cannot be decoded, or the image not encoded.</exception>
-    public virtual ImageVariant? Render(byte[] source, int? width, int? height, bool acceptWebp)
+    public virtual ImageVariant Render(byte[] source, ImageRendition rendition)
     {
         using var data = SKData.CreateCopy(source);
-        using var codec = SKCodec.Create(data);
-        if (codec == null)
-        {
-            return null;
-        }
+        using var codec = SKCodec.Create(data) ?? throw new NotSupportedException("Not a picture SkiaSharp can read.");
 
         var sourceFormat = codec.EncodedFormat;
         if (sourceFormat is not (SKEncodedImageFormat.Jpeg or SKEncodedImageFormat.Png or SKEncodedImageFormat.Webp))
         {
-            return null;
-        }
-
-        var resize = (width ?? 0) > 0 || (height ?? 0) > 0;
-        var toWebp = acceptWebp && (sourceFormat is SKEncodedImageFormat.Jpeg or SKEncodedImageFormat.Png);
-        if (!resize && !toWebp)
-        {
-            return null;
+            throw new NotSupportedException("Rendering " + sourceFormat + " is not supported.");
         }
 
         // 32-bit pixels whatever the source (a 16-bit or greyscale PNG), which every encoder takes; premultiplied
@@ -93,16 +65,10 @@ public class ImageVariantRenderer : ITransientDependency
         var upright = Orient(decoded, codec.EncodedOrigin);
         try
         {
-            var resized = resize ? Resize(upright, width ?? 0, height ?? 0) : upright;
+            var resized = rendition.Resizes ? Resize(upright, rendition.Width ?? 0, rendition.Height ?? 0) : upright;
             try
             {
-                var (bytes, mimeType) = Encode(resized, sourceFormat, toWebp);
-                if (!resize && bytes.Length >= source.Length)
-                {
-                    return null;
-                }
-
-                return new ImageVariant(bytes, mimeType);
+                return Encode(resized, sourceFormat, rendition.Encoding);
             }
             finally
             {
@@ -121,37 +87,23 @@ public class ImageVariantRenderer : ITransientDependency
         }
     }
 
-    protected virtual (byte[] Bytes, string MimeType) Encode(SKBitmap bitmap, SKEncodedImageFormat sourceFormat, bool toWebp)
+    protected virtual ImageVariant Encode(SKBitmap bitmap, SKEncodedImageFormat sourceFormat, ImageRenditionEncoding encoding)
     {
         using var pixmap = bitmap.PeekPixels() ?? throw new InvalidOperationException("The image's pixels are not readable.");
 
-        SKData? encoded;
-        string mimeType;
-        if (toWebp)
+        var (encoded, mimeType) = encoding switch
         {
-            encoded = pixmap.Encode(sourceFormat == SKEncodedImageFormat.Png
-                ? new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, LosslessWebpEffort)
-                : new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, Options.Quality));
-            mimeType = WebpMimeType;
-        }
-        else
-        {
-            switch (sourceFormat)
+            ImageRenditionEncoding.LossyWebp =>
+                (pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, Options.WebpQuality)), WebpMimeType),
+            ImageRenditionEncoding.LosslessWebp =>
+                (pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, Options.LosslessWebpEffort)), WebpMimeType),
+            _ => sourceFormat switch
             {
-                case SKEncodedImageFormat.Jpeg:
-                    encoded = pixmap.Encode(new SKJpegEncoderOptions(Options.Quality));
-                    mimeType = JpegMimeType;
-                    break;
-                case SKEncodedImageFormat.Png:
-                    encoded = pixmap.Encode(SKPngEncoderOptions.Default);
-                    mimeType = PngMimeType;
-                    break;
-                default:
-                    encoded = pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, Options.Quality));
-                    mimeType = WebpMimeType;
-                    break;
+                SKEncodedImageFormat.Jpeg => (pixmap.Encode(new SKJpegEncoderOptions(Options.JpegQuality)), JpegMimeType),
+                SKEncodedImageFormat.Png => (pixmap.Encode(SKPngEncoderOptions.Default), PngMimeType),
+                _ => (pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, Options.WebpQuality)), WebpMimeType)
             }
-        }
+        };
 
         using (encoded)
         {
@@ -160,7 +112,7 @@ public class ImageVariantRenderer : ITransientDependency
                 throw new InvalidOperationException("The image could not be encoded as " + mimeType + ".");
             }
 
-            return (encoded.ToArray(), mimeType);
+            return new ImageVariant(encoded.ToArray(), mimeType);
         }
     }
 
@@ -182,7 +134,7 @@ public class ImageVariantRenderer : ITransientDependency
         var scale = Math.Max((double)targetWidth / source.Width, (double)targetHeight / source.Height);
         var scaledWidth = Math.Max(1, (int)Math.Round(source.Width * scale));
         var scaledHeight = Math.Max(1, (int)Math.Round(source.Height * scale));
-        var scaled = source.Resize(source.Info.WithSize(scaledWidth, scaledHeight), Options.SKSamplingOptions)
+        var scaled = source.Resize(source.Info.WithSize(scaledWidth, scaledHeight), Options.Sampling)
                      ?? throw new InvalidOperationException("The picture could not be resized.");
         if (scaledWidth == targetWidth && scaledHeight == targetHeight)
         {
@@ -261,6 +213,3 @@ public class ImageVariantRenderer : ITransientDependency
         }
     }
 }
-
-/// <summary>An image rendered from a stored picture: its encoded bytes and their MIME type.</summary>
-public record ImageVariant(byte[] Content, string MimeType);

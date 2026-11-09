@@ -55,8 +55,8 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// A downscale averages the pixels it drops (SitePublicApplicationModule's SkiaSharpResizerOptions) rather
-    /// than ABP's nearest-neighbour default, which keeps one source pixel per target pixel: one-pixel black and
+    /// A downscale averages the pixels it drops (SiteImageRenderingOptions.Sampling) rather than SkiaSharp's
+    /// nearest-neighbour default, which keeps one source pixel per target pixel: one-pixel black and
     /// white stripes shrunk 4x come out grey, where the default turns them all black or all white.
     /// </summary>
     [Fact]
@@ -83,7 +83,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var jpeg = Photo(640, 400);
         var file = await UploadAsync(SiteFileContainerNames.Images, "photo.jpg", jpeg);
 
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = SiteFileFormats.Webp });
 
         var webp = await ReadAllAsync(content.GetStream());
         var info = TestFiles.Identify(webp);
@@ -105,7 +105,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var jpeg = TestFiles.Jpeg(320, 200);
         var file = await UploadAsync(SiteFileContainerNames.Images, "noise.jpg", jpeg);
 
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = SiteFileFormats.Webp });
 
         content.ContentType.ShouldBe("image/jpeg");
         content.FileName.ShouldBe("noise.jpg");
@@ -122,7 +122,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var png = TransparentDrawing(600, 300);
         var file = await UploadAsync(SiteFileContainerNames.Images, "logo.png", png);
 
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = SiteFileFormats.Webp });
 
         var webp = await ReadAllAsync(content.GetStream());
         content.ContentType.ShouldBe("image/webp");
@@ -151,7 +151,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     {
         var file = await UploadAsync(SiteFileContainerNames.Images, "share.jpg", TestFiles.Jpeg(800, 600));
 
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Width = 120, Height = 63, AcceptWebp = true });
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Width = 120, Height = 63, Format = SiteFileFormats.Webp });
 
         var info = TestFiles.Identify(await ReadAllAsync(content.GetStream()));
         info.Width.ShouldBe(120);
@@ -170,11 +170,11 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         // puts the red on top of a 200 x 400 picture.
         var file = await UploadAsync(SiteFileContainerNames.Images, "portrait.jpg", SidewaysJpeg());
 
-        foreach (var input in new[] { new GetFileInput { Width = 100 }, new GetFileInput { AcceptWebp = true } })
+        foreach (var input in new[] { new GetFileInput { Width = 100 }, new GetFileInput { Format = SiteFileFormats.Webp } })
         {
             using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, input);
 
-            content.ContentType.ShouldBe(input.AcceptWebp ? "image/webp" : "image/jpeg");
+            content.ContentType.ShouldBe(input.Format == SiteFileFormats.Webp ? "image/webp" : "image/jpeg");
             using var upright = SKBitmap.Decode(await ReadAllAsync(content.GetStream()));
             upright.Height.ShouldBe(upright.Width * 2);
             var top = upright.GetPixel(upright.Width / 2, upright.Height / 4);
@@ -192,20 +192,27 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     {
         var file = await UploadAsync(SiteFileContainerNames.Images, "dot.gif", Gif);
 
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = SiteFileFormats.Webp });
 
         content.ContentType.ShouldBe("image/gif");
         (await ReadAllAsync(content.GetStream())).ShouldBe(Gif);
     }
 
-    /// <summary>Without WebP and without a size, a picture is served byte for byte, its EXIF and all.</summary>
-    [Fact]
-    public async Task Should_Serve_A_Jpeg_As_Stored_To_A_Caller_That_Does_Not_Take_Webp()
+    /// <summary>
+    /// Without WebP and without a size, a picture is served byte for byte, its EXIF and all. In-process, auto (and an
+    /// unknown format) is the original: choosing by the request's Accept is the HTTP endpoint's.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(SiteFileFormats.Auto)]
+    [InlineData(SiteFileFormats.Original)]
+    [InlineData("avif")]
+    public async Task Should_Serve_A_Jpeg_As_Stored_Unless_Webp_Is_Asked(string? format)
     {
         var jpeg = SidewaysJpeg();
         var file = await UploadAsync(SiteFileContainerNames.Images, "as-is.jpg", jpeg);
 
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput());
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = format });
 
         content.ContentType.ShouldBe("image/jpeg");
         (await ReadAllAsync(content.GetStream())).ShouldBe(jpeg);
