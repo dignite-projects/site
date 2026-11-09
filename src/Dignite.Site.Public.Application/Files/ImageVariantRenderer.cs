@@ -97,6 +97,10 @@ public class ImageVariantRenderer : ITransientDependency
                 (pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, Options.WebpQuality)), WebpMimeType),
             ImageRenditionEncoding.LosslessWebp =>
                 (pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, Options.LosslessWebpEffort)), WebpMimeType),
+            ImageRenditionEncoding.Jpeg when bitmap.AlphaType == SKAlphaType.Opaque =>
+                (pixmap.Encode(new SKJpegEncoderOptions(Options.JpegQuality)), JpegMimeType),
+            ImageRenditionEncoding.Jpeg =>
+                (pixmap.Encode(SKPngEncoderOptions.Default), PngMimeType),
             _ => sourceFormat switch
             {
                 SKEncodedImageFormat.Jpeg => (pixmap.Encode(new SKJpegEncoderOptions(Options.JpegQuality)), JpegMimeType),

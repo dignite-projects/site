@@ -27,7 +27,13 @@ public enum ImageRenditionEncoding
     LossyWebp,
 
     /// <summary>Lossless WebP: every pixel and the transparency kept, for a drawing, a screenshot or a logo.</summary>
-    LosslessWebp
+    LosslessWebp,
+
+    /// <summary>
+    /// JPEG, for a client that cannot read the stored WebP; PNG instead when the picture has transparency, which JPEG
+    /// cannot keep.
+    /// </summary>
+    Jpeg
 }
 
 /// <summary>An image rendered from a stored picture: its encoded bytes and their MIME type.</summary>

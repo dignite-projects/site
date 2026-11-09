@@ -225,7 +225,9 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
                 configuration.GetAllowedContentTypesContributorConfiguration().AllowedContentTypes),
             ImageMaxWidth = resize is { MaxWidth: > 0 } ? resize.MaxWidth : null,
             ImageMaxHeight = resize is { MaxHeight: > 0 } ? resize.MaxHeight : null,
-            CompressesImages = configuration.PipelineContributors.Contains<ImageCompressContributor>(),
+            // Re-encoded either way: ABP's compressor in the picture's own format, or a JPEG stored as WebP.
+            CompressesImages = configuration.PipelineContributors.Contains<ImageCompressContributor>() ||
+                               configuration.PipelineContributors.Contains<JpegToWebpContributor>(),
             CreateDirectoryPermissionName = authorization.CreateDirectoryPermissionName,
             CreateFilePermissionName = authorization.CreateFilePermissionName,
             UpdateFilePermissionName = authorization.UpdateFilePermissionName,

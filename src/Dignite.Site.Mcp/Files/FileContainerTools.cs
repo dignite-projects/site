@@ -33,7 +33,8 @@ public class FileContainerTools : ITransientDependency
         "Lists the site's file containers you may use, with each one's purpose, the largest file you may " +
         "upload to it and its allowed file types. A container that processes images says so: imageMaxWidth and " +
         "imageMaxHeight are the size an image is shrunk to fit (a smaller one is not enlarged), and compressesImages " +
-        "means the stored file is re-encoded, so its size differs from the file you sent. Call this before any other " +
+        "means the stored file is re-encoded, so its size, and for a JPEG its format (WebP, named .webp), differ from " +
+        "the file you sent; use the url, name and mimeType a file tool returns. Call this before any other " +
         "file tool: they all take a containerName from this list.")]
     public virtual async Task<List<SiteMcpFileContainerDto>> ListFileContainersAsync()
     {

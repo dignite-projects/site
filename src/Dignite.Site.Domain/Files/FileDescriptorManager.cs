@@ -70,11 +70,15 @@ public class FileDescriptorManager : DomainService
     /// blob is deleted, and a retry finds the winner and becomes a reference.
     /// </para>
     /// <para>
-    /// What the row records: <see cref="FileDescriptor.MimeType"/> is the detected type (resizing and
-    /// compressing keep the format); <see cref="FileDescriptor.Hash"/> is the SHA-256 of the <b>upload</b>, so the
-    /// same upload dedups whether or not the container transformed it; <see cref="FileDescriptor.Size"/> is the
-    /// size of the <b>stored</b> bytes - what the public endpoint serves - read back from the container for an
-    /// image (the only content an image contributor can change) and the upload's length otherwise.
+    /// What the row records: <see cref="FileDescriptor.MimeType"/> and <see cref="FileDescriptor.Size"/> are those of
+    /// the <b>stored</b> bytes - what the public endpoint serves - read back from the container for an image (the
+    /// only content an image contributor can change) and the upload's otherwise; <see cref="FileDescriptor.Hash"/> is
+    /// the SHA-256 of the <b>upload</b>, so the same upload dedups whether or not the container transformed it.
+    /// </para>
+    /// <para>
+    /// A container whose <see cref="SiteImageStorageConfiguration.StoreJpegAsWebp"/> is on stores a JPEG as WebP:
+    /// the blob is named <c>.webp</c> and the display name takes the <c>.webp</c> extension, decided here before the
+    /// save from the configuration; the contributor that converts it is the administration module's.
     /// </para>
     /// </summary>
     /// <param name="fileName">The uploader's file name: its extension is checked against the content, and
@@ -95,15 +99,27 @@ public class FileDescriptorManager : DomainService
 
         var mimeType = await MimeTypeDetector.DetectAsync(content, name, cancellationToken);
         var hash = await ComputeHashAsync(content, cancellationToken);
-        var blobName = CreateBlobName(mimeType);
+
+        // What the container will store: a JPEG becomes WebP where the container says so. Decided before the
+        // save, because the blob is named after it.
+        var storedMimeType = BlobContainerConfigurationProvider.Get(containerName)
+            .GetSiteImageStorageConfiguration()
+            .GetStoredMimeType(mimeType);
+        if (storedMimeType != mimeType)
+        {
+            name = WithExtensionOf(name, storedMimeType);
+        }
+
+        var blobName = CreateBlobName(storedMimeType);
 
         var owner = await FileDescriptorRepository.FindByHashAsync(containerName, hash, cancellationToken);
         if (owner != null)
         {
-            // The bytes already have a home: nothing is stored, the new row only points at it.
+            // The bytes already have a home: nothing is stored, the new row only points at it, with the type of
+            // what the owner stored.
             return await FileDescriptorRepository.InsertAsync(
                 new FileDescriptor(
-                    GuidGenerator.Create(), containerName, blobName, name, mimeType, owner.Size,
+                    GuidGenerator.Create(), containerName, blobName, name, owner.MimeType, owner.Size,
                     hash: null, referBlobName: owner.GetActualBlobName(), directoryId, CurrentTenant.Id),
                 autoSave: true,
                 cancellationToken);
@@ -127,11 +143,11 @@ public class FileDescriptorManager : DomainService
 
         try
         {
-            var size = await GetStoredSizeAsync(container, blobName, mimeType, uploadLength, cancellationToken);
+            var (size, storedType) = await GetStoredSizeAndTypeAsync(container, blobName, storedMimeType, uploadLength, cancellationToken);
 
             return await FileDescriptorRepository.InsertAsync(
                 new FileDescriptor(
-                    GuidGenerator.Create(), containerName, blobName, name, mimeType, size,
+                    GuidGenerator.Create(), containerName, blobName, name, storedType, size,
                     hash: hash, referBlobName: null, directoryId, CurrentTenant.Id),
                 autoSave: true,
                 cancellationToken);
@@ -264,38 +280,47 @@ public class FileDescriptorManager : DomainService
     }
 
     /// <summary>
-    /// The size of what was stored under <paramref name="blobName"/>. The image contributors only ever touch
-    /// <c>image/*</c> content (everything else passes through them untouched), so for anything else the stored
-    /// size is the upload's <paramref name="uploadLength"/>; an image may have been resized or re-compressed, so
-    /// its size is read back from the container.
+    /// The size and type of what was stored under <paramref name="blobName"/>. The image contributors only ever
+    /// touch <c>image/*</c> content (everything else passes through them untouched), so for anything else they are
+    /// the upload's <paramref name="uploadLength"/> and <paramref name="expectedMimeType"/>. An image may have been
+    /// resized, re-encoded or converted, so it is read back and its type detected from the stored bytes: the row
+    /// records what is served even if a contributor did not do what the container's configuration announced.
     /// </summary>
-    protected virtual async Task<long> GetStoredSizeAsync(
+    protected virtual async Task<(long Size, string MimeType)> GetStoredSizeAndTypeAsync(
         IBlobContainer container,
         string blobName,
-        string mimeType,
+        string expectedMimeType,
         long uploadLength,
         CancellationToken cancellationToken)
     {
-        if (!mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        if (!expectedMimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
-            return uploadLength;
+            return (uploadLength, expectedMimeType);
         }
 
         await using var stored = await container.GetAsync(blobName, cancellationToken);
-        if (stored.CanSeek)
+        using var copy = new MemoryStream();
+        await stored.CopyToAsync(copy, cancellationToken);
+        copy.Position = 0;
+        var mimeType = await MimeTypeDetector.DetectAsync(copy, blobName, cancellationToken);
+        return (copy.Length, mimeType);
+    }
+
+    /// <summary>
+    /// <paramref name="name"/> with the canonical extension of <paramref name="mimeType"/>: the display name of a
+    /// picture the container stores in another format, so that a download is named for what it is.
+    /// </summary>
+    protected virtual string WithExtensionOf(string name, string mimeType)
+    {
+        var extension = SiteFileTypes.GetExtension(mimeType);
+        if (extension == null)
         {
-            return stored.Length;
+            return name;
         }
 
-        var buffer = new byte[81920];
-        long length = 0;
-        int read;
-        while ((read = await stored.ReadAsync(buffer.AsMemory(), cancellationToken)) > 0)
-        {
-            length += read;
-        }
-
-        return length;
+        var stem = Path.GetFileNameWithoutExtension(name);
+        var maxStem = FileDescriptorConsts.MaxNameLength - extension.Length;
+        return (stem.Length <= maxStem ? stem : stem[..maxStem]) + extension;
     }
 
     protected virtual async Task TryDeleteBlobAsync(IBlobContainer container, string blobName)

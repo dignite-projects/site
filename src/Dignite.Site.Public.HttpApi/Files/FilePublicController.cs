@@ -25,9 +25,9 @@ namespace Dignite.Site.Public.Files;
 /// </para>
 /// <para>
 /// <b>WebP.</b> Unless <c>?Format=</c> says otherwise, a JPEG or PNG is served as WebP to a request whose
-/// <c>Accept</c> lists <c>image/webp</c>, so its address answers with <c>Vary: Accept</c> and the ETag says which of
-/// the two it is; any other file's address does neither. The download address serves the stored file, whatever the
-/// request takes.
+/// <c>Accept</c> lists <c>image/webp</c>, and a stored WebP as JPEG to one that does not; so the address of a JPEG,
+/// PNG or WebP answers with <c>Vary: Accept</c> and the ETag says which it is, and any other file's address does
+/// neither. The download address serves the stored file, whatever the request takes.
 /// </para>
 /// </summary>
 [RemoteService(Name = SitePublicRemoteServiceConsts.RemoteServiceName)]
@@ -55,8 +55,8 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
         var format = SiteFileFormats.Normalize(input.Format);
         if (format == SiteFileFormats.Auto)
         {
-            input.Format = AcceptsWebp() ? SiteFileFormats.Webp : SiteFileFormats.Original;
-            if (MayBeServedAsWebp(blobName))
+            input.Format = AcceptsWebp() ? SiteFileFormats.Webp : SiteFileFormats.Jpeg;
+            if (MayBeConverted(blobName))
             {
                 Response.Headers.Append(HeaderNames.Vary, HeaderNames.Accept);
             }
@@ -104,7 +104,9 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
         var size = (input.Width ?? 0) > 0 || (input.Height ?? 0) > 0
             ? $"-{(input.Width ?? 0).ToString(CultureInfo.InvariantCulture)}x{(input.Height ?? 0).ToString(CultureInfo.InvariantCulture)}"
             : string.Empty;
-        var format = input.Format == SiteFileFormats.Webp && MayBeServedAsWebp(blobName) ? "-webp" : string.Empty;
+        var format = input.Format is SiteFileFormats.Webp or SiteFileFormats.Jpeg && MayBeConverted(blobName)
+            ? "-" + input.Format
+            : string.Empty;
 
         // Quoted-string content may not contain '"' or '\'; a blob name is generated, but be strict anyway.
         var opaque = (blobName + size + format).Replace("\"", string.Empty).Replace("\\", string.Empty);
@@ -112,17 +114,18 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
     }
 
     /// <summary>
-    /// Whether the file at <paramref name="blobName"/> can be served as WebP, told from the name alone so a
-    /// <c>304</c> needs no lookup: a blob name ends in the extension of its detected type, and only a JPEG or PNG is
-    /// converted. A name without an extension, as an early version gave, may be either.
+    /// Whether the file at <paramref name="blobName"/> may be served in another format than it is stored in, told from
+    /// the name alone so a <c>304</c> needs no lookup: a blob name ends in the extension of its stored type; a JPEG or
+    /// PNG is converted to WebP, a WebP to JPEG. A name without an extension, as an early version gave, may be any.
     /// </summary>
-    protected virtual bool MayBeServedAsWebp(string blobName)
+    protected virtual bool MayBeConverted(string blobName)
     {
         var extension = Path.GetExtension(blobName);
         return extension.IsNullOrEmpty() ||
                extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
-               extension.Equals(".png", StringComparison.OrdinalIgnoreCase);
+               extension.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
+               extension.Equals(".webp", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

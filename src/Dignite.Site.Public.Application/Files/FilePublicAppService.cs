@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.BlobStoring.Imaging;
@@ -95,16 +96,24 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             throw new EntityNotFoundException(typeof(FileDescriptor), $"{containerName}/{blobName}");
         }
 
-        return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
+        return new RemoteStreamContent(
+            stream, FileNameFor(file.Name, file.MimeType), file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
     }
 
     /// <summary>
-    /// What to render for <paramref name="input"/> from <paramref name="file"/>, or <c>null</c> to serve it as stored:
-    /// a file that is not a JPEG, PNG or WebP (a GIF, a document), or a request that asks for neither a size nor
-    /// WebP. With <see cref="SiteFileFormats.Webp"/> a JPEG goes to lossy WebP and a PNG to lossless WebP: a PNG is
-    /// usually a screenshot, a logo or a drawing with text, whose edges lossy WebP blurs, since it stores colour at
-    /// half the resolution of brightness. <see cref="SiteFileFormats.Auto"/> is <see cref="SiteFileFormats.Original"/>
-    /// here: choosing by the request's <c>Accept</c> is the HTTP endpoint's.
+    /// What to render for <paramref name="input"/> from <paramref name="file"/>, or <c>null</c> to serve it as stored.
+    /// <list type="bullet">
+    /// <item><see cref="SiteFileFormats.Webp"/>: a JPEG goes to lossy WebP and a PNG to lossless WebP - a PNG is usually
+    /// a screenshot, a logo or a drawing with text, whose edges lossy WebP blurs, since it stores colour at half the
+    /// resolution of brightness. A WebP (a JPEG the <c>images</c> container stored as WebP among them) is served as it
+    /// is.</item>
+    /// <item><see cref="SiteFileFormats.Jpeg"/>, for a client that cannot read WebP: a WebP goes to JPEG (PNG when it
+    /// has transparency), at its stored size too; anything else as it is.</item>
+    /// <item><see cref="SiteFileFormats.Original"/>, and <see cref="SiteFileFormats.Auto"/> here (choosing by the
+    /// request's <c>Accept</c> is the HTTP endpoint's): the picture in its own format.</item>
+    /// </list>
+    /// A size asked re-encodes in the format chosen; without one, a picture that needs no conversion is served as
+    /// stored. A file that is not a JPEG, PNG or WebP (a GIF, a document) is always served as stored.
     /// </summary>
     protected virtual ImageRendition? PlanRendition(FileDescriptor file, GetFileInput input)
     {
@@ -118,15 +127,21 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 
         int? width = input.Width > 0 ? input.Width : null;
         int? height = input.Height > 0 ? input.Height : null;
-        var toWebp = SiteFileFormats.Normalize(input.Format) == SiteFileFormats.Webp && (isJpeg || isPng);
-        if (width == null && height == null && !toWebp)
+        var format = SiteFileFormats.Normalize(input.Format);
+
+        var encoding = format switch
+        {
+            SiteFileFormats.Webp when isJpeg => ImageRenditionEncoding.LossyWebp,
+            SiteFileFormats.Webp when isPng => ImageRenditionEncoding.LosslessWebp,
+            SiteFileFormats.Jpeg when isWebp => ImageRenditionEncoding.Jpeg,
+            _ => ImageRenditionEncoding.SourceFormat
+        };
+
+        if (width == null && height == null && encoding == ImageRenditionEncoding.SourceFormat)
         {
             return null;
         }
 
-        var encoding = !toWebp
-            ? ImageRenditionEncoding.SourceFormat
-            : isPng ? ImageRenditionEncoding.LosslessWebp : ImageRenditionEncoding.LossyWebp;
         return new ImageRendition(width, height, encoding);
     }
 
@@ -198,21 +213,32 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             throw CreateProcessingFailedException(exception);
         }
 
-        return !rendition.Resizes && variant.Content.Length >= source.Length
+        // A conversion to WebP at the stored size is only worth serving when it is smaller; a conversion to JPEG is
+        // for a client that cannot read the stored WebP, so it is served whatever its size.
+        var optional = rendition.Encoding is ImageRenditionEncoding.LossyWebp or ImageRenditionEncoding.LosslessWebp;
+        return optional && !rendition.Resizes && variant.Content.Length >= source.Length
             ? RenderedImage.Stored
             : new RenderedImage(variant);
     }
 
     /// <summary>
-    /// The file name a rendered image is served under: the stored name with the extension of the rendered type,
-    /// so a picture a visitor saves is named for what it is.
+    /// The file name an image is served under: <paramref name="fileName"/> with the extension of
+    /// <paramref name="mimeType"/> when its own extension names another type, so a picture a visitor saves is named
+    /// for what it is.
     /// </summary>
     protected virtual string FileNameFor(string fileName, string mimeType)
     {
-        return mimeType == ImageVariantRenderer.WebpMimeType &&
-               !fileName.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
-            ? Path.ChangeExtension(fileName, ".webp")
-            : fileName;
+        var extension = SiteFileTypes.GetExtension(mimeType);
+        if (extension == null)
+        {
+            return fileName;
+        }
+
+        var own = Path.GetExtension(fileName);
+        var ownType = SiteFileTypes.All.FirstOrDefault(type => type.Extension.Equals(own, StringComparison.OrdinalIgnoreCase));
+        return ownType != null && ownType.MimeType.Equals(mimeType, StringComparison.OrdinalIgnoreCase)
+            ? fileName
+            : Path.ChangeExtension(fileName, extension);
     }
 
     protected virtual BusinessException CreateImageTooLargeException(string message, int? width = null, int? height = null)

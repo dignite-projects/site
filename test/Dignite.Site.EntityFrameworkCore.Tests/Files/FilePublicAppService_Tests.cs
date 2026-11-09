@@ -40,18 +40,25 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         (await ReadAllAsync(content.GetStream())).ShouldBe(bytes);
     }
 
-    [Fact]
-    public async Task Should_Crop_An_Image_To_The_Requested_Size()
+    /// <summary>
+    /// A crop comes in the stored format (a JPEG upload is stored as WebP), or as JPEG for a client that cannot read
+    /// WebP.
+    /// </summary>
+    [Theory]
+    [InlineData(null, SKEncodedImageFormat.Webp, "image/webp")]
+    [InlineData(SiteFileFormats.Jpeg, SKEncodedImageFormat.Jpeg, "image/jpeg")]
+    public async Task Should_Crop_An_Image_To_The_Requested_Size(string? format, SKEncodedImageFormat expectedFormat, string expectedType)
     {
         var file = await UploadAsync(SiteFileContainerNames.Images, "share.jpg", TestFiles.Jpeg(800, 600));
 
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Width = 120, Height = 63 });
+        using var content = await _filePublicAppService.GetAsync(
+            file.ContainerName, file.BlobName, new GetFileInput { Width = 120, Height = 63, Format = format });
 
         var info = TestFiles.Identify(await ReadAllAsync(content.GetStream()));
         info.Width.ShouldBe(120);
         info.Height.ShouldBe(63);
-        info.Format.ShouldBe(SKEncodedImageFormat.Jpeg);
-        content.ContentType.ShouldBe("image/jpeg");
+        info.Format.ShouldBe(expectedFormat);
+        content.ContentType.ShouldBe(expectedType);
     }
 
     /// <summary>
@@ -96,20 +103,47 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// Asked at its stored size, a picture whose WebP would be no smaller - noise, which no encoder shrinks - is
-    /// served as stored rather than made larger.
+    /// Asked at its stored size, a PNG whose lossless WebP would be no smaller - a small square of transparent noise,
+    /// 1,124 bytes as PNG and 1,216 as lossless WebP - is served as stored rather than made larger.
     /// </summary>
     [Fact]
     public async Task Should_Serve_A_Picture_As_Stored_When_Its_Webp_Is_No_Smaller()
     {
-        var jpeg = TestFiles.Jpeg(320, 200);
-        var file = await UploadAsync(SiteFileContainerNames.Images, "noise.jpg", jpeg);
+        var png = RgbaNoisePng(16);
+        var file = await UploadAsync(SiteFileContainerNames.Images, "noise.png", png);
 
         using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = SiteFileFormats.Webp });
 
+        content.ContentType.ShouldBe("image/png");
+        content.FileName.ShouldBe("noise.png");
+        (await ReadAllAsync(content.GetStream())).ShouldBe(png);
+    }
+
+    /// <summary>
+    /// A client that cannot read WebP - a social network fetching an <c>og:image</c> - gets a JPEG made from a stored
+    /// WebP, at its stored size too and whatever its size, under a <c>.jpg</c> name; a WebP with transparency, which
+    /// JPEG cannot keep, comes as PNG.
+    /// </summary>
+    [Fact]
+    public async Task Should_Serve_A_Stored_Webp_As_Jpeg_To_A_Client_Without_Webp()
+    {
+        var file = await UploadAsync(SiteFileContainerNames.Images, "photo.jpg", Photo(640, 400));
+        file.MimeType.ShouldBe("image/webp");
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = SiteFileFormats.Jpeg });
+
         content.ContentType.ShouldBe("image/jpeg");
-        content.FileName.ShouldBe("noise.jpg");
-        (await ReadAllAsync(content.GetStream())).ShouldBe(jpeg);
+        content.FileName.ShouldBe("photo.jpg");
+        var info = TestFiles.Identify(await ReadAllAsync(content.GetStream()));
+        info.Format.ShouldBe(SKEncodedImageFormat.Jpeg);
+        (info.Width, info.Height).ShouldBe((640, 400));
+
+        var transparent = await UploadAsync(SiteFileContainerNames.Images, "logo.webp", TransparentWebp(300, 200));
+        using var transparentContent = await _filePublicAppService.GetAsync(
+            transparent.ContainerName, transparent.BlobName, new GetFileInput { Format = SiteFileFormats.Jpeg });
+
+        transparentContent.ContentType.ShouldBe("image/png");
+        transparentContent.FileName.ShouldBe("logo.png");
     }
 
     /// <summary>
@@ -160,21 +194,26 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// A camera stores a portrait photo sideways and says in its EXIF orientation how to turn it. A browser turns
-    /// the stored file; a rendered image has no EXIF, so it is turned before it is encoded.
+    /// A camera stores a portrait photo sideways and says in its EXIF orientation how to turn it. A WebP has no EXIF,
+    /// so the photo is turned when it is stored as WebP; whatever is served from it is upright.
     /// </summary>
     [Fact]
     public async Task Should_Turn_A_Photo_Upright_When_Rendering_It()
     {
-        // Stored 400 x 200, red on the left and blue on the right; orientation 6 turns it a quarter clockwise, which
+        // Uploaded 400 x 200, red on the left and blue on the right; orientation 6 turns it a quarter clockwise, which
         // puts the red on top of a 200 x 400 picture.
         var file = await UploadAsync(SiteFileContainerNames.Images, "portrait.jpg", SidewaysJpeg());
 
-        foreach (var input in new[] { new GetFileInput { Width = 100 }, new GetFileInput { Format = SiteFileFormats.Webp } })
+        foreach (var input in new[]
+                 {
+                     new GetFileInput { Width = 100 },
+                     new GetFileInput { Format = SiteFileFormats.Webp },
+                     new GetFileInput { Format = SiteFileFormats.Jpeg }
+                 })
         {
             using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, input);
 
-            content.ContentType.ShouldBe(input.Format == SiteFileFormats.Webp ? "image/webp" : "image/jpeg");
+            content.ContentType.ShouldBe(input.Format == SiteFileFormats.Jpeg ? "image/jpeg" : "image/webp");
             using var upright = SKBitmap.Decode(await ReadAllAsync(content.GetStream()));
             upright.Height.ShouldBe(upright.Width * 2);
             var top = upright.GetPixel(upright.Width / 2, upright.Height / 4);
@@ -199,23 +238,25 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// Without WebP and without a size, a picture is served byte for byte, its EXIF and all. In-process, auto (and an
-    /// unknown format) is the original: choosing by the request's Accept is the HTTP endpoint's.
+    /// A JPEG upload is stored as WebP and served as stored, byte for byte, unless a JPEG is asked. In-process, auto
+    /// (and an unknown format) is the original: choosing by the request's Accept is the HTTP endpoint's.
     /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData(SiteFileFormats.Auto)]
     [InlineData(SiteFileFormats.Original)]
+    [InlineData(SiteFileFormats.Webp)]
     [InlineData("avif")]
-    public async Task Should_Serve_A_Jpeg_As_Stored_Unless_Webp_Is_Asked(string? format)
+    public async Task Should_Serve_A_Stored_Webp_As_Stored_Unless_Jpeg_Is_Asked(string? format)
     {
-        var jpeg = SidewaysJpeg();
-        var file = await UploadAsync(SiteFileContainerNames.Images, "as-is.jpg", jpeg);
+        var file = await UploadAsync(SiteFileContainerNames.Images, "as-is.jpg", SidewaysJpeg());
+        var stored = await ReadStoredAsync(file);
 
         using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Format = format });
 
-        content.ContentType.ShouldBe("image/jpeg");
-        (await ReadAllAsync(content.GetStream())).ShouldBe(jpeg);
+        content.ContentType.ShouldBe("image/webp");
+        content.FileName.ShouldBe("as-is.webp");
+        (await ReadAllAsync(content.GetStream())).ShouldBe(stored);
     }
 
     /// <summary>
@@ -398,6 +439,51 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Jpeg, 95);
         return TestFiles.WithExifOrientation(data.ToArray(), 6);
+    }
+
+    /// <summary>
+    /// A lossless WebP whose left half is transparent and right half textured - textured, so it stays within the decode
+    /// guard's pixels per stored byte.
+    /// </summary>
+    private static byte[] TransparentWebp(int width, int height)
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            DrawPhoto(canvas, width, height);
+            using var clear = new SKPaint { BlendMode = SKBlendMode.Clear };
+            canvas.DrawRect(0, 0, width / 2f, height, clear);
+        }
+
+        using var pixmap = bitmap.PeekPixels();
+        using var data = pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, 75));
+        return data.ToArray();
+    }
+
+    /// <summary>A PNG of random colours and transparency, which neither PNG nor lossless WebP compresses.</summary>
+    private static byte[] RgbaNoisePng(int size)
+    {
+        var random = new Random(size);
+        using var bitmap = new SKBitmap(new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+        for (var y = 0; y < size; y++)
+        for (var x = 0; x < size; x++)
+        {
+            bitmap.SetPixel(x, y, new SKColor((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
+        }
+
+        using var pixmap = bitmap.PeekPixels();
+        using var data = pixmap.Encode(SKPngEncoderOptions.Default);
+        return data.ToArray();
+    }
+
+    private Task<byte[]> ReadStoredAsync(FileDescriptor file)
+    {
+        return WithUnitOfWorkAsync(async () =>
+        {
+            await using var stream = await _fileDescriptorManager.GetStreamOrNullAsync(file);
+            stream.ShouldNotBeNull();
+            return await ReadAllAsync(stream);
+        });
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)
