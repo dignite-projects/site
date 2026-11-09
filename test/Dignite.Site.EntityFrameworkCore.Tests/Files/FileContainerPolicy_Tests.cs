@@ -275,6 +275,42 @@ public class FileContainerPolicy_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// A phone stores a portrait photo sideways and records the turn in its EXIF orientation. Shrinking the photo
+    /// re-encodes it without the EXIF, so it is turned upright first: the stored picture is upright, fits the box with
+    /// its long side, and has no orientation left that a browser would apply a second time.
+    /// </summary>
+    [Theory]
+    // A quarter turn clockwise to display - the red left half of the stored picture comes out on top.
+    [InlineData(6, true)]
+    // A quarter turn anticlockwise - the red comes out at the bottom.
+    [InlineData(8, false)]
+    public async Task Sideways_Photo_Larger_Than_The_Images_Container_Limit_Is_Stored_Upright(byte orientation, bool redOnTop)
+    {
+        var upload = TestFiles.WithExifOrientation(TestFiles.RedLeftBlueRightJpeg(5120, 2560), orientation);
+
+        var descriptor = await UploadAsync(SiteFileContainerNames.Images, "portrait.jpg", upload);
+
+        var stored = await ReadAsync(descriptor);
+        using var data = SKData.CreateCopy(stored);
+        using var codec = SKCodec.Create(data);
+        codec.ShouldNotBeNull();
+        codec.EncodedFormat.ShouldBe(SKEncodedImageFormat.Jpeg);
+        codec.EncodedOrigin.ShouldBe(SKEncodedOrigin.TopLeft);
+        codec.Info.Width.ShouldBe(2048);
+        codec.Info.Height.ShouldBe(4096);
+
+        using var picture = SKBitmap.Decode(codec);
+        var top = TestFiles.AverageColor(picture, new SKRectI(768, 768, 1280, 1280));
+        var bottom = TestFiles.AverageColor(picture, new SKRectI(768, 2816, 1280, 3328));
+        var (red, blue) = redOnTop ? (top, bottom) : (bottom, top);
+        red.Red.ShouldBeGreaterThan(180);
+        red.Blue.ShouldBeLessThan(80);
+        blue.Blue.ShouldBeGreaterThan(180);
+        blue.Red.ShouldBeLessThan(80);
+        descriptor.Size.ShouldBe(stored.Length);
+    }
+
+    /// <summary>
     /// A picture that fits the box is the original, byte for byte: every image the site shows is rendered from it,
     /// so a lossy re-encode on upload would only be a loss the rendering cannot undo.
     /// </summary>

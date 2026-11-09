@@ -11,6 +11,10 @@
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Mapperly" Version="10.7.0" />
     <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.7.0" />
+    <!-- SkiaSharp, for ImageOrientation, which Admin.Application's upload resize and Public.Application's rendering
+         share. Through ABP's provider package rather than SkiaSharp itself, so the version stays the one ABP builds
+         against, as in those two projects. -->
+    <PackageReference Include="Volo.Abp.Imaging.SkiaSharp" Version="10.7.0" />
     <ProjectReference Include="..\Dignite.Site.Common.Application.Contracts\Dignite.Site.Common.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
   </ItemGroup>

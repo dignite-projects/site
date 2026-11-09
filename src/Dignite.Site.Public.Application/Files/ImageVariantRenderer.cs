@@ -1,4 +1,5 @@
 using System;
+using Dignite.Site.Common.Files;
 using Microsoft.Extensions.Options;
 using SkiaSharp;
 using Volo.Abp.DependencyInjection;
@@ -16,9 +17,8 @@ namespace Dignite.Site.Public.Files;
 /// </para>
 /// <para>
 /// <b>Upright.</b> A camera writes a photo sideways and records how to turn it in its EXIF orientation, which a
-/// browser applies to the stored file. Re-encoding drops the EXIF, so the orientation is applied to the pixels here.
-/// ABP's SkiaSharp resizer does not (<c>SKBitmap.Decode</c> ignores it), which is why the read side does not go
-/// through <c>IImageResizer</c>.
+/// browser applies to the stored file. Re-encoding drops the EXIF, so the orientation is applied to the pixels here
+/// (<see cref="ImageOrientation"/>, which the upload resize uses too).
 /// </para>
 /// <para>
 /// A size is applied as ABP's <c>ImageResizeMode.Crop</c> does, so an address resized before renders the same
@@ -62,7 +62,7 @@ public class ImageVariantRenderer : ITransientDependency
             .WithColorType(SKImageInfo.PlatformColorType)
             .WithAlphaType(codec.Info.AlphaType == SKAlphaType.Opaque ? SKAlphaType.Opaque : SKAlphaType.Premul);
         using var decoded = SKBitmap.Decode(codec, info) ?? throw new InvalidOperationException("The picture's pixels could not be decoded.");
-        var upright = Orient(decoded, codec.EncodedOrigin);
+        var upright = ImageOrientation.Orient(decoded, codec.EncodedOrigin);
         try
         {
             var resized = rendition.Resizes ? Resize(upright, rendition.Width ?? 0, rendition.Height ?? 0) : upright;
@@ -160,56 +160,6 @@ public class ImageVariantRenderer : ITransientDependency
                 cropped.Dispose();
                 throw;
             }
-        }
-    }
-
-    /// <summary>
-    /// <paramref name="source"/> turned as its EXIF <paramref name="origin"/> says: the bitmap itself when it is
-    /// upright already, else a new one.
-    /// </summary>
-    protected virtual SKBitmap Orient(SKBitmap source, SKEncodedOrigin origin)
-    {
-        if (origin == SKEncodedOrigin.TopLeft)
-        {
-            return source;
-        }
-
-        float w = source.Width;
-        float h = source.Height;
-
-        // x' = ScaleX * x + SkewX * y + TransX, y' = SkewY * x + ScaleY * y + TransY: where a stored pixel lands.
-        var matrix = origin switch
-        {
-            SKEncodedOrigin.TopRight => new SKMatrix(-1, 0, w, 0, 1, 0, 0, 0, 1),
-            SKEncodedOrigin.BottomRight => new SKMatrix(-1, 0, w, 0, -1, h, 0, 0, 1),
-            SKEncodedOrigin.BottomLeft => new SKMatrix(1, 0, 0, 0, -1, h, 0, 0, 1),
-            SKEncodedOrigin.LeftTop => new SKMatrix(0, 1, 0, 1, 0, 0, 0, 0, 1),
-            SKEncodedOrigin.RightTop => new SKMatrix(0, -1, h, 1, 0, 0, 0, 0, 1),
-            SKEncodedOrigin.RightBottom => new SKMatrix(0, -1, h, -1, 0, w, 0, 0, 1),
-            SKEncodedOrigin.LeftBottom => new SKMatrix(0, 1, 0, -1, 0, w, 0, 0, 1),
-            _ => SKMatrix.Identity
-        };
-        if (matrix.IsIdentity)
-        {
-            return source;
-        }
-
-        var swapsSides = origin is SKEncodedOrigin.LeftTop or SKEncodedOrigin.RightTop
-            or SKEncodedOrigin.RightBottom or SKEncodedOrigin.LeftBottom;
-        var oriented = new SKBitmap(swapsSides
-            ? source.Info.WithSize(source.Height, source.Width)
-            : source.Info);
-        try
-        {
-            using var canvas = new SKCanvas(oriented);
-            canvas.SetMatrix(matrix);
-            canvas.DrawBitmap(source, 0, 0);
-            return oriented;
-        }
-        catch
-        {
-            oriented.Dispose();
-            throw;
         }
     }
 }

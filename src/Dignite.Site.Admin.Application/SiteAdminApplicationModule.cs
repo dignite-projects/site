@@ -1,5 +1,6 @@
 ﻿using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Abp.BlobStoring.Pipeline;
+using System.Collections.Generic;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Admin.Themes;
@@ -71,6 +72,13 @@ public class SiteAdminApplicationModule : AbpModule
 
         ConfigureFileContainers();
         ConfigureImaging();
+
+        // ABP's SkiaSharp resizer stores a shrunk photo on its side; UprightSkiaSharpImageResizerContributor, which
+        // registers itself, turns it first. IImageResizer asks every contributor in turn, so ABP's has to go rather
+        // than be outranked.
+        context.Services.RemoveAll(descriptor =>
+            descriptor.ServiceType == typeof(IImageResizerContributor) &&
+            descriptor.ImplementationType == typeof(SkiaSharpImageResizerContributor));
     }
 
     /// <summary>
@@ -109,7 +117,8 @@ public class SiteAdminApplicationModule : AbpModule
     /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), then
     /// <see cref="ImageMetadataStripContributor"/> (drops the metadata a design tool piles into a JPEG or PNG, keeping
     /// every byte of the image), then <c>ImageResize</c> (shrinks a picture
-    /// that exceeds the box, keeping its aspect ratio; a picture that fits is stored as uploaded, and there is
+    /// that exceeds the box, keeping its aspect ratio, turned upright by its EXIF orientation first -
+    /// <see cref="UprightSkiaSharpImageResizerContributor"/>; a picture that fits is stored as uploaded, and there is
     /// no minimum size). No GZip: the containers' stored format stays the plain file. Only <see cref="SiteFileContainerNames.Images"/>
     /// gets the image contributors: <see cref="SiteFileContainerNames.Attachments"/> takes documents only, so no picture
     /// can enter it. Before the resize contributor decodes anything, the

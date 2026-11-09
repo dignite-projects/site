@@ -40,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A resized photo is upright.** A camera stores a portrait photo sideways and records the turn in its EXIF
   orientation; the `?Width=` resize decoded the pixels without it and dropped the EXIF, so a resized portrait came out
   on its side. Every rendered image is now turned by its orientation before it is encoded.
+- **A photo the `images` container shrinks is stored upright.** ABP's SkiaSharp resizer decodes a picture without its
+  EXIF orientation and re-encodes it without the EXIF, so a portrait photo larger than the box - a 48-megapixel phone
+  photo, 8064 x 6048 - was stored on its side. Site now registers `UprightSkiaSharpImageResizerContributor` in place of
+  ABP's `SkiaSharpImageResizerContributor`: it turns the picture by its orientation, then resizes and encodes it as
+  ABP's does, with the same resize modes, so the box is filled by the photo as it is seen. A photo stored sideways by
+  an earlier version stays as it was stored; upload it again to store it upright. See
+  [Containers](docs/en/files.md#containers).
 - **Opening a theme file written with `\r\n` line breaks no longer marks it unsaved.** CodeMirror reads every line break
   as `\n`, and the Theme screen's code editor compared the file's text with that document: on the editor's next update
   they differed, so it replaced the whole document and emitted it as an edit. The tab showed the unsaved dot and **Save**
