@@ -114,14 +114,15 @@ public static class SiteFileUrl
     }
 
     /// <summary>
-    /// <paramref name="url"/> resized to <paramref name="width"/> (and <paramref name="height"/>, when
-    /// given). A size already on the address is replaced; every other query parameter - <c>__tenant</c> on an
-    /// address issued by an earlier version, say - is kept. An address that is not a Site file - an external image, say - is returned as
-    /// is, and so is a blank one.
+    /// <paramref name="url"/> resized to <paramref name="width"/> and <paramref name="height"/>, each when
+    /// given: with both the picture is cropped to fill the box, with one the other follows the picture's
+    /// proportions, and with neither the address is returned as it is. A size already on the address is replaced;
+    /// every other query parameter - <c>__tenant</c> on an address issued by an earlier version, say - is kept. An
+    /// address that is not a Site file - an external image, say - is returned as is, and so is a blank one.
     /// </summary>
-    public static string? Sized(string? url, int width, int? height = null)
+    public static string? Sized(string? url, int? width = null, int? height = null)
     {
-        if (!IsSiteFile(url))
+        if (!IsSiteFile(url) || (width == null && height == null))
         {
             return url;
         }
@@ -135,7 +136,12 @@ public static class SiteFileUrl
                 .Where(parameter => !IsSizeParameter(parameter))
                 .ToArray();
 
-        var size = height == null ? $"Width={width}" : $"Width={width}&Height={height}";
+        var size = (width, height) switch
+        {
+            (not null, not null) => $"Width={width}&Height={height}",
+            (not null, null) => $"Width={width}",
+            _ => $"Height={height}"
+        };
         return kept.Length == 0
             ? $"{baseUrl}?{size}"
             : $"{baseUrl}?{string.Join('&', kept)}&{size}";

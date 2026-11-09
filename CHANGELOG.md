@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`file_url` takes its width as optional.** A Scriban template that wants the image as stored writes
+  `file_url url` instead of having to name a width, and `null` counts as not given: it used to be turned into
+  `Width=0`. `file_url url null 200` scales by height alone. `SiteFileUrl.Sized` (both `Dignite.Site.Files` and
+  `Dignite.Site.Public.Templating`) takes `int? width` to match: a call that passes an `int` compiles as before, but
+  code built against an earlier version needs a rebuild. See
+  [Functions](docs/en/rendering/scriban-templates.md#functions).
+
 ## [2.3.0] - 2026-11-09
 
 ### Added
