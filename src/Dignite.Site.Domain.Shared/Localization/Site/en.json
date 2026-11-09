@@ -258,6 +258,8 @@
     "ThemeUsage:Layout": "layout",
     "ThemeUsage:DefaultLayout": "default layout",
     "ThemeSyntaxErrors": "Syntax errors",
+    "CodeEditorFailed": "The code editor ran into an error.",
+    "CodeEditorFailedHint": "This usually means the application installed more than one copy of a CodeMirror or Lezer package, such as @codemirror/state or @lezer/common. The application's developer can list the copies with npm ls @codemirror/state @lezer/common and deduplicate them.",
     "ThemeCheck": "Check",
     "ThemeCheckClean": "No problems found.",
     "ThemeCheckNotRun": "Run the check to see what is wrong before publishing.",

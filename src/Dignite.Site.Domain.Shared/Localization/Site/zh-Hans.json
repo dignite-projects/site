@@ -258,6 +258,8 @@
     "ThemeUsage:Layout": "布局页",
     "ThemeUsage:DefaultLayout": "默认布局页",
     "ThemeSyntaxErrors": "语法错误",
+    "CodeEditorFailed": "代码编辑器出错了。",
+    "CodeEditorFailedHint": "这通常是因为应用装了多份 CodeMirror 或 Lezer 的包，例如 @codemirror/state 或 @lezer/common。请应用的开发者用 npm ls @codemirror/state @lezer/common 查看有几份，并对依赖去重。",
     "ThemeCheck": "检查",
     "ThemeCheckClean": "没有发现问题。",
     "ThemeCheckNotRun": "发布前先运行检查，看看哪里有问题。",

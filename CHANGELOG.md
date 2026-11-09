@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   last took or emitted, puts a reloaded file in without taking it for an edit, and writes an edit back with the file's
   own line break - `\r\n` when every line break of the file is one, `\n` otherwise - so that editing a line changes that
   line. Stored files are not touched: their text, content hashes and the check's fingerprint stay as they are.
+- **The Theme screen's code editor says what went wrong instead of staying blank.** CodeMirror and Lezer work only with
+  one copy of each of their packages, and an application whose lockfile already had older entries for them - Yarn 1
+  keeps those entries - installed a second copy next to the new one. Opening a file then threw from inside CodeMirror:
+  with two copies of `@codemirror/state` the editor was never created and only the file's path showed, and with two of
+  `@lezer/common` the console reported a `TypeError` once the file was parsed. The editor now catches an exception
+  while opening a file, parses the whole file then rather than in CodeMirror's idle callbacks, and receives the
+  exceptions CodeMirror catches itself; it shows the message where the file would be, with a hint at duplicate
+  packages. When opening a file failed, the editor is hidden and edits nothing until a file is opened again, so an edit
+  cannot land in the wrong file. `@dignite/ng.site` now declares `@codemirror/language` (`^6.0.0`), which it imports
+  for the parse and which the language packages already brought. How to find and merge the copies:
+  [When the Code Editor Shows an Error](docs/en/admin-ui.md#when-the-code-editor-shows-an-error).
 
 ## [2.2.0] - 2026-11-06
 
