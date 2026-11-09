@@ -31,6 +31,72 @@ internal static class TestFiles
         return Encode(width, height, seed, SKEncodedImageFormat.Webp);
     }
 
+    /// <summary>
+    /// A JPEG of noise, mostly red on the left half and mostly blue on the right, so which way it was turned shows -
+    /// noise rather than flat halves for the same reason as <see cref="Jpeg"/>.
+    /// </summary>
+    public static byte[] RedLeftBlueRightJpeg(int width, int height, int seed = 42)
+    {
+        var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
+        var pixels = new byte[info.BytesSize];
+        new Random(seed).NextBytes(pixels);
+        for (var offset = 0; offset < pixels.Length; offset += 4)
+        {
+            var left = offset / 4 % width < width / 2;
+            pixels[offset] = left ? (byte)(200 + pixels[offset] % 56) : (byte)(pixels[offset] % 56);
+            pixels[offset + 1] = (byte)(pixels[offset + 1] % 56);
+            pixels[offset + 2] = left ? (byte)(pixels[offset + 2] % 56) : (byte)(200 + pixels[offset + 2] % 56);
+            pixels[offset + 3] = 0xFF;
+        }
+
+        using var image = SKImage.FromPixelCopy(info, pixels, info.RowBytes);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 75);
+        return data.ToArray();
+    }
+
+    /// <summary>
+    /// <paramref name="jpeg"/> with an EXIF orientation, as a camera records how to turn the photo it stored: an APP1
+    /// segment right after SOI - "Exif\0\0", a big-endian TIFF header, one IFD with one entry, Orientation (0x0112),
+    /// SHORT, count 1 - and no next IFD. 6 is a portrait taken with the phone turned clockwise: the stored picture
+    /// is displayed a quarter turn clockwise.
+    /// </summary>
+    public static byte[] WithExifOrientation(byte[] jpeg, byte orientation)
+    {
+        var app1 = new byte[]
+        {
+            0xFF, 0xE1, 0x00, 0x22,
+            0x45, 0x78, 0x69, 0x66, 0x00, 0x00,
+            0x4D, 0x4D, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x08,
+            0x00, 0x01,
+            0x01, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, orientation, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+        };
+        var result = new byte[jpeg.Length + app1.Length];
+        Buffer.BlockCopy(jpeg, 0, result, 0, 2);
+        Buffer.BlockCopy(app1, 0, result, 2, app1.Length);
+        Buffer.BlockCopy(jpeg, 2, result, 2 + app1.Length, jpeg.Length - 2);
+        return result;
+    }
+
+    /// <summary>The average colour of a region of <paramref name="bitmap"/>.</summary>
+    public static (int Red, int Green, int Blue) AverageColor(SKBitmap bitmap, SKRectI region)
+    {
+        long red = 0, green = 0, blue = 0;
+        for (var y = region.Top; y < region.Bottom; y++)
+        {
+            for (var x = region.Left; x < region.Right; x++)
+            {
+                var pixel = bitmap.GetPixel(x, y);
+                red += pixel.Red;
+                green += pixel.Green;
+                blue += pixel.Blue;
+            }
+        }
+
+        long count = region.Width * region.Height;
+        return ((int)(red / count), (int)(green / count), (int)(blue / count));
+    }
+
     /// <summary>Enough of a PDF for signature detection: the header and an end marker.</summary>
     public static byte[] Pdf(string text = "not really a pdf, but not an image either")
     {

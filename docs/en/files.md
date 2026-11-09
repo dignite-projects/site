@@ -17,7 +17,7 @@ The rules are the containers' configuration (`SiteAdminApplicationModule`), and 
 
 | Container | Accepts | Size limit | On upload |
 |---|---|---|---|
-| `images` | JPEG, PNG, GIF, WebP | 25 MB | The metadata a design tool piles into a JPEG or PNG and nothing displaying it reads is removed, without touching the image (see below). A picture larger than 4096 x 4096 is then shrunk to fit, keeping its aspect ratio; one that fits keeps its image exactly as uploaded. The images a page shows are rendered from it when they are served; see [Serving Files](#serving-files). |
+| `images` | JPEG, PNG, GIF, WebP | 25 MB | The metadata a design tool piles into a JPEG or PNG and nothing displaying it reads is removed, without touching the image (see below). A picture larger than 4096 x 4096 is then shrunk to fit, keeping its aspect ratio, and turned upright by the photo's EXIF orientation, which the shrunk picture does not keep; one that fits keeps its image exactly as uploaded. The images a page shows are rendered from it when they are served; see [Serving Files](#serving-files). |
 | `attachments` | PDF, Word, Excel, PowerPoint (both the legacy and the Open XML formats), text, CSV, ZIP | 20 MB | Stored as uploaded. |
 | `theme-assets` | ICO, WOFF2, WOFF, TTF, OTF | 5 MB | Stored as uploaded. The binary files a [theme](rendering/scriban-templates.md) links, such as the favicon and web fonts. Written with the theme's permission; see [Permissions](#permissions). |
 

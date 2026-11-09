@@ -397,24 +397,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Jpeg, 95);
-        var jpeg = data.ToArray();
-
-        // An APP1 segment right after SOI: "Exif\0\0", a big-endian TIFF header, one IFD with one entry -
-        // Orientation (0x0112), SHORT, count 1, value 6 - and no next IFD.
-        var app1 = new byte[]
-        {
-            0xFF, 0xE1, 0x00, 0x22,
-            0x45, 0x78, 0x69, 0x66, 0x00, 0x00,
-            0x4D, 0x4D, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x08,
-            0x00, 0x01,
-            0x01, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00
-        };
-        var result = new byte[jpeg.Length + app1.Length];
-        Buffer.BlockCopy(jpeg, 0, result, 0, 2);
-        Buffer.BlockCopy(app1, 0, result, 2, app1.Length);
-        Buffer.BlockCopy(jpeg, 2, result, 2 + app1.Length, jpeg.Length - 2);
-        return result;
+        return TestFiles.WithExifOrientation(data.ToArray(), 6);
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)
