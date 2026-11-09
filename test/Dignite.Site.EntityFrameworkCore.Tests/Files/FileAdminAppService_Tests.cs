@@ -135,7 +135,7 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Theory]
-    [InlineData(SiteFileContainerNames.Images, 10, ".png", ".pdf")]
+    [InlineData(SiteFileContainerNames.Images, 25, ".png", ".pdf")]
     [InlineData(SiteFileContainerNames.Attachments, 20, ".pdf", ".png")]
     public async Task Container_Configuration_Should_Report_What_The_Pipeline_Enforces(string containerName, int maxMb, string allowed, string refused)
     {

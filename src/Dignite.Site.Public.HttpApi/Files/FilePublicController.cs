@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 using Dignite.Site.Files;
@@ -21,6 +22,11 @@ namespace Dignite.Site.Public.Files;
 /// database or the blob. <c>Cache-Control</c> is public for a day rather than <c>immutable</c>, because a file
 /// can be deleted, and a day bounds how long a shared cache keeps serving one that was.
 /// </para>
+/// <para>
+/// <b>WebP.</b> A JPEG or PNG is served as WebP to a request whose <c>Accept</c> lists <c>image/webp</c>, so the
+/// address answers with <c>Vary: Accept</c> and the ETag says which of the two it is. The download address serves
+/// the stored file, whatever the request takes.
+/// </para>
 /// </summary>
 [RemoteService(Name = SitePublicRemoteServiceConsts.RemoteServiceName)]
 [Area(SitePublicRemoteServiceConsts.ModuleName)]
@@ -41,6 +47,13 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
     [Route("{containerName}/{*blobName}")]
     public virtual async Task<IRemoteStreamContent> GetAsync(string containerName, string blobName, GetFileInput input)
     {
+        // A query that already says so is kept: it is how the controller of a public web application that calls
+        // Site through the client proxy passes on its own visitor's Accept header.
+        input.AcceptWebp = input.AcceptWebp || AcceptsWebp();
+
+        // The response depends on Accept whatever the file: the validator below does.
+        Response.Headers.Append(HeaderNames.Vary, HeaderNames.Accept);
+
         var entityTag = CreateEntityTag(blobName, input);
         if (IsNotModified(entityTag))
         {
@@ -79,10 +92,38 @@ public class FilePublicController : SitePublicController, IFilePublicAppService
         var size = (input.Width ?? 0) > 0 || (input.Height ?? 0) > 0
             ? $"-{(input.Width ?? 0).ToString(CultureInfo.InvariantCulture)}x{(input.Height ?? 0).ToString(CultureInfo.InvariantCulture)}"
             : string.Empty;
+        var format = input.AcceptWebp ? "-webp" : string.Empty;
 
         // Quoted-string content may not contain '"' or '\'; a blob name is generated, but be strict anyway.
-        var opaque = (blobName + size).Replace("\"", string.Empty).Replace("\\", string.Empty);
+        var opaque = (blobName + size + format).Replace("\"", string.Empty).Replace("\\", string.Empty);
         return new EntityTagHeaderValue($"\"{opaque}\"");
+    }
+
+    /// <summary>
+    /// Whether the request's <c>Accept</c> header lists <c>image/webp</c> (and does not refuse it with
+    /// <c>q=0</c>). A wildcard does not count: <c>*/*</c> is what a crawler that reads only JPEG and PNG sends too.
+    /// </summary>
+    protected virtual bool AcceptsWebp()
+    {
+        IList<MediaTypeHeaderValue> accept;
+        try
+        {
+            accept = Request.GetTypedHeaders().Accept;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
+        foreach (var mediaType in accept)
+        {
+            if (mediaType.MediaType.Equals("image/webp", StringComparison.OrdinalIgnoreCase))
+            {
+                return mediaType.Quality is not 0d;
+            }
+        }
+
+        return false;
     }
 
     protected virtual bool IsNotModified(EntityTagHeaderValue entityTag)

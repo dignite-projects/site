@@ -17,7 +17,7 @@ The rules are the containers' configuration (`SiteAdminApplicationModule`), and 
 
 | Container | Accepts | Size limit | On upload |
 |---|---|---|---|
-| `images` | JPEG, PNG, GIF, WebP | 10 MB | A picture larger than 1920 x 1920 is shrunk to fit, keeping its aspect ratio; one that fits is stored as uploaded. Then it is re-encoded in its own format, and the result is kept only if it is smaller. |
+| `images` | JPEG, PNG, GIF, WebP | 25 MB | The metadata a design tool piles into a JPEG or PNG and nothing displaying it reads is removed, without touching the image (see below). A picture larger than 4096 x 4096 is then shrunk to fit, keeping its aspect ratio; one that fits keeps its image exactly as uploaded. The images a page shows are rendered from it when they are served; see [Serving Files](#serving-files). |
 | `attachments` | PDF, Word, Excel, PowerPoint (both the legacy and the Open XML formats), text, CSV, ZIP | 20 MB | Stored as uploaded. |
 | `theme-assets` | ICO, WOFF2, WOFF, TTF, OTF | 5 MB | Stored as uploaded. The binary files a [theme](rendering/scriban-templates.md) links, such as the favicon and web fonts. Written with the theme's permission; see [Permissions](#permissions). |
 
@@ -28,6 +28,13 @@ A file's type is **detected from its bytes**, never taken from the uploader's cl
 * A type the container does not accept is refused with `Dignite.Abp.BlobStoring:ContentTypeNotAllowed`. A picture uploaded into `attachments` is refused the same way; it belongs in `images`.
 * A file whose content contradicts the kind of its extension, such as a PDF named `report.png`, is refused with `Dignite.Abp.BlobStoring:ContentTypeMismatch`. A picture named with another picture's extension, such as a PNG named `photo.jpg`, is stored as what it is.
 * A file larger than the container's limit is refused with `Dignite.Abp.BlobStoring:ContentTooLarge`, and a picture beyond 8192 x 8192 or 50 million pixels with `Dignite.Abp.BlobStoring.Imaging:ImageTooLarge`.
+
+The size limit of `images` applies to the file as it is sent. What is removed from a picture in `images` is dropped as it is, with every other byte copied unchanged:
+
+* From a JPEG: Extended XMP, the Photoshop image resources and comments. Extended XMP is where Photoshop puts the part of its XMP that does not fit in one segment, typically `photoshop:DocumentAncestors`, the ID of every document ever pasted or placed into the file, which can grow to many megabytes in an image under one. EXIF (with the orientation), the main XMP packet, the ICC profile and the Adobe segment are kept.
+* From a PNG: the text chunks (`tEXt`, `zTXt`, `iTXt`, where Photoshop writes its XMP) and `tIME`. Every other chunk is kept.
+
+The recorded size of a file is what is stored.
 
 Uploading the same bytes into the same container twice stores them once: the second file is a new entry in the library that refers to the bytes already stored.
 
@@ -48,7 +55,7 @@ Configure<AbpBlobStoringOptions>(options =>
 });
 ````
 
-Images are resized with ABP's SkiaSharp image provider, which the Site packages depend on. A host that runs on Linux also references the `SkiaSharp.NativeAssets.Linux` package.
+Images are resized and converted with SkiaSharp, through ABP's SkiaSharp image provider, which the Site packages depend on. A host that runs on Linux also references the `SkiaSharp.NativeAssets.Linux` package.
 
 ## Permissions
 
@@ -90,9 +97,13 @@ An absolute address that a user typed into a field, such as the address of an ex
 
 `GET` and `HEAD` on `/api/site-public/files/{containerName}/{blobName}` serve a file anonymously. The endpoint serves only the two Site containers: another container, a deleted file and an unknown name are all answered with `404`.
 
-* `?Width=` and `?Height=` resize an image on the way out, up to 4096 pixels a side; with both given, the image is cropped to fill the box. The source can be at most 4096 x 4096 and 16 million pixels. Anything that is not an image is served as stored, and so is a GIF.
-* `/api/site-public/files/download/{containerName}/{blobName}?fileName=` serves the file as an attachment with the given file name.
-* Responses carry an `ETag`, `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`.
+* `?Width=` and `?Height=` resize an image on the way out, up to 4096 pixels a side; with both given, the image is cropped to fill the box. The source can be at most 4096 x 4096. Anything that is not an image is served as stored, and so is a GIF.
+* A JPEG or PNG is served as **WebP** to a request whose `Accept` header lists `image/webp`, as every current browser's does for an image: lossy for a JPEG, lossless for a PNG, so a screenshot, a logo or a picture with text keeps every pixel and its transparency. Served at its stored size, a picture stays as stored when its WebP would be no smaller. A GIF and a WebP are never converted, and a request that does not list `image/webp`, such as a social network fetching an `og:image`, gets the stored format.
+* A rendered image, resized or converted, is turned upright by the photo's EXIF orientation, which the rendering does not keep.
+* `/api/site-public/files/download/{containerName}/{blobName}?fileName=` serves the file as an attachment with the given file name, always as stored.
+* Responses carry an `ETag`, `Cache-Control: public, max-age=86400`, `Vary: Accept` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`.
+
+A CDN or proxy that caches these responses must key them on `Accept` as `Vary` says; one that ignores `Vary` would hand the WebP it cached for a browser to a client that cannot read it. Rendered images are kept in the server's memory for ten minutes, so a CDN in front is what keeps the conversion from being repeated.
 
 In a template, build a resized address with `SiteFileUrl.Sized` from the `Dignite.Site.Public.Templating` namespace; in Angular, use `sizedFileUrl` from `@dignite/ng.site`:
 

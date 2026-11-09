@@ -103,7 +103,7 @@ public class FileDescriptorManager_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Dedup_A_Resized_Picture_By_Its_Upload()
     {
-        var bytes = TestFiles.Jpeg(2400, 600, seed: 11);
+        var bytes = TestFiles.Jpeg(5120, 1280, seed: 11);
 
         var owner = await UploadAsync(SiteFileContainerNames.Images, "wide.jpg", bytes);
         var reference = await UploadAsync(SiteFileContainerNames.Images, "wide-again.jpg", bytes);

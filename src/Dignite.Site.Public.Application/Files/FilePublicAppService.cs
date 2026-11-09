@@ -8,14 +8,14 @@ using Microsoft.Extensions.Caching.Memory;
 using Volo.Abp;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Entities;
-using Volo.Abp.Imaging;
 using Volo.Abp.Threading;
 
 namespace Dignite.Site.Public.Files;
 
 /// <summary>
 /// The public read endpoint's logic: find the live descriptor in the current tenant (the request's, resolved
-/// like any other), open its bytes, and optionally resize an image on the way out.
+/// like any other), open its bytes, and render an image on the way out - resized when a size is asked, WebP when
+/// the caller takes it (<see cref="ImageVariantRenderer"/>).
 /// <para>
 /// Anonymous on purpose, and not feature-gated (see <c>SiteFeatures.Enable</c>): it serves a published
 /// site's images to its visitors. What keeps it from serving anything else is the container allow-list -
@@ -26,32 +26,31 @@ namespace Dignite.Site.Public.Files;
 public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 {
     protected const int MaxResizeDimension = 4096;
-    protected const long MaxResizePixelCount = 16_000_000;
+    protected const long MaxResizePixelCount = 4096L * 4096;
     protected const int MaxDecompressionRatio = 100;
-    protected const int DecodeTimeoutSeconds = 10;
     protected const int MaxCachedImageBytes = 8 * 1024 * 1024;
 
     /// <summary>
-    /// Resized images, in a cache owned by this service: the host's shared <see cref="IMemoryCache"/> may
+    /// Rendered images, in a cache owned by this service: the host's shared <see cref="IMemoryCache"/> may
     /// hold unrelated entries and must not decide this endpoint's eviction. Keyed by the actual blob, which
     /// is immutable, so an entry never goes stale - it only ages out.
     /// </summary>
-    private static readonly IMemoryCache ResizedImageCache = new MemoryCache(new MemoryCacheOptions
+    private static readonly IMemoryCache RenderedImageCache = new MemoryCache(new MemoryCacheOptions
     {
         SizeLimit = 64 * 1024 * 1024
     });
 
     protected FileDescriptorManager FileDescriptorManager { get; }
 
-    protected IImageResizer ImageResizer { get; }
+    protected ImageVariantRenderer ImageVariantRenderer { get; }
 
     protected CancellationToken RequestCancellationToken =>
         LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None;
 
-    public FilePublicAppService(FileDescriptorManager fileDescriptorManager, IImageResizer imageResizer)
+    public FilePublicAppService(FileDescriptorManager fileDescriptorManager, ImageVariantRenderer imageVariantRenderer)
     {
         FileDescriptorManager = fileDescriptorManager;
-        ImageResizer = imageResizer;
+        ImageVariantRenderer = imageVariantRenderer;
     }
 
     public virtual async Task<IRemoteStreamContent> GetAsync(string containerName, string blobName, GetFileInput input)
@@ -70,34 +69,35 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             throw new EntityNotFoundException(typeof(FileDescriptor), $"{containerName}/{blobName}");
         }
 
-        if ((input.Width ?? 0) <= 0 && (input.Height ?? 0) <= 0)
+        var resize = (input.Width ?? 0) > 0 || (input.Height ?? 0) > 0;
+        if (!resize && !(input.AcceptWebp && ImageVariantRenderer.ConvertsToWebp(file.MimeType)))
         {
-            return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
+            return Stored(file, stream);
         }
 
-        return await ResizeAsync(file, stream, input, cancellationToken);
+        return await RenderAsync(file, stream, input, resize, cancellationToken);
     }
 
     /// <summary>
-    /// Resizes an image within bounds that keep one request from costing unbounded CPU or memory: the target
+    /// Renders an image within bounds that keep one request from costing unbounded CPU or memory: the target
     /// dimensions, and the source dimensions, pixel count and pixels per stored byte (read from the image
-    /// header, without decoding), are checked before the imaging provider decodes anything, and the provider
-    /// runs under a timeout - which only interrupts a provider that observes its cancellation token (SkiaSharp
-    /// decodes synchronously, so for it the header checks are the protection).
+    /// header, without decoding), are checked before anything is decoded. SkiaSharp decodes synchronously and
+    /// cannot be interrupted, so these checks are the protection.
     /// <para>
-    /// Whether a file is a resizable image is decided by its recorded <see cref="FileDescriptor.MimeType"/>,
-    /// the type detected from its bytes on upload. Anything that is not one of Site's raster image types, a
-    /// picture whose header cannot be read, and a picture the provider does not handle (SkiaSharp resizes JPEG,
-    /// PNG and WebP; a GIF is served as stored) are returned as stored. Limits fail with
-    /// <see cref="BlobStoringImagingErrorCodes.ImageTooLarge"/>, a provider that throws or gives up with
-    /// <see cref="BlobStoringImagingErrorCodes.ImageProcessingFailed"/>, the timeout with
-    /// <see cref="BlobStoringImagingErrorCodes.ImageDecodeTimeout"/> - the codes the upload contributors use.
+    /// Whether a file is an image is decided by its recorded <see cref="FileDescriptor.MimeType"/>, the type
+    /// detected from its bytes on upload. Anything that is not one of Site's raster image types, a picture whose
+    /// header cannot be read, and a picture the renderer leaves alone (a GIF, or a WebP no smaller than the stored
+    /// file) are served as stored. With a size asked, limits fail with
+    /// <see cref="BlobStoringImagingErrorCodes.ImageTooLarge"/> and a picture that cannot be decoded with
+    /// <see cref="BlobStoringImagingErrorCodes.ImageProcessingFailed"/> - the codes the upload contributors use.
+    /// Without one the request only asked for WebP, which a picture beyond the limits is served without.
     /// </para>
     /// </summary>
-    protected virtual async Task<IRemoteStreamContent> ResizeAsync(
+    protected virtual async Task<IRemoteStreamContent> RenderAsync(
         FileDescriptor file,
         Stream stream,
         GetFileInput input,
+        bool resize,
         CancellationToken cancellationToken)
     {
         var disposeStream = true;
@@ -113,9 +113,9 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 
             if (!SiteFileTypes.IsImage(file.MimeType))
             {
-                // Not a resizable image: serve the original. The response now owns the stream.
+                // Not an image: serve the original. The response now owns the stream.
                 disposeStream = false;
-                return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
+                return Stored(file, stream);
             }
 
             if (!stream.CanSeek)
@@ -130,11 +130,11 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             var dimensions = ImageDimensionReader.Read(stream);
             if (dimensions == null)
             {
-                // A header that cannot be read cannot be bounded either: rather than hand an unbounded decode to
-                // the provider, serve the picture as stored.
+                // A header that cannot be read cannot be bounded either: rather than decode an unbounded picture,
+                // serve it as stored.
                 stream.Position = 0;
                 disposeStream = false;
-                return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.Length, disposeStream: true);
+                return Stored(file, stream);
             }
 
             var (width, height) = dimensions.Value;
@@ -144,47 +144,48 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
                 totalPixels > MaxResizePixelCount ||
                 stream.Length > 0 && totalPixels / (double)stream.Length > MaxDecompressionRatio)
             {
+                if (!resize)
+                {
+                    stream.Position = 0;
+                    disposeStream = false;
+                    return Stored(file, stream);
+                }
+
                 throw CreateImageTooLargeException("The image is too large to resize safely.", width, height);
             }
 
-            var cacheKey = $"{file.TenantId}:{file.ContainerName}:{file.GetActualBlobName()}:{input.Width}:{input.Height}";
-            if (ResizedImageCache.TryGetValue<byte[]>(cacheKey, out var cached) && cached != null)
+            var cacheKey = $"{file.TenantId}:{file.ContainerName}:{file.GetActualBlobName()}:{input.Width}:{input.Height}:{(input.AcceptWebp ? "webp" : "")}";
+            if (!RenderedImageCache.TryGetValue<RenderedImage>(cacheKey, out var rendered) || rendered == null)
             {
-                return new RemoteStreamContent(new MemoryStream(cached, writable: false), file.Name, file.MimeType, cached.LongLength, disposeStream: true);
+                cancellationToken.ThrowIfCancellationRequested();
+                rendered = Render(stream, input);
+                if (rendered.Cacheable)
+                {
+                    // An entry that says "serve the stored picture" is cached too, so a PNG whose WebP is no
+                    // smaller is not encoded again on every request.
+                    RenderedImageCache.Set(cacheKey, rendered, new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                        Size = Math.Max(1, rendered.Variant?.Content.LongLength ?? 0)
+                    });
+                }
             }
 
-            stream.Position = 0;
-            var resizedStream = await ResizeWithProviderAsync(file, stream, input, cancellationToken);
-            if (resizedStream == null)
+            if (rendered.Variant == null)
             {
-                // The provider does not handle this format: serve the original. The response now owns the stream.
+                // Nothing to render (a GIF), or a WebP no smaller than the stored picture: serve the original.
                 stream.Position = 0;
                 disposeStream = false;
-                return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.Length, disposeStream: true);
+                return Stored(file, stream);
             }
 
-            byte[] resized;
-            using (resizedStream)
-            {
-                if (resizedStream.CanSeek)
-                {
-                    resizedStream.Position = 0;
-                }
-
-                resized = await ReadBoundedAsync(resizedStream, MaxResizePixelCount * 4, cancellationToken);
-            }
-
-            if (resized.Length <= MaxCachedImageBytes)
-            {
-                ResizedImageCache.Set(cacheKey, resized, new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
-                    Size = resized.LongLength
-                });
-            }
-
-            // The providers re-encode in the source format, so the recorded type still describes the bytes.
-            return new RemoteStreamContent(new MemoryStream(resized, writable: false), file.Name, file.MimeType, resized.LongLength, disposeStream: true);
+            var content = rendered.Variant.Content;
+            return new RemoteStreamContent(
+                new MemoryStream(content, writable: false),
+                FileNameFor(file.Name, rendered.Variant.MimeType),
+                rendered.Variant.MimeType,
+                content.LongLength,
+                disposeStream: true);
         }
         finally
         {
@@ -196,64 +197,59 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     }
 
     /// <summary>
-    /// Crops <paramref name="stream"/> (seekable, at position 0, an image of the file's type) to the requested
-    /// size with ABP's <see cref="IImageResizer"/>. Returns the resized image, or <c>null</c> when the provider
-    /// reports the format <see cref="ImageProcessState.Unsupported"/>. Never disposes <paramref name="stream"/>.
+    /// Renders <paramref name="stream"/> (seekable, an image of a bounded size). An image beyond
+    /// <see cref="MaxCachedImageBytes"/> is served but not cached.
     /// </summary>
-    protected virtual async Task<Stream?> ResizeWithProviderAsync(
-        FileDescriptor file,
-        Stream stream,
-        GetFileInput input,
-        CancellationToken cancellationToken)
+    protected virtual RenderedImage Render(Stream stream, GetFileInput input)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(DecodeTimeoutSeconds));
+        stream.Position = 0;
+        byte[] source;
+        if (stream is MemoryStream memory)
+        {
+            source = memory.ToArray();
+        }
+        else
+        {
+            using var copy = new MemoryStream();
+            stream.CopyTo(copy);
+            source = copy.ToArray();
+        }
 
-        ImageProcessResult<Stream> result;
+        ImageVariant? variant;
         try
         {
-            result = await ImageResizer.ResizeAsync(
-                stream,
-                new ImageResizeArgs(
-                    input.Width > 0 ? (uint)input.Width : null,
-                    input.Height > 0 ? (uint)input.Height : null,
-                    ImageResizeMode.Crop),
-                file.MimeType,
-                timeout.Token);
-        }
-        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-        {
-            throw CreateDecodeTimeoutException();
+            variant = ImageVariantRenderer.Render(source, input.Width, input.Height, input.AcceptWebp);
         }
         catch (Exception exception) when (exception is not (OperationCanceledException or OutOfMemoryException or BusinessException))
         {
-            // ABP's resizers do not wrap provider errors (corrupt pixel data, an encoder failure); whatever the
-            // provider, that is this image failing, not the server.
+            // Corrupt pixel data or an encoder failure: this image failing, not the server.
             throw CreateProcessingFailedException(exception);
         }
 
-        if (result.State == ImageProcessState.Done && result.Result != null)
+        if (variant != null && variant.Content.LongLength > MaxCachedImageBytes)
         {
-            return result.Result;
+            // Too large to keep, so it is rendered again on the next request.
+            return new RenderedImage(variant, Cacheable: false);
         }
 
-        if (result.Result != null && !ReferenceEquals(result.Result, stream))
-        {
-            await result.Result.DisposeAsync();
-        }
+        return new RenderedImage(variant);
+    }
 
-        if (result.State == ImageProcessState.Unsupported)
-        {
-            return null;
-        }
+    /// <summary>
+    /// The file name a rendered image is served under: the stored name with the extension of the rendered type,
+    /// so a picture a visitor saves is named for what it is.
+    /// </summary>
+    protected virtual string FileNameFor(string fileName, string mimeType)
+    {
+        return mimeType == ImageVariantRenderer.WebpMimeType &&
+               !fileName.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
+            ? Path.ChangeExtension(fileName, ".webp")
+            : fileName;
+    }
 
-        cancellationToken.ThrowIfCancellationRequested();
-        if (timeout.IsCancellationRequested)
-        {
-            throw CreateDecodeTimeoutException();
-        }
-
-        throw CreateProcessingFailedException(null);
+    protected virtual IRemoteStreamContent Stored(FileDescriptor file, Stream stream)
+    {
+        return new RemoteStreamContent(stream, file.Name, file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
     }
 
     protected virtual BusinessException CreateImageTooLargeException(string message, int? width = null, int? height = null)
@@ -277,14 +273,6 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
         return exception;
     }
 
-    protected virtual BusinessException CreateDecodeTimeoutException()
-    {
-        return new BusinessException(
-                code: BlobStoringImagingErrorCodes.ImageDecodeTimeout,
-                message: "Image decoding timed out.")
-            .WithData("DecodeTimeoutSeconds", DecodeTimeoutSeconds);
-    }
-
     protected virtual BusinessException CreateProcessingFailedException(Exception? innerException)
     {
         return new BusinessException(
@@ -294,23 +282,9 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             innerException: innerException);
     }
 
-    protected virtual async Task<byte[]> ReadBoundedAsync(Stream source, long maxBytes, CancellationToken cancellationToken)
-    {
-        using var output = new MemoryStream();
-        var buffer = new byte[81920];
-        long total = 0;
-        int read;
-        while ((read = await source.ReadAsync(buffer.AsMemory(), cancellationToken)) > 0)
-        {
-            total += read;
-            if (total > maxBytes)
-            {
-                throw CreateImageTooLargeException("The resized image is too large.");
-            }
-
-            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-        }
-
-        return output.ToArray();
-    }
+    /// <summary>
+    /// What <see cref="ImageVariantRenderer"/> made of a picture: the image to serve, or <c>null</c> to serve the
+    /// stored picture.
+    /// </summary>
+    protected record RenderedImage(ImageVariant? Variant, bool Cacheable = true);
 }

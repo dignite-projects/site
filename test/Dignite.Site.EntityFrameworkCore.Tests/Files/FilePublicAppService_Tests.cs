@@ -75,6 +75,143 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// A JPEG asked for by a caller that takes WebP is served as WebP at its own size, under a name that says so.
+    /// </summary>
+    [Fact]
+    public async Task Should_Serve_A_Jpeg_As_Webp_To_A_Caller_That_Takes_It()
+    {
+        var jpeg = Photo(640, 400);
+        var file = await UploadAsync(SiteFileContainerNames.Images, "photo.jpg", jpeg);
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+
+        var webp = await ReadAllAsync(content.GetStream());
+        var info = TestFiles.Identify(webp);
+        info.Format.ShouldBe(SKEncodedImageFormat.Webp);
+        info.Width.ShouldBe(640);
+        info.Height.ShouldBe(400);
+        webp.Length.ShouldBeLessThan(jpeg.Length);
+        content.ContentType.ShouldBe("image/webp");
+        content.FileName.ShouldBe("photo.webp");
+    }
+
+    /// <summary>
+    /// Asked at its stored size, a picture whose WebP would be no smaller - noise, which no encoder shrinks - is
+    /// served as stored rather than made larger.
+    /// </summary>
+    [Fact]
+    public async Task Should_Serve_A_Picture_As_Stored_When_Its_Webp_Is_No_Smaller()
+    {
+        var jpeg = TestFiles.Jpeg(320, 200);
+        var file = await UploadAsync(SiteFileContainerNames.Images, "noise.jpg", jpeg);
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+
+        content.ContentType.ShouldBe("image/jpeg");
+        content.FileName.ShouldBe("noise.jpg");
+        (await ReadAllAsync(content.GetStream())).ShouldBe(jpeg);
+    }
+
+    /// <summary>
+    /// A PNG goes to lossless WebP: every pixel and the transparency come back exactly, where lossy WebP would blur
+    /// the edges of text and lines.
+    /// </summary>
+    [Fact]
+    public async Task Should_Serve_A_Png_As_Lossless_Webp()
+    {
+        var png = TransparentDrawing(600, 300);
+        var file = await UploadAsync(SiteFileContainerNames.Images, "logo.png", png);
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+
+        var webp = await ReadAllAsync(content.GetStream());
+        content.ContentType.ShouldBe("image/webp");
+        TestFiles.Identify(webp).Format.ShouldBe(SKEncodedImageFormat.Webp);
+        webp.Length.ShouldBeLessThan(png.Length);
+
+        using var expected = SKBitmap.Decode(png);
+        using var actual = SKBitmap.Decode(webp);
+        actual.Width.ShouldBe(expected.Width);
+        actual.Height.ShouldBe(expected.Height);
+        for (var y = 0; y < expected.Height; y += 3)
+        for (var x = 0; x < expected.Width; x += 3)
+        {
+            var e = expected.GetPixel(x, y);
+            var a = actual.GetPixel(x, y);
+            a.Alpha.ShouldBe(e.Alpha);
+            if (e.Alpha == 255)
+            {
+                a.ShouldBe(e, $"pixel ({x}, {y})");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Should_Crop_To_Webp_When_The_Caller_Takes_It()
+    {
+        var file = await UploadAsync(SiteFileContainerNames.Images, "share.jpg", TestFiles.Jpeg(800, 600));
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Width = 120, Height = 63, AcceptWebp = true });
+
+        var info = TestFiles.Identify(await ReadAllAsync(content.GetStream()));
+        info.Width.ShouldBe(120);
+        info.Height.ShouldBe(63);
+        info.Format.ShouldBe(SKEncodedImageFormat.Webp);
+    }
+
+    /// <summary>
+    /// A camera stores a portrait photo sideways and says in its EXIF orientation how to turn it. A browser turns
+    /// the stored file; a rendered image has no EXIF, so it is turned before it is encoded.
+    /// </summary>
+    [Fact]
+    public async Task Should_Turn_A_Photo_Upright_When_Rendering_It()
+    {
+        // Stored 400 x 200, red on the left and blue on the right; orientation 6 turns it a quarter clockwise, which
+        // puts the red on top of a 200 x 400 picture.
+        var file = await UploadAsync(SiteFileContainerNames.Images, "portrait.jpg", SidewaysJpeg());
+
+        foreach (var input in new[] { new GetFileInput { Width = 100 }, new GetFileInput { AcceptWebp = true } })
+        {
+            using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, input);
+
+            content.ContentType.ShouldBe(input.AcceptWebp ? "image/webp" : "image/jpeg");
+            using var upright = SKBitmap.Decode(await ReadAllAsync(content.GetStream()));
+            upright.Height.ShouldBe(upright.Width * 2);
+            var top = upright.GetPixel(upright.Width / 2, upright.Height / 4);
+            var bottom = upright.GetPixel(upright.Width / 2, upright.Height * 3 / 4);
+            top.Red.ShouldBeGreaterThan((byte)200);
+            top.Blue.ShouldBeLessThan((byte)60);
+            bottom.Blue.ShouldBeGreaterThan((byte)200);
+            bottom.Red.ShouldBeLessThan((byte)60);
+        }
+    }
+
+    /// <summary>A GIF is never converted: SkiaSharp would keep only its first frame.</summary>
+    [Fact]
+    public async Task Should_Serve_A_Gif_As_Stored_To_A_Caller_That_Takes_Webp()
+    {
+        var file = await UploadAsync(SiteFileContainerNames.Images, "dot.gif", Gif);
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { AcceptWebp = true });
+
+        content.ContentType.ShouldBe("image/gif");
+        (await ReadAllAsync(content.GetStream())).ShouldBe(Gif);
+    }
+
+    /// <summary>Without WebP and without a size, a picture is served byte for byte, its EXIF and all.</summary>
+    [Fact]
+    public async Task Should_Serve_A_Jpeg_As_Stored_To_A_Caller_That_Does_Not_Take_Webp()
+    {
+        var jpeg = SidewaysJpeg();
+        var file = await UploadAsync(SiteFileContainerNames.Images, "as-is.jpg", jpeg);
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput());
+
+        content.ContentType.ShouldBe("image/jpeg");
+        (await ReadAllAsync(content.GetStream())).ShouldBe(jpeg);
+    }
+
+    /// <summary>
     /// A requested size beyond the endpoint's bound is refused before the image is even looked at, with the
     /// Imaging package's code (the old "resize dimensions too large" code has no successor).
     /// </summary>
@@ -96,20 +233,21 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Serve_A_Picture_The_Provider_Cannot_Resize_As_Stored()
     {
-        // A 1 x 1 GIF89a.
-        var gif = new byte[]
-        {
-            0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
-            0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
-            0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B
-        };
-        var file = await UploadAsync(SiteFileContainerNames.Images, "dot.gif", gif);
+        var file = await UploadAsync(SiteFileContainerNames.Images, "dot.gif", Gif);
 
         using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput { Width = 10, Height = 10 });
 
         content.ContentType.ShouldBe("image/gif");
-        (await ReadAllAsync(content.GetStream())).ShouldBe(gif);
+        (await ReadAllAsync(content.GetStream())).ShouldBe(Gif);
     }
+
+    /// <summary>A 1 x 1 GIF89a.</summary>
+    private static readonly byte[] Gif =
+    {
+        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
+        0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B
+    };
 
     /// <summary>A size asked of a file that is not an image is ignored, not an error.</summary>
     [Fact]
@@ -177,6 +315,99 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
+    }
+
+    /// <summary>
+    /// A PNG like a logo: a transparent background, a filled shape, text and thin lines - hard edges, no
+    /// anti-aliasing, so every pixel is either fully transparent or fully opaque.
+    /// </summary>
+    private static byte[] TransparentDrawing(int width, int height)
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.Transparent);
+            using var fill = new SKPaint { Color = new SKColor(30, 90, 200) };
+            canvas.DrawRoundRect(width / 4f, 0, width * 3 / 4f, height, 20, 20, fill);
+            using var text = new SKPaint { Color = SKColors.White };
+            using var font = new SKFont { Size = height / 5f, Edging = SKFontEdging.Alias };
+            canvas.DrawText("Logo Text", width / 3f, height / 2f, font, text);
+            using var line = new SKPaint { Color = SKColors.Black, StrokeWidth = 1 };
+            for (var y = 0; y < height; y += 7)
+            {
+                canvas.DrawLine(width / 4f, y, width, y, line);
+            }
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
+    /// <summary>A JPEG like a photo: smooth colour with fine texture, which WebP stores in fewer bytes.</summary>
+    private static byte[] Photo(int width, int height)
+    {
+        using var bitmap = new SKBitmap(width, height);
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            DrawPhoto(canvas, width, height);
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
+        return data.ToArray();
+    }
+
+    private static void DrawPhoto(SKCanvas canvas, int width, int height)
+    {
+        using var gradient = new SKPaint
+        {
+            Shader = SKShader.CreateLinearGradient(new SKPoint(0, 0), new SKPoint(width, height),
+                new[] { SKColors.SkyBlue, SKColors.OrangeRed, SKColors.ForestGreen }, SKShaderTileMode.Clamp)
+        };
+        canvas.DrawRect(0, 0, width, height, gradient);
+        using var texture = new SKPaint
+        {
+            Shader = SKShader.CreatePerlinNoiseTurbulence(0.02f, 0.02f, 4, 7),
+            BlendMode = SKBlendMode.Overlay
+        };
+        canvas.DrawRect(0, 0, width, height, texture);
+    }
+
+    /// <summary>
+    /// A 400 x 200 JPEG, red on the left half and blue on the right, with an EXIF orientation of 6 (turn a quarter
+    /// clockwise to display), as a phone writes a portrait photo.
+    /// </summary>
+    private static byte[] SidewaysJpeg()
+    {
+        using var bitmap = new SKBitmap(400, 200);
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.Blue);
+            using var red = new SKPaint { Color = SKColors.Red };
+            canvas.DrawRect(0, 0, 200, 200, red);
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 95);
+        var jpeg = data.ToArray();
+
+        // An APP1 segment right after SOI: "Exif\0\0", a big-endian TIFF header, one IFD with one entry -
+        // Orientation (0x0112), SHORT, count 1, value 6 - and no next IFD.
+        var app1 = new byte[]
+        {
+            0xFF, 0xE1, 0x00, 0x22,
+            0x45, 0x78, 0x69, 0x66, 0x00, 0x00,
+            0x4D, 0x4D, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x08,
+            0x00, 0x01,
+            0x01, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+        };
+        var result = new byte[jpeg.Length + app1.Length];
+        Buffer.BlockCopy(jpeg, 0, result, 0, 2);
+        Buffer.BlockCopy(app1, 0, result, 2, app1.Length);
+        Buffer.BlockCopy(jpeg, 2, result, 2 + app1.Length, jpeg.Length - 2);
+        return result;
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)

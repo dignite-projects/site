@@ -1416,6 +1416,21 @@
                   "summary": null,
                   "description": null,
                   "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "AcceptWebp",
+                  "jsonName": null,
+                  "type": "System.Boolean",
+                  "typeSimple": "boolean",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
                 }
               ],
               "returnValue": {

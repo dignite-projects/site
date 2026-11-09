@@ -24,11 +24,11 @@ namespace Dignite.Site.Admin;
     typeof(SiteCommonApplicationModule),
     typeof(AbpDddApplicationModule),
     typeof(AbpMapperlyModule),
-    // The ImageResize/ImageCompress contributors (and their localized error codes) - AddImageResizeContributor
-    // below only records the contributor type on the container; it is resolved from DI on every save.
+    // The ImageResize contributor (and its localized error codes) - AddImageResizeContributor below only
+    // records the contributor type on the container; it is resolved from DI on every save.
     typeof(AbpBlobStoringImagingModule),
-    // The imaging provider those contributors hand images to. Without one they find nothing that can
-    // process an image and store every upload unresized.
+    // The imaging provider that contributor hands images to. Without one it finds nothing that can
+    // process an image and stores every upload unresized.
     typeof(AbpImagingSkiaSharpModule),
     // The lock the upload links are recorded as used under: one implementation per process by default, a
     // distributed one when the host configures it.
@@ -42,8 +42,18 @@ public class SiteAdminApplicationModule : AbpModule
     /// <summary>Largest upload to <see cref="SiteFileContainerNames.Attachments"/>: 20 MB.</summary>
     private const long AttachmentsContainerMaxSizeInBytes = 20 * 1024 * 1024;
 
-    /// <summary>Largest upload to <see cref="SiteFileContainerNames.Images"/>: 10 MB.</summary>
-    private const long ImagesContainerMaxSizeInBytes = 10 * 1024 * 1024;
+    /// <summary>
+    /// Largest upload to <see cref="SiteFileContainerNames.Images"/>: 25 MB, as sent - before
+    /// <see cref="ImageMetadataStripContributor"/> drops what a design tool piled into it, which is most of an
+    /// oversized export (an 18 MB banner kept 0.95 MB). Below the 28.6 MB a server takes in one request by default.
+    /// </summary>
+    private const long ImagesContainerMaxSizeInBytes = 25 * 1024 * 1024;
+
+    /// <summary>
+    /// The box a picture uploaded to <see cref="SiteFileContainerNames.Images"/> is shrunk to fit: 4096 x 4096, the
+    /// largest source <c>FilePublicAppService</c> renders.
+    /// </summary>
+    private const int ImagesContainerMaxDimension = 4096;
 
     /// <summary>Largest upload to <see cref="SiteFileContainerNames.ThemeAssets"/>: 5 MB, more than any icon or font a page loads.</summary>
     private const long ThemeAssetsContainerMaxSizeInBytes = 5 * 1024 * 1024;
@@ -70,7 +80,7 @@ public class SiteAdminApplicationModule : AbpModule
     }
 
     /// <summary>
-    /// Overrides ABP's SkiaSharp provider defaults, which the upload resize and compress run on.
+    /// Overrides ABP's SkiaSharp provider defaults, which the upload resize runs on.
     /// <see cref="SkiaSharpResizerOptions"/> defaults to <see cref="SKSamplingOptions.Default"/>, i.e.
     /// nearest-neighbour with no mipmaps: shrinking keeps one source pixel per target pixel and drops the
     /// rest, so fine detail turns to jagged noise and moire. Linear filtering between linear-blended mipmap
@@ -78,9 +88,8 @@ public class SiteAdminApplicationModule : AbpModule
     /// where the default scored 9-33 dB (zone plate, noisy photo-like image and a UI screenshot, shrunk to
     /// 1920/800/400 px); bicubic (Mitchell, Catmull-Rom) samples a fixed 4x4 neighbourhood and was barely
     /// better than nearest past a 2x reduction. Quality 85 rather than ABP's 75 for the JPEG/WebP
-    /// re-encode, since an image can be encoded twice (compressed on upload, resized on read).
-    /// <c>SitePublicApplicationModule</c> sets the same values for the read-side resize, as either module
-    /// may be hosted without the other.
+    /// re-encode of a picture shrunk to fit. <c>SitePublicApplicationModule</c> sets the same values for
+    /// the images rendered on read, as either module may be hosted without the other.
     /// </summary>
     private void ConfigureImaging()
     {
@@ -89,7 +98,6 @@ public class SiteAdminApplicationModule : AbpModule
             options.SKSamplingOptions = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
             options.Quality = 85;
         });
-        Configure<SkiaSharpCompressOptions>(options => options.Quality = 85);
     }
 
     /// <summary>
@@ -104,14 +112,24 @@ public class SiteAdminApplicationModule : AbpModule
     /// package prescribes: <c>MaxSize</c> (bytes; rejects a larger upload with
     /// <c>Dignite.Abp.BlobStoring:ContentTooLarge</c>), <c>AllowedContentTypes</c> (the MIME types of
     /// <see cref="SiteFileTypes"/>, matched against the type detected from the bytes, never the uploader's
-    /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), <c>ImageResize</c> (shrinks a picture
+    /// claim - <c>Dignite.Abp.BlobStoring:ContentTypeNotAllowed</c>), then Site's own
+    /// <see cref="ImageMetadataStripContributor"/> (drops the metadata a design tool piles into a JPEG or PNG, keeping
+    /// every byte of the image), then <c>ImageResize</c> (shrinks a picture
     /// that exceeds the box, keeping its aspect ratio; a picture that fits is stored as uploaded, and there is
-    /// no minimum size), then <c>ImageCompress</c> (re-encodes a picture in its own format, kept only when it
-    /// comes out smaller). No GZip: the containers' stored format stays the plain file. Only <see cref="SiteFileContainerNames.Images"/>
+    /// no minimum size). No GZip: the containers' stored format stays the plain file. Only <see cref="SiteFileContainerNames.Images"/>
     /// gets the image contributors: <see cref="SiteFileContainerNames.Attachments"/> takes documents only, so no picture
-    /// can enter it. Before either image contributor decodes anything, the
+    /// can enter it. Before the resize contributor decodes anything, the
     /// Imaging package's decode guard (left at its defaults: 8192 x 8192, 50,000,000 pixels, 100 pixels per
     /// stored byte, 10 s) rejects an oversized picture with <c>Dignite.Abp.BlobStoring.Imaging:ImageTooLarge</c>.
+    /// </para>
+    /// <para>
+    /// <b>The image is kept.</b> No <c>ImageCompress</c>: a lossy re-encode on upload cannot be undone, and
+    /// every image the site shows is rendered from what is stored (<c>FilePublicAppService</c>: resized, and WebP
+    /// for a browser that takes it), so a picture stored already re-encoded loses quality twice. The box is
+    /// <see cref="ImagesContainerMaxDimension"/>, the largest source the read side renders, so a picture that fits
+    /// the box - a 12-megapixel phone photo among them - keeps its image exactly as uploaded, less only the
+    /// metadata <see cref="ImageMetadataStripContributor"/> drops, and a high-density screen still gets a sharp
+    /// full-width image.
     /// </para>
     /// <para>
     /// SVG, HTML and script types are deliberately absent from every list - <see cref="SiteFileTypes"/> lists
@@ -153,12 +171,12 @@ public class SiteAdminApplicationModule : AbpModule
                 {
                     config.AllowedContentTypes = SiteFileTypes.GetMimeTypes(SiteFileTypes.Images);
                 });
+                container.PipelineContributors.TryAdd<ImageMetadataStripContributor>();
                 container.AddImageResizeContributor(config =>
                 {
-                    config.MaxWidth = 1920;
-                    config.MaxHeight = 1920;
+                    config.MaxWidth = ImagesContainerMaxDimension;
+                    config.MaxHeight = ImagesContainerMaxDimension;
                 });
-                container.AddImageCompressContributor();
                 ConfigureContentPermissions(container);
             });
         });
