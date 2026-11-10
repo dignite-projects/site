@@ -325,6 +325,80 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             request => request.Snapshot.Files.Single(file => file.Path == "Default").Body == "<p>draft</p>");
     }
 
+    /// <summary>Reading alone: every file is read and nothing is rendered, which is what the theme screen does on opening.</summary>
+    [Fact]
+    public async Task The_Check_Should_Render_No_Page_When_Asked_For_None()
+    {
+        await SaveAsync("Default", "<p>x</p>");
+
+        var check = await _themeAppService.CheckAsync(new SiteThemeCheckInput { Render = SiteThemeRenderScope.None });
+
+        check.Render.ShouldBe(SiteThemeRenderScope.None);
+        check.RenderedTemplates.ShouldBeEmpty();
+        check.Fingerprint.ShouldNotBeNullOrEmpty();
+        check.Layouts.ShouldContain("layouts/default");
+        _previewRenderer.Requests.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// After a file is saved, only the pages it takes part in are rendered again: a partial the page template includes and
+    /// the layout bring back the whole sample of the pages through Default; a partial nothing includes and a stylesheet
+    /// bring back none.
+    /// </summary>
+    [Theory]
+    [InlineData("_card", 8)]
+    [InlineData("layouts/default", 8)]
+    [InlineData("_unused", 0)]
+    [InlineData("css/site.css", 0)]
+    public async Task The_Check_Should_Render_Only_The_Pages_The_Changed_File_Takes_Part_In(string changedPath, int renders)
+    {
+        await SaveAsync("Default", "<p>{{ include \"_card\" }}</p>");
+        await SaveAsync("_card", "<b>card</b>");
+        await SaveAsync("_unused", "<i>unused</i>");
+
+        var check = await _themeAppService.CheckAsync(
+            new SiteThemeCheckInput { Render = SiteThemeRenderScope.Affected, ChangedPath = changedPath });
+
+        check.Render.ShouldBe(SiteThemeRenderScope.Affected);
+        _previewRenderer.Requests.Count.ShouldBe(renders);
+        check.RenderedTemplates.ShouldBe(renders > 0 ? new[] { "Default" } : new string[0]);
+    }
+
+    /// <summary>The theme's texts are read by every template, so a change to them renders every page.</summary>
+    [Fact]
+    public async Task The_Check_Should_Render_Every_Page_After_A_Change_To_The_Texts()
+    {
+        await SaveAsync("Default", "<p>x</p>");
+        await SaveAsync("locales/en.json", "{ \"culture\": \"en\", \"texts\": { \"Hello\": \"Hello\" } }");
+
+        var check = await _themeAppService.CheckAsync(
+            new SiteThemeCheckInput { Render = SiteThemeRenderScope.Affected, ChangedPath = "locales/en.json" });
+
+        check.Render.ShouldBe(SiteThemeRenderScope.All);
+        _previewRenderer.Requests.Count.ShouldBe(8);
+    }
+
+    /// <summary>A finding of the render says so, and names the page template it was rendering; one of the reading does neither.</summary>
+    [Fact]
+    public async Task The_Check_Should_Tell_A_Finding_Of_The_Render_From_One_Of_The_Reading()
+    {
+        await SaveAsync("Default", "<p>x</p>");
+        await SaveAsync("_unused", "<i>unused</i>");
+        _previewRenderer.Failure = new BusinessException(SiteErrorCodes.SiteTemplatePreviewRenderFailed)
+            .WithData("Message", "Default(1,1) : error : boom");
+
+        var check = await _themeAppService.CheckAsync();
+
+        var failure = check.Issues.Single(i => i.Code == SiteThemeIssueCodes.RenderFailed);
+        failure.FoundByRender.ShouldBeTrue();
+        failure.Templates.ShouldBe(new[] { "Default" });
+        var unused = check.Issues.Single(i => i.Code == SiteThemeIssueCodes.UnusedFile);
+        unused.FoundByRender.ShouldBeFalse();
+        unused.Templates.ShouldBeEmpty();
+        check.Render.ShouldBe(SiteThemeRenderScope.All);
+        check.RenderedTemplates.ShouldBe(new[] { "Default" });
+    }
+
     /// <summary>The pages the theme has no template for are rendered by Razor views, which a trial render cannot run.</summary>
     [Fact]
     public async Task The_Check_Should_Not_Render_The_Pages_A_Razor_View_Renders()
@@ -422,6 +496,7 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         check.HasErrors.ShouldBeTrue();
         check.Issues.ShouldNotContain(i => i.Code == SiteThemeIssueCodes.RenderFailed);
+        check.Render.ShouldBe(SiteThemeRenderScope.None);
         _previewRenderer.Requests.ShouldBeEmpty();
     }
 

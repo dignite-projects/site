@@ -31,6 +31,7 @@ import type {
   SiteThemeIssueDto,
   SiteThemeSyntaxErrorDto,
 } from '../../proxy/dignite/site/admin/themes/models';
+import { SiteThemeRenderScope } from '../../proxy/dignite/site/admin/themes/site-theme-render-scope.enum';
 import { SiteThemeUsageKindDto } from '../../proxy/dignite/site/admin/themes/site-theme-usage-kind-dto.enum';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { SiteThemeIssueSeverity } from '../../proxy/dignite/site/themes/site-theme-issue-severity.enum';
@@ -50,6 +51,7 @@ import {
   pageTemplatePath,
   skeletonFor,
   themePathProblem,
+  withEarlierRenderFindings,
 } from './theme-workbench.helpers';
 
 /** `Site:090003`: the working copy changed since the check the publish was based on. */
@@ -372,7 +374,7 @@ export class ThemeWorkbenchComponent implements OnInit {
         this.theme.set(theme);
         this.files.set(files.items ?? []);
         this.isLoading.set(false);
-        this.runCheck();
+        this.runCheck({ render: SiteThemeRenderScope.None });
       },
       error: () => this.isLoading.set(false),
     });
@@ -588,7 +590,7 @@ export class ThemeWorkbenchComponent implements OnInit {
           });
           this.toaster.success('Site::ThemeFileSaved');
           this.refreshFiles();
-          this.runCheck();
+          this.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: file.path });
         },
         error: (response: ApiErrorResponse) => {
           this.isBusy.set(false);
@@ -649,27 +651,41 @@ export class ThemeWorkbenchComponent implements OnInit {
   private checkSequence = 0;
   /** Callbacks waiting for the answer of the check asked for last, including those of checks it took over from. */
   private pendingAfter: ((check: SiteThemeCheckDto) => void)[] = [];
+  /** Whether a check on its way renders every page: one that takes its place must too, or the full render is lost. */
+  private isRenderingAll = false;
 
   /**
    * Asks for the check of the working copy as it is saved now. Checks run after every change, so one can be asked for
    * while another is still on its way; only the last one counts - the working copy it read is the newest. `after`
    * runs with that answer, also when a later check took this one's place.
+   * <p>
+   * Every check reads every file, which takes a moment; rendering the site's pages can take seconds, so `render` says
+   * which: all of them (the button, a publish), none, or those `changedPath` takes part in (after a save). The panel
+   * keeps what an earlier render found about the pages a check did not render again.
    */
-  runCheck(after?: (check: SiteThemeCheckDto) => void): void {
+  runCheck(options: {
+    render?: SiteThemeRenderScope;
+    changedPath?: string;
+    after?: (check: SiteThemeCheckDto) => void;
+  } = {}): void {
     const sequence = ++this.checkSequence;
-    if (after) {
-      this.pendingAfter.push(after);
+    if (options.after) {
+      this.pendingAfter.push(options.after);
     }
 
+    const render = this.isRenderingAll ? SiteThemeRenderScope.All : options.render ?? SiteThemeRenderScope.All;
+    this.isRenderingAll = render === SiteThemeRenderScope.All;
+
     this.isChecking.set(true);
-    this.themeService.check().subscribe({
+    this.themeService.check({ render, changedPath: options.changedPath }).subscribe({
       next: check => {
         if (sequence !== this.checkSequence) {
           return;
         }
 
-        this.check.set(check);
+        this.check.set(withEarlierRenderFindings(this.check(), check));
         this.isChecking.set(false);
+        this.isRenderingAll = false;
         const callbacks = this.pendingAfter;
         this.pendingAfter = [];
         callbacks.forEach(callback => callback(check));
@@ -677,11 +693,29 @@ export class ThemeWorkbenchComponent implements OnInit {
       error: () => {
         if (sequence === this.checkSequence) {
           this.isChecking.set(false);
+          this.isRenderingAll = false;
           this.pendingAfter = [];
         }
       },
     });
   }
+
+  /** What the panel says about the pages the shown check did not render, or null when it rendered them all. */
+  readonly renderNote = computed(() => {
+    const check = this.check();
+    if (!check || check.render === SiteThemeRenderScope.All) {
+      return null;
+    }
+
+    if (check.render === SiteThemeRenderScope.None) {
+      return { key: 'Site::ThemeCheckRenderedNone', count: '' };
+    }
+
+    const count = check.renderedTemplates?.length ?? 0;
+    return count === 0
+      ? { key: 'Site::ThemeCheckRenderedNothingAffected', count: '' }
+      : { key: 'Site::ThemeCheckRenderedAffected', count: String(count) };
+  });
 
   // New file.
 
@@ -710,7 +744,7 @@ export class ThemeWorkbenchComponent implements OnInit {
         this.isBusy.set(false);
         this.isNewFileOpen.set(false);
         this.refreshFiles();
-        this.runCheck();
+        this.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: path });
         this.openFiles.update(files => [...files.filter(f => f.path !== saved.path), { ...toOpenFile(saved), pinned: true }]);
         this.activePath.set(saved.path);
         this.expandTo(saved.path ?? '');
@@ -780,7 +814,7 @@ export class ThemeWorkbenchComponent implements OnInit {
 
           this.refreshTheme();
           this.refreshFiles();
-          this.runCheck();
+          this.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: result.file.path });
         },
         error: (response: ApiErrorResponse) => {
           this.isBusy.set(false);
@@ -815,7 +849,7 @@ export class ThemeWorkbenchComponent implements OnInit {
 
           this.toaster.success('AbpUi::DeletedSuccessfully');
           this.refreshFiles();
-          this.runCheck();
+          this.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: path });
         });
       });
     });
@@ -855,7 +889,7 @@ export class ThemeWorkbenchComponent implements OnInit {
     this.publishError.set(null);
     this.publishCheck.set(undefined);
     this.isPublishOpen.set(true);
-    this.runCheck(check => this.publishCheck.set(check));
+    this.runCheck({ after: check => this.publishCheck.set(check) });
   }
 
   /** Enter in the comment publishes, unless it only confirms a word in an input method (Chinese, Japanese). */
@@ -881,14 +915,14 @@ export class ThemeWorkbenchComponent implements OnInit {
           this.toaster.success('Site::ThemePublished', undefined, { messageLocalizationParams: [String(release.number)] });
           this.refreshTheme();
           this.refreshFiles();
-          this.runCheck();
+          this.runCheck({ render: SiteThemeRenderScope.None });
         },
         error: (response: ApiErrorResponse) => {
           this.isBusy.set(false);
           this.publishError.set(errorMessageOf(response));
           if (response.error?.error?.code === CHANGED_SINCE_CHECK) {
             // Show what is there now; the author publishes again from the fresh check.
-            this.runCheck(fresh => this.publishCheck.set(fresh));
+            this.runCheck({ after: fresh => this.publishCheck.set(fresh) });
           }
         },
       });
@@ -986,7 +1020,7 @@ export class ThemeWorkbenchComponent implements OnInit {
           this.loadReleases();
           this.refreshTheme();
           this.refreshFiles();
-          this.runCheck();
+          this.runCheck({ render: SiteThemeRenderScope.None });
         });
       });
   }
@@ -1032,7 +1066,7 @@ export class ThemeWorkbenchComponent implements OnInit {
           this.isBusy.set(false);
           this.theme.set(theme);
           this.toaster.success('Site::DefaultLayoutSet', undefined, { messageLocalizationParams: [path] });
-          this.runCheck();
+          this.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: path });
         },
         error: (response: ApiErrorResponse) => {
           this.isBusy.set(false);

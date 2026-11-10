@@ -1,3 +1,6 @@
+import type { SiteThemeCheckDto, SiteThemeIssueDto } from '../../proxy/dignite/site/admin/themes/models';
+import { SiteThemeRenderScope } from '../../proxy/dignite/site/admin/themes/site-theme-render-scope.enum';
+import { SiteThemeIssueSeverity } from '../../proxy/dignite/site/themes/site-theme-issue-severity.enum';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import {
   buildThemeTree,
@@ -14,6 +17,7 @@ import {
   snippetFor,
   skeletonFor,
   themePathProblem,
+  withEarlierRenderFindings,
 } from './theme-workbench.helpers';
 
 describe('theme workbench helpers', () => {
@@ -197,5 +201,79 @@ describe('fieldGroupsFor', () => {
   it('is empty until both the page and the library are there', () => {
     expect(fieldGroupsFor(undefined, library)).toEqual([]);
     expect(fieldGroupsFor({ contentTypes: [] }, undefined)).toEqual([]);
+  });
+});
+
+describe('withEarlierRenderFindings', () => {
+  const issue = (overrides: Partial<SiteThemeIssueDto>): SiteThemeIssueDto => ({
+    severity: SiteThemeIssueSeverity.Error,
+    code: 'ThemeIssue:RenderFailed',
+    message: 'failed',
+    foundByRender: true,
+    templates: [],
+    ...overrides,
+  });
+
+  const check = (overrides: Partial<SiteThemeCheckDto> = {}): SiteThemeCheckDto => ({
+    fingerprint: 'fp',
+    issues: [],
+    hasErrors: false,
+    layouts: [],
+    changes: [],
+    hasChanges: false,
+    render: SiteThemeRenderScope.All,
+    renderedTemplates: [],
+    ...overrides,
+  });
+
+  const blog = issue({ templates: ['Blog'], message: 'blog failed' });
+  const events = issue({ templates: ['Events'], message: 'events failed' });
+  const cutShort = issue({ severity: SiteThemeIssueSeverity.Warning, code: 'ThemeIssue:TrialRenderOutOfTime', message: 'out of time' });
+  const unused = issue({ severity: SiteThemeIssueSeverity.Warning, code: 'ThemeIssue:UnusedFile', foundByRender: false, path: '_x' });
+  const earlier = check({ issues: [blog, events, unused, cutShort], hasErrors: true });
+
+  it('takes a full render as it is', () => {
+    const next = check();
+    expect(withEarlierRenderFindings(earlier, next)).toBe(next);
+    expect(withEarlierRenderFindings(undefined, check({ render: SiteThemeRenderScope.None }))).toEqual(
+      check({ render: SiteThemeRenderScope.None }));
+  });
+
+  it('keeps every finding of the render when nothing was rendered, and none of the reading', () => {
+    const merged = withEarlierRenderFindings(earlier, check({ render: SiteThemeRenderScope.None }));
+
+    expect(merged.issues).toEqual([blog, events, cutShort]);
+    expect(merged.hasErrors).toBe(true);
+  });
+
+  it('drops the findings about the templates rendered again, and puts errors first', () => {
+    const warning = issue({ severity: SiteThemeIssueSeverity.Warning, code: 'ThemeIssue:UnusedFile', foundByRender: false });
+    const merged = withEarlierRenderFindings(
+      earlier,
+      check({ render: SiteThemeRenderScope.Affected, renderedTemplates: ['Events'], issues: [warning] }));
+
+    expect(merged.issues).toEqual([blog, warning, cutShort]);
+  });
+
+  it('replaces the findings about a run as a whole with its own, and does not repeat a finding', () => {
+    const stopped = issue({ severity: SiteThemeIssueSeverity.Warning, code: 'ThemeIssue:TrialRenderStopped', message: 'stopped' });
+    const merged = withEarlierRenderFindings(
+      earlier,
+      check({ render: SiteThemeRenderScope.Affected, renderedTemplates: [], issues: [{ ...blog }, stopped] }));
+
+    expect(merged.issues).toEqual([blog, events, stopped]);
+  });
+
+  it('keeps a finding met by several page templates until every one of them was rendered again', () => {
+    const partial = issue({ templates: ['Default', 'events', 'news'], message: '_pager failed', path: '_pager' });
+    const before = check({ issues: [partial], hasErrors: true });
+
+    const eventsOnly = withEarlierRenderFindings(
+      before, check({ render: SiteThemeRenderScope.Affected, renderedTemplates: ['events'] }));
+    expect(eventsOnly.issues).toEqual([partial]);
+
+    const all = withEarlierRenderFindings(
+      eventsOnly, check({ render: SiteThemeRenderScope.Affected, renderedTemplates: ['Default', 'events', 'news'] }));
+    expect(all.issues).toEqual([]);
   });
 });

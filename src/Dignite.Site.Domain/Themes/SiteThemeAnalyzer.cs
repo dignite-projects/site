@@ -85,17 +85,20 @@ public sealed class SiteThemeFileAnalysis
 public sealed class SiteThemeAnalysis
 {
     private readonly Dictionary<string, List<SiteThemeUsage>> _usages;
+    private readonly string? _defaultLayout;
 
     internal SiteThemeAnalysis(
         IReadOnlyDictionary<string, SiteThemeFileAnalysis> files,
         IReadOnlyList<SiteThemeIssue> issues,
         Dictionary<string, List<SiteThemeUsage>> usages,
-        IReadOnlyList<string> layouts)
+        IReadOnlyList<string> layouts,
+        string? defaultLayout)
     {
         Files = files;
         Issues = issues;
         _usages = usages;
         Layouts = layouts;
+        _defaultLayout = string.IsNullOrWhiteSpace(defaultLayout) ? null : SiteThemePaths.Normalize(defaultLayout);
     }
 
     /// <summary>
@@ -117,6 +120,69 @@ public sealed class SiteThemeAnalysis
     public IReadOnlyList<SiteThemeUsage> GetUsages(string path)
     {
         return _usages.TryGetValue(path, out var usages) ? usages : Array.Empty<SiteThemeUsage>();
+    }
+
+    /// <summary>
+    /// The files a page rendered through <paramref name="pageTemplate"/> can run: the template itself, the layout it
+    /// renders in - its front matter's, else the default layout - and every template either of them includes, directly
+    /// or not. A page template may be a language version (<c>Blog/Post.ja</c>); a layout or an include stands for itself
+    /// and every language version of it, since the renderer picks the one that fits the page's language.
+    /// <para>
+    /// Errs on the side of more: a language version of a page template is held to its own front matter's layout and to
+    /// its template's. Only literal names count, as everywhere in the analysis - a template that includes a name it
+    /// computes at run time runs more than this says.
+    /// </para>
+    /// </summary>
+    public IReadOnlyCollection<string> GetRenderedFiles(string pageTemplate)
+    {
+        var rendered = new HashSet<string>(StringComparer.Ordinal) { pageTemplate };
+        var pending = new Stack<string>();
+        pending.Push(pageTemplate);
+
+        var owners = new List<string> { pageTemplate };
+        if (SiteThemePaths.TryGetLanguageVersion(pageTemplate, out var template, out _))
+        {
+            owners.Add(template);
+        }
+
+        foreach (var owner in owners)
+        {
+            var layout = Files.TryGetValue(owner, out var file) && file.FrontMatter.Layout is { } chosen
+                ? chosen.Path
+                : _defaultLayout;
+            if (layout != null && layout != SiteThemeConsts.NoLayout)
+            {
+                AddWithLanguageVersions(layout);
+            }
+        }
+
+        while (pending.Count > 0)
+        {
+            if (!Files.TryGetValue(pending.Pop(), out var current) || current.IsAsset)
+            {
+                continue;
+            }
+
+            foreach (var reference in current.References.Where(r => r.FunctionName == SiteThemeConsts.IncludeFunctionName))
+            {
+                AddWithLanguageVersions(reference.Path);
+            }
+        }
+
+        return rendered;
+
+        void AddWithLanguageVersions(string path)
+        {
+            foreach (var candidate in Files.Keys
+                         .Where(key => SiteThemePaths.TryGetLanguageVersion(key, out var of, out _) && of == path)
+                         .Prepend(path))
+            {
+                if (rendered.Add(candidate))
+                {
+                    pending.Push(candidate);
+                }
+            }
+        }
     }
 }
 
@@ -147,7 +213,7 @@ public static class SiteThemeAnalyzer
         var context = new AnalysisContext(analyses, defaultLayout);
         context.Run(pages.ToList());
 
-        return new SiteThemeAnalysis(analyses, context.GetSortedIssues(), context.Usages, context.Layouts);
+        return new SiteThemeAnalysis(analyses, context.GetSortedIssues(), context.Usages, context.Layouts, defaultLayout);
     }
 
     private static SiteThemeFileAnalysis Parse(SiteThemeSourceFile file)

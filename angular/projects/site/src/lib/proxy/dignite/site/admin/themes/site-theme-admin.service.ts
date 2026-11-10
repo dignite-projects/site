@@ -1,4 +1,4 @@
-import type { PublishSiteThemeDto, RenameSiteThemeFileDto, SaveSiteThemeFileDto, SiteReleaseDetailDto, SiteReleaseDto, SiteReleaseFileContentDto, SiteThemeCheckDto, SiteThemeDto, SiteThemeFileDto, SiteThemeFileSummaryDto, SiteThemeFileUsagesDto, SiteThemeRenameResultDto, UpdateSiteThemeDto } from './models';
+import type { PublishSiteThemeDto, RenameSiteThemeFileDto, SaveSiteThemeFileDto, SiteReleaseDetailDto, SiteReleaseDto, SiteReleaseFileContentDto, SiteThemeCheckDto, SiteThemeCheckInput, SiteThemeDto, SiteThemeFileDto, SiteThemeFileSummaryDto, SiteThemeFileUsagesDto, SiteThemeRenameResultDto, UpdateSiteThemeDto } from './models';
 import { RestService, Rest } from '@abp/ng.core';
 import type { ListResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
@@ -12,10 +12,11 @@ export class SiteThemeAdminService {
   apiName = 'SiteAdmin';
 
 
-  check = (config?: Partial<Rest.Config>) =>
+  check = (input: SiteThemeCheckInput, config?: Partial<Rest.Config>) =>
     this.restService.request<any, SiteThemeCheckDto>({
       method: 'GET',
       url: '/api/site-admin/theme/check',
+      params: { render: input.render, changedPath: input.changedPath },
     },
     { apiName: this.apiName,...config });
 

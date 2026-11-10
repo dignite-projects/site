@@ -570,4 +570,49 @@ public class SiteThemeAnalyzer_Tests
         analysis.GetUsages("assets/site.css").Single().Kind.ShouldBe(SiteThemeUsageKind.AssetUrl);
         analysis.GetUsages("nothing").ShouldBeEmpty();
     }
+
+    /// <summary>
+    /// What a page rendered through a template runs: the template, its layout - chosen or the default - and what either
+    /// includes, through any depth, with every language version of a layout or a partial. Not another page template, not
+    /// a static file, not a partial nothing on the way includes.
+    /// </summary>
+    [Fact]
+    public void Should_Tell_What_A_Page_Template_Renders()
+    {
+        var analysis = Analyze(
+            new()
+            {
+                ["layouts/default"] = "<html><head>{{ site_head }}</head><body>{{ include \"_nav\" }}{{ body }}</body></html>",
+                ["layouts/landing"] = Layout,
+                ["_nav"] = "<nav>{{ include \"_logo\" }}</nav>",
+                ["_nav.ja"] = "<nav>ja</nav>",
+                ["_logo"] = "<img src=\"{{ asset_url \"img/logo.svg\" }}\">",
+                ["Events"] = "{{ include \"blog/_card\" }}",
+                ["Events.ja"] = "+++\nlayout = \"layouts/landing\"\n+++\n<p>ja</p>",
+                ["Landing"] = "+++\nlayout = \"layouts/landing\"\n+++\n<p>hi</p>",
+                ["blog/_card"] = "<div></div>",
+                ["_unused"] = "<p></p>",
+                ["img/logo.svg"] = "<svg/>"
+            },
+            pages: new[] { ("events", "Events"), ("landing", "Landing") });
+
+        analysis.GetRenderedFiles("Events").ShouldBe(
+            new[] { "Events", "layouts/default", "_nav", "_nav.ja", "_logo", "blog/_card" }, ignoreOrder: true);
+
+        // A language version is held to its own layout and to its template's.
+        analysis.GetRenderedFiles("Events.ja").ShouldBe(
+            new[] { "Events.ja", "layouts/landing", "layouts/default", "_nav", "_nav.ja", "_logo" }, ignoreOrder: true);
+
+        analysis.GetRenderedFiles("Landing").ShouldBe(new[] { "Landing", "layouts/landing" }, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Should_Tell_What_A_Page_Template_Without_A_Layout_Renders()
+    {
+        var analysis = Analyze(
+            new() { ["Bare"] = "+++\nlayout = \"none\"\n+++\n<html><head>{{ site_head }}</head></html>", ["layouts/default"] = Layout },
+            pages: ("bare", "Bare"));
+
+        analysis.GetRenderedFiles("Bare").ShouldBe(new[] { "Bare" });
+    }
 }

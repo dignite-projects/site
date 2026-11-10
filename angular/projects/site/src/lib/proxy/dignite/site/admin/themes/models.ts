@@ -1,6 +1,7 @@
 import type { IRemoteStreamContent } from '../../../../volo/abp/content/models';
 import type { SiteThemeFileStatus } from '../../themes/site-theme-file-status.enum';
 import type { SiteThemeIssueSeverity } from '../../themes/site-theme-issue-severity.enum';
+import type { SiteThemeRenderScope } from './site-theme-render-scope.enum';
 import type { SiteThemeUsageKindDto } from './site-theme-usage-kind-dto.enum';
 
 export interface PublishSiteThemeDto {
@@ -55,6 +56,13 @@ export interface SiteThemeCheckDto {
   liveDefaultLayout?: string;
   liveReleaseNumber?: number;
   hasChanges: boolean;
+  render: SiteThemeRenderScope;
+  renderedTemplates: string[];
+}
+
+export interface SiteThemeCheckInput {
+  render: SiteThemeRenderScope;
+  changedPath?: string;
 }
 
 export interface SiteThemeDto {
@@ -105,6 +113,8 @@ export interface SiteThemeIssueDto {
   line?: number;
   column?: number;
   message?: string;
+  foundByRender: boolean;
+  templates: string[];
 }
 
 export interface SiteThemeRenameResultDto {

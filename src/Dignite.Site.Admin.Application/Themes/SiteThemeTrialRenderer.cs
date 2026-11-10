@@ -37,9 +37,15 @@ namespace Dignite.Site.Admin.Themes;
 /// renders nothing, and says so in a warning when the theme renders any page - a check that rendered nothing must not
 /// read as a check whose pages rendered well.
 /// </para>
+/// <para>
+/// After one file changed, only the pages it takes part in need rendering again: those whose template, layout or a
+/// partial either includes it is (<see cref="SiteThemeAnalysis.GetRenderedFiles"/>). A file of the theme's texts is read
+/// by every template, so it takes part in every page; a static file renders into none.
+/// </para>
 /// </summary>
 public class SiteThemeTrialRenderer : ITransientDependency
 {
+
     /// <summary>The most addresses rendered in one run.</summary>
     public const int MaxPaths = 100;
 
@@ -83,20 +89,25 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
     /// <summary>
     /// What rendering the sample with <paramref name="snapshot"/> found: an error per distinct failure, and a warning when
-    /// the sample was cut short or could not be rendered at all. Empty when nothing failed, or when the theme renders no
-    /// page.
+    /// the sample was cut short or could not be rendered at all. No finding when nothing failed, or when the theme renders
+    /// no page. With <paramref name="changedPath"/>, the sample is cut down to the pages that file takes part in.
     /// </summary>
-    public virtual async Task<List<SiteThemeIssue>> RenderAsync(
+    public virtual async Task<SiteThemeTrialRenderResult> RenderAsync(
         SiteThemeSnapshotDto snapshot,
         SiteThemeAnalysis analysis,
+        string? changedPath = null,
         CancellationToken cancellationToken = default)
     {
-        var issues = new List<SiteThemeIssue>();
+        var renders = GetTemplateFilter(analysis, changedPath);
+        var result = new SiteThemeTrialRenderResult(renders == null ? SiteThemeRenderScope.All : SiteThemeRenderScope.Affected);
+        var issues = result.Issues;
 
-        var paths = await GetSamplePathsAsync(analysis, cancellationToken);
+        var paths = (await GetSamplePathsAsync(analysis, cancellationToken))
+            .Where(sample => renders == null || renders(sample.Template))
+            .ToList();
         if (paths.Count == 0)
         {
-            return issues;
+            return result;
         }
 
         var renderer = FindRenderer();
@@ -113,7 +124,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
                     ["Total"] = paths.Count.ToString(CultureInfo.InvariantCulture)
                 }));
 
-            return issues;
+            return result;
         }
 
         var failures = new Dictionary<string, SiteThemeIssue>(StringComparer.Ordinal);
@@ -123,7 +134,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
         var outOfTime = false;
         string? stoppedAt = null;
 
-        foreach (var path in paths.Take(MaxPaths))
+        foreach (var (path, template) in paths.Take(MaxPaths))
         {
             if (stopwatch.Elapsed > TimeBudget)
             {
@@ -139,16 +150,23 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
                 foreach (var id in RenderedFragmentReferences.FindMissing(preview.Html))
                 {
-                    if (fragmentWarnings.Count < MaxFragmentWarnings)
+                    if (!fragmentWarnings.TryGetValue(id, out var warning))
                     {
-                        fragmentWarnings.TryAdd(id, new SiteThemeIssue(
+                        if (fragmentWarnings.Count >= MaxFragmentWarnings)
+                        {
+                            continue;
+                        }
+
+                        fragmentWarnings[id] = warning = new SiteThemeIssue(
                             SiteThemeIssueSeverity.Warning,
                             SiteThemeIssueCodes.FragmentReferenceNotFound,
                             null,
                             null,
                             null,
-                            new Dictionary<string, string> { ["Path"] = path, ["Id"] = id }));
+                            new Dictionary<string, string> { ["Path"] = path, ["Id"] = id });
                     }
+
+                    result.AddTemplate(warning, template);
                 }
             }
             catch (BusinessException exception) when (exception.Code is
@@ -156,7 +174,12 @@ public class SiteThemeTrialRenderer : ITransientDependency
                                                           or SiteErrorCodes.SiteTemplateDidNotRenderSiteHead)
             {
                 var message = exception.Data["Message"] as string ?? exception.Code!;
-                failures.TryAdd(message, ToIssue(analysis, path, message, exception));
+                if (!failures.TryGetValue(message, out var failure))
+                {
+                    failures[message] = failure = ToIssue(analysis, path, message, exception);
+                }
+
+                result.AddTemplate(failure, template);
             }
             catch (BusinessException)
             {
@@ -183,7 +206,38 @@ public class SiteThemeTrialRenderer : ITransientDependency
             issues.Add(ToIncompleteIssue(rendered, paths.Count, outOfTime, stoppedAt));
         }
 
-        return issues;
+        // A template counts as rendered only when all of its addresses were: one cut short still has its earlier findings.
+        var notRendered = paths.Skip(rendered).Select(sample => sample.Template).ToHashSet(StringComparer.Ordinal);
+        result.Templates.AddRange(paths
+            .Take(rendered)
+            .Select(sample => sample.Template)
+            .Where(template => !notRendered.Contains(template))
+            .Distinct(StringComparer.Ordinal));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Which page templates (language versions apart) to render after <paramref name="changedPath"/> changed, or null for
+    /// all of them: with no changed file, or a file of the theme's texts, which every template reads with <c>t</c>.
+    /// </summary>
+    protected virtual Func<string, bool>? GetTemplateFilter(SiteThemeAnalysis analysis, string? changedPath)
+    {
+        if (changedPath == null || SiteThemeTextFiles.IsTextFile(changedPath))
+        {
+            return null;
+        }
+
+        var answers = new Dictionary<string, bool>(StringComparer.Ordinal);
+        return template =>
+        {
+            if (!answers.TryGetValue(template, out var renders))
+            {
+                answers[template] = renders = analysis.GetRenderedFiles(template).Contains(changedPath);
+            }
+
+            return renders;
+        };
     }
 
     /// <summary>
@@ -238,15 +292,17 @@ public class SiteThemeTrialRenderer : ITransientDependency
     /// order of the pages' routes; then the rest, in the same order.
     /// </para>
     /// </summary>
-    protected virtual async Task<List<string>> GetSamplePathsAsync(SiteThemeAnalysis analysis, CancellationToken cancellationToken)
+    protected virtual async Task<List<(string Path, string Template)>> GetSamplePathsAsync(
+        SiteThemeAnalysis analysis,
+        CancellationToken cancellationToken)
     {
         var languages = await LanguageProvider.GetEnabledLanguagesAsync(cancellationToken);
 
         var context = new SiteLanguages(languages[0], languages);
         var asOf = Clock.Now;
 
-        var first = new List<string>();
-        var rest = new List<string>();
+        var first = new List<(string Path, string Template)>();
+        var rest = new List<(string Path, string Template)>();
         var seenPaths = new HashSet<string>(StringComparer.Ordinal);
         var seenKinds = new HashSet<string>(StringComparer.Ordinal);
 
@@ -278,7 +334,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
             foreach (var culture in cultures)
             {
-                Add(context.ApplyCulturePrefix(page.GetPath(), culture), GetTemplateVersion(template, culture, analysis) + "|list");
+                Add(context.ApplyCulturePrefix(page.GetPath(), culture), GetTemplateVersion(template, culture, analysis), "list");
             }
 
             foreach (var group in contents.GroupBy(content => (content.ContentTypeId, content.CultureName)))
@@ -286,7 +342,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
                 var content = group.First();
                 Add(
                     context.ApplyCulturePrefix(page.BuildContentPath(content), content.CultureName),
-                    GetTemplateVersion(template, content.CultureName, analysis) + "|detail|" + content.ContentTypeId.ToString("N"));
+                    GetTemplateVersion(template, content.CultureName, analysis), "detail|" + content.ContentTypeId.ToString("N"));
             }
 
             foreach (var culture in contents
@@ -296,18 +352,18 @@ public class SiteThemeTrialRenderer : ITransientDependency
             {
                 Add(
                     context.ApplyCulturePrefix(page.GetPath(), culture) + NextPageQueryString,
-                    GetTemplateVersion(template, culture, analysis) + "|next");
+                    GetTemplateVersion(template, culture, analysis), "next");
             }
         }
 
         first.AddRange(rest);
         return first;
 
-        void Add(string path, string kind)
+        void Add(string path, string version, string way)
         {
             if (seenPaths.Add(path))
             {
-                (seenKinds.Add(kind) ? first : rest).Add(path);
+                (seenKinds.Add(version + "|" + way) ? first : rest).Add((path, version));
             }
         }
     }

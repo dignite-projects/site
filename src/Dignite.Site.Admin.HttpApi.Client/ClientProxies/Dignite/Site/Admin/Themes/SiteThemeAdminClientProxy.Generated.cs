@@ -76,9 +76,12 @@ public partial class SiteThemeAdminClientProxy : ClientProxyBase<ISiteThemeAdmin
         });
     }
 
-    public virtual async Task<SiteThemeCheckDto> CheckAsync()
+    public virtual async Task<SiteThemeCheckDto> CheckAsync(SiteThemeCheckInput? input = null)
     {
-        return await RequestAsync<SiteThemeCheckDto>(nameof(CheckAsync));
+        return await RequestAsync<SiteThemeCheckDto>(nameof(CheckAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(SiteThemeCheckInput), input }
+        });
     }
 
     public virtual async Task<SiteReleaseDto> PublishAsync(PublishSiteThemeDto input)

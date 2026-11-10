@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Dignite.Site.Public.Templating`) takes `int? width` to match: a call that passes an `int` compiles as before, but
   code built against an earlier version needs a rebuild. See
   [Functions](docs/en/rendering/scriban-templates.md#functions).
+- **The Theme screen renders only the pages a save affects.** Opening the screen reads the theme without rendering
+  any page, and saving, creating, renaming or deleting a file renders only the pages that file takes part in - as
+  their template, their layout or a partial either includes; a stylesheet renders none. What an earlier render found
+  about the other pages stays listed, and a note under the findings says how far the last check rendered. **Check**
+  and **Publish** still render the whole sample. `GET api/site-admin/theme/check` takes `render` (`All` by default,
+  `None`, or `Affected` with `changedPath`) and says which pages it rendered (`render`, `renderedTemplates`); each
+  finding says whether the render found it (`foundByRender`) and on which page templates (`templates`).
+  `ISiteThemeAdminAppService.CheckAsync` takes an optional `SiteThemeCheckInput`: a call without one compiles and
+  behaves as before, but code built against an earlier version needs a rebuild; in `@dignite/ng.site`,
+  `SiteThemeAdminService.check` takes a `SiteThemeCheckInput`. See
+  [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
 
 ## [2.3.0] - 2026-11-09
 

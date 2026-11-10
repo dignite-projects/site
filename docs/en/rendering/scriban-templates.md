@@ -212,6 +212,14 @@ The sample is bounded, at 100 addresses and 30 seconds. Within the bound, each t
 
 Only the theme's failures are findings. An address that leads nowhere, or a failure of the site itself while rendering, is not.
 
+A check can render fewer pages, which is what the [Theme screen](../admin-ui.md#screens) does as you edit: reading every file takes a moment, rendering the sample can take seconds. `render` chooses:
+
+* `All` (the default): the whole sample, as above. Publishing always renders the whole sample.
+* `None`: no page; the check reads the files only.
+* `Affected`: only the pages that `changedPath` takes part in rendering: those whose template it is, whose layout it is, or which include it, directly or through another partial. A file in `locales/` takes part in every page, and a static file in none. A partial included by a path computed at run time is not followed, as in the rest of the check.
+
+The result says which pages it rendered (`render`, and `renderedTemplates`, the page templates whose every sample address was rendered), and each finding of the trial render says so (`foundByRender`), with the page templates whose addresses met it (`templates`): a partial that fails is listed once, with every page template that includes it. What an earlier check's render found about the other pages is not repeated: the Theme screen keeps showing a finding until a check renders all of its page templates again.
+
 The pages are rendered by `Dignite.Site.Public.Web`, in the same application as the administration API or in the application that serves the site; see [When the Site Runs in Another Application](#when-the-site-runs-in-another-application). An application that has neither renders nothing: the check says so in a warning (`ThemeIssue:TrialRenderUnavailable`), and publishing goes ahead without the trial render, so a template that fails only when it renders is not found before it goes live.
 
 The rendered pages are also read for links to an id that nothing on the page has: a `<use href="#icon">` whose symbol is not in the page shows nothing and fails nothing, and an anchor to a section that does not exist goes nowhere. Each is a warning, once per id, with the first address that has it (`ThemeIssue:FragmentReferenceNotFound`); a warning does not stop a publish. A reference to another file (`href="sprite.svg#icon"`), an empty `#` and `#top` are not reported.
@@ -568,7 +576,7 @@ The **Theme** screen of the [admin UI](../admin-ui.md#screens) edits, checks and
 | `POST /files/rename` | `SiteAdmin.Themes.Edit` | Moves a file, with `path`, `newPath` and `updateReferences`, true by default; see [The Working Copy and Releases](#the-working-copy-and-releases). |
 | `DELETE /files/by-path?path=...` | `SiteAdmin.Themes.Edit` | Removes a file from the working copy. |
 | `GET /files/usages?path=...` | `SiteAdmin.Themes` | The pages, files and setting that use a file. |
-| `GET /check` | `SiteAdmin.Themes` | [Checks](#checking-the-theme) the working copy. Returns the findings, the templates that can be a layout (`layouts`: they write `body`, call `site_head` and have no front matter, whether or not anything uses them yet, so the ones a default layout can be), the files that would change, the default layout of the working copy and of the live release, and the `fingerprint` a publish needs. |
+| `GET /check` | `SiteAdmin.Themes` | [Checks](#checking-the-theme) the working copy; `render` (`All`, `None`, or `Affected` with `changedPath`) chooses which pages it [renders](#trial-render). Returns the findings, the templates that can be a layout (`layouts`: they write `body`, call `site_head` and have no front matter, whether or not anything uses them yet, so the ones a default layout can be), the files that would change, the default layout of the working copy and of the live release, and the `fingerprint` a publish needs. |
 | `POST /publish` | `SiteAdmin.Themes.Publish` | Publishes the working copy, with the check's `fingerprint` and an optional `comment`. |
 | `GET /releases` | `SiteAdmin.Themes` | The releases, newest first. |
 | `GET /releases/{id}` | `SiteAdmin.Themes` | One release with its file list. |

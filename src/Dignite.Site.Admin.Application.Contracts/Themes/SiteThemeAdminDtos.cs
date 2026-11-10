@@ -188,6 +188,43 @@ public class SiteThemeCheckDto
 
     /// <summary>Whether publishing would change anything.</summary>
     public bool HasChanges { get; set; }
+
+    /// <summary>
+    /// Which pages this check rendered: none, those a file affects, or the whole sample. Less than asked for when the
+    /// reading found an error - a theme that does not read cleanly is not rendered at all.
+    /// </summary>
+    public SiteThemeRenderScope Render { get; set; }
+
+    /// <summary>
+    /// The page templates (language versions apart: <c>Blog/Post.ja</c>) whose every sample address this check rendered.
+    /// The findings of an earlier render for any other template still stand, as far as this check can tell.
+    /// </summary>
+    public List<string> RenderedTemplates { get; set; } = new();
+}
+
+/// <summary>How many of the site's pages a check renders after reading the theme.</summary>
+public enum SiteThemeRenderScope
+{
+    /// <summary>A sample of every page the theme renders. What a publish needs.</summary>
+    All = 0,
+
+    /// <summary>No page: the reading alone, which takes a moment where rendering can take seconds.</summary>
+    None = 1,
+
+    /// <summary>
+    /// The pages <see cref="SiteThemeCheckInput.ChangedPath"/> takes part in rendering - as their template, their layout
+    /// or a partial either includes. A file of the theme's texts takes part in every page; a static file in none.
+    /// </summary>
+    Affected = 2
+}
+
+public class SiteThemeCheckInput
+{
+    public SiteThemeRenderScope Render { get; set; } = SiteThemeRenderScope.All;
+
+    /// <summary>The file that changed, for <see cref="SiteThemeRenderScope.Affected"/>; without one, every page is rendered.</summary>
+    [DynamicStringLength(typeof(SiteThemeConsts), nameof(SiteThemeConsts.MaxPathLength))]
+    public string? ChangedPath { get; set; }
 }
 
 public class SiteThemeIssueDto
@@ -206,6 +243,15 @@ public class SiteThemeIssueDto
 
     /// <summary>The finding in the user's language.</summary>
     public string Message { get; set; } = default!;
+
+    /// <summary>Whether rendering the pages found it, rather than reading the files.</summary>
+    public bool FoundByRender { get; set; }
+
+    /// <summary>
+    /// For a finding of the render about pages: the page templates whose sample addresses met it - all of them, though
+    /// the finding is listed once. Empty for a finding of the reading, and for one about the render as a whole.
+    /// </summary>
+    public List<string> Templates { get; set; } = new();
 }
 
 public class SiteThemeFileChangeDto
