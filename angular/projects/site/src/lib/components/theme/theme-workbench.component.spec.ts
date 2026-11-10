@@ -7,7 +7,9 @@ import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admi
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
 import { SiteThemeTransferAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-transfer-admin.service';
 import type { SiteThemeCheckDto, SiteThemeFileDto } from '../../proxy/dignite/site/admin/themes/models';
+import { SiteThemeRenderScope } from '../../proxy/dignite/site/admin/themes/site-theme-render-scope.enum';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
+import { SiteThemeIssueSeverity } from '../../proxy/dignite/site/themes/site-theme-issue-severity.enum';
 import { ThemeWorkbenchComponent } from './theme-workbench.component';
 
 describe('ThemeWorkbenchComponent', () => {
@@ -26,6 +28,8 @@ describe('ThemeWorkbenchComponent', () => {
     layouts: [],
     changes: [{ path: 'Events', status: SiteThemeFileStatus.Modified }],
     hasChanges: true,
+    render: SiteThemeRenderScope.All,
+    renderedTemplates: [],
     ...overrides,
   });
 
@@ -75,7 +79,7 @@ describe('ThemeWorkbenchComponent', () => {
     expect(component.isLoading()).toBe(false);
     expect(component.theme()?.defaultLayout).toBe('layouts/default');
     expect(component.treeRows().map(row => row.node.path)).toEqual(['Events']);
-    expect(service.check).toHaveBeenCalled();
+    expect(service.check).toHaveBeenCalledWith({ render: SiteThemeRenderScope.None, changedPath: undefined });
     expect(component.check()?.fingerprint).toBe('fp');
   });
 
@@ -113,6 +117,7 @@ describe('ThemeWorkbenchComponent', () => {
     expect(component.isDirty(saved)).toBe(false);
     expect(toaster.success).toHaveBeenCalledWith('Site::ThemeFileSaved');
     expect(service.check).toHaveBeenCalledTimes(1);
+    expect(service.check).toHaveBeenCalledWith({ render: SiteThemeRenderScope.Affected, changedPath: 'Events' });
   });
 
   it('asks on a conflict, and overwrites without the stamp when told to', () => {
@@ -277,7 +282,7 @@ describe('ThemeWorkbenchComponent', () => {
       expect(component.theme()?.defaultLayout).toBe('layouts/landing');
       expect(component.isDefaultLayoutInFront()).toBe(true);
       expect(toaster.success).toHaveBeenCalledWith('Site::DefaultLayoutSet', undefined, { messageLocalizationParams: ['layouts/landing'] });
-      expect(service.check).toHaveBeenCalled();
+      expect(service.check).toHaveBeenCalledWith({ render: SiteThemeRenderScope.Affected, changedPath: 'layouts/landing' });
     });
 
     it('does nothing for the file that already is the default', () => {
@@ -325,6 +330,8 @@ describe('ThemeWorkbenchComponent', () => {
       layouts: [],
       changes: [],
       hasChanges: false,
+      render: SiteThemeRenderScope.All,
+      renderedTemplates: [],
       ...overrides,
     });
 
@@ -358,7 +365,7 @@ describe('ThemeWorkbenchComponent', () => {
       const { component, answers } = createWithPendingChecks();
       const after = vi.fn();
 
-      component.runCheck(after);
+      component.runCheck({ after });
       component.runCheck();
       answers[1].next(check_({ fingerprint: 'older' }));
       expect(after).not.toHaveBeenCalled();
@@ -372,12 +379,53 @@ describe('ThemeWorkbenchComponent', () => {
       const { component, answers } = createWithPendingChecks();
       const after = vi.fn();
 
-      component.runCheck(after);
+      component.runCheck({ after });
       answers[1].error({ status: 500 });
 
       expect(component.isChecking()).toBe(false);
       expect(component.check()?.fingerprint).toBe('load');
       expect(after).not.toHaveBeenCalled();
+    });
+
+    it('renders every page when it takes the place of a check that would have', () => {
+      const { component, service, answers } = createWithPendingChecks();
+      const after = vi.fn();
+
+      component.runCheck({ after });
+      component.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: 'Events' });
+
+      expect(service.check).toHaveBeenLastCalledWith({ render: SiteThemeRenderScope.All, changedPath: 'Events' });
+      answers[2].next(check_({ fingerprint: 'newer' }));
+      expect(after).toHaveBeenCalledWith(expect.objectContaining({ fingerprint: 'newer' }));
+
+      component.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: 'Events' });
+      expect(service.check).toHaveBeenLastCalledWith({ render: SiteThemeRenderScope.Affected, changedPath: 'Events' });
+    });
+
+    it('keeps what an earlier render found about the pages a check did not render again', () => {
+      const { component, answers } = createWithPendingChecks();
+      const failure = {
+        severity: SiteThemeIssueSeverity.Error,
+        code: 'ThemeIssue:RenderFailed',
+        message: 'Rendering /blog failed',
+        foundByRender: true,
+        templates: ['Blog'],
+      };
+
+      component.runCheck();
+      answers[1].next(check_({ issues: [failure], hasErrors: true }));
+      component.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: '_card' });
+      answers[2].next(check_({ render: SiteThemeRenderScope.Affected, renderedTemplates: ['Events'] }));
+
+      expect(component.check()?.issues).toEqual([failure]);
+      expect(component.check()?.hasErrors).toBe(true);
+      expect(component.renderNote()).toEqual({ key: 'Site::ThemeCheckRenderedAffected', count: '1' });
+
+      component.runCheck({ render: SiteThemeRenderScope.Affected, changedPath: 'Blog' });
+      answers[3].next(check_({ render: SiteThemeRenderScope.Affected, renderedTemplates: ['Blog'] }));
+
+      expect(component.check()?.issues).toEqual([]);
+      expect(component.check()?.hasErrors).toBe(false);
     });
   });
 

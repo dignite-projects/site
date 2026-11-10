@@ -273,8 +273,9 @@
             <hr class="my-3" />
           }
 
-          <!-- The check: runs by itself after every change; the button asks for the result as it is now, for what
-               happened elsewhere (another author, an AI over MCP, the Pages screen). -->
+          <!-- The check: runs by itself after every change, reading every file but rendering only the pages the change
+               takes part in (none on opening); the button renders them all, and asks for the result as it is now, for
+               what happened elsewhere (another author, an AI over MCP, the Pages screen). -->
           <div class="d-flex align-items-center mb-2">
             <h6 class="mb-0 me-auto">{{ 'Site::ThemeCheck' | abpLocalization }}</h6>
             <button type="button" class="btn btn-sm btn-outline-secondary" (click)="runCheck()" [disabled]="isChecking()">
@@ -310,6 +311,11 @@
                     }
                   </ul>
                 }
+              }
+              @if (renderNote(); as note) {
+                <p class="small text-muted mb-2">
+                  <i class="fa fa-info-circle me-1"></i>{{ note.key | abpLocalization: note.count }}
+                </p>
               }
               <p class="small text-muted mb-0">
                 @if (current.changes.length > 0) {

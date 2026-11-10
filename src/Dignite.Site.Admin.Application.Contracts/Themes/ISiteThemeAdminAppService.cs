@@ -44,8 +44,11 @@ public interface ISiteThemeAdminAppService : IApplicationService
     /// <summary>The pages, files and setting that use a file, by literal name - what to look at before deleting it.</summary>
     Task<SiteThemeFileUsagesDto> GetFileUsagesAsync(string path);
 
-    /// <summary>Checks the whole working copy, and lists what publishing it would change.</summary>
-    Task<SiteThemeCheckDto> CheckAsync();
+    /// <summary>
+    /// Checks the whole working copy, and lists what publishing it would change. Reading it covers every file; rendering
+    /// covers the pages <paramref name="input"/> asks for - all of them when it is left out.
+    /// </summary>
+    Task<SiteThemeCheckDto> CheckAsync(SiteThemeCheckInput? input = null);
 
     /// <summary>
     /// Publishes the working copy as a new release and makes it live. Refused while the check finds an error

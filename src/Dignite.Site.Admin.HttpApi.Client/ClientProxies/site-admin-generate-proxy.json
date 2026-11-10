@@ -4655,7 +4655,19 @@
                 },
                 {
                   "name": "CheckAsync",
-                  "parametersOnMethod": [],
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Themes.SiteThemeCheckInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Themes.SiteThemeCheckInput",
+                      "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeCheckInput",
+                      "isOptional": true,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
                   "returnValue": {
                     "type": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
                     "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
@@ -5309,14 +5321,57 @@
               "description": null,
               "displayName": null
             },
-            "CheckAsync": {
-              "uniqueName": "CheckAsync",
+            "CheckAsyncByInput": {
+              "uniqueName": "CheckAsyncByInput",
               "name": "CheckAsync",
               "httpMethod": "GET",
               "url": "api/site-admin/theme/check",
               "supportedVersions": [],
-              "parametersOnMethod": [],
-              "parameters": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Themes.SiteThemeCheckInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Themes.SiteThemeCheckInput",
+                  "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeCheckInput",
+                  "isOptional": true,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "Render",
+                  "jsonName": null,
+                  "type": "Dignite.Site.Admin.Themes.SiteThemeRenderScope",
+                  "typeSimple": "enum",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "ChangedPath",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": "input",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
               "returnValue": {
                 "type": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",
                 "typeSimple": "Dignite.Site.Admin.Themes.SiteThemeCheckDto",

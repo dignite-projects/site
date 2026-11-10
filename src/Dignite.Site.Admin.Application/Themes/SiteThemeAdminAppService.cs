@@ -144,25 +144,38 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
         };
     }
 
-    public virtual async Task<SiteThemeCheckDto> CheckAsync()
+    public virtual async Task<SiteThemeCheckDto> CheckAsync(SiteThemeCheckInput? input = null)
     {
+        input ??= new SiteThemeCheckInput();
+
         var theme = await ThemeManager.GetOrCreateAsync();
         var check = await ThemeManager.CheckAsync(theme);
 
         // A theme that does not read cleanly renders into errors that are only its errors again, so the pages are
         // rendered once the reading finds nothing wrong.
-        var issues = check.Analysis.Issues.ToList();
-        if (!check.Analysis.HasErrors)
+        var issues = check.Analysis.Issues.Select(issue => (Issue: issue, FoundByRender: false)).ToList();
+        var render = new SiteThemeTrialRenderResult(SiteThemeRenderScope.None);
+        if (!check.Analysis.HasErrors && input.Render != SiteThemeRenderScope.None)
         {
-            issues.AddRange(await TrialRenderAsync(theme, await FileRepository.GetListAsync(theme.Id), check));
+            var changedPath = input.Render == SiteThemeRenderScope.Affected && !string.IsNullOrWhiteSpace(input.ChangedPath)
+                ? SiteThemePaths.Normalize(input.ChangedPath)
+                : null;
+
+            render = await TrialRenderAsync(theme, await FileRepository.GetListAsync(theme.Id), check, changedPath);
+            issues.AddRange(render.Issues.Select(issue => (issue, true)));
         }
 
         return new SiteThemeCheckDto
         {
             Fingerprint = check.Fingerprint,
             // Errors first; the sort is stable, so the findings keep their order within a severity.
-            Issues = issues.OrderBy(issue => issue.Severity).Select(MapToDto).ToList(),
-            HasErrors = issues.Any(issue => issue.Severity == SiteThemeIssueSeverity.Error),
+            Issues = issues
+                .OrderBy(found => found.Issue.Severity)
+                .Select(found => MapToDto(found.Issue, found.FoundByRender, render.GetTemplates(found.Issue)))
+                .ToList(),
+            HasErrors = issues.Any(found => found.Issue.Severity == SiteThemeIssueSeverity.Error),
+            Render = render.Scope,
+            RenderedTemplates = render.Templates.ToList(),
             Layouts = check.Analysis.Layouts.ToList(),
             Changes = check.Changes
                 .Where(change => change.Status != SiteThemeFileStatus.Unchanged)
@@ -187,7 +200,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
         var theme = await ThemeManager.GetOrCreateAsync();
         var publication = await ThemeManager.PrepareAsync(theme, input.Fingerprint);
 
-        var failures = (await TrialRenderAsync(theme, publication.Files, publication.Check))
+        var failures = (await TrialRenderAsync(theme, publication.Files, publication.Check)).Issues
             .Count(issue => issue.Severity == SiteThemeIssueSeverity.Error);
         if (failures > 0)
         {
@@ -199,14 +212,17 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
         return MapToDto(release, theme);
     }
 
-    protected virtual async Task<List<SiteThemeIssue>> TrialRenderAsync(
+    /// <summary>Renders the sample - only the pages <paramref name="changedPath"/> takes part in, when one is given.</summary>
+    protected virtual async Task<SiteThemeTrialRenderResult> TrialRenderAsync(
         SiteTheme theme,
         IEnumerable<SiteThemeFile> files,
-        SiteThemeCheck check)
+        SiteThemeCheck check,
+        string? changedPath = null)
     {
         return await TrialRenderer.RenderAsync(
             ToWorkingCopySnapshot(theme, files),
             check.Analysis,
+            changedPath,
             RequestCancellationToken);
     }
 
@@ -404,7 +420,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
     /// The finding with its message in the user's language: the code is the localization key, and its
     /// <c>{Placeholders}</c> are filled from the finding's data, the way a business exception's are.
     /// </summary>
-    protected virtual SiteThemeIssueDto MapToDto(SiteThemeIssue issue)
+    protected virtual SiteThemeIssueDto MapToDto(SiteThemeIssue issue, bool foundByRender, IReadOnlyList<string> templates)
     {
         var message = L[issue.Code].Value;
         foreach (var (key, value) in issue.Data)
@@ -419,7 +435,9 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             Path = issue.Path,
             Line = issue.Line,
             Column = issue.Column,
-            Message = message
+            Message = message,
+            FoundByRender = foundByRender,
+            Templates = templates.ToList()
         };
     }
 

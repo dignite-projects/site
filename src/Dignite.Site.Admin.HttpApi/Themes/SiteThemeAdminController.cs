@@ -85,9 +85,9 @@ public class SiteThemeAdminController : SiteAdminController, ISiteThemeAdminAppS
 
     [HttpGet]
     [Route("check")]
-    public virtual Task<SiteThemeCheckDto> CheckAsync()
+    public virtual Task<SiteThemeCheckDto> CheckAsync([FromQuery] SiteThemeCheckInput? input = null)
     {
-        return ThemeAdminAppService.CheckAsync();
+        return ThemeAdminAppService.CheckAsync(input);
     }
 
     [HttpPost]

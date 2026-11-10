@@ -1,7 +1,9 @@
-import type { SiteThemeFileSummaryDto } from '../../proxy/dignite/site/admin/themes/models';
+import type { SiteThemeCheckDto, SiteThemeFileSummaryDto, SiteThemeIssueDto } from '../../proxy/dignite/site/admin/themes/models';
 import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
+import { SiteThemeRenderScope } from '../../proxy/dignite/site/admin/themes/site-theme-render-scope.enum';
+import { SiteThemeIssueSeverity } from '../../proxy/dignite/site/themes/site-theme-issue-severity.enum';
 
 /** Mirrors `SiteThemeConsts.PathPattern` (`src/Dignite.Site.Domain.Shared/Themes/SiteThemeConsts.cs`). */
 export const THEME_PATH_PATTERN =
@@ -362,4 +364,40 @@ export function fieldGroupsFor(page: PageDto | undefined, library: FieldDto[] | 
         }),
     }))
     .filter(group => group.fields.length > 0);
+}
+
+/**
+ * The check to show after `next`: `next` itself, with the findings of earlier renders it did not redo. A check that
+ * reads the theme without rendering, or renders only the pages a changed file takes part in, says nothing new about
+ * the other pages - so what an earlier render found about them still stands, and still shows: an error must not go away
+ * because the next save touched something else. A full render replaces every earlier finding.
+ * <p>
+ * A finding about pages goes when `next` rendered every page template that met it again - a partial that fails, fails
+ * every page that includes it, and is fixed only when none of them fails. A finding about a run as a whole (cut short,
+ * stopped, no renderer) stays until `next` brings one of its own.
+ */
+export function withEarlierRenderFindings(
+  previous: SiteThemeCheckDto | undefined,
+  next: SiteThemeCheckDto,
+): SiteThemeCheckDto {
+  if (!previous || next.render === SiteThemeRenderScope.All) {
+    return next;
+  }
+
+  const rendered = new Set(next.renderedTemplates ?? []);
+  const hasOwnRunFindings = next.issues.some(issue => issue.foundByRender && !issue.templates?.length);
+  const same = (a: SiteThemeIssueDto, b: SiteThemeIssueDto) =>
+    a.code === b.code && a.path === b.path && a.line === b.line && a.column === b.column && a.message === b.message;
+
+  const earlier = previous.issues.filter(issue =>
+    issue.foundByRender
+    && (issue.templates?.length ? !issue.templates.every(template => rendered.has(template)) : !hasOwnRunFindings)
+    && !next.issues.some(current => same(current, issue)));
+  if (earlier.length === 0) {
+    return next;
+  }
+
+  // Errors first, as the server sorts them; the sort is stable, so each keeps its order within a severity.
+  const issues = [...next.issues, ...earlier].sort((a, b) => a.severity - b.severity);
+  return { ...next, issues, hasErrors: issues.some(issue => issue.severity === SiteThemeIssueSeverity.Error) };
 }
