@@ -16,6 +16,7 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteReferenceDataService } from '../../services/site-reference-data.service';
 import { flexFieldErrorMessage } from '../../field-types/flex-field-error-message';
+import { SiteUploadCleanup } from '../../files/services/site-upload-cleanup';
 import type { ArrangedField } from './arranged-field';
 
 const MAX_SLUG_LENGTH = 256;
@@ -53,6 +54,9 @@ type SlugState = 'forbidden' | 'required' | 'optional';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './content-editor.component.html',
   imports: [CoreModule, ThemeSharedModule, ReactiveFormsModule, RouterLink, FlexFieldControlComponent],
+  // The file inputs of the content's fields report their uploads to it; a file uploaded and removed again before the
+  // save is deleted from the Drive once the content is saved.
+  providers: [SiteUploadCleanup],
 })
 export class ContentEditorComponent {
   private readonly contentService = inject(ContentAdminService);
@@ -64,6 +68,7 @@ export class ContentEditorComponent {
   private readonly fb = inject(FormBuilder);
   private readonly toaster = inject(ToasterService);
   private readonly localization = inject(LocalizationService);
+  private readonly uploadCleanup = inject(SiteUploadCleanup);
 
   readonly ContentStatus = ContentStatus;
   readonly statuses = [ContentStatus.Draft, ContentStatus.Published, ContentStatus.Archived];
@@ -321,6 +326,7 @@ export class ContentEditorComponent {
       next: () => {
         this.isBusy.set(false);
         this.toaster.success('AbpUi::SavedSuccessfully');
+        this.uploadCleanup.saved(fieldValues).subscribe();
         this.backToList();
       },
       error: () => this.isBusy.set(false),

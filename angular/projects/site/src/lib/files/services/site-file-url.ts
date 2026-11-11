@@ -1,15 +1,49 @@
 /**
- * The path every Site file is served under - the server's `SiteFileUrl.RoutePrefix`. The admin API hands
- * out addresses relative to it (`FileDescriptorDto.url`, `/api/site-public/files/...`), and that
- * relative address is what a field stores: no host is written into content. The public site resolves it
+ * The path every Site file is served under - the server's `SiteFileUrl.RoutePrefix`. Addresses relative to it
+ * (`/api/site-public/files/...`) are what fields store - no host is written into content - and what an address the
+ * Drive hands out becomes (`normalizeFileUrl`). The public site resolves it
  * against its own origin; this admin UI, served from another origin, shows it from its `SiteAdmin` API
  * host (`SiteFileUrlService`).
  */
 export const SITE_FILE_PATH = '/api/site-public/files/';
 
+/**
+ * The path of the Drive's public read endpoint (`/api/drive/public/{container}/{blob}`). Site's files are the Drive's,
+ * and the Drive hands its own address out (`DriveFileDto.url`, with `?__tenant=`); Site serves the same file at its
+ * own address (`normalizeFileUrl`).
+ */
+export const DRIVE_PUBLIC_FILE_PATH = '/api/drive/public/';
+
+/**
+ * The Site address of a file the Drive addresses as `url`: `/api/drive/public/{container}/{blob}`, relative or on any
+ * host, becomes `/api/site-public/files/{container}/{blob}`, relative, without the Drive's `__tenant` and with every
+ * other query parameter kept. Any other address comes back unchanged. Mirrors the server's `SiteFileUrl.Normalize`.
+ */
+export function normalizeFileUrl(url: string | null | undefined): string {
+  const value = url ?? '';
+  const marker = value.toLowerCase().indexOf(DRIVE_PUBLIC_FILE_PATH);
+  if (marker < 0) {
+    return value;
+  }
+
+  const rest = value.substring(marker + DRIVE_PUBLIC_FILE_PATH.length);
+  const queryStart = rest.indexOf('?');
+  const path = queryStart < 0 ? rest : rest.substring(0, queryStart);
+  const kept =
+    queryStart < 0
+      ? []
+      : rest
+          .substring(queryStart + 1)
+          .split('&')
+          .filter(parameter => parameter && parameter.split('=')[0].toLowerCase() !== '__tenant');
+
+  const address = SITE_FILE_PATH + path;
+  return kept.length ? `${address}?${kept.join('&')}` : address;
+}
+
 /** Whether `url` addresses a file Site serves (and so can be resized), as opposed to an external image. */
 export function isSiteFileUrl(url: string | null | undefined): boolean {
-  return !!url && url.toLowerCase().includes(SITE_FILE_PATH);
+  return !!url && normalizeFileUrl(url).toLowerCase().includes(SITE_FILE_PATH);
 }
 
 /**
@@ -19,7 +53,7 @@ export function isSiteFileUrl(url: string | null | undefined): boolean {
  * server's `SiteFileUrl.Sized`.
  */
 export function sizedFileUrl(url: string | null | undefined, width?: number, height?: number): string {
-  const value = url ?? '';
+  const value = normalizeFileUrl(url);
   if (!isSiteFileUrl(value) || (!width && !height)) {
     return value;
   }
@@ -50,7 +84,7 @@ export function sizedFileUrl(url: string | null | undefined, width?: number, hei
  * address when `apiBase` and `tenantId` are both empty. Mirrors the server's `SiteFileUrl.Absolutize`.
  */
 export function absoluteFileUrl(url: string | null | undefined, apiBase: string, tenantId?: string | null): string {
-  const value = url ?? '';
+  const value = normalizeFileUrl(url);
   if (!value.toLowerCase().startsWith(SITE_FILE_PATH)) {
     return value;
   }

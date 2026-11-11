@@ -6,7 +6,7 @@
       </label>
       <select class="form-select" id="siteFileFieldContainerName" [formControlName]="names.fileContainerName">
         <option value=""></option>
-        @for (containerName of containerNames; track containerName) {
+        @for (containerName of containerNames(); track containerName) {
           <option [value]="containerName">{{ containerName }}</option>
         }
       </select>
