@@ -25,6 +25,9 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Public.Web\Dignite.Site.Public.Web.csproj" />
     <!-- The MCP endpoint (GitHub issue #26). -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
+    <!-- The migration of the file library Site kept before 3.0 into the Drive, run by data seeding. Remove it once
+         the files are migrated. -->
+    <ProjectReference Include="..\..\src\Dignite.Site.Drive.Migration\Dignite.Site.Drive.Migration.csproj" />
     <!-- The Drive, in this process: where Site's files are kept (images, attachments, theme-assets), its file API and
          public read, and its drive_* MCP tools. -->
     <PackageReference Include="Dignite.Drive.Application" Version="$(DigniteAbpModulesVersion)" />

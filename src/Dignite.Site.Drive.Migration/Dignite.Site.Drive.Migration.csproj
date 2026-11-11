@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Site.DriveMigration</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The legacy file and directory descriptors it reads. -->
+    <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
+    <!-- The Drive's file descriptors it writes, in the same process and database: this package is for a host that
+         installs the Drive in-process. Site's other packages reference only the Drive's contracts. -->
+    <PackageReference Include="Dignite.Drive.Domain" Version="$(DigniteAbpModulesVersion)" />
+  </ItemGroup>
+
+</Project>

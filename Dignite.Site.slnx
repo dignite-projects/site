@@ -17,6 +17,7 @@
         <Project Path="src/Dignite.Site.Common.HttpApi/Dignite.Site.Common.HttpApi.csproj" />
         <Project Path="src/Dignite.Site.Domain.Shared/Dignite.Site.Domain.Shared.csproj" />
         <Project Path="src/Dignite.Site.Domain/Dignite.Site.Domain.csproj" />
+        <Project Path="src/Dignite.Site.Drive.Migration/Dignite.Site.Drive.Migration.csproj" />
         <Project Path="src/Dignite.Site.EntityFrameworkCore/Dignite.Site.EntityFrameworkCore.csproj" />
         <Project Path="src/Dignite.Site.Installer/Dignite.Site.Installer.csproj" />
         <Project Path="src/Dignite.Site.MongoDB/Dignite.Site.MongoDB.csproj" />

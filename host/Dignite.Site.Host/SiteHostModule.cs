@@ -75,6 +75,7 @@ using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Drive;
 using Dignite.Drive.EntityFrameworkCore;
 using Dignite.Drive.Mcp;
+using Dignite.Site.DriveMigration;
 
 using Microsoft.Extensions.Hosting;
 
@@ -170,7 +171,11 @@ namespace Dignite.Site.Host;
     typeof(DriveApplicationModule),
     typeof(DriveHttpApiModule),
     typeof(DriveEntityFrameworkCoreModule),
-    typeof(DriveMcpModule)
+    typeof(DriveMcpModule),
+
+    // The migration of the files Site's own file library kept before 3.0 into the Drive, when the data is seeded
+    // (--migrate-database). A dry run unless SiteDriveMigration:DryRun is false; remove it once the files are migrated.
+    typeof(SiteDriveMigrationModule)
 )]
 public class SiteHostModule : AbpModule
 {

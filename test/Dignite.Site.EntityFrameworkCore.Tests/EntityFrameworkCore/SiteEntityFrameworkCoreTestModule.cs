@@ -1,6 +1,7 @@
 ﻿using Dignite.Drive;
 using Dignite.Drive.EntityFrameworkCore;
 using Dignite.Drive.Presets;
+using Dignite.Site.DriveMigration;
 using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Microsoft.Data.Sqlite;
@@ -35,7 +36,10 @@ namespace Dignite.Site.EntityFrameworkCore;
     typeof(AbpBlobStoringFileSystemModule),
     // The Drive, where Site's files are kept, installed in this process as the dev Host installs it.
     typeof(DriveApplicationModule),
-    typeof(DriveEntityFrameworkCoreModule)
+    typeof(DriveEntityFrameworkCoreModule),
+    // The migration of the legacy file library to the Drive, as a host adds it for the upgrade. Its seed contributor
+    // runs with the test data, in a dry run (the default): nothing is written until a test asks for it.
+    typeof(SiteDriveMigrationModule)
 )]
 public class SiteEntityFrameworkCoreTestModule : AbpModule
 {
