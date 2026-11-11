@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.BlobStoring.Imaging;
+using Dignite.Drive.Public;
 using Dignite.Site.Files;
 using Volo.Abp;
 using Volo.Abp.BlobStoring;
@@ -14,9 +15,16 @@ using Volo.Abp.Threading;
 namespace Dignite.Site.Public.Files;
 
 /// <summary>
-/// The public read endpoint's logic: find the live descriptor in the current tenant (the request's, resolved
-/// like any other), open its bytes, and serve an image rendered from it when the request asks for a size or a
-/// format.
+/// The public read endpoint's logic: find the file in the current tenant (the request's, resolved like any other), open
+/// its bytes, and serve an image rendered from it when the request asks for a size or a format.
+/// <para>
+/// <b>Where the file is.</b> Site's files are the Drive's: <c>{container}/{blob}</c> is a file of a <c>PublicRead</c>
+/// Drive container, found by its physical BLOB name (<see cref="IDrivePublicAppService"/>), which the Drive gives the
+/// same form Site's own names had. The Drive keeps the bytes and decides what is public; this endpoint keeps Site's
+/// address, which names no tenant, and what Site does on read - the format a browser takes, any size, a cache of what it
+/// rendered. A file the Drive does not have is looked up among the descriptors of the file library Site kept before
+/// (<see cref="FindLegacyAsync"/>), until they are migrated; the next major version drops that fallback.
+/// </para>
 /// <para>
 /// <b>What is rendered</b> is decided here, from the request and the file's recorded type, as an
 /// <see cref="ImageRendition"/> (<see cref="PlanRendition"/>); <see cref="ImageVariantRenderer"/> carries it out and
@@ -24,14 +32,16 @@ namespace Dignite.Site.Public.Files;
 /// </para>
 /// <para>
 /// Anonymous on purpose, and not feature-gated (see <c>SiteFeatures.Enable</c>): it serves a published
-/// site's images to its visitors. What keeps it from serving anything else is the container allow-list -
-/// <see cref="FindAsync"/> answers only for <see cref="SiteFileContainerNames.All"/> - and the containers' own upload
-/// rules, which keep script-capable types (SVG, HTML, JS) out of them.
+/// site's images to its visitors. What keeps it from serving anything else: the Drive answers only for its
+/// <c>PublicRead</c> containers, the legacy fallback only for <see cref="SiteFileContainerNames.All"/>, and the
+/// containers' upload rules keep script-capable types (SVG, HTML, JS) out of them.
 /// </para>
 /// </summary>
 public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 {
     protected const int MaxDecompressionRatio = 100;
+
+    protected IDrivePublicAppService DrivePublicAppService { get; }
 
     protected IFileDescriptorRepository FileDescriptorRepository { get; }
 
@@ -45,11 +55,13 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
         LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None;
 
     public FilePublicAppService(
+        IDrivePublicAppService drivePublicAppService,
         IFileDescriptorRepository fileDescriptorRepository,
         IBlobContainerFactory blobContainerFactory,
         ImageVariantRenderer imageVariantRenderer,
         RenderedImageCache renderedImageCache)
     {
+        DrivePublicAppService = drivePublicAppService;
         FileDescriptorRepository = fileDescriptorRepository;
         BlobContainerFactory = blobContainerFactory;
         ImageVariantRenderer = imageVariantRenderer;
@@ -60,11 +72,8 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     {
         var cancellationToken = RequestCancellationToken;
 
-        var file = await FindAsync(containerName, blobName, cancellationToken);
-        if (file == null)
-        {
-            throw new EntityNotFoundException(typeof(FileDescriptor), $"{containerName}/{blobName}");
-        }
+        var file = await FindAsync(containerName, blobName, cancellationToken)
+                   ?? throw new EntityNotFoundException(typeof(SiteStoredFile), $"{containerName}/{blobName}");
 
         if ((input.Width ?? 0) > SiteImageConsts.MaxDimension || (input.Height ?? 0) > SiteImageConsts.MaxDimension)
         {
@@ -74,10 +83,10 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
                 input.Height);
         }
 
-        var rendition = PlanRendition(file, input);
+        var rendition = PlanRendition(file.MimeType, input);
         if (rendition != null)
         {
-            var cacheKey = $"{file.TenantId}:{file.ContainerName}:{file.GetActualBlobName()}:{rendition.CacheKey}";
+            var cacheKey = $"{CurrentTenant.Id}:{file.ContainerName}:{file.ContentId}:{rendition.CacheKey}";
             var rendered = await RenderedImageCache.GetOrRenderAsync(
                 cacheKey,
                 token => RenderAsync(file, rendition, token),
@@ -95,37 +104,81 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             }
         }
 
-        var stream = await GetStreamOrNullAsync(file, cancellationToken);
-        if (stream == null)
-        {
-            throw new EntityNotFoundException(typeof(FileDescriptor), $"{containerName}/{blobName}");
-        }
+        var stream = await file.OpenAsync(cancellationToken)
+                     ?? throw new EntityNotFoundException(typeof(SiteStoredFile), $"{containerName}/{blobName}");
 
         return new RemoteStreamContent(
             stream, FileNameFor(file.Name, file.MimeType), file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
     }
 
     /// <summary>
-    /// The live descriptor addressed by <paramref name="blobName"/> in one of Site's containers, or <c>null</c> - for a
-    /// container that is not Site's as much as for a name that does not exist.
+    /// The file at <c>{containerName}/{blobName}</c>: the Drive's, else a legacy descriptor's, else <c>null</c>.
     /// </summary>
-    protected virtual async Task<FileDescriptor?> FindAsync(string containerName, string blobName, CancellationToken cancellationToken)
+    protected virtual async Task<SiteStoredFile?> FindAsync(string containerName, string blobName, CancellationToken cancellationToken)
     {
-        if (!SiteFileContainerNames.Contains(containerName) || blobName.IsNullOrWhiteSpace())
+        if (containerName.IsNullOrWhiteSpace() || blobName.IsNullOrWhiteSpace())
         {
             return null;
         }
 
-        return await FileDescriptorRepository.FindByBlobNameAsync(containerName, blobName, cancellationToken);
+        return await FindInDriveAsync(containerName, blobName) ?? await FindLegacyAsync(containerName, blobName, cancellationToken);
     }
 
     /// <summary>
-    /// The bytes of <paramref name="file"/> (its own blob, or the one it refers to), or <c>null</c> when the blob is
-    /// missing from storage.
+    /// The file of a <c>PublicRead</c> Drive container whose physical BLOB is <paramref name="blobName"/>, or <c>null</c>.
+    /// The Drive is asked for the file's information only; its bytes are read when they are needed - not at all when the
+    /// rendition asked for is in <see cref="RenderedImageCache"/>.
     /// </summary>
-    protected virtual Task<Stream?> GetStreamOrNullAsync(FileDescriptor file, CancellationToken cancellationToken)
+    protected virtual async Task<SiteStoredFile?> FindInDriveAsync(string containerName, string blobName)
     {
-        return BlobContainerFactory.Create(file.ContainerName).GetOrNullAsync(file.GetActualBlobName(), cancellationToken);
+        DrivePublicReadResult found;
+        try
+        {
+            found = await DrivePublicAppService.ReadAsync(
+                containerName, blobName, new DrivePublicReadInput(), new DrivePublicReadRequest { HeadersOnly = true });
+        }
+        catch (EntityNotFoundException)
+        {
+            return null;
+        }
+
+        return new SiteStoredFile(
+            containerName,
+            found.File.ContentId,
+            found.File.Name,
+            found.File.MimeType,
+            async _ =>
+            {
+                var read = await DrivePublicAppService.ReadAsync(
+                    containerName, blobName, new DrivePublicReadInput(), new DrivePublicReadRequest());
+                return read.Content?.GetStream();
+            });
+    }
+
+    /// <summary>
+    /// The live descriptor addressed by <paramref name="blobName"/> in one of Site's containers, from the file library
+    /// Site kept before its files moved to the Drive, or <c>null</c> - for a container that is not Site's as much as for a
+    /// name that does not exist. Its bytes are its own blob, or the one it refers to.
+    /// </summary>
+    protected virtual async Task<SiteStoredFile?> FindLegacyAsync(string containerName, string blobName, CancellationToken cancellationToken)
+    {
+        if (!SiteFileContainerNames.Contains(containerName))
+        {
+            return null;
+        }
+
+        var file = await FileDescriptorRepository.FindByBlobNameAsync(containerName, blobName, cancellationToken);
+        if (file == null)
+        {
+            return null;
+        }
+
+        return new SiteStoredFile(
+            file.ContainerName,
+            file.GetActualBlobName(),
+            file.Name,
+            file.MimeType,
+            token => BlobContainerFactory.Create(file.ContainerName).GetOrNullAsync(file.GetActualBlobName(), token));
     }
 
     /// <summary>
@@ -143,11 +196,11 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     /// A size asked re-encodes in the format chosen; without one, a picture that needs no conversion is served as
     /// stored. A file that is not a JPEG, PNG or WebP (a GIF, a document) is always served as stored.
     /// </summary>
-    protected virtual ImageRendition? PlanRendition(FileDescriptor file, GetFileInput input)
+    protected virtual ImageRendition? PlanRendition(string mimeType, GetFileInput input)
     {
-        var isJpeg = string.Equals(file.MimeType, ImageVariantRenderer.JpegMimeType, StringComparison.OrdinalIgnoreCase);
-        var isPng = string.Equals(file.MimeType, ImageVariantRenderer.PngMimeType, StringComparison.OrdinalIgnoreCase);
-        var isWebp = string.Equals(file.MimeType, ImageVariantRenderer.WebpMimeType, StringComparison.OrdinalIgnoreCase);
+        var isJpeg = string.Equals(mimeType, ImageVariantRenderer.JpegMimeType, StringComparison.OrdinalIgnoreCase);
+        var isPng = string.Equals(mimeType, ImageVariantRenderer.PngMimeType, StringComparison.OrdinalIgnoreCase);
+        var isWebp = string.Equals(mimeType, ImageVariantRenderer.WebpMimeType, StringComparison.OrdinalIgnoreCase);
         if (!isJpeg && !isPng && !isWebp)
         {
             return null;
@@ -186,10 +239,10 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     /// codes the upload contributors use; one without a size only asked for WebP, which such a picture is served without.
     /// </para>
     /// </summary>
-    protected virtual async Task<RenderedImage> RenderAsync(FileDescriptor file, ImageRendition rendition, CancellationToken cancellationToken)
+    protected virtual async Task<RenderedImage> RenderAsync(SiteStoredFile file, ImageRendition rendition, CancellationToken cancellationToken)
     {
         byte[] source;
-        await using (var stream = await GetStreamOrNullAsync(file, cancellationToken))
+        await using (var stream = await file.OpenAsync(cancellationToken))
         {
             if (stream == null)
             {

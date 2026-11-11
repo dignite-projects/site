@@ -19,6 +19,12 @@ namespace Dignite.Site.Files;
 /// the Razor templates (through <c>Dignite.Site.Public.Templating.SiteFileUrl</c>), the admin API and the
 /// MCP tools build and recognize the same addresses.
 /// </para>
+/// <para>
+/// <b>The Drive's addresses.</b> Site's files are the Drive's, and the Drive hands out its own public address
+/// (<c>/api/drive/public/{container}/{blob}?__tenant=...</c>), which a file field or an SEO image may store. Site serves
+/// the same file at its own address, with the format a browser takes and any size, so <see cref="Normalize"/> turns the
+/// one into the other, and <see cref="Sized"/>, <see cref="Absolutize"/> and <see cref="IsSiteFile"/> do it first.
+/// </para>
 /// </summary>
 public static class SiteFileUrl
 {
@@ -43,6 +49,15 @@ public static class SiteFileUrl
     private const string LegacyPathMarker = "/file-explorer/files/";
 
     /// <summary>
+    /// The path segment of the Drive's public read endpoint (<c>api/drive/public/{container}/{blob}</c>), whatever host
+    /// it is served from.
+    /// </summary>
+    private const string DrivePathMarker = "/api/drive/public/";
+
+    /// <summary>The query parameter the Drive names a file's tenant with; Site's address names none.</summary>
+    private const string TenantParameter = "__tenant";
+
+    /// <summary>
     /// The address of a stored file, relative to whichever host serves the site:
     /// <c>/api/site-public/files/{containerName}/{blobName}</c>. It names no tenant: the endpoint finds the
     /// file's tenant the way every other request does (the host name, a header, ...), so the address stays
@@ -63,6 +78,7 @@ public static class SiteFileUrl
     /// </summary>
     public static string? Absolutize(string? url, string baseUrl)
     {
+        url = Normalize(url);
         if (string.IsNullOrWhiteSpace(url) || IsAbsolute(url))
         {
             return url;
@@ -110,7 +126,41 @@ public static class SiteFileUrl
     {
         return !string.IsNullOrWhiteSpace(url)
                && (url.Contains(PathMarker, StringComparison.OrdinalIgnoreCase)
-                   || url.Contains(LegacyPathMarker, StringComparison.OrdinalIgnoreCase));
+                   || url.Contains(LegacyPathMarker, StringComparison.OrdinalIgnoreCase)
+                   || url.Contains(DrivePathMarker, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// The Site address of a file the Drive addresses as <paramref name="url"/>: <c>/api/drive/public/{container}/{blob}</c>,
+    /// relative or on any host, becomes <c>/api/site-public/files/{container}/{blob}</c>, relative, without the Drive's
+    /// <c>__tenant</c> - the site's request names its tenant - and with every other query parameter kept. Any other
+    /// address, a blank one included, is returned as it is.
+    /// </summary>
+    public static string? Normalize(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return url;
+        }
+
+        var marker = url.IndexOf(DrivePathMarker, StringComparison.OrdinalIgnoreCase);
+        if (marker < 0)
+        {
+            return url;
+        }
+
+        var rest = url[(marker + DrivePathMarker.Length)..];
+        var queryStart = rest.IndexOf('?');
+        var path = queryStart < 0 ? rest : rest[..queryStart];
+        var kept = queryStart < 0
+            ? Array.Empty<string>()
+            : rest[(queryStart + 1)..]
+                .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Where(parameter => !parameter.Split('=', 2)[0].Equals(TenantParameter, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+        var address = $"/{RoutePrefix}/{path}";
+        return kept.Length == 0 ? address : $"{address}?{string.Join('&', kept)}";
     }
 
     /// <summary>
@@ -122,6 +172,7 @@ public static class SiteFileUrl
     /// </summary>
     public static string? Sized(string? url, int? width = null, int? height = null)
     {
+        url = Normalize(url);
         if (!IsSiteFile(url) || (width == null && height == null))
         {
             return url;

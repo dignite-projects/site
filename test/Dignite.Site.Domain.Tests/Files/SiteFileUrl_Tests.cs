@@ -127,4 +127,38 @@ public class SiteFileUrl_Tests
         SiteFileUrl.Sized(" ", 1200).ShouldBe(" ");
         SiteFileUrl.IsSiteFile("https://cdn.example.com/a.png").ShouldBeFalse();
     }
+
+    /// <summary>
+    /// The Drive's public address of a file becomes Site's: relative, without the Drive's tenant, any other parameter kept.
+    /// </summary>
+    [Theory]
+    [InlineData("/api/drive/public/images/abc.webp", "/api/site-public/files/images/abc.webp")]
+    [InlineData("/api/drive/public/images/abc.webp?__tenant=3fa85f6457174562b3fc2c963f66afa6", "/api/site-public/files/images/abc.webp")]
+    [InlineData("https://drive.example/api/drive/public/attachments/x.pdf?__tenant=1", "/api/site-public/files/attachments/x.pdf")]
+    [InlineData("/api/drive/public/images/abc.webp?__tenant=1&Width=800", "/api/site-public/files/images/abc.webp?Width=800")]
+    public void Normalizes_A_Drive_Address_To_Sites(string drive, string site)
+    {
+        SiteFileUrl.Normalize(drive).ShouldBe(site);
+    }
+
+    [Theory]
+    [InlineData("/api/site-public/files/images/abc.webp")]
+    [InlineData("https://cdn.example.com/a.png")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void Leaves_Every_Other_Address_As_It_Is(string? url)
+    {
+        SiteFileUrl.Normalize(url).ShouldBe(url);
+    }
+
+    [Fact]
+    public void Sizes_And_Absolutizes_A_Drive_Address_As_Sites()
+    {
+        const string drive = "/api/drive/public/images/abc.webp?__tenant=1";
+
+        SiteFileUrl.IsSiteFile(drive).ShouldBeTrue();
+        SiteFileUrl.Sized(drive, 1200, 630).ShouldBe("/api/site-public/files/images/abc.webp?Width=1200&Height=630");
+        SiteFileUrl.Sized(drive).ShouldBe("/api/site-public/files/images/abc.webp");
+        SiteFileUrl.Absolutize(drive, "https://acme.example").ShouldBe("https://acme.example/api/site-public/files/images/abc.webp");
+    }
 }

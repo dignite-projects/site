@@ -5,6 +5,7 @@ using Volo.Abp.Modularity;
 using Volo.Abp.Application;
 using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Site.Common;
+using Dignite.Drive;
 
 namespace Dignite.Site.Public;
 
@@ -14,6 +15,8 @@ namespace Dignite.Site.Public;
     typeof(SiteCommonApplicationModule),
     typeof(AbpDddApplicationModule),
     typeof(AbpMapperlyModule),
+    // The Drive's public read, which the public read endpoint takes a file's bytes from (FilePublicAppService).
+    typeof(DriveApplicationContractsModule),
     // The localization of the Dignite.Abp.BlobStoring.Imaging error codes the public read endpoint reports.
     typeof(AbpBlobStoringImagingModule),
     // SkiaSharp, which ImageVariantRenderer draws with directly (its settings are SiteImageRenderingOptions, not

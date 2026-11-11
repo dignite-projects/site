@@ -6,5 +6,9 @@
         <!-- Test projects are never published as NuGet packages - see release.yml's Pack step,
              which only packs src/*/*.csproj. -->
         <IsPackable>false</IsPackable>
+        <!-- The abp-modules packages a test installs itself (the Drive, as the dev Host does), at the version common.props
+             pins - read from there rather than repeated, since importing common.props would bring its package metadata,
+             Source Link and Fody into the tests. -->
+        <DigniteAbpModulesVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)common.props')), '&lt;DigniteAbpModulesVersion&gt;([^&lt;]+)&lt;/DigniteAbpModulesVersion&gt;').Groups[1].Value)</DigniteAbpModulesVersion>
     </PropertyGroup>
 </Project>

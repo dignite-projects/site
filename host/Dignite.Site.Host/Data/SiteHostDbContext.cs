@@ -1,3 +1,4 @@
+using Dignite.Drive.EntityFrameworkCore;
 using Dignite.Site.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.DependencyInjection;
@@ -30,9 +31,15 @@ namespace Dignite.Site.Host.Data;
 /// <c>SiteDbContext</c>.
 /// </para>
 /// </summary>
-[ReplaceDbContext(typeof(ISiteDbContext))]
-public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
+[ReplaceDbContext(typeof(ISiteDbContext), typeof(IDriveDbContext))]
+public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext, IDriveDbContext
 {
+    /// <summary>
+    /// The Drive's files (<c>DriveFileDescriptors</c>). Explicit: <see cref="ISiteDbContext"/> has a <c>FileDescriptors</c>
+    /// of its own, the legacy descriptors of Site's file library.
+    /// </summary>
+    DbSet<Dignite.Drive.FileDescriptor> IDriveDbContext.FileDescriptors => Set<Dignite.Drive.FileDescriptor>();
+
     public DbSet<Dignite.Site.Pages.Page> Pages { get; set; } = default!;
 
     public DbSet<Dignite.Site.ContentTypes.ContentType> ContentTypes { get; set; } = default!;
@@ -86,5 +93,6 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
         /* Configure your own entities here */
 
         builder.ConfigureSite();
+        builder.ConfigureDrive();
     }
 }

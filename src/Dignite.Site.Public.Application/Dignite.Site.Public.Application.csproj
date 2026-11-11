@@ -25,6 +25,9 @@
     <ProjectReference Include="..\Dignite.Site.Public.Application.Contracts\Dignite.Site.Public.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application\Dignite.Site.Common.Application.csproj" />
+    <!-- The Drive's public read (IDrivePublicAppService), which the public read endpoint takes a file's bytes from.
+         Contracts only: the host installs the Drive, in its own process or as a remote service. -->
+    <PackageReference Include="Dignite.Drive.Application.Contracts" Version="$(DigniteAbpModulesVersion)" />
     <!-- The public read endpoint's on-request resize (FilePublicAppService): the imaging error codes (and
          their localization) the upload contributors already use for the same limits... -->
     <PackageReference Include="Dignite.Abp.BlobStoring.Imaging" Version="$(DigniteAbpModulesVersion)" />

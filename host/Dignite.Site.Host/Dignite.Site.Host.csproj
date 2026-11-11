@@ -25,6 +25,12 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Public.Web\Dignite.Site.Public.Web.csproj" />
     <!-- The MCP endpoint (GitHub issue #26). -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
+    <!-- The Drive, in this process: where Site's files are kept (images, attachments, theme-assets), its file API and
+         public read, and its drive_* MCP tools. -->
+    <PackageReference Include="Dignite.Drive.Application" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Drive.HttpApi" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Drive.EntityFrameworkCore" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Drive.Mcp" Version="$(DigniteAbpModulesVersion)" />
     <!-- Writes a site's settings through Setting Management (its languages, today), which this host loads. -->
   </ItemGroup>
 

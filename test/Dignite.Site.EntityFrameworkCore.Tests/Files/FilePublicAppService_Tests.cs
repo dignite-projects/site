@@ -9,22 +9,81 @@ using SkiaSharp;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 using Xunit;
+using DriveFile = Dignite.Drive.FileDescriptor;
+using DriveFileManager = Dignite.Drive.FileDescriptorManager;
 
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// The public read endpoint's logic: a live file in one of Site's containers, optionally resized; anything
-/// else - another container, a deleted file, a name that does not exist - is simply not found.
+/// The public read endpoint's logic: a live file of the Drive at Site's address, optionally resized, or one of the file
+/// library Site kept before, until it is migrated; anything else - another container, a deleted file, a name that does
+/// not exist - is simply not found. Files are uploaded to the Drive as an editor's upload stores them (the Drive's
+/// presets: a JPEG in images is stored as WebP).
 /// </summary>
 public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly IFilePublicAppService _filePublicAppService;
-    private readonly LegacySiteFiles _files;
+    private readonly DriveFileManager _driveFiles;
+    private readonly LegacySiteFiles _legacyFiles;
 
     public FilePublicAppService_Tests()
     {
         _filePublicAppService = GetRequiredService<IFilePublicAppService>();
-        _files = GetRequiredService<LegacySiteFiles>();
+        _driveFiles = GetRequiredService<DriveFileManager>();
+        _legacyFiles = GetRequiredService<LegacySiteFiles>();
+    }
+
+    /// <summary>
+    /// A file of the file library Site kept before is served at its address until it is migrated.
+    /// </summary>
+    [Fact]
+    public async Task Should_Serve_A_File_Of_The_Legacy_Library()
+    {
+        var bytes = TestFiles.Pdf("legacy");
+        var file = await WithUnitOfWorkAsync(() => _legacyFiles.CreateAsync(SiteFileContainerNames.Attachments, "legacy.pdf", bytes));
+
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput());
+
+        content.ContentType.ShouldBe("application/pdf");
+        content.FileName.ShouldBe("legacy.pdf");
+        (await ReadAllAsync(content.GetStream())).ShouldBe(bytes);
+    }
+
+    /// <summary>
+    /// A legacy reference has an address of its own and the bytes of another descriptor's blob; it is served at its own
+    /// address, resized as any other picture.
+    /// </summary>
+    [Fact]
+    public async Task Should_Serve_A_Legacy_Reference_At_Its_Own_Address()
+    {
+        var reference = await WithUnitOfWorkAsync(async () =>
+        {
+            var owner = await _legacyFiles.CreateAsync(SiteFileContainerNames.Images, "owner.png", Stripes(400, 300));
+            return await _legacyFiles.CreateReferenceAsync(owner, "copy.png");
+        });
+
+        using var content = await _filePublicAppService.GetAsync(
+            reference.ContainerName, reference.BlobName, new GetFileInput { Width = 100, Format = SiteFileFormats.Original });
+
+        var info = TestFiles.Identify(await ReadAllAsync(content.GetStream()));
+        info.Width.ShouldBe(100);
+        content.FileName.ShouldBe("copy.png");
+    }
+
+    /// <summary>The Drive's own address of a file is Site's address once <see cref="SiteFileUrl.Normalize"/> has it.</summary>
+    [Fact]
+    public async Task Should_Serve_A_Drive_Address_Normalized_To_Sites()
+    {
+        var bytes = TestFiles.Pdf("drive");
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "drive.pdf", bytes);
+        var driveAddress = $"/api/drive/public/{file.ContainerName}/{file.BlobName}?__tenant={Guid.NewGuid():N}";
+
+        var siteAddress = SiteFileUrl.Normalize(driveAddress)!;
+        siteAddress.ShouldBe(SiteFileUrl.Build(file.ContainerName, file.BlobName));
+
+        var blobName = siteAddress[(siteAddress.LastIndexOf('/') + 1)..];
+        using var content = await _filePublicAppService.GetAsync(file.ContainerName, blobName, new GetFileInput());
+        (await ReadAllAsync(content.GetStream())).ShouldBe(bytes);
     }
 
     [Fact]
@@ -313,7 +372,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Not_Serve_A_Deleted_File()
     {
         var file = await UploadAsync(SiteFileContainerNames.Attachments, "deleted.pdf", TestFiles.Pdf("deleted"));
-        await WithUnitOfWorkAsync(() => GetRequiredService<IFileDescriptorRepository>().DeleteAsync(file.Id));
+        await WithUnitOfWorkAsync(() => _driveFiles.DeleteAsync(file));
 
         await Should.ThrowAsync<EntityNotFoundException>(() =>
             _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput()));
@@ -336,9 +395,13 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
             _filePublicAppService.GetAsync(SiteFileContainerNames.Attachments, "does-not-exist", new GetFileInput()));
     }
 
-    private Task<FileDescriptor> UploadAsync(string containerName, string fileName, byte[] bytes)
+    private Task<DriveFile> UploadAsync(string containerName, string fileName, byte[] bytes)
     {
-        return WithUnitOfWorkAsync(() => _files.CreateAsync(containerName, fileName, bytes));
+        return WithUnitOfWorkAsync(async () =>
+        {
+            using var stream = new MemoryStream(bytes);
+            return await _driveFiles.UploadAsync(containerName, fileName, stream);
+        });
     }
 
     /// <summary>
@@ -472,12 +535,12 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         return data.ToArray();
     }
 
-    private Task<byte[]> ReadStoredAsync(FileDescriptor file)
+    private Task<byte[]> ReadStoredAsync(DriveFile file)
     {
         return WithUnitOfWorkAsync(async () =>
         {
             await using var stream = await GetRequiredService<Volo.Abp.BlobStoring.IBlobContainerFactory>()
-                .Create(file.ContainerName).GetOrNullAsync(file.GetActualBlobName());
+                .Create(file.ContainerName).GetOrNullAsync(file.BlobName);
             stream.ShouldNotBeNull();
             return await ReadAllAsync(stream);
         });
