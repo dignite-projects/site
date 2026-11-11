@@ -2574,6 +2574,12 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-4.2.0.tgz#ba5d0b917303c0b3d3c14c4865cdc6ded25ac05f"
   integrity sha512-kzyuwOAQnXJNLS9PSyrk0CWk35nWJW/zl/6KvnTBMFK65gm7U1/Z5BqjxeapjZCIhQcM/DsrEmcbRwDyXyXK4A==
 
+"@dignite/ng.drive@file:../../_local-feed/dignite-ng.drive-10.7.7-local.1.tgz":
+  version "10.7.7-local.1"
+  resolved "file:../../_local-feed/dignite-ng.drive-10.7.7-local.1.tgz#5934532d163d19d6af3982b744c5af0b9ce464c8"
+  dependencies:
+    tslib "^2.3.0"
+
 "@dignite/ng.flex-fields-ckeditor@^10.7.1":
   version "10.7.1"
   resolved "https://registry.yarnpkg.com/@dignite/ng.flex-fields-ckeditor/-/ng.flex-fields-ckeditor-10.7.1.tgz#8e41d8967bd82a8072fb70e48ac428eb6b9da34a"

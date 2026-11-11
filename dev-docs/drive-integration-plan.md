@@ -189,9 +189,10 @@ CKEditor、MCP 都直接把文件传给 Drive，由 Drive 用 `Drive.Files.Uploa
    `DigniteAbpModulesVersion` 设成它，所有 `Dignite.Abp.*` / `Dignite.Drive.*` 版本一致，不会 NU1605；N 递增也省掉清全局缓存。
    **前置改动不做或已发布时**：只打 Drive，版本按 lockstep 用 `10.7.6`（依赖的 blob-storing、aspnetcore-mcp 从 nuget.org
    解析，代码与打包时一致，见 1.6）；重新打包要先删全局缓存里的 `dignite.drive.*/10.7.6`。
-2. 本机**用户级** NuGet 配置（`%APPDATA%\NuGet\NuGet.Config`）加这个文件夹源，`packageSourceMapping` 里把 `Dignite.*`
-   同时映射到它和 nuget.org（同一 pattern 可以挂在多个源下，两边都会查；只挂本地源的话，main 分支上的 10.7.6 就找不到了）。
-   仓库里的 `NuGet.Config` 不动。
+2. 集成分支上改仓库的 `NuGet.Config`：加文件夹源 `dignite-local`（`../_local-feed`），`packageSourceMapping` 里把 `Dignite.*`
+   同时映射到它和 nuget.org。分支推送前（Drive 发布后）撤掉这个改动。
+   （原先打算改本机用户级配置，实施时发现那个文件里存着凭据，就不去碰它，改在分支上做。另外，用户级配置一旦加了
+   mapping，会影响本机所有仓库的还原。）
 3. Angular：在 abp-modules 构建 `@dignite/ng.drive`，`npm pack` 成 tgz 放进同一目录；集成分支上用
    `"@dignite/ng.drive": "file:<tgz>"`。重新打包后清 yarn 缓存。
 
