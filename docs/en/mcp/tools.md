@@ -31,7 +31,7 @@ A site serves only `en` until its languages are set, so a client that writes con
 
 | Tool | Permission | Description |
 |---|---|---|
-| `site_set_default_share_image` | `SiteAdmin.Seo.Update` | Sets the image shown when a page shared on a social network has no share image of its own, with `url`: the url of an image of the file library, or an absolute URL; an empty string removes it. See [Share Images](../seo/index.md#share-images). |
+| `site_set_default_share_image` | `SiteAdmin.Seo.Update` | Sets the image shown when a page shared on a social network has no share image of its own, with `url`: the url of an image uploaded to the site's files, or an absolute URL; an empty string removes it. See [Share Images](../seo/index.md#share-images). |
 
 Changing the languages moves addresses. The default language's pages have no prefix, so a new default takes the unprefixed addresses and the old one's pages move under `/{language}/`; and a language left out is no longer served, though its contents are kept and come back when the language is added again. The setting is stored through ABP's [Setting Management](https://abp.io/docs/latest/modules/setting-management), which `Dignite.Site.Domain` depends on.
 
@@ -155,19 +155,7 @@ The theme is not part of the schema: its files are addressed by path, and `site_
 
 ## Files
 
-| Tool | Description |
-|---|---|
-| `site_list_file_containers` | Lists the containers the client may use, with each one's purpose, largest upload and allowed file types. Call it before the other file tools. |
-| `site_list_files` | Lists the files of a container, newest first: the user's own, or everyone's with `SiteAdmin.Contents`. Takes `containerName` and the optional `directoryId`, `filter`, `skipCount` and `maxResultCount` (at most 100). |
-| `site_get_file` | Reads one file by `id`, with its `url`. |
-| `site_create_upload_url` | Returns a one-time link, good for ten minutes, and the commands that send a file to it (one for POSIX shells and cmd.exe, one for PowerShell), from `containerName`, `fileName` and an optional `directoryId`. The way to upload a large file: the bytes go from the machine the file is on to the site and never through the client. |
-| `site_upload_file` | Uploads a small file from `containerName`, `fileName` (with its extension), `contentBase64` (or a `data:` URL) and an optional `directoryId`, and returns it with its `url`, the value to put in a content field. |
-| `site_update_file` | Renames a file (`name`) or moves it (`directoryId`, or `moveToRoot`), by `id`. |
-| `site_delete_file` | Deletes a file by `id`. Anything that links to it stops working. Destructive. |
-| `site_list_directories` | Returns the user's directory tree in a container, by `containerName`. |
-| `site_create_directory` | Creates a directory in a container, by `containerName`, `name` and an optional `parentId`. |
-
-The file tools need no permission to be listed; each call checks the permissions of the container, the `SiteAdmin.Contents.*` permissions. Uploads are capped at the smaller of the container's limit and `SiteMcpFileOptions.MaxUploadSize`, 5 MB by default. See [Files](../files.md#mcp).
+Site has no file tools of its own. Files are kept in the Drive, and a host that adds `Dignite.Drive.Mcp` gives the client the Drive's tools on the same server: `drive_list_containers`, `drive_upload_file`, `drive_create_upload_url`, `drive_get_file` and `drive_delete_file`, authorized by the Drive's own permissions ([the Drive's MCP tools](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/drive/mcp.md)). Site's instructions tell the client which containers its fields use and what to store; see [Files](../files.md#mcp).
 
 ## See Also
 

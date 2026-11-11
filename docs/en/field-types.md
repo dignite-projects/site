@@ -21,7 +21,7 @@ A field's type decides how its configuration is read, how its value is validated
 | `Table` | A list of rows with the same columns | No | FlexFields |
 | `CKEditor` | Rich text, as HTML or Markdown | No | FlexFields CKEditor |
 | `Content` | References to other contents | Yes | Site |
-| `FileExplorer` | Files from the site's [file library](files.md) | No | Site |
+| `FileExplorer` | Files uploaded to the [Drive](files.md) | No | Site |
 | `Seo` | The SEO metadata of a content | No | Site |
 
 A field is searchable only if its type is indexable **and** the content type marks its use `Searchable`; see [Arranging Fields](content-types-and-fields.md#arranging-fields).
@@ -35,7 +35,7 @@ A configuration is checked when a field is created or updated: a key the field t
 The configuration of the FlexFields field types, such as `Text.CharLimit` or the options of a `Select`, is described in the FlexFields documentation:
 
 * [Field Types](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/flex-fields/field-types.md): `Text`, `Number`, `DateTime`, `Select`, `Boolean`, `Tree`, `Matrix` and `Table`.
-* [CKEditor Field Type](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/flex-fields/ckeditor.md): `CKEditor`. In Site, set `CKEditor.ImagesContainerName` to `images` to let editors insert images, which are [uploaded into the file library](files.md#ckeditor-image-upload).
+* [CKEditor Field Type](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/flex-fields/ckeditor.md): `CKEditor`. In Site, set `CKEditor.ImagesContainerName` to `images` to let editors insert images, which are [uploaded to the Drive](files.md#ckeditor-image-upload).
 
 ## Content
 
@@ -55,27 +55,28 @@ The field validates only whether a required value is present: whether a referenc
 
 ## File
 
-A `FileExplorer` field holds one or more files from the site's [file library](files.md), picked or uploaded in the admin UI. The value is a list of the files' descriptors, as the administration API returns them:
+A `FileExplorer` field holds one or more files uploaded to a [Drive](files.md) container in the admin UI. The value is a list of the files as the Drive returns them:
 
 ````json
 [
   {
     "id": "6f0c9a5e-2b1d-4c3e-8f7a-9d0e1b2c3d4e",
     "containerName": "images",
-    "blobName": "4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.jpg",
-    "name": "cover.jpg",
-    "mimeType": "image/jpeg",
+    "name": "cover.webp",
+    "mimeType": "image/webp",
     "size": 248133,
-    "url": "/api/site-public/files/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.jpg"
+    "url": "/api/drive/public/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.webp?__tenant=..."
   }
 ]
 ````
 
-A client writing the value passes the file objects a file tool returns, as a list even for one file. Only the `url` is required: a content is refused when a value is something else, such as a plain string, or when a file in it has no `url`. `site_list_field_types` lists the keys of each file object as the field type's `valueShape`.
+The site serves the file at its own [address](files.md#addresses), which the `url` is turned into when a page is rendered. A value stored before Site used the Drive has Site's address in `url` and a `blobName` as well; it keeps working.
+
+A client writing the value passes the file objects a `drive_*` tool returns, as a list even for one file. Only the `url` is required: a content is refused when a value is something else, such as a plain string, or when a file in it has no `url`. `site_list_field_types` lists the keys of each file object as the field type's `valueShape`.
 
 | Configuration key | Default | Description |
 |---|---|---|
-| `FileExplorer.FileContainerName` | None; required | The container the picker browses and uploads to: `images` or `attachments`. |
+| `FileExplorer.FileContainerName` | None; required | The Drive container the files are uploaded to, usually `images` or `attachments`. |
 | `FileExplorer.UploadFileMultiple` | `false` | Whether the field takes more than one file. |
 
 The `url` is the file's relative [address](files.md#addresses). In a template, `GetFileUrl` reads the first file's address of a field; see [Razor Templates](rendering/razor-templates.md#reading-field-values).
@@ -97,7 +98,7 @@ The `Seo` field type bundles the SEO metadata of a content into one value. Every
 |---|---|
 | `metaTitle` | The `<title>` and `og:title` of the content. When it is empty, the first text field of the content type that has a value is used, then the slug, or the page's display name for a page's own content. |
 | `metaDescription` | The `description` and `og:description`. When it is empty, the next text field that has a value is used, cut at 500 characters. |
-| `ogImage` | The `og:image`: an image from the file library, which is cropped to 1200 x 630 and made absolute on the site's primary domain, or any absolute image URL, which is used as it is. When it is empty, there is no `og:image`. |
+| `ogImage` | The `og:image`: the address of an image uploaded to the site's [files](files.md), which is cropped to 1200 x 630 and made absolute on the site's primary domain, or any absolute image URL, which is used as it is. When it is empty, there is no `og:image`. |
 | `noIndex` | When `true`, the content gets a `noindex` robots tag and is left out of the sitemap, the feeds and the hreflang alternates of its translations. |
 
 | Configuration key | Default | Description |

@@ -1,137 +1,67 @@
 # Site files: internals
 
-How the file library is built. What it does - containers, upload rules, permissions, addresses, the public
-read endpoint, CKEditor upload and the MCP options - is documented for users in
-[docs/en/files.md](../docs/en/files.md); this page only covers what a contributor needs on top of that.
+How Site uses the Drive for its files. What it does - the containers, the permissions, the addresses, serving, the admin
+UI, MCP and the upgrade - is documented for users in [docs/en/files.md](../docs/en/files.md); this page covers what a
+contributor needs on top of that. The decisions behind it are in abp-modules' `drive/dev-docs/drive-decision.md` (the
+amendment of 2026-11-11) and in [drive-integration-plan.md](drive-integration-plan.md).
 
-The library used to be a separate module in abp-modules (File Explorer); since 0.1.0-preview.25 it is part of
-Site, under Site's namespaces, tables, permissions and routes. From abp-modules it uses only the upload
-rules: the BLOB pipeline contributors of `Dignite.Abp.BlobStoring.Pipeline` and `Dignite.Abp.BlobStoring.Imaging`
-(until abp-modules `10.0.0-rc.27` the `Dignite.Abp.FileStoring` packages and their `IFileStorer`).
+Until 3.0 Site kept its own file library (File Explorer before 0.1.0-preview.25, then Site's `Files/`): descriptors,
+directories, an admin API, a picker, nine MCP tools. Since 3.0 the files are the open Drive's, and Site keeps only what is
+Site's: its address, what it does on read, and how its fields use files.
 
 ## Where things live
 
 | Piece | Location |
 |---|---|
-| Descriptors and directories (`FileDescriptor`, `DirectoryDescriptor`, their managers and repositories) | `Dignite.Site.Domain` - `Files/` |
-| Tables | `SiteFileDescriptors`, `SiteDirectoryDescriptors` (EF Core); collections of the same names (MongoDB) |
-| Containers | `SiteFileContainerNames`; the allowed types are one table, `SiteFileTypes` (extension and MIME type). Their upload rules are BLOB pipeline contributors set in `SiteAdminApplicationModule.ConfigureFileContainers`; a host only picks the storage provider |
-| Admin API | `api/site-admin/files`, `api/site-admin/files/directories` (`IFileAdminAppService`, `IDirectoryAdminAppService`) |
-| Public read | `GET`/`HEAD` `api/site-public/files/{containerName}/{blobName}` (`IFilePublicAppService`) |
-| MCP tools | `site_list_file_containers`, `site_list_files`, `site_get_file`, `site_upload_file`, `site_update_file`, `site_delete_file`, `site_list_directories`, `site_create_directory` |
-| File field type | `FileFieldType` in `Dignite.FlexFields.Site` (registration key `FileExplorer`), its view in `Dignite.Site.Public.Web/Views/Shared/FlexFields/` |
-| Admin UI | `@dignite/ng.site`: the file picker, the browsing modal and the file field type (`src/lib/files`, `src/lib/field-types/file`) |
+| Container names Site's fields use by default | `SiteFileContainerNames` (Domain.Shared). No longer a boundary: a field may name any container the host declares. |
+| The containers' rules | The Drive's presets, declared by the host (`Drive` section of `appsettings.json`). JPEG to WebP and the upright resize are `Dignite.Abp.BlobStoring.Imaging.SkiaSharp`'s, used by the Drive's `Images` preset. |
+| Site's address | `SiteFileUrl` (Domain.Shared): `Build`, `Normalize` (the Drive's address to Site's), `Sized`, `Absolutize`, `IsSiteFile`. The Angular mirror is `site-file-url.ts`. |
+| Public read | `FilePublicAppService` (Public.Application) over `IDrivePublicAppService`; `FilePublicController` (Public.HttpApi) unchanged. |
+| Legacy descriptors | `FileDescriptor`, `DirectoryDescriptor` and their repositories (Domain, EF Core, MongoDB), read only; removed in the next major version. |
+| Migration | `Dignite.Site.Drive.Migration`: `SiteDriveMigrator`, run by a data seed contributor. |
+| Admin UI | `@dignite/ng.site`: the file field's control and the SEO image inputs over `drive-file-input`, `SiteCKEditorUploadProvider`, `SiteUploadCleanup`. |
+| MCP | None of Site's own; `SiteMcpConsts.FileInstructions` tells a client how Site's fields use the `drive_*` tools. |
 
-`SiteFileTypes` is the single source of both lists the library reports: the containers' upload policy allows
-its **MIME types**, because the pipeline checks the type detected from the bytes, and the admin API reports
-its **extensions** (`FileContainerConfigurationDto.AllowedFileTypeNames`), because that is what a file input's
-`accept` and the MCP tools speak. Do not write a second list.
+Site's packages reference only `Dignite.Drive.Application.Contracts` (Public.Application) and `@dignite/ng.drive`. Only
+the migration package references `Dignite.Drive.Domain`, because it writes Drive rows in process.
 
-## The upload pipeline
+## The public read
 
-Bytes go into the container through ABP's `IBlobContainer`, whose BLOB pipeline runs the container's
-contributors inside `SaveAsync`, in this order: `MaxSize`, `AllowedContentTypes`, `ImageResize`,
-`ImageCompress`. The image contributors leave anything that is not an image untouched. The image provider
-is ABP's SkiaSharp one (`Volo.Abp.Imaging.SkiaSharp`), depended on by `Dignite.Site.Admin.Application` and
-`Dignite.Site.Public.Application`, so a host does not pick one.
+`FilePublicAppService.GetAsync` finds the file as a `SiteStoredFile` - container, the id of the stored bytes (the
+physical BLOB name), name, type and a way to open the bytes - from the Drive first, then from a legacy descriptor:
 
-`FileDescriptorManager` is the caller around that pipeline. For an upload it:
+- **The Drive.** `IDrivePublicAppService.ReadAsync(container, blob, no size, HeadersOnly)` answers for a file of a
+  `PublicRead` container whose physical BLOB name is `blob`. The bytes are read with a second call only when they are
+  needed, so a rendition already in `RenderedImageCache` costs one lookup. The Drive's own sizing is not used: Site
+  renders from the stored bytes, at any size, in the format the request takes.
+- **The legacy library**, for a file not yet migrated, in `SiteFileContainerNames.All` only. The fallback goes with the
+  legacy tables.
 
-1. copies it once into memory, capped at the container's size limit (`Dignite.Abp.BlobStoring:ContentTooLarge`);
-2. detects its type from the content, reconciled with the extension of the uploaded file name - a file whose
-   content contradicts its extension's kind is refused (`Dignite.Abp.BlobStoring:ContentTypeMismatch`), a
-   picture named with another picture's extension is recorded as what it is;
-3. hashes it (SHA-256);
-4. dedups by content: when the same bytes are already stored in that container (same tenant), the new
-   descriptor only refers to that blob and nothing is written;
-5. otherwise saves the blob under a new random name (32 hex digits plus the canonical extension of the
-   detected type, e.g. `.png` for a picture uploaded as `photo.jpg` - never the uploader's own extension;
-   blobs stored earlier have no extension) without overwriting - the contributors run here and may refuse it
-   (`ContentTypeNotAllowed`, the Imaging codes) - then writes the row, deleting the blob again if the row
-   cannot be written.
+What follows - planning the rendition, the decode bounds, `RenderedImageCache`, the ETag and `Vary` in the controller -
+is as it was. A remote Drive (`Dignite.Drive.HttpApi.Client`) reports a missing file as a remote call error rather than
+`EntityNotFoundException`; only the in-process case is handled and tested today.
 
-The extension on the blob name is what lets the contributors promote a compound file named `.doc` to
-`application/msword`, and give an empty file its extension's type.
+## Why the address survives the move
 
-The row records the detected MIME type, the hash of the **upload** (so the same original dedups even when
-the container shrank it) and the size of what is **stored**. Two simultaneous uploads of the same bytes can
-both miss the dedup lookup; a unique index on (tenant, container, hash) over live rows lets only one insert
-win, and the other upload fails and can be retried, when it becomes a reference.
+The Drive names a user drive's physical BLOB `{32 hex}{extension of the stored type}`, the form Site's own names had, and
+its public read finds a user-drive file by that name. The migration gives each Drive row the legacy file's own BLOB name
+and id, and copies a dedup reference's bytes to its own name, so `api/site-public/files/{container}/{blob}` finds every
+file it found before and a field's `id` names the same file. Containers keep their names and their storage provider, so
+an owner's bytes are not moved at all.
 
-The file field's registration key `FileExplorer` and its configuration keys
-`FileExplorer.FileContainerName` / `FileExplorer.UploadFileMultiple` keep the names they had in
-abp-modules: they are stored in every field definition (Matrix block configurations included).
+## Deleting what a form no longer holds
 
-## The public read endpoint
+`drive-file-input` only takes a removed file out of the value. `SiteUploadCleanup`, provided by the content editor and
+the SEO settings, records the files the current user uploaded during the edit (creator and creation time, since the
+input reports no upload event) and, after a successful save, deletes those the saved value no longer names, by id or by
+BLOB name. A file that was in the form before is never deleted: another content or language may use it. Leaving without
+saving deletes nothing yet.
 
-`?Width=&Height=` is provider-independent: `ImageDimensionReader` (Site's own, because the Imaging package's
-header reader is internal) guards the source dimensions before the provider decodes anything, and a provider
-that answers Unsupported (SkiaSharp does not resize GIF) gets the file served as stored rather than an error.
+## Tests
 
-The `ETag` is the blob name plus the requested size: blob names are generated and never reused, so the bytes
-behind an address never change. The cache lifetime is a day rather than `immutable` because a file can be
-deleted.
-
-A public web app that calls Site through `Dignite.Site.Public.HttpApi.Client` depends on
-`SitePublicHttpApiModule` so that its `FilePublicController` replaces the generated proxy controller for the
-same interface (ABP removes a proxy controller whose interface a real controller implements), answers
-`If-None-Match` with `304` and sets `ETag`/`Cache-Control` itself, and fetches the bytes through the client
-proxy.
-
-## Relative addresses
-
-Since the release after 0.1.0-preview.25 a file address is relative: `SiteFileUrl.Build` composes
-`/api/site-public/files/{container}/{blob}` with no scheme, host or tenant, and the application service's
-mapper puts it on `FileDescriptorDto.Url` - so the admin API, the MCP tools and an in-process caller all hand
-out the same address, whichever host the request came in on. It is what CmsKit does with its media
-(`MediaDescriptorDto` carries no URL; the editor inserts `/api/cms-kit/media/{id}`, and pages render it
-relative).
-
-- `og:image`: `HeadMetadataBuilder.ReadOgImage` absolutizes against `SiteUrlContext.BaseUrl`
-  (`SiteFileUrl.Absolutize`), the origin the canonical URL already uses; with no primary domain configured
-  the head metadata fails the same way canonical does (`PrimaryDomainNotConfiguredException`, unless the host
-  adds a request fallback).
-- The admin UI: `SiteFileUrlService` resolves against `environment.apis.SiteAdmin.url` and adds the signed-in
-  tenant (`?__tenant=`, from `SessionStateService`) to an address that names none: a preview is a plain `<img>`
-  request, which cannot carry the header the UI's API calls use. The CKEditor field's model holds that address
-  and its data downcast takes both off again (`relativeFileUrl`), so nothing saved names a host or tenant.
-- Feeds, `llms.txt` and the sitemap carry no file addresses (a feed item's summary is text), so nothing else
-  needs one made absolute.
-
-## The admin UI's CKEditor field
-
-CKEditor would load the images in its markup from the admin UI's own origin, where a relative
-`/api/site-public/files/` address does not resolve. `provideSite()` registers `siteCKEditorConfigContributor`
-under `@dignite/ng.flex-fields-ckeditor`'s `CKEDITOR_CONFIG_CONTRIBUTORS` (from `10.0.0-rc.26`). Its plugin
-keeps the editor's **model** on the `SiteAdmin` API's host and only the editor's **data** relative, for the
-`src` of an `imageBlock`/`imageInline`:
-
-- upcast (`setData()`, the initial value, a paste): a `src` starting with `/api/site-public/files/` gets the
-  API's host in front - a listener on `element:img` at `low` priority, after the image plugin's own converter
-  has created the model image;
-- data downcast (`getData()`: the form value that is saved, the Source view, a copy): a `src` on the API's
-  host loses it again - a listener on `attribute:src:imageBlock|imageInline` at `high` priority that consumes
-  the change, so the image plugin's converter skips it in the data pipeline only.
-
-Everything else CKEditor does with the model's `src` then works unchanged: the editing view shows the image,
-and an uploaded image's `width`/`height` are read from it. The upload provider (`SiteCKEditorUploadProvider`,
-registered as `CKEDITOR_UPLOAD_PROVIDER`, since `@dignite/ng.flex-fields-ckeditor` `10.0.0-rc.25` ships no
-uploader) hands the editor the uploaded file's address on the API's host for the same reason
-(`SiteFileUrlService.toDisplay`). HTML and Markdown fields alike, since both load images into the same model;
-links (`<a href>`) are not converted.
-
-The read-only rich-text view (`ff-ckeditor-view`, e.g. a content list cell) has no editor, so it is handled
-separately: `siteCKEditorDisplayContributor`, registered by `provideSite()` under
-`CKEDITOR_DISPLAY_CONTRIBUTORS` (from `@dignite/ng.flex-fields-ckeditor` `10.0.0-rc.27`), receives the HTML the
-view is about to render (after Markdown has been turned into HTML, before the sanitizer) and puts the
-`SiteAdmin` API's host in front of every `src="/api/site-public/files/..."`, double- or single-quoted. Only
-`src` is touched, not `href`, and external addresses stay as they are. The result is shown, never saved or
-handed back, so nothing stored carries the host; when the UI shares its API's origin the HTML is returned
-unchanged.
-
-## MCP
-
-The default container list and its model-facing descriptions are set in `SiteMcpModule`.
-`SiteMcpFileOptions.GetMaxUploadSize` is the one rule both `site_upload_file` and `site_list_file_containers`
-use, so what is advertised is what is enforced; `SiteMcpFileServerOptionsSetup` raises the MCP endpoint's
-request-body limit, when it is lower, to just fit a base64-encoded file of `MaxUploadSize`.
+- `FilePublicAppService_Tests` uploads through the Drive's `FileDescriptorManager` (so the `Images` preset runs) and
+  keeps two tests for the legacy fallback; `LegacySiteFiles` writes legacy rows as the library did, a JPEG in `images`
+  as upright WebP.
+- `SiteDriveMigrator_Tests` covers the dry run, owners, references, an orphaned blob, the dedup key and a second run.
+- The EF Core test module installs the Drive as the dev Host does; `common.test.props` reads
+  `DigniteAbpModulesVersion` from `common.props`.

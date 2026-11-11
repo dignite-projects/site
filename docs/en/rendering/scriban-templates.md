@@ -93,7 +93,7 @@ A page must call `site_head`, which writes the head metadata of the page: the de
 |---|---|
 | `title` | Overrides `og:title`, which is the content's title otherwise. |
 | `description` | Used only when the content has no description of its own. |
-| `image` | A share image for the page, used when the content's SEO field has none, in place of the site's default share image: an address, or a file field's value, of which the first file is taken. An image of the file library is cropped to 1200 x 630. |
+| `image` | A share image for the page, used when the content's SEO field has none, in place of the site's default share image: an address, or a file field's value, of which the first file is taken. An image uploaded to the site's files is cropped to 1200 x 630. |
 | `type` | `og:type`: `website`, the default, or `article`, which also writes the content's `article:published_time` and `article:modified_time`. |
 | `schema` | Structured data: a schema.org node, or a list of them; see below. |
 
@@ -107,7 +107,7 @@ The template decides which schema.org types a page carries and what goes in them
 
 * Several nodes become one `@graph` under one `@context`; a single node gets the `@context` itself.
 * A property with nothing in it, such as a field that is empty on this content, is left out, at any depth, so a template need not ask first.
-* An address written `~/...` is put in the page's language, as [`url`](#functions) does, and made absolute on the site's primary domain; so is an address of the file library (`/api/site-public/files/...`). Any other text is written as it is.
+* An address written `~/...` is put in the page's language, as [`url`](#functions) does, and made absolute on the site's primary domain; so is the address of an uploaded file (`/api/site-public/files/...`, or the Drive's `/api/drive/public/...`, which becomes the site's). Any other text is written as it is.
 * `<`, `>` and `&` are escaped, so a title that holds `</script>` cannot end the script.
 
 Each node must be an object with an `@type`; anything else fails the render. A key such as `@type` is written in quotes:
@@ -547,7 +547,7 @@ referenced from a layout:
 
 The same goes for a script: `<script src="{{ asset_url "js/site.js" }}" defer></script>`.
 
-Binary files, such as images and fonts, are not theme files. They stay in the [file library](../files.md) and are addressed with `file_url`.
+Binary files, such as images and fonts, are not theme files. They are uploaded to the site's [files](../files.md), the `theme-assets` container for a favicon or a font, and addressed with `file_url`.
 
 ## Limits
 

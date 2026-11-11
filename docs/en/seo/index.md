@@ -49,7 +49,7 @@ The share image of a page is the first of:
 2. the image the template gives `site_head` (or `site-head-metadata`), such as a post's cover;
 3. the site's default share image, the `Site.Seo.DefaultShareImage` [setting](../settings.md).
 
-Without any, there is no `og:image` tag; Site does not guess one from other fields. An image from the site's [file library](../files.md) is requested at 1200 x 630, cropped to fill, made absolute on the primary domain, and written with `og:image:width` and `og:image:height`. An image at any other absolute URL is used as it is, without a size. `og:image:alt` is left to the template.
+Without any, there is no `og:image` tag; Site does not guess one from other fields. An image from the site's [files](../files.md) is requested at 1200 x 630, cropped to fill, made absolute on the primary domain, and written with `og:image:width` and `og:image:height`. An image at any other absolute URL is used as it is, without a size. `og:image:alt` is left to the template.
 
 ### Title and Description Length
 
@@ -92,7 +92,7 @@ Every request carries its breadcrumb, derived from the page tree like the canoni
 
 ## Structured Data
 
-Which schema.org types a page carries, and what goes in them, depends on what each site publishes, so the template decides it, and gives the nodes to `site_head` as `schema` (or to `site-head-metadata`). Site writes them correctly: in one `@graph`, without empty properties, with `~/` and file library addresses made absolute on the primary domain, and with `<`, `>` and `&` escaped so that no text can end the script. See [Structured Data](../rendering/scriban-templates.md#structured-data).
+Which schema.org types a page carries, and what goes in them, depends on what each site publishes, so the template decides it, and gives the nodes to `site_head` as `schema` (or to `site-head-metadata`). Site writes them correctly: in one `@graph`, without empty properties, with `~/` and file addresses made absolute on the primary domain, and with `<`, `>` and `&` escaped so that no text can end the script. See [Structured Data](../rendering/scriban-templates.md#structured-data).
 
 Google still shows rich results for `Organization`, `WebSite`, `BreadcrumbList`, `Article` and `Product`; `FAQPage` and `HowTo` no longer earn one, though AI assistants read them.
 

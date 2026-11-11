@@ -444,3 +444,46 @@ Site's files" 还在 "Proposed" 下，要不要在那边改成 "Decided"，属�
   MCP 的权限与令牌，没有这条。这段代码第 3 步就删，不另外处理。
 - `SiteFileUrl` 的注释说旧前缀 `/file-explorer/files/` 「只认一个版本（0.1.0-preview.25），下个版本删」，代码至今仍认
   （`src/Dignite.Site.Domain.Shared/Files/SiteFileUrl.cs:43`）。按代码做：门面改写时一并保留，删不删另议。
+
+---
+
+## 8. 实施记录（2026-11-11，分支 `feat/drive-integration`，未推送）
+
+abp-modules 用 `feat/blob-storing-webp-upright`（A1–A3 已做）整仓打成 `10.7.7-local.1`。每步单独构建、测试、提交：
+
+| 提交 | 内容 |
+|---|---|
+| `962fdcf` | 本方案 |
+| `1a8f84a` | 第 1 步：abp-modules 10.7.6 |
+| `8d53b34` | 第 2 步：本地预发布包、`NuGet.Config` 本地源、`@dignite/ng.drive` tgz |
+| `013ffeb` | 第 5 步：删 Site 的 9 个文件工具 |
+| `5abb046` | 第 4 步：删管理端文件库 |
+| `4825a0f` | 第 3 步：宿主装 Drive、公开读改门面 |
+| `4dbc05d` | 第 6 步：Angular 改用 `drive-file-input` |
+| `8b9a693` | 第 7 步：迁移器 `Dignite.Site.Drive.Migration` |
+| （本提交） | 第 9 步：文档、CHANGELOG |
+
+与方案不同、或方案里没写到的地方：
+
+1. **执行顺序是 5 → 4 → 3。** MCP 文件工具直接调管理端文件服务，宿主装 Drive 又会和 Site 的容器策略叠在同一容器上；
+   按 3 → 4 → 5 走，中间几步编译不过或测试不过。内容不变。
+2. **第 2 步改了仓库的 `NuGet.Config`**（分支上），没有动本机用户级配置：那个文件里有明文凭据，而且用户级 mapping 会影响
+   本机所有仓库。Drive 发布后撤掉这个提交和 `file:` 依赖。
+3. **`SiteMcpOptions.BaseUrl`**：主题链接原来借用 `SiteMcpFileOptions.UploadBaseUrl`，那个类随文件工具删了，换成新选项。
+4. **`common.test.props` 从 `common.props` 读 `DigniteAbpModulesVersion`**：测试项目要直接引用 Drive 包，又不能导入整个
+   `common.props`（会带进 Fody、Source Link 和包元数据）。
+5. **测试辅助 `LegacySiteFiles`**：旧库删掉后，测试回退路径和迁移器要能造旧数据；`images` 里的 JPEG 按 10.7.5 以来的实际
+   行为存成摆正的 WebP。
+6. **字段里存什么地址**：控件存 Drive 返回的 `DriveFileDto` 原样（`url` 是 Drive 地址、带 `__tenant`），输出时由
+   `SiteFileUrl.Normalize` 改写成 Site 地址（D1 的「输出时改写」）。这样 `drive-file-input` 里的链接在多租户下也能打开。
+   CKEditor 存的是 Site 地址（它本来就把地址转成相对的 Site 地址）。
+7. **D3 (b) 的判据**按第 6 步写的做：创建者 + 创建时间 + 编辑前不在值里；保存后对照「保存的值」序列化文本里有没有 id 或
+   BLOB 名，而不是对照各控件当前值——Matrix 块折叠会销毁子控件，按控件统计会误删。**「取消/离开时清理」没有做**，等你定。
+8. **空目录的保存方式没有落地。** 方案写的是「另存成一个设置值」，实施时发现 ABP 设置值上限 2048 字符，目录多时放不下；
+   现在迁移器把每个文件的目录路径写进 `ExtraProperties["Site:DirectoryPath"]`，整棵目录树（含空目录）只写进迁移报告和日志，
+   没有持久化。持久化方式待你定。
+9. **迁移器复制字节绕过容器流水线**（直接用存储 provider），否则旧 JPEG 会被再转一次 WebP；孤儿 blob 在提交后才删。
+10. **门面只处理进程内 Drive 的「找不到」**（`EntityNotFoundException`）；Drive 单独成服务时远程调用的 404 是另一种异常，
+    没处理也没测。已知部署都是进程内。
+11. **界面实测没做完**：浏览器面板隐藏、`localhost:4200` 导航被拒，Angular 部分只有构建和 191 个单元测试为证。后端（上传、
+    WebP、缩放、旧地址回退、迁移）在第二个宿主实例上实测过。

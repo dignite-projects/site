@@ -74,11 +74,11 @@ Run your application's data seeder (the `DbMigrator` of a layered solution) afte
 
 ### MongoDB
 
-Pages, content types, fields and contents are stored through Entity Framework Core only. `Dignite.Site.MongoDB` holds the repositories of the [file library](files.md) and nothing else, so Site needs an Entity Framework Core database.
+Pages, content types, fields and contents are stored through Entity Framework Core only. `Dignite.Site.MongoDB` holds the repositories of the file library Site kept before 3.0 and nothing else, so Site needs an Entity Framework Core database.
 
 ## File Storage
 
-Site's file library stores its bytes in two BLOB containers, `images` and `attachments`. Choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for both, for example the database provider:
+Site's files are kept in Dignite Drive, which the host installs: its modules, `ConfigureDrive()` in the `DbContext`, and the containers Site's fields use - `images`, `attachments` and `theme-assets` - declared as publicly read user drives in the `Drive` section of `appsettings.json`; see [Files](files.md#installing-the-drive-in-the-host). Then choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for the containers, for example the database provider:
 
 ````csharp
 Configure<AbpBlobStoringOptions>(options =>
@@ -93,7 +93,7 @@ Configure<AbpBlobStoringOptions>(options =>
 });
 ````
 
-Configure only the provider: Site sets the containers' upload rules itself. A host on Linux also references `SkiaSharp.NativeAssets.Linux`. See [Files](files.md).
+Configure only the provider: the Drive's presets set the containers' upload rules. A host on Linux also references `SkiaSharp.NativeAssets.Linux`. Grant the Drive's `Drive.Files.Upload` permission to the roles that edit contents. See [Files](files.md).
 
 ## The Public Site
 

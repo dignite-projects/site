@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: Site's files are kept in Dignite Drive; Site's own file library is gone.** The images and attachments of
+  contents, the share images and the files a theme links are stored in the open edition of Dignite Drive, which the host
+  installs (Application, HttpApi, Entity Framework Core and MCP), with `images`, `attachments` and `theme-assets`
+  declared as publicly read user drives. Uploads are checked by the Drive's presets (the `images` preset stores a JPEG
+  as WebP, turned upright, as Site did) and authorized by the Drive's permissions. Gone: the administration API of
+  files and directories (`api/site-admin/files`, `IFileAdminAppService`, `IDirectoryAdminAppService`, the upload links
+  and their C# and Angular proxies), the permission mapping of the containers onto `SiteAdmin.Contents.*` and
+  `SiteAdmin.Themes.Edit`, the containers' policy in `SiteAdminApplicationModule`, `FileDescriptorManager`,
+  `DirectoryManager` and the error codes `Site:0700xx`, `Site:080001` and `Site:080003`. See [Files](docs/en/files.md).
+- **The file address stays Site's.** `/api/site-public/files/{container}/{blob}` takes the file from the Drive's public
+  read and keeps serving WebP to a browser that takes it, any size and the rendering cache; a file not yet migrated is
+  served from the old library. `SiteFileUrl.Normalize` turns the Drive's address of a file
+  (`/api/drive/public/...?__tenant=`) into Site's, and `Sized`, `Absolutize` and `IsSiteFile` apply it, so a field that
+  stores the Drive's address renders Site's. See [Addresses](docs/en/files.md#addresses).
+- **Breaking (MCP): Site's nine file tools give way to the Drive's.** `site_list_file_containers`, `site_list_files`,
+  `site_get_file`, `site_create_upload_url`, `site_upload_file`, `site_update_file`, `site_delete_file`,
+  `site_list_directories` and `site_create_directory` are gone, with `SiteMcpFileOptions` and the raised request size
+  limit; a host adds `Dignite.Drive.Mcp` for `drive_list_containers`, `drive_upload_file`, `drive_create_upload_url`,
+  `drive_get_file` and `drive_delete_file`. An inline upload now takes up to 2 MB (was 5 MB), and an upload link takes
+  a form (`curl -F`) rather than the body of a `PUT`. Site's instructions say which containers its fields use and what
+  to store. The theme links take their address from the new `SiteMcpOptions.BaseUrl`. See [MCP](docs/en/files.md#mcp).
+- **Breaking (Angular): the admin UI attaches files with the Drive's file input.** The file field (key `FileExplorer`),
+  the SEO field's share image and the default share image of the SEO settings render `drive-file-input` from
+  `@dignite/ng.drive`, which `@dignite/ng.site` now depends on, and which a host with Drive Pro replaces with its library
+  picker. CKEditor uploads go to the Drive. A file uploaded while a form is edited and removed again is deleted once the
+  form is saved (`SiteUploadCleanup`). The file field's configuration lists the Drive's containers. Removed from
+  `@dignite/ng.site`: the file picker, the browsing modal, the directory tree, the upload component,
+  `ValidatorsService` and the admin file proxies; added: `normalizeFileUrl`, `SiteUploadCleanup`, `fileOfUrl`. See
+  [Admin UI](docs/en/admin-ui.md).
+
 - **`file_url` takes its width as optional.** A Scriban template that wants the image as stored writes
   `file_url url` instead of having to name a width, and `null` counts as not given: it used to be turned into
   `Width=0`. `file_url url null 200` scales by height alone. `SiteFileUrl.Sized` (both `Dignite.Site.Files` and
@@ -26,6 +56,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behaves as before, but code built against an earlier version needs a rebuild; in `@dignite/ng.site`,
   `SiteThemeAdminService.check` takes a `SiteThemeCheckInput`. See
   [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
+
+### Migrate
+
+- **Install the Drive in the host** and declare its containers, with the same names and the same storage provider and
+  settings as Site's containers had, so the stored bytes are where the Drive looks for them; add a migration for
+  `DriveFileDescriptors`. See [Installing the Drive in the Host](docs/en/files.md#installing-the-drive-in-the-host).
+- **Migrate the files** with `Dignite.Site.Drive.Migration`: a dry run first, then `SiteDriveMigration:DryRun` set to
+  `false`. Every file keeps its id and its address. Entity Framework Core hosts with the Drive in the same process and
+  database only. See [Upgrading from Site's File Library](docs/en/files.md#upgrading-from-sites-file-library).
+- **Grant the Drive's permissions.** Files no longer follow `SiteAdmin.Contents.*` and `SiteAdmin.Themes.Edit`: grant
+  `Drive.Files.Upload` to the roles that edit contents and the theme, and `Drive.Files.Delete` where others' files should
+  be deletable. Until then those roles cannot upload. Nothing grants them automatically.
+- **A host behind a gateway** also routes `api/drive/` to the service that runs the Drive.
+- **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of
+  `UploadBaseUrl`.
+- **The old tables stay** (`SiteFileDescriptors`, `SiteDirectoryDescriptors`), read only: the next major version
+  removes them. Upgrade to it only after the files are migrated.
 
 ## [2.3.0] - 2026-11-09
 

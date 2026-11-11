@@ -186,7 +186,7 @@ Inject the public application services for anything else a template needs:
 | `title` | The title for `og:title`, when the template composes its own, such as a localized archive title. Defaults to `HeadMetadata.MetaTitle`. |
 | `fallback-description` | A description to use when the content has none. |
 | `current-page`, `page-query-key` | The page of a paged list, and its query parameter, `page` by default. Beyond the first page, the canonical URL and the alternates carry the page number. |
-| `image` | A share image for the page, such as a post's cover: used when the content's SEO field has none, in place of the site's default share image. A file library address or an absolute URL. |
+| `image` | A share image for the page, such as a post's cover: used when the content's SEO field has none, in place of the site's default share image. The address of an uploaded image (a file field's, or the site's own address of it) or an absolute URL. |
 | `og-type` | `website`, the default, or `article`, which also writes `published-time` and `modified-time`. |
 | `published-time`, `modified-time` | The content's publish and last modification times, for `article:published_time` and `article:modified_time`. |
 | `schema` | Structured data: a schema.org node or a list of them, as any value that serializes to a JSON object; a `Dictionary<string, object?>` lets a key be `"@type"`. See [Structured Data](../seo/index.md#structured-data). |

@@ -32,7 +32,7 @@ The MCP endpoint accepts the same bearer tokens as the application's HTTP API: a
 
 * Each tool requires the `SiteAdmin.*` [permission](../settings.md#permissions) of the application service behind it, and `tools/list` lists only the tools the user is granted.
 * `site_resolve_path` requires no permission: it reads only what any visitor can see.
-* The file tools check the permissions of the file's container when they are called, which are the `SiteAdmin.Contents.*` permissions; see [Files](../files.md#permissions).
+* Site has no file tools: files are uploaded with the Drive's `drive_*` tools, authorized by the Drive's own permissions; see [Files](../files.md#mcp).
 * While the `Site.Enable` [feature](../settings.md#the-site-feature) is off, every tool that needs a permission is refused.
 
 An unattended client, such as a publishing job in CI, authenticates with the client credentials flow instead. Its token carries no user, so its permissions are granted to the OAuth client itself; grant it only what that job needs.
@@ -54,7 +54,7 @@ Configure<AbpMcpServerOptions>(options =>
 });
 ````
 
-Site's own options are the containers the file tools reach and the largest upload, `SiteMcpFileOptions`; see [Files](../files.md#mcp). Site raises the server's request size limit to fit one upload.
+Site's own option is `SiteMcpOptions.BaseUrl`, the address a theme download or upload link starts with: by default the address the MCP request came in on; set it when a gateway in front does not forward the original host.
 
 ## See Also
 
