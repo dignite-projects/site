@@ -45,18 +45,21 @@ public static class SiteMcpConsts
         "line `+++`, then `layout = \"layouts/landing\"` (or `\"none\"`), then `+++` - else it uses the theme's " +
         "default layout. Every reference is a full path from the theme's root: `{{ include \"blog/_sidebar\" }}`, " +
         "`{{ asset_url \"css/site.css\" }}`. Binary files (images, fonts) are not theme files: upload them with " +
-        "the file tools.";
+        "the drive_* tools.";
 
     /// <summary>
-    /// The file tools' section of the instructions. Separate from <see cref="Instructions"/> so each stays
-    /// about one surface; both are handed to the client.
+    /// How Site's fields use files. Site has no file tools: files are uploaded with the Drive's <c>drive_*</c> tools,
+    /// which the host adds (<c>Dignite.Drive.Mcp</c>). Separate from <see cref="Instructions"/> so each stays about one
+    /// surface; both are handed to the client.
     /// </summary>
     public const string FileInstructions =
-        "Site files (site_*_file*, site_*_director* tools): images and attachments for content fields. " +
-        "Call `site_list_file_containers` first - it returns the containers you may use, with each one's " +
-        "purpose, upload size limit and allowed file types. Every other file tool takes a `containerName` " +
-        "from that list; do not guess one.\n\n" +
-        "Uploading: `site_upload_file` takes the file's bytes as base64, so it suits small files only. The " +
-        "result carries the file's `url` - that is what to put in a content field (an SEO share image, a " +
-        "file field). Files and directories are addressed by the `id` the list tools return.";
+        "Site files: upload images and attachments with the drive_* tools (`drive_list_containers` first, for the " +
+        "containers you may upload to and their limits). Site uses three of them: `images` for pictures a content " +
+        "field shows (JPEG, PNG, GIF, WebP; no SVG), `attachments` for documents to download (PDF, Office, text, " +
+        "CSV, ZIP; no pictures), and `theme-assets` for the binary files a theme links (favicon, web fonts). A file " +
+        "field's configuration names one of them.\n\n" +
+        "What to store: a file field takes an array of the file objects the drive_* tools return (keep `id`, " +
+        "`name` and `url`); an SEO share image, the default share image and a template take the file's `url`. Keep " +
+        "the `id` too: there is no tool that lists a container's files, and deleting a file " +
+        "(`drive_delete_file`) needs its id.";
 }

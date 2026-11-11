@@ -22,12 +22,12 @@ public class SiteSeoSettingsTools : ITransientDependency
     [McpServerTool(Name = "site_set_default_share_image", Title = "Set the default share image", Idempotent = true)]
     [Description(
         "Sets the image shown when a page of the site is shared on a social network and the page has no share image of " +
-        "its own (its SEO field's ogImage is empty and its template gives none). Give the url of an image in the file " +
-        "library (upload it first; 1200 x 630 suits every network, and a library image is cropped to that size) or an " +
+        "its own (its SEO field's ogImage is empty and its template gives none). Give the url of an image uploaded to the " +
+        "images container (upload it first; 1200 x 630 suits every network, and an uploaded image is cropped to that size) or an " +
         "absolute URL. An empty string removes it. Returns the setting as stored.")]
     [Authorize(SiteAdminPermissions.Seo.Update)]
     public virtual Task<SiteSeoSettingsDto> SetDefaultShareImageAsync(
-        [Description("The image's url, from site_upload_file or site_list_files, or an absolute URL; empty to remove it.")]
+        [Description("The image's url, as drive_upload_file or drive_get_file returns it, or an absolute URL; empty to remove it.")]
         string url)
     {
         return SeoSettingsAppService.UpdateAsync(new UpdateSiteSeoSettingsDto { DefaultShareImage = url });

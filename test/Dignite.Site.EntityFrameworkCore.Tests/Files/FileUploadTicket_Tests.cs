@@ -5,7 +5,6 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.EntityFrameworkCore;
-using Dignite.Site.Mcp.Files;
 using Dignite.Site.Timing;
 using Microsoft.Extensions.Options;
 using Shouldly;
@@ -211,46 +210,5 @@ public class FileUploadTicket_Tests : SiteEntityFrameworkCoreTestBase
         var file = await _ticketService.UploadAsync(TicketOf(ticket), _ => Body(TestFiles.Png(16, 16)));
 
         file.CreatorId.ShouldBe(userId);
-    }
-
-    [Fact]
-    public async Task The_Tool_Should_Hand_Over_The_Link_With_A_Command_To_Run()
-    {
-        var options = GetRequiredService<IOptions<SiteMcpFileOptions>>().Value;
-        options.UploadBaseUrl = "https://acme.example/";
-
-        var upload = await GetRequiredService<FileTools>().CreateUploadUrlAsync(SiteFileContainerNames.Images, "hero.png");
-
-        upload.Url.ShouldStartWith("https://acme.example/api/site-admin/files/upload/");
-        upload.Method.ShouldBe("PUT");
-        upload.ContainerName.ShouldBe(SiteFileContainerNames.Images);
-        upload.FileName.ShouldBe("hero.png");
-        upload.MaxBytes.ShouldBeGreaterThan(0);
-        upload.Command.ShouldContain("FILE_PATH");
-        upload.Command.ShouldContain(upload.Url);
-        upload.PowerShellCommand.ShouldContain("FILE_PATH");
-        upload.PowerShellCommand.ShouldContain(upload.Url);
-        upload.PowerShellCommand.ShouldNotContain("curl");
-
-        // And the link it made works.
-        var file = await _ticketService.UploadAsync(upload.Url[(upload.Url.LastIndexOf('/') + 1)..], _ => Body(TestFiles.Png(16, 16)));
-        file.Name.ShouldBe("hero.png");
-    }
-
-    /// <summary>No address is better than a path that looks like one: outside a request, with nothing configured, it says so.</summary>
-    [Fact]
-    public async Task The_Tool_Should_Not_Hand_Over_A_Link_It_Cannot_Give_An_Address()
-    {
-        GetRequiredService<IOptions<SiteMcpFileOptions>>().Value.UploadBaseUrl = null;
-
-        await Should.ThrowAsync<InvalidOperationException>(
-            () => GetRequiredService<FileTools>().CreateUploadUrlAsync(SiteFileContainerNames.Images, "hero.png"));
-    }
-
-    [Fact]
-    public async Task The_Tool_Should_Refuse_A_Container_It_Does_Not_Offer()
-    {
-        await Should.ThrowAsync<Exception>(
-            () => GetRequiredService<FileTools>().CreateUploadUrlAsync("other-module", "hero.png"));
     }
 }

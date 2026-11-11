@@ -129,7 +129,7 @@ public class SiteThemeTools : ITransientDependency
         "static file, stored as it is and not parsed; a template links it with '{{ asset_url \"css/site.css\" }}'. " +
         "Every reference is a full path from the theme's root. A template that does not parse is saved anyway and its " +
         "errors are returned: fix them before publishing. Binary files (images, fonts) are not theme files: upload them " +
-        "with site_upload_file.")]
+        "with drive_upload_file or drive_create_upload_url.")]
     [Authorize(SiteAdminPermissions.Themes.Edit)]
     public virtual async Task<SiteThemeFileSaved> SaveThemeFileAsync(
         [Description("The file's path, e.g. 'Events', 'blog/post', '_card', 'layouts/landing' or 'css/site.css'.")]

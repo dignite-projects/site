@@ -1,9 +1,7 @@
 using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Site.Mcp.ContentTypes;
 using Dignite.Site.Mcp.Contents;
-using Dignite.Site.Files;
 using Dignite.Site.Mcp.Fields;
-using Dignite.Site.Mcp.Files;
 using Dignite.Site.Mcp.Languages;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
@@ -11,7 +9,6 @@ using Dignite.Site.Mcp.Schema;
 using Dignite.Site.Mcp.Seo;
 using Dignite.Site.Mcp.Themes;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Volo.Abp.Modularity;
 
 namespace Dignite.Site.Mcp;
@@ -54,9 +51,6 @@ public class SiteMcpModule : AbpModule
             .AddTools<ContentTypeTools>()
             .AddTools<FieldTools>()
             .AddTools<RoutingTools>()
-            .AddTools<FileContainerTools>()
-            .AddTools<DirectoryTools>()
-            .AddTools<FileTools>()
             .AddTools<SiteThemeTools>()
             .AddTools<SiteThemeTransferTools>()
             .AddTools<SiteLanguageTools>()
@@ -64,25 +58,8 @@ public class SiteMcpModule : AbpModule
             .AddResources<SiteSchemaResources>()
             .AddResources<SiteThemeResources>()
             .AddInstructions(SiteMcpConsts.Instructions)
+            // Site has no file tools of its own: files are the Drive's (drive_* tools, Dignite.Drive.Mcp in the host).
+            // What Site adds is how its fields use them.
             .AddInstructions(SiteMcpConsts.FileInstructions));
-
-        // The file tools reach both of Site's containers unless the host narrows the list. Same containers,
-        // same per-container permissions (SiteAdminApplicationModule) as an upload from the admin UI.
-        context.Services.Configure<SiteMcpFileOptions>(options =>
-        {
-            options.Containers
-                .Add(SiteFileContainerNames.Images,
-                    "Pictures for site content (JPEG, PNG, GIF, WebP; no SVG). Use this for any image a content field will show.")
-                .Add(SiteFileContainerNames.Attachments,
-                    "Downloadable attachments for site content: PDF, Office documents, text, CSV, ZIP. Pictures are refused here - use images.")
-                .Add(SiteFileContainerNames.ThemeAssets,
-                    "Binary files a theme links: the favicon (.ico) and web fonts (WOFF2, WOFF, TTF, OTF). Uploading here needs the theme's edit permission. " +
-                    "Link a file from a template with the url this returns. A theme's text files (css, js, svg) are not " +
-                    "uploaded here but saved with site_save_theme_file.");
-        });
-
-        // Upload bytes travel base64-encoded in the request body, so the endpoint's body limit has to make
-        // room for SiteMcpFileOptions.MaxUploadSize - while still refusing anything larger before it is read.
-        context.Services.AddTransient<IPostConfigureOptions<AbpMcpServerOptions>, SiteMcpFileServerOptionsSetup>();
     }
 }

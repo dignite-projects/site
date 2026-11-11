@@ -338,7 +338,7 @@ public class SiteThemeTransfer_Tests : SiteEntityFrameworkCoreTestBase
     public async Task The_Mcp_Tools_Should_Give_A_Link_And_Its_Commands()
     {
         // No request here to take the address from: the host's configured one, as behind a gateway.
-        GetRequiredService<Microsoft.Extensions.Options.IOptions<Dignite.Site.Mcp.Files.SiteMcpFileOptions>>().Value.UploadBaseUrl = "https://admin.example";
+        GetRequiredService<Microsoft.Extensions.Options.IOptions<Dignite.Site.Mcp.SiteMcpOptions>>().Value.BaseUrl = "https://admin.example";
         var tools = GetRequiredService<SiteThemeTransferTools>();
 
         var upload = await tools.CreateUploadUrlAsync();
