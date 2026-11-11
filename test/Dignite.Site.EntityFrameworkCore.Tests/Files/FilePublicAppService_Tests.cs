@@ -19,12 +19,12 @@ namespace Dignite.Site.Files;
 public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly IFilePublicAppService _filePublicAppService;
-    private readonly FileDescriptorManager _fileDescriptorManager;
+    private readonly LegacySiteFiles _files;
 
     public FilePublicAppService_Tests()
     {
         _filePublicAppService = GetRequiredService<IFilePublicAppService>();
-        _fileDescriptorManager = GetRequiredService<FileDescriptorManager>();
+        _files = GetRequiredService<LegacySiteFiles>();
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Not_Serve_A_Deleted_File()
     {
         var file = await UploadAsync(SiteFileContainerNames.Attachments, "deleted.pdf", TestFiles.Pdf("deleted"));
-        await WithUnitOfWorkAsync(() => _fileDescriptorManager.DeleteAsync(file));
+        await WithUnitOfWorkAsync(() => GetRequiredService<IFileDescriptorRepository>().DeleteAsync(file.Id));
 
         await Should.ThrowAsync<EntityNotFoundException>(() =>
             _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput()));
@@ -338,11 +338,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 
     private Task<FileDescriptor> UploadAsync(string containerName, string fileName, byte[] bytes)
     {
-        return WithUnitOfWorkAsync(async () =>
-        {
-            using var stream = new MemoryStream(bytes);
-            return await _fileDescriptorManager.CreateAsync(containerName, fileName, stream);
-        });
+        return WithUnitOfWorkAsync(() => _files.CreateAsync(containerName, fileName, bytes));
     }
 
     /// <summary>
@@ -480,7 +476,8 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     {
         return WithUnitOfWorkAsync(async () =>
         {
-            await using var stream = await _fileDescriptorManager.GetStreamOrNullAsync(file);
+            await using var stream = await GetRequiredService<Volo.Abp.BlobStoring.IBlobContainerFactory>()
+                .Create(file.ContainerName).GetOrNullAsync(file.GetActualBlobName());
             stream.ShouldNotBeNull();
             return await ReadAllAsync(stream);
         });

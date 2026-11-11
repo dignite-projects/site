@@ -6,7 +6,7 @@ using SkiaSharp;
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// Real file content for upload tests. <c>FileDescriptorManager</c> detects the type from the bytes and refuses
+/// Real file content for upload tests. The Drive detects an upload's type from its bytes and refuses
 /// an extension the content contradicts, so a test file has to be what its name says it is. Pictures are drawn
 /// and measured with SkiaSharp - the imaging provider Site runs on.
 /// </summary>

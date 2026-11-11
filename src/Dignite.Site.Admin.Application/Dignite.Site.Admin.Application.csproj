@@ -14,19 +14,10 @@
     <ProjectReference Include="..\Dignite.Site.Admin.Application.Contracts\Dignite.Site.Admin.Application.Contracts.csproj" />
     <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
     <ProjectReference Include="..\Dignite.Site.Common.Application\Dignite.Site.Common.Application.csproj" />
-    <!-- The ImageResize/ImageCompress contributors the Site containers run on upload
-         (SiteAdminApplicationModule.ConfigureFileContainers). The package references no image library: -->
-    <PackageReference Include="Dignite.Abp.BlobStoring.Imaging" Version="$(DigniteAbpModulesVersion)" />
-    <!-- ...this is the imaging provider behind them (IImageResizer/IImageCompressor), so every host of Site
-         gets a working resizer without choosing one. SkiaSharp rather than ImageSharp: ABP's ImageSharp
-         provider resolves SixLabors.ImageSharp 3.1.11 (High-severity advisories), and the fixed releases
-         need a Six Labors license key. Its natives cover Windows and macOS; a Linux host also references
-         SkiaSharp.NativeAssets.Linux (as Dignite.Site.Host and the EF Core tests do). -->
-    <PackageReference Include="Volo.Abp.Imaging.SkiaSharp" Version="10.7.0" />
-    <!-- IDataProtectionProvider, which signs the upload links (FileUploadTicketProtector). Only the abstractions: the
-         host's ASP.NET Core application already registers the provider and holds its keys. -->
+    <!-- IDataProtectionProvider, which signs the theme links (SiteThemeTransferTicketProtector). Only the abstractions:
+         the host's ASP.NET Core application already registers the provider and holds its keys. -->
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.12" />
-    <!-- IAbpDistributedLock, which makes the use of an upload link one step (FileUploadTicketProtector). Its in-process
+    <!-- IAbpDistributedLock, which makes the use of a theme link one step (SiteThemeTransferTicketProtector). Its in-process
          lock is registered by the abstractions module; a deployment of several instances adds a distributed one. -->
     <PackageReference Include="Volo.Abp.DistributedLocking.Abstractions" Version="10.7.0" />
     <!-- The preview of an administration API deployed apart from the site (SiteThemeRemotePreviewRenderer): the site's

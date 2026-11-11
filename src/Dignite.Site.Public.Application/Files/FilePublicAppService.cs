@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Site.Files;
 using Volo.Abp;
+using Volo.Abp.BlobStoring;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Threading;
@@ -24,15 +25,17 @@ namespace Dignite.Site.Public.Files;
 /// <para>
 /// Anonymous on purpose, and not feature-gated (see <c>SiteFeatures.Enable</c>): it serves a published
 /// site's images to its visitors. What keeps it from serving anything else is the container allow-list -
-/// <see cref="FileDescriptorManager.FindAsync"/> answers only for <see cref="SiteFileContainerNames.All"/> -
-/// and the containers' own upload rules, which keep script-capable types (SVG, HTML, JS) out of them.
+/// <see cref="FindAsync"/> answers only for <see cref="SiteFileContainerNames.All"/> - and the containers' own upload
+/// rules, which keep script-capable types (SVG, HTML, JS) out of them.
 /// </para>
 /// </summary>
 public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 {
     protected const int MaxDecompressionRatio = 100;
 
-    protected FileDescriptorManager FileDescriptorManager { get; }
+    protected IFileDescriptorRepository FileDescriptorRepository { get; }
+
+    protected IBlobContainerFactory BlobContainerFactory { get; }
 
     protected ImageVariantRenderer ImageVariantRenderer { get; }
 
@@ -42,11 +45,13 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
         LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None;
 
     public FilePublicAppService(
-        FileDescriptorManager fileDescriptorManager,
+        IFileDescriptorRepository fileDescriptorRepository,
+        IBlobContainerFactory blobContainerFactory,
         ImageVariantRenderer imageVariantRenderer,
         RenderedImageCache renderedImageCache)
     {
-        FileDescriptorManager = fileDescriptorManager;
+        FileDescriptorRepository = fileDescriptorRepository;
+        BlobContainerFactory = blobContainerFactory;
         ImageVariantRenderer = imageVariantRenderer;
         RenderedImageCache = renderedImageCache;
     }
@@ -55,7 +60,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     {
         var cancellationToken = RequestCancellationToken;
 
-        var file = await FileDescriptorManager.FindAsync(containerName, blobName, cancellationToken);
+        var file = await FindAsync(containerName, blobName, cancellationToken);
         if (file == null)
         {
             throw new EntityNotFoundException(typeof(FileDescriptor), $"{containerName}/{blobName}");
@@ -90,7 +95,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             }
         }
 
-        var stream = await FileDescriptorManager.GetStreamOrNullAsync(file, cancellationToken);
+        var stream = await GetStreamOrNullAsync(file, cancellationToken);
         if (stream == null)
         {
             throw new EntityNotFoundException(typeof(FileDescriptor), $"{containerName}/{blobName}");
@@ -98,6 +103,29 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 
         return new RemoteStreamContent(
             stream, FileNameFor(file.Name, file.MimeType), file.MimeType, stream.CanSeek ? stream.Length : null, disposeStream: true);
+    }
+
+    /// <summary>
+    /// The live descriptor addressed by <paramref name="blobName"/> in one of Site's containers, or <c>null</c> - for a
+    /// container that is not Site's as much as for a name that does not exist.
+    /// </summary>
+    protected virtual async Task<FileDescriptor?> FindAsync(string containerName, string blobName, CancellationToken cancellationToken)
+    {
+        if (!SiteFileContainerNames.Contains(containerName) || blobName.IsNullOrWhiteSpace())
+        {
+            return null;
+        }
+
+        return await FileDescriptorRepository.FindByBlobNameAsync(containerName, blobName, cancellationToken);
+    }
+
+    /// <summary>
+    /// The bytes of <paramref name="file"/> (its own blob, or the one it refers to), or <c>null</c> when the blob is
+    /// missing from storage.
+    /// </summary>
+    protected virtual Task<Stream?> GetStreamOrNullAsync(FileDescriptor file, CancellationToken cancellationToken)
+    {
+        return BlobContainerFactory.Create(file.ContainerName).GetOrNullAsync(file.GetActualBlobName(), cancellationToken);
     }
 
     /// <summary>
@@ -161,7 +189,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     protected virtual async Task<RenderedImage> RenderAsync(FileDescriptor file, ImageRendition rendition, CancellationToken cancellationToken)
     {
         byte[] source;
-        await using (var stream = await FileDescriptorManager.GetStreamOrNullAsync(file, cancellationToken))
+        await using (var stream = await GetStreamOrNullAsync(file, cancellationToken))
         {
             if (stream == null)
             {

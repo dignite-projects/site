@@ -14,8 +14,8 @@ namespace Dignite.Site.Admin.Themes;
 
 /// <summary>
 /// What a theme download or upload link says, signed inside it (<see cref="SiteThemeTransferTicketProtector"/>): who it
-/// was issued to, which way it goes, and until when - as a file upload link does (<c>FileUploadTicket</c>). The link is
-/// used by a command line with no credential of its own, so it carries the identity the transfer runs as, and that
+/// was issued to, which way it goes, and until when The link is used
+/// by a command line with no credential of its own, so it carries the identity the transfer runs as, and that
 /// identity's permissions are checked again when the link is used.
 /// </summary>
 public sealed record SiteThemeTransferTicket(
@@ -70,9 +70,8 @@ public sealed record SiteThemeTransferTicket(
 }
 
 /// <summary>
-/// Signs and reads the tickets of theme links, and remembers which have been used - the same as
-/// <c>FileUploadTicketProtector</c> does for file upload links, under a purpose, a lock and a cache entry of its own:
-/// protected with the host's Data Protection keys (so every instance of a deployment reads them), the expiry inside what
+/// Signs and reads the tickets of theme links, and remembers which have been used, under a purpose, a lock and a cache
+/// entry of its own: protected with the host's Data Protection keys (so every instance of a deployment reads them), the expiry inside what
 /// is protected, and one use, recorded under a distributed lock in the distributed cache until the ticket would have
 /// expired.
 /// </summary>

@@ -1,4 +1,3 @@
-using Dignite.Abp.BlobStoring.Pipeline;
 using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.CKEditor;
 using Dignite.FlexFields.Site;
@@ -27,9 +26,6 @@ namespace Dignite.Site;
     // Matrix and Table used to live here too, until flex-fields shipped them as kernel built-ins at
     // 10.0.0-rc.16.
     typeof(FlexFieldsSiteModule),
-    // The BLOB pipeline contributors the file library's containers are configured with, and the
-    // IMimeTypeDetector FileDescriptorManager detects an upload's type with (Files/).
-    typeof(AbpBlobStoringPipelineModule),
     // IBrandingProvider, for JSON-LD's Organization/WebSite name and logo (GitHub issue #20).
     typeof(AbpUiModule),
     // ISettingManager, for SiteLanguageManager.

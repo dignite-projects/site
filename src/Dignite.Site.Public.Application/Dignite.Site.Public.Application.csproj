@@ -28,9 +28,12 @@
     <!-- The public read endpoint's on-request resize (FilePublicAppService): the imaging error codes (and
          their localization) the upload contributors already use for the same limits... -->
     <PackageReference Include="Dignite.Abp.BlobStoring.Imaging" Version="$(DigniteAbpModulesVersion)" />
-    <!-- ...and the IImageResizer behind it - the same provider Admin.Application uses for uploads (see the
-         comment there for why SkiaSharp). -->
-    <PackageReference Include="Volo.Abp.Imaging.SkiaSharp" Version="10.7.0" />
+    <!-- ...and SkiaSharp, which ImageVariantRenderer draws with, with ImageOrientation to turn a photo upright - the same
+         package the Drive's images preset stores pictures with. SkiaSharp rather than ImageSharp: ABP's ImageSharp
+         provider resolves SixLabors.ImageSharp 3.1.11 (High-severity advisories), and the fixed releases need a Six
+         Labors license key. Its natives cover Windows and macOS; a Linux host also references
+         SkiaSharp.NativeAssets.Linux (as Dignite.Site.Host and the EF Core tests do). -->
+    <PackageReference Include="Dignite.Abp.BlobStoring.Imaging.SkiaSharp" Version="$(DigniteAbpModulesVersion)" />
   </ItemGroup>
 
 </Project>

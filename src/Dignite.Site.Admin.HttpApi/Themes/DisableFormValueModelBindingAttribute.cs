@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace Dignite.Site.Admin.Files;
+namespace Dignite.Site.Admin.Themes;
 
 /// <summary>
 /// Keeps MVC from reading the request body as a form before the action does. The body of an upload link is the file

@@ -159,7 +159,7 @@ public static class SiteDbContextModelCreatingExtensions
         });
 
         // The file library. Rows describe blobs in the SiteFileContainerNames containers; the bytes are
-        // ABP BlobStoring's, put there by FileDescriptorManager through IBlobContainer.
+        // ABP BlobStoring's, put there by the legacy file library through IBlobContainer.
         builder.Entity<DirectoryDescriptor>(b =>
         {
             b.ToTable(SiteDbProperties.DbTablePrefix + "DirectoryDescriptors", SiteDbProperties.DbSchema);
@@ -196,7 +196,7 @@ public static class SiteDbContextModelCreatingExtensions
                 .IsUnique()
                 .HasFilter($"{nameof(FileDescriptor.TenantId)} IS NULL");
 
-            // Content dedup's arbiter (FileDescriptorManager.CreateAsync): one live owner per hash. Live
+            // Content dedup's arbiter (the legacy file library's upload): one live owner per hash. Live
             // rows only - a deleted owner keeps its hash for the audit trail, and must not stop the same
             // bytes from being uploaded again.
             b.HasIndex(f => new { f.TenantId, f.ContainerName, f.Hash })

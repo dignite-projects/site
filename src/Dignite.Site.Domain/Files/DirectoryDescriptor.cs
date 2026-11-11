@@ -6,9 +6,10 @@ using Volo.Abp.MultiTenancy;
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// A folder in one file container of Site's file library. Directories belong to the user who created
-/// them (<see cref="AuditedAggregateRoot{TKey}.CreatorId"/>): each editor files uploads in a tree of their
-/// own, and every rule in <see cref="DirectoryManager"/> is scoped to that owner.
+/// A folder in one file container of the file library Site kept before its files moved to the Drive. Directories belong
+/// to the user who created them (<see cref="AuditedAggregateRoot{TKey}.CreatorId"/>): each editor filed uploads in a
+/// tree of their own. <b>Legacy and read-only</b>, like <see cref="FileDescriptor"/>: the migration to the Drive reads
+/// it, and the next major version removes it with its table.
 /// </summary>
 public class DirectoryDescriptor : AuditedAggregateRoot<Guid>, IMultiTenant
 {
@@ -38,7 +39,7 @@ public class DirectoryDescriptor : AuditedAggregateRoot<Guid>, IMultiTenant
     public virtual Guid? TenantId { get; protected set; }
 
     /// <summary>
-    /// Renames the directory. Uniqueness among siblings is enforced by <see cref="DirectoryManager"/>.
+    /// Renames the directory. Uniqueness among siblings was enforced by the library's directory manager.
     /// </summary>
     public virtual void Rename(string name)
     {
@@ -47,7 +48,7 @@ public class DirectoryDescriptor : AuditedAggregateRoot<Guid>, IMultiTenant
 
     /// <summary>
     /// Re-parents the directory and sets its position. Cycle and container checks live in
-    /// <see cref="DirectoryManager.MoveAsync"/>; never call this to bypass them.
+    /// the library's directory manager; never call this to bypass them.
     /// </summary>
     public virtual void MoveTo(Guid? parentId, int order)
     {
