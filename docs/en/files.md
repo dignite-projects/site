@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Site's files are kept in Dignite Blob Management: the containers Site's fields use, how a host installs them, who may upload and delete, how a file is uploaded, Site's relative addresses, resizing and WebP on read, the MCP file tools, and the upgrade from Site's own file library."
+    "Description": "Site's files are kept in Dignite Blob Management: the containers Site's fields use, how a host installs them, who may upload and delete, how a file is uploaded, the addresses browsers read files at, the sizes pictures are resized to, running Blob Management as a service of its own, and the MCP file tools."
 }
 ```
 
@@ -67,7 +67,7 @@ Configure<AbpBlobStoringOptions>(options =>
 });
 ````
 
-Pictures are converted and resized with SkiaSharp, which Blob Management and Site's public read depend on. A host that runs on Linux also references the `SkiaSharp.NativeAssets.Linux` package.
+Pictures are converted and resized with SkiaSharp, which Blob Management depends on. A host that runs Blob Management on Linux also references the `SkiaSharp.NativeAssets.Linux` package. The sizes a picture may be resized to are set on the containers too ([Serving Files](#serving-files)).
 
 Upload tickets are signed with ASP.NET Core Data Protection: a host that runs several instances persists and shares one key ring ([Hosting Modes](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/hosting.md#data-protection)). An admin UI served from another origin than the API posts its files to `/api/blob-management/uploads/`, which the API's CORS policy (`App:CorsOrigins`) has to allow.
 
@@ -110,61 +110,71 @@ Also under `api/site-admin/files`: `GET` lists the files of a container the call
 
 ## Addresses
 
-A file's address on the site is **relative**:
+A file's address is Blob Management's public address, **relative**, as the file's `url` gives it:
 
 ````text
-/api/site-public/files/{containerName}/{blobName}
+/blobs/{containerName}/{blobName}?__tenant={tenantId}
 ````
 
-It names no tenant: the endpoint serves the file of the tenant the request resolves to, by the host name or however the deployment resolves tenants for every other request. No host name is written into a content, so moving the public site, the API or a gateway to another host leaves every stored address valid.
-
-Blob Management returns its own address of a public file (`/blobs/{container}/{blob}`, naming the tenant with `?__tenant=`), and a file field or an SEO image may store it. Site serves the same file at its own address: `SiteFileUrl.Normalize` turns the one into the other, and `SiteFileUrl.Sized` and `SiteFileUrl.Absolutize`, which templates and the head metadata use, apply it first. Only an address whose path starts with `/blobs/` is turned. Each consumer puts a host in front of the relative address:
+A host's file has no `__tenant`. A file field, an SEO image, CKEditor's HTML and a template store the address as it is. No host name is written into a content, so moving the public site, the API or a gateway to another host leaves every stored address valid. Each consumer puts a host in front of it:
 
 | Consumer | Resolves the address against |
 |---|---|
-| A page of the public site (`<img src>`, `SiteFileUrl.Sized(...)` in a template) | The page's own origin |
-| The `og:image` meta tag | The site's primary domain, the `Site.PrimaryDomain` setting |
-| The Angular admin UI | The host of the `SiteAdmin` API, `environment.apis.SiteAdmin.url`, naming the signed-in tenant with `?__tenant=` |
+| A page of the public site (`<img src>`, `file_url` or `SiteFileUrl.Sized(...)` in a template) | The page's own origin |
+| The `og:image` meta tag and JSON-LD | The site's primary domain, the `Site.PrimaryDomain` setting |
+| The Angular admin UI | The host of the `BlobManagement` API, `environment.apis.BlobManagement.url` (`apis.default` when it is not listed) |
 
 An absolute address that a user typed into a field, such as the address of an external image, is left as it is. Deleting a file needs its id, which a file field keeps; a template keeps only the address.
 
+Before 3.0 Site served its files at `/api/site-public/files/{containerName}/{blobName}`, and stored data may still hold such addresses. That endpoint now answers `301` with Blob Management's address of the same file, in the tenant the request resolves to, passing `?Width=` and `?Height=` on; `?Format=` is dropped, and the `download/` address redirects to the file as Blob Management serves it. `SiteFileUrl.Sized` and the admin UI recognize these addresses too, so they keep working without being rewritten.
+
 ## Serving Files
 
-`GET` and `HEAD` on `/api/site-public/files/{containerName}/{blobName}` serve a file anonymously. The endpoint takes the file from Blob Management's public read, so it serves the files marked public; a file that is not, a deleted file and an unknown name are all answered with `404`.
+A browser reads a file straight from Blob Management, anonymously, at its address: Site is not in between. Blob Management serves the files marked public - Site marks every file it keeps public when it confirms it - and answers a file that is not, a deleted file and an unknown name with `404`. What it does on a read is described in Blob Management's documentation ([Hosting Modes](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/hosting.md)); for Site's pictures:
 
-* `?Width=` and `?Height=` resize an image on the way out, up to 4096 pixels a side; with both given, the image is cropped to fill the box. The source can be at most 4096 x 4096. Anything that is not an image is served as stored, and so is a GIF.
-* A request whose `Accept` header lists `image/webp`, as every current browser's does for an image, gets **WebP**: a stored WebP (every JPEG uploaded to `images`) as it is, a PNG as lossless WebP, so a screenshot, a logo or a picture with text keeps every pixel and its transparency, and a JPEG stored by an earlier version as lossy WebP. Served at its stored size, a PNG or JPEG stays as stored when its WebP would be no smaller.
-* A request that does not list `image/webp`, such as a social network fetching an `og:image`, gets a **JPEG** made from a stored WebP (a PNG when the WebP has transparency), and any other picture as stored.
-* A GIF is never converted.
-* `?Format=webp`, `?Format=jpeg` or `?Format=original` (the stored format) fixes the format whatever the request's `Accept`; without it, or with `auto`, the format is chosen as above.
-* A rendered image, resized or converted, is turned upright by the photo's EXIF orientation, which the rendering does not keep.
-* `/api/site-public/files/download/{containerName}/{blobName}?fileName=` serves the file as an attachment with the given file name, always as stored.
-* Responses carry an `ETag`, `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`, and no `Set-Cookie`: a shared cache may refuse a response that sets one, or keep it and give its cookie to every visitor after. A request with a matching `If-None-Match` is answered with `304`. The address of a JPEG, PNG or WebP without `?Format=` also carries `Vary: Accept`.
+* `?width=` and `?height=` resize a JPEG, PNG or WebP on request; with both given, the picture is cropped to fill the box. Only the sizes the container allows are served, any other is answered with `400`. Anything else is served as stored, and so is a GIF.
+* A picture is served in the format it is stored in. The `images` container stores an uploaded JPEG as WebP already; a PNG stays a PNG.
+* Responses carry an `ETag` and `Cache-Control: public` for a day. A CDN in front of `/blobs/` is where resized pictures are cached: Blob Management renders a size on every request that reaches it.
 
-A CDN or proxy that caches these responses must key them on `Accept` as `Vary` says; one that ignores `Vary` would hand the WebP it cached for a browser to a client that cannot read it.
+The host allows on Site's containers the sizes in `SiteImageSizes.All`: Blob Management's default list (64, 128, 256, 384, 512, 768, 1024, 1536, 2048 and 4096) and the `og:image` box, 1200 and 630. In the host that runs Blob Management:
 
-Rendering is done in the server process and bounded there: a rendered image is kept in memory (64 MB, ten minutes), requests for an image that is being rendered wait for that rendering, and at most half the processor count of images render at once. `SiteImageRenderingOptions` changes these numbers and the encoding qualities. A CDN in front keeps the rendering from being repeated beyond that.
+````csharp
+Configure<AbpBlobStoringOptions>(options =>
+{
+    foreach (var containerName in SiteFileContainerNames.All)
+    {
+        options.Containers.Configure(containerName, container =>
+        {
+            container.UseBlobManagementPublicSizes(SiteImageSizes.All.ToArray());
+        });
+    }
+});
+````
 
-In a template, build a resized address with `SiteFileUrl.Sized` from the `Dignite.Site.Public.Templating` namespace; in Angular, use `sizedFileUrl` from `@dignite/ng.site`:
+In a template, build a resized address with `file_url` ([Scriban Templates](rendering/scriban-templates.md)) or `SiteFileUrl.Sized` from the `Dignite.Site.Public.Templating` namespace; in Angular, use `sizedFileUrl` from `@dignite/ng.site`:
 
 ````cshtml
 @using Dignite.Site.Public.Templating
 
 @* imageUrl is a file address read from a content's field *@
-<img src="@SiteFileUrl.Sized(imageUrl, 800)" alt="" />
-<img src="@SiteFileUrl.Sized(imageUrl, 400, 300)" alt="" />
+<img src="@SiteFileUrl.Sized(imageUrl, 768)" alt="" />
+<img src="@SiteFileUrl.Sized(imageUrl, 512, 384)" alt="" />
 ````
 
-`Sized` replaces a size already on the address and keeps its other query parameters. Either size may be `null`: the other alone scales the picture in proportion, and with neither the address is returned as it is.
+`Sized` replaces a size already on the address and keeps its other query parameters, `__tenant` among them. Either size may be `null`: the other alone scales the picture in proportion and is rounded up to the next size the containers allow, and with neither the address is returned as it is. Two sizes are written as given, since rounding them apart would change the box's shape: give a pair the containers allow. The Angular `sizedFileUrl`, meant for the admin UI's thumbnails, rounds both.
 
-### Serving Files from the Public Web Application
+### Reaching Blob Management from Every Site
 
-Since addresses are relative, the public web application must answer `/api/site-public/files/` on its own origin:
+Since addresses are relative, `/blobs/` has to answer on every origin a site is served from:
 
-* A host that runs Site in-process, with `SiteHttpApiModule`, does so already.
-* A public web application that calls Site through `Dignite.Site.Public.HttpApi.Client` should also depend on `SitePublicHttpApiModule`. Its controller then serves the files through the client proxy, with the caching headers above; without it, files are still served, but with no caching headers.
+* A host that installs Blob Management in its own process, with `BlobManagementHttpApiModule`, does so already.
+* When Blob Management runs as a service of its own, the gateway or reverse proxy in front of each site routes `GET` and `HEAD` on `/blobs/` to it, and so does the one in front of the administration API, for the previews in the admin UI. It also routes `/api/blob-management/` to it, for uploads, and `/api/site-public/files/` to the service that runs Site, for the earlier addresses.
 
-A gateway in front of the administration API must also route `GET` and `HEAD` on `/api/site-public/files/` to the service that runs Site, for the previews in the admin UI, and `/api/blob-management/` to the service that runs Blob Management, for uploads.
+## Blob Management as a Service of Its Own
+
+Site's application services call Blob Management through its contracts only, so a host whose Blob Management runs elsewhere swaps the three modules above for `BlobManagementHttpApiClientModule` (`Dignite.Abp.BlobManagement.HttpApi.Client`) and points the `BlobManagement` remote service at it. Site then calls it as an OAuth client with the client credentials flow, so the host also configures that client (ABP's `IdentityClients` section), and Blob Management's administrator grants it `BlobManagement.Container.Files` on the three containers. The sizes above are then declared in the service that runs Blob Management, and the Data Protection key ring that signs upload tickets is that service's alone.
+
+In the Angular admin UI, `environment.apis.BlobManagement.url` names that service (or the gateway that routes to it): the admin UI posts uploads to it and shows files from it.
 
 ## Attaching Files in the Admin UI
 
@@ -179,7 +189,7 @@ The value a field stores is the same either way. A file picked from the window i
 
 ## CKEditor Image Upload
 
-`provideSite()` of `@dignite/ng.site` registers the upload provider of `@dignite/ng.flex-fields-ckeditor`. An image inserted into a CKEditor field is uploaded to the container named by the field's `CKEditor.ImagesContainerName` configuration, normally `images`, and embedded by Site's relative address. The editor shows the image from the `SiteAdmin` API's host and saves the relative address, for HTML and Markdown fields alike.
+`provideSite()` of `@dignite/ng.site` registers the upload provider of `@dignite/ng.flex-fields-ckeditor`. An image inserted into a CKEditor field is uploaded to the container named by the field's `CKEditor.ImagesContainerName` configuration, normally `images`, and embedded by its relative address. The editor shows the image from the `BlobManagement` API's host and saves the relative address, for HTML and Markdown fields alike.
 
 ## MCP
 

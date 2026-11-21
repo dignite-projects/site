@@ -193,7 +193,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
             ContainerName = file.ContainerName,
             BlobName = file.BlobName,
             Name = file.Name,
-            Url = SiteFileUrl.Build(file.ContainerName, file.BlobName)
+            Url = Dignite.Abp.BlobManagement.BlobManagementPublicUrl.Build(file.ContainerName, file.BlobName, file.TenantId)
         };
     }
 }

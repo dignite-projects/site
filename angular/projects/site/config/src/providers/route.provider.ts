@@ -100,8 +100,8 @@ const SITE_PROVIDERS: (EnvironmentProviders | Provider)[] = [
   // normally images) and are embedded by their public address. Without a provider the editor shows
   // no upload button at all.
   { provide: CKEDITOR_UPLOAD_PROVIDER, useExisting: SiteCKEditorUploadProvider },
-  // Those addresses are stored relative (/api/site-public/files/...); the editor shows them from the
-  // SiteAdmin API's host, in its editing view only - getData(), and so what is saved, stays relative.
+  // Those addresses are stored relative (Blob Management's /blobs/...); the editor shows them from the
+  // BlobManagement API's host, in its editing view only - getData(), and so what is saved, stays relative.
   { provide: CKEDITOR_CONFIG_CONTRIBUTORS, multi: true, useFactory: siteCKEditorConfigContributor },
   // The read-only view (ff-ckeditor-view: a content list cell) has no editor to convert in, so its HTML gets
   // the same host in front of those addresses before it is rendered; nothing is saved from there.

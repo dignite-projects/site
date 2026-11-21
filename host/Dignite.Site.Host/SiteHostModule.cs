@@ -307,6 +307,10 @@ public class SiteHostModule : AbpModule
                 options.Containers.Configure(containerName, container =>
                 {
                     container.UseFileSystem(fileSystem => fileSystem.BasePath = basePath);
+
+                    // The sizes Site asks Blob Management's public read for (og:image's box, and a template's
+                    // file_url rounded up to one of them); any other is answered 400.
+                    container.UseBlobManagementPublicSizes(SiteImageSizes.All.ToArray());
                 });
             }
         });

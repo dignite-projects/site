@@ -8,9 +8,10 @@ namespace Dignite.Site.Public.Scriban.Functions;
 
 /// <summary>
 /// <c>file_url url [width] [height]</c>: a site image's address at the size the template lays it out
-/// (<see cref="SiteFileUrl.Sized"/>) - the public read endpoint resizes on request. Both sizes are optional and
-/// <c>null</c> counts as not given (<c>file_url url null 200</c> is a height alone); with neither, the address
-/// comes back as it is, which the endpoint serves at the size stored. Null in, null out.
+/// (<see cref="SiteFileUrl.Sized"/>) - Blob Management resizes on request, to the sizes the host allows, so a width
+/// or a height given alone is rounded up to one of them. Both sizes are optional and <c>null</c> counts as not given
+/// (<c>file_url url null 200</c> is a height alone); with neither, the address comes back as it is, which Blob
+/// Management serves at the size stored. Null in, null out.
 /// </summary>
 public class FileUrlFunction : SiteScriptFunction
 {

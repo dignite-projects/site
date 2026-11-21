@@ -7,7 +7,7 @@ using Dignite.Abp.BlobManagement.Files;
 using Dignite.Abp.BlobManagement.Uploads;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.EntityFrameworkCore;
-using Dignite.Site.Public.Files;
+using Dignite.Abp.BlobManagement.Public;
 using Shouldly;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Entities;
@@ -26,14 +26,14 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     private readonly IFileAdminAppService _files;
     private readonly IBlobManagementUploadAppService _uploads;
     private readonly IBlobManagementFileService _blobManagementFiles;
-    private readonly IFilePublicAppService _publicFiles;
+    private readonly IBlobManagementPublicAppService _publicFiles;
 
     public FileAdminAppService_Tests()
     {
         _files = GetRequiredService<IFileAdminAppService>();
         _uploads = GetRequiredService<IBlobManagementUploadAppService>();
         _blobManagementFiles = GetRequiredService<IBlobManagementFileService>();
-        _publicFiles = GetRequiredService<IFilePublicAppService>();
+        _publicFiles = GetRequiredService<IBlobManagementPublicAppService>();
     }
 
     [Fact]
@@ -77,12 +77,12 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         confirmed.MimeType.ShouldBe("application/pdf");
         confirmed.Size.ShouldBe(bytes.Length);
         confirmed.Url.ShouldNotBeNull();
-        confirmed.Url!.ShouldStartWith("/" + SiteFileUrl.RoutePrefix + "/" + SiteFileContainerNames.Attachments + "/");
+        confirmed.Url!.ShouldStartWith("/blobs/" + SiteFileContainerNames.Attachments + "/");
 
-        var blobName = confirmed.Url[(SiteFileUrl.Build(SiteFileContainerNames.Attachments, string.Empty).Length)..];
-        using var content = await _publicFiles.GetAsync(SiteFileContainerNames.Attachments, blobName, new GetFileInput());
+        var read = await _publicFiles.ReadAsync(
+            SiteFileContainerNames.Attachments, BlobNameOf(confirmed.Url), new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest());
         using var memory = new MemoryStream();
-        await content.GetStream().CopyToAsync(memory);
+        await read.Content!.GetStream().CopyToAsync(memory);
         memory.ToArray().ShouldBe(bytes);
 
         (await AsEditorAsync(() => _files.GetListAsync(new GetSiteFilesInput { ContainerName = SiteFileContainerNames.Attachments })))
@@ -108,9 +108,8 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         await AsEditorAsync(() => _files.DeleteAsync(file.Id));
         await AsEditorAsync(() => _files.DeleteAsync(file.Id));
 
-        var blobName = file.Url![(SiteFileUrl.Build(SiteFileContainerNames.Attachments, string.Empty).Length)..];
-        await Should.ThrowAsync<EntityNotFoundException>(() =>
-            _publicFiles.GetAsync(SiteFileContainerNames.Attachments, blobName, new GetFileInput()));
+        await Should.ThrowAsync<EntityNotFoundException>(() => _publicFiles.ReadAsync(
+            SiteFileContainerNames.Attachments, BlobNameOf(file.Url!), new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest()));
     }
 
     [Fact]
@@ -175,5 +174,12 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     private static string TicketOf(SiteFileUploadTicketDto ticket)
     {
         return ticket.UploadUrl[(ticket.UploadUrl.LastIndexOf('/') + 1)..];
+    }
+
+    /// <summary>The physical BLOB name in Blob Management's public address, <c>/blobs/{container}/{blob}[?...]</c>.</summary>
+    private static string BlobNameOf(string url)
+    {
+        var path = url.Split('?')[0];
+        return path[(path.LastIndexOf('/') + 1)..];
     }
 }

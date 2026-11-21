@@ -65,7 +65,7 @@ A `FileExplorer` field holds one or more files uploaded to one of Site's [file c
     "name": "cover.webp",
     "mimeType": "image/webp",
     "size": 248133,
-    "url": "/api/site-public/files/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.webp"
+    "url": "/blobs/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.webp?__tenant=3fa85f64-5717-4562-b3fc-2c963f66afa6"
   }
 ]
 ````
@@ -90,7 +90,7 @@ The `Seo` field type bundles the SEO metadata of a content into one value. Every
 {
   "metaTitle": "A Week in Hokkaido",
   "metaDescription": "Seven days, three cities and one very cold lake.",
-  "ogImage": "/api/site-public/files/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.jpg",
+  "ogImage": "/blobs/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.webp?__tenant=3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "noIndex": false
 }
 ````

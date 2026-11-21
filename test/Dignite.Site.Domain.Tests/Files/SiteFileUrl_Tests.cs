@@ -1,4 +1,3 @@
-using System;
 using Shouldly;
 using Xunit;
 
@@ -6,44 +5,98 @@ namespace Dignite.Site.Files;
 
 public class SiteFileUrl_Tests
 {
-    /// <summary>
-    /// Relative, like CmsKit's media addresses: no host is written into the data a field stores.
-    /// </summary>
-    [Fact]
-    public void Builds_The_Relative_Public_Read_Address_Without_A_Tenant()
-    {
-        SiteFileUrl.Build(SiteFileContainerNames.Images, "abc")
-            .ShouldBe("/api/site-public/files/images/abc");
-        SiteFileUrl.Build(SiteFileContainerNames.Attachments, "2026/abc")
-            .ShouldBe("/api/site-public/files/attachments/2026/abc");
-    }
+    private const string Managed = "/blobs/images/abc.webp?__tenant=3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
     [Fact]
     public void Sizes_An_Address_That_Has_No_Query()
     {
-        SiteFileUrl.Sized("/api/site-public/files/images/a.jpg", 1200, 630)
-            .ShouldBe("/api/site-public/files/images/a.jpg?Width=1200&Height=630");
+        SiteFileUrl.Sized("/blobs/images/a.webp", 1200, 630).ShouldBe("/blobs/images/a.webp?width=1200&height=630");
+    }
+
+    /// <summary>A tenant's file names its tenant; sizing it must not cut the tenant off.</summary>
+    [Fact]
+    public void Keeps_The_Other_Query_Parameters()
+    {
+        SiteFileUrl.Sized(Managed, 1200, 630).ShouldBe(Managed + "&width=1200&height=630");
+        SiteFileUrl.Sized("https://x/blobs/images/a.webp?__tenant=42&width=80", 1024)
+            .ShouldBe("https://x/blobs/images/a.webp?__tenant=42&width=1024");
     }
 
     [Fact]
-    public void Sizes_A_Relative_Address()
+    public void Replaces_A_Size_Already_On_The_Address()
     {
-        SiteFileUrl.Sized("/api/site-public/files/images/a.jpg?__tenant=", 1200, 630)
-            .ShouldBe("/api/site-public/files/images/a.jpg?__tenant=&Width=1200&Height=630");
+        SiteFileUrl.Sized("/blobs/images/a.webp?Width=80&HEIGHT=60", 1200, 630).ShouldBe("/blobs/images/a.webp?width=1200&height=630");
+        SiteFileUrl.Sized("/blobs/images/a.webp?width=80", null, 300).ShouldBe("/blobs/images/a.webp?height=384");
+    }
+
+    /// <summary>
+    /// Blob Management serves only the sizes its container allows: one side given alone is rounded up to the next of
+    /// <see cref="SiteImageSizes.All"/>, which keeps the picture's proportions; both given are written as asked.
+    /// </summary>
+    [Theory]
+    [InlineData(300, null, "width=384")]
+    [InlineData(384, null, "width=384")]
+    [InlineData(1100, null, "width=1200")]
+    [InlineData(9000, null, "width=4096")]
+    [InlineData(null, 600, "height=630")]
+    [InlineData(400, 300, "width=400&height=300")]
+    public void Rounds_A_Size_Given_Alone_Up_To_An_Allowed_One(int? width, int? height, string query)
+    {
+        SiteFileUrl.Sized("/blobs/images/a.webp", width, height).ShouldBe("/blobs/images/a.webp?" + query);
+    }
+
+    /// <summary>A size not given, or not positive, is left off the address: none at all is the address as it is.</summary>
+    [Fact]
+    public void Leaves_Off_A_Size_That_Is_Not_Given()
+    {
+        SiteFileUrl.Sized(Managed).ShouldBe(Managed);
+        SiteFileUrl.Sized(Managed, 0, null).ShouldBe(Managed);
+        SiteFileUrl.Sized("/blobs/images/a.webp", 0, 630).ShouldBe("/blobs/images/a.webp?height=630");
+    }
+
+    /// <summary>
+    /// The addresses Site served its files at before 3.0, and the ones File Explorer did before that, are still Site
+    /// files: the endpoint redirects them to Blob Management, passing the size on.
+    /// </summary>
+    [Theory]
+    [InlineData("/api/site-public/files/images/a.jpg")]
+    [InlineData("https://x/api/site-public/files/images/a.jpg?__tenant=")]
+    [InlineData("https://x/api/file-explorer/files/images/a.jpg?__tenant=")]
+    public void Still_Sizes_An_Earlier_Address(string earlier)
+    {
+        SiteFileUrl.IsSiteFile(earlier).ShouldBeTrue();
+        SiteFileUrl.Sized(earlier, 1200, 630).ShouldBe(earlier + (earlier.Contains('?') ? "&" : "?") + "width=1200&height=630");
+    }
+
+    [Theory]
+    [InlineData("/blobs/images/abc.webp")]
+    [InlineData("https://blobs.example/blobs/attachments/x.pdf?__tenant=1")]
+    public void Recognizes_Blob_Managements_Address(string url)
+    {
+        SiteFileUrl.IsSiteFile(url).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("https://cdn.example.com/a.png")]
+    [InlineData("https://cdn.example.com/media/blobs/images/a.png")]
+    [InlineData("/blobs/")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Leaves_Other_Addresses_Alone(string? url)
+    {
+        SiteFileUrl.IsSiteFile(url).ShouldBeFalse();
+        SiteFileUrl.Sized(url, 1200).ShouldBe(url);
     }
 
     [Fact]
     public void Absolutize_Puts_A_Relative_Address_On_The_Base_Url()
     {
-        const string relative = "/api/site-public/files/images/a.jpg?__tenant=&Width=1200";
+        const string relative = "/blobs/images/a.webp?__tenant=1&width=1200";
 
-        SiteFileUrl.Absolutize(relative, "https://acme.example")
-            .ShouldBe("https://acme.example/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
-        SiteFileUrl.Absolutize(relative, "https://acme.example/")
-            .ShouldBe("https://acme.example/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
+        SiteFileUrl.Absolutize(relative, "https://acme.example").ShouldBe("https://acme.example" + relative);
+        SiteFileUrl.Absolutize(relative, "https://acme.example/").ShouldBe("https://acme.example" + relative);
         // A site hosted under a path keeps it, as SiteUrlContext.BuildAbsolute does.
-        SiteFileUrl.Absolutize(relative, "https://acme.example/site")
-            .ShouldBe("https://acme.example/site/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
+        SiteFileUrl.Absolutize(relative, "https://acme.example/site").ShouldBe("https://acme.example/site" + relative);
         SiteFileUrl.Absolutize("images/a.jpg", "https://acme.example").ShouldBe("https://acme.example/images/a.jpg");
     }
 
@@ -56,110 +109,5 @@ public class SiteFileUrl_Tests
         SiteFileUrl.Absolutize("data:image/png;base64,AAAA", "https://acme.example").ShouldBe("data:image/png;base64,AAAA");
         SiteFileUrl.Absolutize(null, "https://acme.example").ShouldBeNull();
         SiteFileUrl.Absolutize(" ", "https://acme.example").ShouldBe(" ");
-    }
-
-    [Fact]
-    public void Adds_The_Size_To_A_Site_File_Address()
-    {
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc", 1200)
-            .ShouldBe("https://x/api/site-public/files/abc?Width=1200");
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc", 400, 300)
-            .ShouldBe("https://x/api/site-public/files/abc?Width=400&Height=300");
-    }
-
-    /// <summary>
-    /// A size not given is left off the address, not written as <c>Width=0</c>: one side alone is scaled in
-    /// proportion by the endpoint, and none at all is the address as it is.
-    /// </summary>
-    [Fact]
-    public void Leaves_Off_A_Size_That_Is_Not_Given()
-    {
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc", null, 300)
-            .ShouldBe("https://x/api/site-public/files/abc?Height=300");
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc?__tenant=42", null)
-            .ShouldBe("https://x/api/site-public/files/abc?__tenant=42");
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc")
-            .ShouldBe("https://x/api/site-public/files/abc");
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc?Width=80", null, 300)
-            .ShouldBe("https://x/api/site-public/files/abc?Height=300");
-    }
-
-    [Fact]
-    public void Replaces_A_Size_Already_On_The_Address()
-    {
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc?Width=80", 1200)
-            .ShouldBe("https://x/api/site-public/files/abc?Width=1200");
-        SiteFileUrl.Sized("https://x/api/site-public/files/abc?width=80&HEIGHT=60", 1200, 630)
-            .ShouldBe("https://x/api/site-public/files/abc?Width=1200&Height=630");
-    }
-
-    /// <summary>
-    /// Addresses are issued with <c>?__tenant=</c>; sizing an image must not cut the tenant off the address
-    /// it was given.
-    /// </summary>
-    [Fact]
-    public void Keeps_The_Other_Query_Parameters()
-    {
-        SiteFileUrl.Sized("https://x/api/site-public/files/images/a.jpg?__tenant=42", 1200, 630)
-            .ShouldBe("https://x/api/site-public/files/images/a.jpg?__tenant=42&Width=1200&Height=630");
-        SiteFileUrl.Sized("https://x/api/site-public/files/images/a.jpg?__tenant=&Width=80", 1200)
-            .ShouldBe("https://x/api/site-public/files/images/a.jpg?__tenant=&Width=1200");
-    }
-
-    /// <summary>
-    /// The address the files had before Site took them over is still sized for one version, for values
-    /// stored before the host ran the data migration that rewrites them (see <see cref="SiteFileUrl"/>).
-    /// </summary>
-    [Fact]
-    public void Still_Sizes_A_Pre_Migration_Address()
-    {
-        const string legacy = "https://x/api/file-explorer/files/images/a.jpg?__tenant=";
-
-        SiteFileUrl.IsSiteFile(legacy).ShouldBeTrue();
-        SiteFileUrl.Sized(legacy, 1200, 630).ShouldBe(legacy + "&Width=1200&Height=630");
-    }
-
-    [Fact]
-    public void Leaves_Other_Addresses_Alone()
-    {
-        SiteFileUrl.Sized("https://cdn.example.com/a.png", 1200).ShouldBe("https://cdn.example.com/a.png");
-        SiteFileUrl.Sized(null, 1200).ShouldBeNull();
-        SiteFileUrl.Sized(" ", 1200).ShouldBe(" ");
-        SiteFileUrl.IsSiteFile("https://cdn.example.com/a.png").ShouldBeFalse();
-    }
-
-    /// <summary>
-    /// Blob Management's public address of a file becomes Site's: relative, without its tenant, any other parameter kept.
-    /// </summary>
-    [Theory]
-    [InlineData("/blobs/images/abc.webp", "/api/site-public/files/images/abc.webp")]
-    [InlineData("/blobs/images/abc.webp?__tenant=3fa85f6457174562b3fc2c963f66afa6", "/api/site-public/files/images/abc.webp")]
-    [InlineData("https://blobs.example/blobs/attachments/x.pdf?__tenant=1", "/api/site-public/files/attachments/x.pdf")]
-    [InlineData("/blobs/images/abc.webp?__tenant=1&Width=800", "/api/site-public/files/images/abc.webp?Width=800")]
-    public void Normalizes_A_Blob_Management_Address_To_Sites(string managed, string site)
-    {
-        SiteFileUrl.Normalize(managed).ShouldBe(site);
-    }
-
-    [Theory]
-    [InlineData("/api/site-public/files/images/abc.webp")]
-    [InlineData("https://cdn.example.com/a.png")]
-    [InlineData("https://cdn.example.com/media/blobs/images/a.png")]
-    [InlineData("")]
-    [InlineData(null)]
-    public void Leaves_Every_Other_Address_As_It_Is(string? url)
-    {
-        SiteFileUrl.Normalize(url).ShouldBe(url);
-    }
-
-    [Fact]
-    public void Sizes_And_Absolutizes_A_Blob_Management_Address_As_Sites()
-    {
-        const string managed = "/blobs/images/abc.webp?__tenant=1";
-
-        SiteFileUrl.IsSiteFile(managed).ShouldBeTrue();
-        SiteFileUrl.Sized(managed, 1200, 630).ShouldBe("/api/site-public/files/images/abc.webp?Width=1200&Height=630");
-        SiteFileUrl.Sized(managed).ShouldBe("/api/site-public/files/images/abc.webp");
-        SiteFileUrl.Absolutize(managed, "https://acme.example").ShouldBe("https://acme.example/api/site-public/files/images/abc.webp");
     }
 }

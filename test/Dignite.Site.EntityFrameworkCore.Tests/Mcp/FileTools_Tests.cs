@@ -62,7 +62,7 @@ public class FileTools_Tests : SiteEntityFrameworkCoreTestBase
 
         var kept = await AsEditorAsync(() => _tools.ConfirmFileAsync(link.FileId));
         kept.Url.ShouldNotBeNull();
-        kept.Url!.ShouldStartWith("/" + SiteFileUrl.RoutePrefix + "/" + SiteFileContainerNames.Attachments + "/");
+        kept.Url!.ShouldStartWith("/blobs/" + SiteFileContainerNames.Attachments + "/");
 
         var page = await AsEditorAsync(() => _tools.ListFilesAsync(SiteFileContainerNames.Attachments, filter: "MCP"));
         page.TotalCount.ShouldBe(1);

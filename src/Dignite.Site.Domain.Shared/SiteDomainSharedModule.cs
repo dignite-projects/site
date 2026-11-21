@@ -1,4 +1,5 @@
 ﻿using Volo.Abp.Modularity;
+using Dignite.Abp.BlobManagement;
 using Volo.Abp.Localization;
 using Dignite.Site.Localization;
 using Volo.Abp.Domain;
@@ -11,7 +12,8 @@ namespace Dignite.Site;
 
 [DependsOn(
     typeof(AbpValidationModule),
-    typeof(AbpDddDomainSharedModule)
+    typeof(AbpDddDomainSharedModule),
+    typeof(BlobManagementDomainSharedModule)
 )]
 public class SiteDomainSharedModule : AbpModule
 {

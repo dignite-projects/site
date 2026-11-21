@@ -351,7 +351,7 @@ public class ScribanPageRenderer_Tests
     [Fact]
     public async Task File_Url_Should_Size_A_Site_Image()
     {
-        const string url = "/api/site-public/files/images/a.png?__tenant=";
+        const string url = "/blobs/images/a.png?__tenant=3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
         var html = await new ScribanTestRenderer().RenderAsync(
             $"[{{{{ file_url \"{url}\" 300 }}}}][{{{{ file_url \"{url}\" 300 200 }}}}]", HeadOnlyLayout);
@@ -360,17 +360,17 @@ public class ScribanPageRenderer_Tests
         html.ShouldEndWith(
             $"[{ScribanTestRenderer.Encoder.Encode(Dignite.Site.Files.SiteFileUrl.Sized(url, 300)!)}]" +
             $"[{ScribanTestRenderer.Encoder.Encode(Dignite.Site.Files.SiteFileUrl.Sized(url, 300, 200)!)}]");
-        html.ShouldContain("Width=300&amp;Height=200");
+        html.ShouldContain("width=300&amp;height=200");
     }
 
     /// <summary>
     /// A template that wants the image as stored leaves the width off, or passes <c>null</c> for it: neither is an
-    /// error, and neither writes <c>Width=0</c>.
+    /// error, and neither writes <c>width=0</c>. A height alone is rounded up to a size Blob Management serves.
     /// </summary>
     [Fact]
     public async Task File_Url_Should_Take_A_Size_Only_When_Given()
     {
-        const string url = "/api/site-public/files/images/a.png";
+        const string url = "/blobs/images/a.png";
 
         var html = await new ScribanTestRenderer().RenderAsync(
             $"[{{{{ file_url \"{url}\" }}}}][{{{{ file_url \"{url}\" null }}}}][{{{{ file_url \"{url}\" null 200 }}}}][{{{{ file_url null 300 }}}}]",
@@ -378,8 +378,8 @@ public class ScribanPageRenderer_Tests
 
         html.ShouldEndWith(
             $"[{ScribanTestRenderer.Encoder.Encode(url)}][{ScribanTestRenderer.Encoder.Encode(url)}]" +
-            $"[{ScribanTestRenderer.Encoder.Encode(url + "?Height=200")}][]");
-        html.ShouldNotContain("Width=0");
+            $"[{ScribanTestRenderer.Encoder.Encode(url + "?height=256")}][]");
+        html.ShouldNotContain("width=0");
     }
 
     /// <summary>Under the host's base path, never with the page's language prefix (this page is /ja/about).</summary>

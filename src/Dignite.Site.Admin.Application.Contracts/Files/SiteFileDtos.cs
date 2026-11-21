@@ -78,8 +78,8 @@ public class SiteFileDto
     public long Size { get; set; }
 
     /// <summary>
-    /// Site's address of the file (<c>/api/site-public/files/{container}/{blob}</c>, relative): what a file field or
-    /// an SEO image stores. <c>null</c> while the file is pending.
+    /// The file's public address, Blob Management's (<c>/blobs/{container}/{blob}</c>, relative, with <c>?__tenant=</c>
+    /// for a tenant's file): what a file field or an SEO image stores. <c>null</c> while the file is pending.
     /// </summary>
     public string? Url { get; set; }
 

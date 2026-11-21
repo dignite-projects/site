@@ -12,7 +12,7 @@ describe('SiteFileUploadService', () => {
       apiName: 'SiteAdmin',
       createUploadTicket: vi.fn().mockReturnValue(of(ticket)),
       confirm: vi.fn().mockReturnValue(
-        of({ id: 'f1', containerName: 'images', name: 'photo.webp', mimeType: 'image/webp', size: 12, url: '/api/site-public/files/images/b.webp', isPending: false }),
+        of({ id: 'f1', containerName: 'images', name: 'photo.webp', mimeType: 'image/webp', size: 12, url: '/blobs/images/b.webp', isPending: false }),
       ),
       ...overrides,
     };
@@ -37,7 +37,7 @@ describe('SiteFileUploadService', () => {
     expect(call.method).toBe('POST');
     expect(call.url).toBe('/api/blob-management/uploads/T1');
     expect((call.body as FormData).get('file')).toBeInstanceOf(File);
-    expect(config).toEqual({ apiName: 'SiteAdmin' });
+    expect(config).toEqual({ apiName: 'BlobManagement' });
     expect(files.confirm).toHaveBeenCalledWith('f1');
     expect(stored).toEqual({
       id: 'f1',
@@ -45,7 +45,7 @@ describe('SiteFileUploadService', () => {
       name: 'photo.webp',
       mimeType: 'image/webp',
       size: 12,
-      url: '/api/site-public/files/images/b.webp',
+      url: '/blobs/images/b.webp',
     });
   });
 

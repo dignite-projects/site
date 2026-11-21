@@ -71,13 +71,13 @@ public class ScribanSiteHeadOptions_Tests
     [Fact]
     public async Task A_Template_Image_Should_Replace_The_Default_Share_Image()
     {
-        var viewModel = ViewModel(Metadata("https://acme.example/api/site-public/files/images/default.jpg?Width=1200&Height=630", isDefault: true));
+        var viewModel = ViewModel(Metadata("https://acme.example/api/site-public/files/images/default.jpg?width=1200&height=630", isDefault: true));
 
         var html = await new ScribanTestRenderer().RenderAsync(
             "{{ cover = [{ url: \"/api/site-public/files/images/cover.jpg\" }] }}{{ site_head { image: cover } }}",
             viewModel: viewModel);
 
-        html.ShouldContain("content=\"https://acme.example/api/site-public/files/images/cover.jpg?Width=1200&amp;Height=630\" property=\"og:image\"");
+        html.ShouldContain("content=\"https://acme.example/api/site-public/files/images/cover.jpg?width=1200&amp;height=630\" property=\"og:image\"");
         html.ShouldNotContain("default.jpg");
         html.ShouldContain("<meta content=\"1200\" property=\"og:image:width\">");
         html.ShouldContain("<meta content=\"summary_large_image\" name=\"twitter:card\">");

@@ -33,7 +33,7 @@ public static class SiteFileContainerNames
     public const string Images = "images";
 
     /// <summary>
-    /// Publicly readable files a theme uses and a picture or a document is not: a favicon, a font (<see cref="SiteFileTypes.ThemeAssets"/>).
+    /// Publicly readable files a theme uses and a picture or a document is not: a favicon, a font.
     /// Uploading to it is the theme's permission, <c>SiteAdmin.Themes.Edit</c>, not the content's: it is design, not content.
     /// A theme's own static files are text (<c>css/site.css</c>) and live in the theme; these are the binary ones it links.
     /// </summary>

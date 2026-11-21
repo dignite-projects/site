@@ -210,7 +210,7 @@ public class HeadMetadataBuilder : DomainService
             xDefaultUrl)
         {
             IsDefaultOgImage = isDefaultOgImage,
-            // Only an image of the file library is served at a known size: it is cropped to it (SiteFileUrl.Sized).
+            // Only a Site file is served at a known size: Blob Management crops it to it (SiteFileUrl.Sized).
             OgImageWidth = SiteFileUrl.IsSiteFile(ogImageUrl) ? OpenGraphConsts.ImageWidth : null,
             OgImageHeight = SiteFileUrl.IsSiteFile(ogImageUrl) ? OpenGraphConsts.ImageHeight : null,
             SiteName = string.IsNullOrWhiteSpace(siteName) ? null : siteName.Trim(),
@@ -442,14 +442,14 @@ public class HeadMetadataBuilder : DomainService
     /// unset simply omits <c>og:image</c> rather than inventing a placeholder.
     /// <para>
     /// An image from the site's file library is asked for at <see cref="OpenGraphConsts"/>' size (GitHub
-    /// issue #72) - the field stores the original upload, and the public read endpoint crops it on request
+    /// issue #72) - the field stores the original upload, and Blob Management crops it on request
     /// (<see cref="SiteFileUrl"/>). An external address is
     /// returned as written: nothing here can resize it.
     /// </para>
     /// <para>
     /// <c>og:image</c> has to be absolute, and a file-library address is stored relative, so a relative value
     /// is put on the site's primary domain (<see cref="SiteUrlContext.BaseUrl"/>, the same origin as the
-    /// canonical URL) - the public site serves <c>/api/site-public/files/</c> itself.
+    /// canonical URL), whose gateway routes <c>/blobs/*</c> to Blob Management.
     /// </para>
     /// </summary>
     protected virtual string? ReadOgImage(Content content, Field? seoField, SiteUrlContext context)

@@ -39,12 +39,9 @@ public static class SiteErrorCodes
     /// </summary>
     public const string InvalidValueFormat = "Site:060001";
 
-    // Site:0700xx (the file library's directories) and Site:080001/080003 (files outside Site's containers, upload
-    // links) are retired with the file library: files are Blob Management's, and its errors are its own. Not reused.
-
-    // The legacy file descriptors, read until the next version removes them. The public read endpoint's on-request
-    // resize reuses the codes of Dignite.Abp.BlobStoring.Imaging (Dignite.Abp.BlobStoring.Imaging:*).
-    public const string FileSortingNotSupported = "Site:080002";
+    // Site:0700xx (the file library's directories) and Site:080001/080002/080003 (files outside Site's containers, the
+    // legacy descriptors' sorting, upload links) are retired with the file library: files are Blob Management's, and its
+    // errors are its own. Not reused.
 
     // The tenant's theme (Dignite.Site.Themes): a working copy of files, published as immutable releases.
     public const string SiteThemeFileAlreadyExists = "Site:090001";

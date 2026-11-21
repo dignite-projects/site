@@ -188,7 +188,7 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
             Name = file.Name,
             MimeType = file.MimeType,
             Size = file.Size,
-            Url = SiteFileUrl.Normalize(file.Url),
+            Url = file.Url,
             IsPending = file.IsPending,
             CreatorId = file.CreatorId,
             CreationTime = file.CreationTime

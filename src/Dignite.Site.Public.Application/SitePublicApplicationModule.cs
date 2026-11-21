@@ -1,11 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using Volo.Abp.Imaging;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.Application;
-using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Site.Common;
-using Dignite.Abp.BlobManagement;
 
 namespace Dignite.Site.Public;
 
@@ -14,14 +11,7 @@ namespace Dignite.Site.Public;
     typeof(SitePublicApplicationContractsModule),
     typeof(SiteCommonApplicationModule),
     typeof(AbpDddApplicationModule),
-    typeof(AbpMapperlyModule),
-    // Blob Management's public read, which the public read endpoint takes a file's bytes from (FilePublicAppService).
-    typeof(BlobManagementApplicationContractsModule),
-    // The localization of the Dignite.Abp.BlobStoring.Imaging error codes the public read endpoint reports.
-    typeof(AbpBlobStoringImagingModule),
-    // SkiaSharp, which ImageVariantRenderer draws with directly (its settings are SiteImageRenderingOptions, not
-    // ABP's resizer options).
-    typeof(AbpImagingSkiaSharpModule)
+    typeof(AbpMapperlyModule)
     )]
 public class SitePublicApplicationModule : AbpModule
 {

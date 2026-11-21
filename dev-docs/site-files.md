@@ -8,8 +8,10 @@ page covers what a contributor needs on top of that. The decisions behind it are
 [drive-integration-plan.md](drive-integration-plan.md) (superseded).
 
 Until 3.0 Site kept its own file library (File Explorer before 0.1.0-preview.25, then Site's `Files/`): descriptors,
-directories, an admin API, a picker, nine MCP tools. Since 3.0 the files are Blob Management's, and Site keeps only what
-is Site's: its address, what it does on read, who may upload where, and how its fields use files.
+directories, an admin API, a picker, nine MCP tools, and a read endpoint that resized and converted pictures. Since 3.0
+the files are Blob Management's, a browser reads them from Blob Management, and Site keeps only what has a rule of
+Site's: who may upload where, the file input, the MCP tools, and how its fields and templates use a file's address.
+How Site arrived at reading from Blob Management directly is [site-files-direct-read-plan.md](site-files-direct-read-plan.md).
 
 ## Where things live
 
@@ -17,15 +19,16 @@ is Site's: its address, what it does on read, who may upload where, and how its 
 |---|---|
 | Container names Site's fields use by default | `SiteFileContainerNames` (Domain.Shared). Also the boundary of the admin API and of the MCP tools: only these three are reachable. |
 | The containers' rules | Blob Management's presets, declared by the host (`BlobManagement` section of `appsettings.json`). JPEG to WebP and the upright resize are `Dignite.Abp.BlobStoring.Imaging.SkiaSharp`'s, used by the `Images` preset. |
-| Site's address | `SiteFileUrl` (Domain.Shared): `Build`, `Normalize` (Blob Management's `/blobs/...` to Site's), `Sized`, `Absolutize`, `IsSiteFile`. The Angular mirror is `site-file-url.ts`. |
-| Public read | `FilePublicAppService` (Public.Application) over `IBlobManagementPublicAppService`; `FilePublicController` (Public.HttpApi) unchanged. |
+| A file's address | Blob Management's `/blobs/{container}/{blob}[?__tenant=]`, the file's `url`, stored as it is. `SiteFileUrl` (Domain.Shared, over Blob Management's Domain.Shared): `Sized`, `Absolutize`, `IsSiteFile`; `SiteImageSizes` the sizes the host allows and `Sized` rounds to. The Angular mirror is `site-file-url.ts` and `SiteFileUrlService`. |
+| Public read | Blob Management's, read by the browser. `FilePublicController` (Public.HttpApi) only redirects the addresses Site served before 3.0. |
 | Who may upload where | `SiteFileAuthorization` (Admin.Application): the container to permissions table. |
 | The admin API | `IFileAdminAppService` / `FileAdminAppService` (Admin.Application.Contracts, Admin.Application) over `IBlobManagementFileService` and `IBlobManagementContainerAppService`; `FileAdminController` (Admin.HttpApi); the C# client proxy and its manifest entry in `site-admin-generate-proxy.json`. |
 | Admin UI | `@dignite/ng.site`: `SiteFileInputComponent`, `SiteFileUploadService`, `SiteUploadCleanup`, `SiteCKEditorUploadProvider`, the file field's control and the SEO image inputs; `SiteFilePickerModalComponent` and `SiteDirectoryTreeComponent` for the `Library` input mode, over `SiteBlobContainerService` and `SiteBlobDirectoryService` (Blob Management's container and directory endpoints, written by hand). The proxy `FileAdminService` is written by hand in the style of the generated ones. |
 | Management page | The dev host (`angular/`) installs `@dignite/ng.blob-management` - usage, containers, directories and files, read only - under Administration > Blob Management (`provideBlobManagementConfig()`, the `blob-management` route). The package is not on any registry yet, so `angular/package.json` points at a tarball of abp-modules' build in `../../_local-feed`; point it at the published version before the branch is pushed. Seeing it takes `BlobManagement.Containers`, which the data seed grants the admin role. The tarball is newer than the `10.7.7-preview.1` server package, which lacks six of the page's texts (`Menu:Files`, `Usage:Tenants`, `Usage:Host`, `Usage:Allocation`, `Usage:Refresh`, `Permission:TenantUsages`); the host adds them to Blob Management's resource from `host/Dignite.Site.Host/Localization/BlobManagementPreview/` (en, zh-Hans) - remove them with the server package that carries them. |
 | MCP | `FileTools` (Mcp) over `IFileAdminAppService`; `SiteMcpConsts.FileInstructions` tells a client how Site's fields use them. |
 
-Site's packages reference only `Dignite.Abp.BlobManagement.Application.Contracts` (Admin.Application, Public.Application).
+Site's packages reference Blob Management's contracts only: `Dignite.Abp.BlobManagement.Application.Contracts`
+(Admin.Application) and `Dignite.Abp.BlobManagement.Domain.Shared` (Domain.Shared, for `BlobManagementPublicUrl`).
 Site keeps no file table of its own: the host's migration `Site_RemoveLegacyFileLibrary` dropped `SiteFileDescriptors` and
 `SiteDirectoryDescriptors`, and the migrator that moved their rows into Blob Management
 (`Dignite.Site.BlobManagement.Migration`) went with them; it is in the history before that commit.
@@ -45,40 +48,48 @@ browser posts the file to Blob Management with it, and the business system confi
 - A pending file nobody confirms is deleted by Blob Management after `BlobManagementUploadOptions.PendingLifetime`, a day.
 
 The ticket's address is relative to the host that serves Blob Management. The admin UI posts to it through ABP's
-`RestService` under the `SiteAdmin` API name, which is right while Blob Management is in the same process as the
-administration API (Site's host); a deployment that sets `AbpBlobStoringBlobManagementOptions.PublicBaseUrl` or runs Blob
-Management apart would get an absolute address, and `SiteFileUploadService` would have to post to it directly.
+`RestService` under the `BlobManagement` API name (`BLOB_MANAGEMENT_API_NAME`), which ABP resolves to `apis.default`
+while the environment does not list it - right when Blob Management is in the host of the administration API. The post
+carries no permission check of Site's and needs none: the ticket is the credential, and Site issued it only after
+`SiteFileAuthorization`. The MCP tools put the ticket's address on `SiteMcpOptions.BaseUrl` (or the request's host), so
+the gateway in front of the MCP endpoint routes `/api/blob-management/` too.
 
 Not chosen: relaying the bytes through an endpoint of Site. It needs the body size limits, the form-binding bypass and the
 type checks Site's own file library had to carry, all of which Blob Management does on its own endpoint.
 
 ## The public read
 
-`FilePublicAppService.GetAsync` finds the file as a `SiteStoredFile` - container, the id of the stored bytes (the
-physical BLOB name), name, type and a way to open the bytes - in Blob Management, and a file it does not have is not
-found:
-`IBlobManagementPublicAppService.ReadAsync(container, blob, no size, HeadersOnly)` answers for a public file whose
-physical BLOB name is `blob`. The bytes are read with a second call only when they are needed, so a rendition already in
-`RenderedImageCache` costs one lookup. Blob Management's own sizing is not used: Site renders from the stored bytes, at
-any size, in the format the request takes.
+A browser reads a file at Blob Management's public address, which is what Blob Management's design gives it for
+(`business-system-integration-decision.md`: an address a page embeds and a CDN caches). Site is not in between: an
+anonymous read of a public file has no rule of Site's to apply, and relaying it would need Blob Management's public read
+as a remote service - which it is deliberately not (`BlobManagementPublicController` is left out of the API definition) -
+and would put every visitor behind Site's one client address in Blob Management's rate limit.
 
-What follows - planning the rendition, the decode bounds, `RenderedImageCache`, the ETag and `Vary` in the controller -
-is as it was.
+What that costs, against the read endpoint Site had: no WebP for a browser that takes it beyond what the `Images` preset
+stores (a PNG stays a PNG), no JPEG for a client without WebP, and only the sizes the container allows. The first two are
+asked of Blob Management (U1 in the plan); the sizes are `SiteImageSizes`.
 
-**Blob Management in another service.** The admin side works unchanged: `IBlobManagementFileService` and
-`IBlobManagementContainerAppService` are Contracts interfaces, and `Dignite.Abp.BlobManagement.HttpApi.Client` replaces
-the in-process implementation of the first with `RemoteBlobManagementFileService`; the host swaps the module. The public
-read does not: `IBlobManagementPublicAppService` has no remote implementation, because Blob Management's public read is
-an address (`BlobManagementPublicController` is left out of the API definition, so no client proxy is generated), so
-`FilePublicAppService` cannot resolve it in a host without Blob Management in process. It also needs a missing file to be
-`EntityNotFoundException`, which a remote call does not raise; only the in-process case is handled and tested today.
-Blob Management's public read is rate limited per client address, which behind Site would be Site's.
+**Sizes.** `SiteImageSizes.All` is Blob Management's default list with `og:image`'s 1200 and 630; the dev host sets it on
+Site's containers with `UseBlobManagementPublicSizes`, and a Blob Management that runs apart has to be given the same
+list. `SiteFileUrl.Sized` rounds a size given alone up to it, which keeps the picture's proportions, and writes a pair as
+given - rounding the two apart would change the box. The Angular `sizedFileUrl` rounds both, for the admin UI's square
+thumbnails.
+
+**Blob Management in another service.** `IBlobManagementFileService` and `IBlobManagementContainerAppService` are
+Contracts interfaces, and `Dignite.Abp.BlobManagement.HttpApi.Client` replaces the in-process implementation of the first
+with `RemoteBlobManagementFileService`; the host swaps the module and nothing in Site changes. Not tried end to end yet.
 
 ## The address of a file
 
 Blob Management names the physical BLOB of a file kept by id `{32 hex}{extension of the stored type}`, and its public
-read finds a file by that name, so `api/site-public/files/{container}/{blob}` is `{container}/{blob}` of Blob Management's
-`/blobs/` address, and `SiteFileUrl.Normalize` turns one into the other.
+read finds a file by that name. A file's `url` is `/blobs/{container}/{blob}`, with `?__tenant=` for a tenant's file;
+Site stores it as it is and never rewrites it. An address Site served before 3.0, `api/site-public/files/{container}/{blob}`,
+carries the same `{container}/{blob}`, so `FilePublicController` redirects it to `BlobManagementPublicUrl.Build` of the
+request's tenant, with the size rounded as `Sized` rounds it.
+
+Not chosen: an option for a separate file origin (a CDN host put in front of the address on output). CKEditor's HTML and
+templates hold the relative address too, and Site does not rewrite HTML on render, so `/blobs/` has to answer on the
+site's origin anyway; the option would cover only `og:image`, JSON-LD and `file_url`.
 
 ## The file picker and the directories
 
@@ -104,7 +115,9 @@ language may use it. Leaving without saving deletes nothing yet.
 
 - `FileAdminAppService_Tests` and `FileTools_Tests` run the whole upload - ticket, Blob Management's upload service,
   confirmation - in process, with the principal `AsEditorAsync` sets: the test base has no current user.
-- `FilePublicAppService_Tests` uploads through Blob Management's `FileDescriptorManager` and marks the file public (so the
-  `Images` preset runs).
+- `FileAdminAppService_Tests` also reads a confirmed file through Blob Management's public read in process, and a deleted
+  one as not found.
+- `FilePublicRedirectHttpTests` (Public.HttpApi.Client.Tests) runs the redirect of the earlier addresses over HTTP.
+  `SiteFileUrl_Tests` and the Angular `site-file-url.spec.ts` cover the address rules.
 - The EF Core test module installs Blob Management as the dev Host does; `common.test.props` reads
   `DigniteAbpModulesVersion` from `common.props`.

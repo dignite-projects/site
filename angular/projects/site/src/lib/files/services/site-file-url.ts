@@ -1,83 +1,69 @@
 /**
- * The path every Site file is served under - the server's `SiteFileUrl.RoutePrefix`. Addresses relative to it
- * (`/api/site-public/files/...`) are what fields store - no host is written into content - and what an address Blob
- * Management hands out becomes (`normalizeFileUrl`). The public site resolves it against its own origin; this admin UI,
- * served from another origin, shows it from its `SiteAdmin` API host (`SiteFileUrlService`).
- */
-export const SITE_FILE_PATH = '/api/site-public/files/';
-
-/**
- * The path of Blob Management's public read endpoint (`/blobs/{container}/{blob}`), where a file marked public is served
- * with `?__tenant=` naming its tenant. Site serves the same file at its own address (`normalizeFileUrl`).
+ * The path of Blob Management's public read (`/blobs/{container}/{blob}`). A file's `url` is this address, relative, with
+ * `?__tenant=` naming a tenant's file, and fields, settings and CKEditor's HTML store it as it is. The public site
+ * resolves it against its own origin, whose gateway routes `/blobs/*` to Blob Management; this admin UI, served from an
+ * origin of its own, shows it from the `BlobManagement` API's host (`SiteFileUrlService`). Mirrors the server's
+ * `SiteFileUrl`.
  */
 export const BLOB_MANAGEMENT_PUBLIC_FILE_PATH = '/blobs/';
 
 /**
- * What follows `/blobs/` in an address of Blob Management's public read, relative or on any host, or `null` for any other
- * address. The prefix is recognized at the start of the address's path only: `/blobs/` inside another path is no file of
- * Blob Management's.
+ * Where Site served its files before 3.0 (`/api/site-public/files/...`, the server's `SiteFileUrl.RoutePrefix`). Stored
+ * data still holds such addresses; that endpoint now redirects to Blob Management's address of the same file, so they
+ * keep working, shown from the `SiteAdmin` API's host.
  */
-function blobManagementRest(value: string): string | null {
+export const SITE_FILE_PATH = '/api/site-public/files/';
+
+/**
+ * The widths and heights Site asks Blob Management to resize its pictures to, which the host allows on Site's
+ * containers: Blob Management's default list and the `og:image` box. Mirrors the server's `SiteImageSizes.All`.
+ */
+export const SITE_IMAGE_SIZES: readonly number[] = [64, 128, 256, 384, 512, 630, 768, 1024, 1200, 1536, 2048, 4096];
+
+/** The smallest of `SITE_IMAGE_SIZES` at least `size`; the largest for a size beyond it. */
+export function roundUpImageSize(size: number): number {
+  return SITE_IMAGE_SIZES.find(allowed => allowed >= size) ?? SITE_IMAGE_SIZES[SITE_IMAGE_SIZES.length - 1];
+}
+
+/**
+ * Whether `value` - relative, or absolute on any host - is Blob Management's public address of a file. The prefix is
+ * recognized at the start of the address's path only: `/blobs/` inside another path is no file of Blob Management's.
+ */
+function isBlobManagementAddress(value: string): boolean {
   let pathStart = 0;
   if (!value.startsWith('/')) {
     const schemeEnd = value.indexOf('://');
     if (schemeEnd <= 0) {
-      return null;
+      return false;
     }
 
     pathStart = value.indexOf('/', schemeEnd + 3);
     if (pathStart < 0) {
-      return null;
+      return false;
     }
   }
 
-  if (!value.substring(pathStart).toLowerCase().startsWith(BLOB_MANAGEMENT_PUBLIC_FILE_PATH)) {
-    return null;
-  }
-
-  const rest = value.substring(pathStart + BLOB_MANAGEMENT_PUBLIC_FILE_PATH.length);
-  return rest.length ? rest : null;
+  const path = value.substring(pathStart);
+  return path.toLowerCase().startsWith(BLOB_MANAGEMENT_PUBLIC_FILE_PATH) && path.length > BLOB_MANAGEMENT_PUBLIC_FILE_PATH.length;
 }
 
 /**
- * The Site address of a file Blob Management addresses as `url`: `/blobs/{container}/{blob}`, relative or on any host,
- * becomes `/api/site-public/files/{container}/{blob}`, relative, without Blob Management's `__tenant` and with every
- * other query parameter kept. Any other address comes back unchanged. Mirrors the server's `SiteFileUrl.Normalize`.
+ * Whether `url` addresses one of Site's files (and so can be resized): Blob Management's public address, or an address
+ * Site served before 3.0 - as opposed to an external image or a local `blob:` URL.
  */
-export function normalizeFileUrl(url: string | null | undefined): string {
-  const value = url ?? '';
-  const rest = blobManagementRest(value);
-  if (rest === null) {
-    return value;
-  }
-
-  const queryStart = rest.indexOf('?');
-  const path = queryStart < 0 ? rest : rest.substring(0, queryStart);
-  const kept =
-    queryStart < 0
-      ? []
-      : rest
-          .substring(queryStart + 1)
-          .split('&')
-          .filter(parameter => parameter && parameter.split('=')[0].toLowerCase() !== '__tenant');
-
-  const address = SITE_FILE_PATH + path;
-  return kept.length ? `${address}?${kept.join('&')}` : address;
-}
-
-/** Whether `url` addresses a file Site serves (and so can be resized), as opposed to an external image. */
 export function isSiteFileUrl(url: string | null | undefined): boolean {
-  return !!url && normalizeFileUrl(url).toLowerCase().includes(SITE_FILE_PATH);
+  return !!url && (isBlobManagementAddress(url) || url.toLowerCase().includes(SITE_FILE_PATH));
 }
 
 /**
- * `url` asked for at `width` x `height` (`?Width=&Height=`, the server crops to fill when both are given),
- * keeping every other query parameter (`__tenant`, on an address an earlier version issued). Anything that is not a Site file address
- * (a local `blob:` URL, an external image) comes back unchanged, as does a call without a size. Mirrors the
- * server's `SiteFileUrl.Sized`.
+ * `url` asked for at `width` x `height` (`?width=&height=`; Blob Management crops to fill when both are given), keeping
+ * every other query parameter (`__tenant`). Blob Management serves only `SITE_IMAGE_SIZES`, so each side given is
+ * rounded up to one of them. The server rounds a side given alone the same way and writes two as asked, so as not to
+ * change the box's shape; this admin UI shows a thumbnail in a box of its own, so it rounds both. Anything that is not a
+ * Site file address comes back unchanged, as does a call without a size.
  */
 export function sizedFileUrl(url: string | null | undefined, width?: number, height?: number): string {
-  const value = normalizeFileUrl(url);
+  const value = url ?? '';
   if (!isSiteFileUrl(value) || (!width && !height)) {
     return value;
   }
@@ -95,40 +81,62 @@ export function sizedFileUrl(url: string | null | undefined, width?: number, hei
             return parameter && name !== 'width' && name !== 'height';
           });
 
-  const size = [width ? `Width=${width}` : '', height ? `Height=${height}` : ''].filter(Boolean);
+  const size = [
+    width ? `width=${roundUpImageSize(width)}` : '',
+    height ? `height=${roundUpImageSize(height)}` : '',
+  ].filter(Boolean);
   return `${base}?${[...kept, ...size].join('&')}`;
 }
 
-/**
- * `url` as this admin UI loads it: a relative Site file address, on `apiBase` and naming the tenant
- * (`?__tenant=`) when `tenantId` is given. A stored address names no tenant, and an `<img>` request carries
- * none of the headers the UI's API calls do, so the host could not tell which tenant's file is meant. An
- * address that already has a `__tenant` (one an earlier version issued) keeps it. Anything else - an absolute
- * address, a local `blob:`/`data:` URL, an external image - comes back unchanged, as does every relative
- * address when `apiBase` and `tenantId` are both empty. Mirrors the server's `SiteFileUrl.Absolutize`.
- */
-export function absoluteFileUrl(url: string | null | undefined, apiBase: string, tenantId?: string | null): string {
-  const value = normalizeFileUrl(url);
-  if (!value.toLowerCase().startsWith(SITE_FILE_PATH)) {
-    return value;
-  }
-
-  return trimBase(apiBase) + withTenant(value, tenantId);
+/** Where this admin UI reaches Site's files: Blob Management's public read, and Site's API for an earlier address. */
+export interface SiteFileBases {
+  /** The `BlobManagement` API's base URL: empty when the UI shares its origin. */
+  blobManagement: string;
+  /** The `SiteAdmin` API's base URL, which also serves the redirect of an earlier address. */
+  site: string;
 }
 
 /**
- * The inverse of `absoluteFileUrl`: an address on `apiBase`, or a relative one, as it is stored - relative,
- * without the `__tenant` that `absoluteFileUrl` added for `tenantId`. Another tenant's `__tenant`, an empty
- * one and every address that is not a Site file come back unchanged.
+ * `url` as this admin UI loads it. Blob Management's relative address goes on `bases.blobManagement`, as it is - it
+ * names its tenant already. An earlier Site address goes on `bases.site` and names the signed-in tenant (`?__tenant=`)
+ * when `tenantId` is given: it names none, and an `<img>` request carries none of the headers the UI's API calls do, so
+ * the redirect could not tell which tenant's file is meant. Anything else - an absolute address, a local `blob:`/`data:`
+ * URL, an external image - comes back unchanged.
  */
-export function relativeFileUrl(url: string | null | undefined, apiBase: string, tenantId?: string | null): string {
+export function absoluteFileUrl(url: string | null | undefined, bases: SiteFileBases, tenantId?: string | null): string {
   const value = url ?? '';
-  const base = trimBase(apiBase);
-  if (base && value.toLowerCase().startsWith(base.toLowerCase() + SITE_FILE_PATH)) {
-    return withoutTenant(value.substring(base.length), tenantId);
+  const lower = value.toLowerCase();
+  if (lower.startsWith(BLOB_MANAGEMENT_PUBLIC_FILE_PATH)) {
+    return trimBase(bases.blobManagement) + value;
   }
 
-  return value.toLowerCase().startsWith(SITE_FILE_PATH) ? withoutTenant(value, tenantId) : value;
+  if (lower.startsWith(SITE_FILE_PATH)) {
+    return trimBase(bases.site) + withTenant(value, tenantId);
+  }
+
+  return value;
+}
+
+/**
+ * The inverse of `absoluteFileUrl`: an address on one of `bases`, or a relative one, as it is stored - relative, and for
+ * an earlier Site address without the `__tenant` that `absoluteFileUrl` added for `tenantId`. Every other address comes
+ * back unchanged.
+ */
+export function relativeFileUrl(url: string | null | undefined, bases: SiteFileBases, tenantId?: string | null): string {
+  const value = url ?? '';
+  const lower = value.toLowerCase();
+
+  const blobManagement = trimBase(bases.blobManagement);
+  if (blobManagement && lower.startsWith(blobManagement.toLowerCase() + BLOB_MANAGEMENT_PUBLIC_FILE_PATH)) {
+    return value.substring(blobManagement.length);
+  }
+
+  const site = trimBase(bases.site);
+  if (site && lower.startsWith(site.toLowerCase() + SITE_FILE_PATH)) {
+    return withoutTenant(value.substring(site.length), tenantId);
+  }
+
+  return lower.startsWith(SITE_FILE_PATH) ? withoutTenant(value, tenantId) : value;
 }
 
 function withTenant(url: string, tenantId: string | null | undefined): string {

@@ -4,6 +4,9 @@ import { map, Observable, switchMap } from 'rxjs';
 import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import { SiteStoredFile, toStoredFile } from './site-stored-file';
 
+/** The ABP API name of Blob Management in the environment's `apis`, as Blob Management's own UI uses it. */
+export const BLOB_MANAGEMENT_API_NAME = 'BlobManagement';
+
 /**
  * Uploads one file to one of Site's containers, in Blob Management's three steps: a one-use ticket from Site's
  * administration API (which applies Site's rules for the container), the file posted to the ticket's address - straight
@@ -28,9 +31,12 @@ export class SiteFileUploadService {
         const form = new FormData();
         form.append('file', file, file.name);
 
-        // The ticket's address is relative to the host that serves Blob Management: the API's, in the Site host.
+        // The ticket's address is relative to the host that serves Blob Management: the `BlobManagement` API's. ABP takes
+        // `apis.default` when the environment does not list it, which is right when Blob Management runs in the host of
+        // the `SiteAdmin` API. No permission is checked on this request: the ticket, which Site issued only after its own
+        // check, is what Blob Management accepts the file on.
         return this.rest
-          .request<FormData, unknown>({ method: 'POST', url: ticket.uploadUrl ?? '', body: form }, { apiName: this.files.apiName })
+          .request<FormData, unknown>({ method: 'POST', url: ticket.uploadUrl ?? '', body: form }, { apiName: BLOB_MANAGEMENT_API_NAME })
           .pipe(map(() => ticket.fileId ?? ''));
       }),
       switchMap(id => this.files.confirm(id)),

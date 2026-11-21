@@ -6,9 +6,9 @@ import { SiteFileUrlService } from '../services/site-file-url.service';
 
 /**
  * A thumbnail (image) or type icon (anything else) for one file. Site's file containers are publicly
- * readable, so an image is shown straight from its public address (`/api/site-public/files/...`), asked
- * for at the thumbnail's size so the browser does not download the full upload. The address is stored
- * relative; it is shown - and linked - from the `SiteAdmin` API's host (`SiteFileUrlService`).
+ * readable, so an image is shown straight from its public address (Blob Management's `/blobs/...`), asked
+ * for at a size near the thumbnail's so the browser does not download the full upload. The address is stored
+ * relative; it is shown - and linked - from the host this UI reaches it at (`SiteFileUrlService`).
  */
 @Component({
   selector: 'site-file-preview',
@@ -21,7 +21,7 @@ export class FilePreviewComponent implements OnChanges {
   private readonly fileUrls = inject(SiteFileUrlService);
 
   @Input() width = '100px';
-  /** The file's address: the public read endpoint's, or a local `blob:`/`data:` URL for a file not uploaded yet. */
+  /** The file's address: Blob Management's public read, or a local `blob:`/`data:` URL for a file not uploaded yet. */
   @Input() src = '';
   @Input() type = '';
   @Input() name = '';
