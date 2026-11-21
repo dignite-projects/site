@@ -1,5 +1,5 @@
 import { CoreModule } from '@abp/ng.core';
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -7,9 +7,9 @@ import {
   UntypedFormGroup,
 } from '@angular/forms';
 import { FieldTypeControlBase } from '@dignite/ng.flex-fields';
-import { DriveFileDto, DriveFileInputComponent } from '@dignite/ng.drive';
+import { SiteFileInputComponent } from '../../files/components/site-file-input.component';
 import { FilePreviewComponent } from '../../files/previews/file-preview.component';
-import { SiteUploadCleanup } from '../../files/services/site-upload-cleanup';
+import { SiteStoredFile } from '../../files/services/site-stored-file';
 import { seoTextColumns } from './seo-text-width';
 import { SeoConfiguration } from './seo-configuration';
 import type { SeoFieldValue } from './seo-field-value';
@@ -28,29 +28,26 @@ import { fileOfUrl, OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } f
  * always produces an object, a required Seo field is satisfied by being rendered at all - adding
  * `Validators.required` to the parts would enforce something the server does not.
  *
- * **The share image is uploaded, not typed** (GitHub issue #72): the Drive's file input, fixed to the
+ * **The share image is uploaded, not typed** (GitHub issue #72): `site-file-input`, fixed to the
  * `images` container, uploads one file and its `url` is what `ogImage` stores - still a plain string, so a
  * value an MCP client wrote (an external address included) shows and can be replaced or removed the same way.
- * A host with Drive Pro shows its library picker in the input's place.
  */
 @Component({
   selector: 'site-seo-control',
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './seo-control.component.html',
-  imports: [CoreModule, ReactiveFormsModule, DriveFileInputComponent, FilePreviewComponent],
+  imports: [CoreModule, ReactiveFormsModule, SiteFileInputComponent, FilePreviewComponent],
 })
 export class SeoControlComponent extends FieldTypeControlBase {
   readonly ogImageContainerName = OG_IMAGE_CONTAINER_NAME;
   readonly ogImageWidth = OG_IMAGE_WIDTH;
   readonly ogImageHeight = OG_IMAGE_HEIGHT;
 
-  private readonly cleanup = inject(SiteUploadCleanup, { optional: true });
-
   /**
    * The share image as the file input's value: the uploaded file, or the stored address wrapped as one. A signal: the
    * input's value must not be a new array on every change detection.
    */
-  readonly ogImageFiles = signal<DriveFileDto[]>([]);
+  readonly ogImageFiles = signal<SiteStoredFile[]>([]);
 
   protected configurationDefaults(): object {
     return new SeoConfiguration();
@@ -84,8 +81,7 @@ export class SeoControlComponent extends FieldTypeControlBase {
     return String(this.seoGroup?.get('ogImage')?.value ?? '');
   }
 
-  onOgImageChange(files: DriveFileDto[]): void {
-    this.cleanup?.changed(this.ogImageFiles(), files);
+  onOgImageChange(files: SiteStoredFile[]): void {
     this.ogImageFiles.set(files);
     this.setOgImage(files[0]?.url ?? '');
   }

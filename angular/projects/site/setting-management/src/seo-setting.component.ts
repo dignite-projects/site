@@ -1,10 +1,11 @@
 import { CoreModule, PermissionDirective } from '@abp/ng.core';
 import { ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { DriveFileDto, DriveFileInputComponent } from '@dignite/ng.drive';
 import {
   Dignite,
   FilePreviewComponent,
+  SiteFileInputComponent,
+  SiteStoredFile,
   OG_IMAGE_CONTAINER_NAME,
   OG_IMAGE_HEIGHT,
   OG_IMAGE_WIDTH,
@@ -15,7 +16,7 @@ import {
 
 /**
  * The site's SEO settings, as a tab of Setting Management's page. For now the default share image: the one a page
- * without a share image of its own is shared with. It is uploaded with the Drive's file input the way a page's own
+ * without a share image of its own is shared with. It is uploaded with `site-file-input` the way a page's own
  * share image is (the `images` container); an address someone stored by other means shows and can be replaced or
  * removed the same way. The server stores what it is given, and empty clears it. Without the update permission the tab
  * only shows. An image uploaded and removed again before saving is deleted once the setting is saved
@@ -25,7 +26,7 @@ import {
   selector: 'site-seo-setting',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './seo-setting.component.html',
-  imports: [CoreModule, ThemeSharedModule, PermissionDirective, DriveFileInputComponent, FilePreviewComponent],
+  imports: [CoreModule, ThemeSharedModule, PermissionDirective, SiteFileInputComponent, FilePreviewComponent],
   providers: [SiteUploadCleanup],
 })
 export class SeoSettingComponent {
@@ -42,7 +43,7 @@ export class SeoSettingComponent {
   readonly image = signal('');
   readonly saved = signal('');
   /** The image as the file input's value: the uploaded file, or the stored address wrapped as one. */
-  readonly imageFiles = signal<DriveFileDto[]>([]);
+  readonly imageFiles = signal<SiteStoredFile[]>([]);
   readonly saving = signal(false);
 
   readonly isDirty = computed(() => this.image() !== this.saved());
@@ -55,8 +56,7 @@ export class SeoSettingComponent {
     this.service.get().subscribe(result => this.show(result.defaultShareImage ?? ''));
   }
 
-  onImageChange(files: DriveFileDto[]) {
-    this.cleanup.changed(this.imageFiles(), files);
+  onImageChange(files: SiteStoredFile[]) {
     this.imageFiles.set(files);
     this.image.set(files[0]?.url ?? '');
   }

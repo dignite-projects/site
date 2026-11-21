@@ -1,9 +1,10 @@
 import * as ContentTypes from './content-types';
 import * as Contents from './contents';
 import * as Fields from './fields';
+import * as Files from './files';
 import * as Languages from './languages';
 import * as Pages from './pages';
 import * as Schema from './schema';
 import * as Seo from './seo';
 import * as Themes from './themes';
-export { ContentTypes, Contents, Fields, Languages, Pages, Schema, Seo, Themes };
+export { ContentTypes, Contents, Fields, Files, Languages, Pages, Schema, Seo, Themes };

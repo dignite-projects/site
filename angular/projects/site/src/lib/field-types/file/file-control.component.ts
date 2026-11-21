@@ -1,33 +1,27 @@
-import { Component, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CoreModule } from '@abp/ng.core';
 import { AbstractControl, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
-import { DriveFileDto, DriveFileInputComponent } from '@dignite/ng.drive';
 import { FieldTypeControlBase } from '@dignite/ng.flex-fields';
-import { pairwise, startWith } from 'rxjs';
-import { SiteUploadCleanup } from '../../files/services/site-upload-cleanup';
+import { SiteFileInputComponent } from '../../files/components/site-file-input.component';
+import { SiteStoredFile } from '../../files/services/site-stored-file';
 import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration } from './file-configuration';
 
 /**
- * Edits a file field's value with the Drive's file input (`drive-file-input`): uploads files to the field's container
- * and holds them as a list of file objects. A host with Drive Pro shows its library picker in its place (the input's
- * replaceable component, `Drive.FileInputComponent`) without this changing. Values stored before Site used the Drive -
- * objects with `id`, `name`, `url` - show and can be removed the same way.
+ * Edits a file field's value with `site-file-input`: uploads files to the field's container and holds them as a list of
+ * file objects. Values stored before Site's files moved to Blob Management - objects with `id`, `name`, `url` - show and
+ * can be removed the same way.
  *
- * Changes are reported to the page's `SiteUploadCleanup`, when it provides one, so a file uploaded here and removed
- * again before the page is saved is deleted from the Drive once it is.
+ * The input reports each upload to the page's `SiteUploadCleanup`, when it provides one, so a file uploaded here and
+ * removed again before the page is saved is deleted once it is.
  */
 @Component({
   selector: 'site-file-control',
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './file-control.component.html',
-  imports: [CommonModule, CoreModule, ReactiveFormsModule, DriveFileInputComponent],
+  imports: [CommonModule, CoreModule, ReactiveFormsModule, SiteFileInputComponent],
 })
 export class FileControlComponent extends FieldTypeControlBase {
-  private readonly cleanup = inject(SiteUploadCleanup, { optional: true });
-  private readonly destroyRef = inject(DestroyRef);
-
   get multiple(): boolean {
     return !!this.fieldValue?.field.configuration[FILE_FIELD_CONFIGURATION_NAMES.uploadFileMultiple];
   }
@@ -41,9 +35,9 @@ export class FileControlComponent extends FieldTypeControlBase {
     return this.containerName.length > 0;
   }
 
-  /** The bound control, typed for `drive-file-input`. */
-  get filesControl(): FormControl<DriveFileDto[]> {
-    return this.fieldControl as FormControl<DriveFileDto[]>;
+  /** The bound control, typed for `site-file-input`. */
+  get filesControl(): FormControl<SiteStoredFile[]> {
+    return this.fieldControl as FormControl<SiteStoredFile[]>;
   }
 
   protected configurationDefaults(): object {
@@ -57,16 +51,7 @@ export class FileControlComponent extends FieldTypeControlBase {
       validators.push(Validators.required);
     }
 
-    const stored = (Array.isArray(this.selectedValue) ? this.selectedValue : []) as DriveFileDto[];
-    const control = this.fb.control<DriveFileDto[]>(stored, validators);
-
-    if (this.cleanup) {
-      const cleanup = this.cleanup;
-      control.valueChanges
-        .pipe(startWith(stored), pairwise(), takeUntilDestroyed(this.destroyRef))
-        .subscribe(([previous, next]) => cleanup.changed(previous, next));
-    }
-
-    return control;
+    const stored = (Array.isArray(this.selectedValue) ? this.selectedValue : []) as SiteStoredFile[];
+    return this.fb.control<SiteStoredFile[]>(stored, validators);
   }
 }

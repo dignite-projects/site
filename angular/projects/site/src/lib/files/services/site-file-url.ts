@@ -1,32 +1,56 @@
 /**
  * The path every Site file is served under - the server's `SiteFileUrl.RoutePrefix`. Addresses relative to it
- * (`/api/site-public/files/...`) are what fields store - no host is written into content - and what an address the
- * Drive hands out becomes (`normalizeFileUrl`). The public site resolves it
- * against its own origin; this admin UI, served from another origin, shows it from its `SiteAdmin` API
- * host (`SiteFileUrlService`).
+ * (`/api/site-public/files/...`) are what fields store - no host is written into content - and what an address Blob
+ * Management hands out becomes (`normalizeFileUrl`). The public site resolves it against its own origin; this admin UI,
+ * served from another origin, shows it from its `SiteAdmin` API host (`SiteFileUrlService`).
  */
 export const SITE_FILE_PATH = '/api/site-public/files/';
 
 /**
- * The path of the Drive's public read endpoint (`/api/drive/public/{container}/{blob}`). Site's files are the Drive's,
- * and the Drive hands its own address out (`DriveFileDto.url`, with `?__tenant=`); Site serves the same file at its
- * own address (`normalizeFileUrl`).
+ * The path of Blob Management's public read endpoint (`/blobs/{container}/{blob}`), where a file marked public is served
+ * with `?__tenant=` naming its tenant. Site serves the same file at its own address (`normalizeFileUrl`).
  */
-export const DRIVE_PUBLIC_FILE_PATH = '/api/drive/public/';
+export const BLOB_MANAGEMENT_PUBLIC_FILE_PATH = '/blobs/';
 
 /**
- * The Site address of a file the Drive addresses as `url`: `/api/drive/public/{container}/{blob}`, relative or on any
- * host, becomes `/api/site-public/files/{container}/{blob}`, relative, without the Drive's `__tenant` and with every
+ * What follows `/blobs/` in an address of Blob Management's public read, relative or on any host, or `null` for any other
+ * address. The prefix is recognized at the start of the address's path only: `/blobs/` inside another path is no file of
+ * Blob Management's.
+ */
+function blobManagementRest(value: string): string | null {
+  let pathStart = 0;
+  if (!value.startsWith('/')) {
+    const schemeEnd = value.indexOf('://');
+    if (schemeEnd <= 0) {
+      return null;
+    }
+
+    pathStart = value.indexOf('/', schemeEnd + 3);
+    if (pathStart < 0) {
+      return null;
+    }
+  }
+
+  if (!value.substring(pathStart).toLowerCase().startsWith(BLOB_MANAGEMENT_PUBLIC_FILE_PATH)) {
+    return null;
+  }
+
+  const rest = value.substring(pathStart + BLOB_MANAGEMENT_PUBLIC_FILE_PATH.length);
+  return rest.length ? rest : null;
+}
+
+/**
+ * The Site address of a file Blob Management addresses as `url`: `/blobs/{container}/{blob}`, relative or on any host,
+ * becomes `/api/site-public/files/{container}/{blob}`, relative, without Blob Management's `__tenant` and with every
  * other query parameter kept. Any other address comes back unchanged. Mirrors the server's `SiteFileUrl.Normalize`.
  */
 export function normalizeFileUrl(url: string | null | undefined): string {
   const value = url ?? '';
-  const marker = value.toLowerCase().indexOf(DRIVE_PUBLIC_FILE_PATH);
-  if (marker < 0) {
+  const rest = blobManagementRest(value);
+  if (rest === null) {
     return value;
   }
 
-  const rest = value.substring(marker + DRIVE_PUBLIC_FILE_PATH.length);
   const queryStart = rest.indexOf('?');
   const path = queryStart < 0 ? rest : rest.substring(0, queryStart);
   const kept =

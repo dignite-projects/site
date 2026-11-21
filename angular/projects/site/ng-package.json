@@ -12,7 +12,6 @@
     "@codemirror/lang-javascript",
     "@codemirror/state",
     "@codemirror/view",
-    "@dignite/ng.drive",
     "@dignite/ng.flex-fields",
     "@dignite/ng.flex-fields-ckeditor",
     "codemirror",

@@ -55,7 +55,7 @@ type SlugState = 'forbidden' | 'required' | 'optional';
   templateUrl: './content-editor.component.html',
   imports: [CoreModule, ThemeSharedModule, ReactiveFormsModule, RouterLink, FlexFieldControlComponent],
   // The file inputs of the content's fields report their uploads to it; a file uploaded and removed again before the
-  // save is deleted from the Drive once the content is saved.
+  // save is deleted once the content is saved.
   providers: [SiteUploadCleanup],
 })
 export class ContentEditorComponent {

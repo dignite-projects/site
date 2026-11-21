@@ -1,12 +1,12 @@
 import { absoluteFileUrl, isSiteFileUrl, normalizeFileUrl, relativeFileUrl, sizedFileUrl } from './site-file-url';
 
 describe('normalizeFileUrl', () => {
-  it("turns the Drive's address of a file into Site's, without the Drive's tenant", () => {
-    expect(normalizeFileUrl('/api/drive/public/images/abc.webp?__tenant=t1')).toBe('/api/site-public/files/images/abc.webp');
-    expect(normalizeFileUrl('https://drive.example/api/drive/public/attachments/a.pdf')).toBe(
+  it("turns Blob Management's address of a file into Site's, without its tenant", () => {
+    expect(normalizeFileUrl('/blobs/images/abc.webp?__tenant=t1')).toBe('/api/site-public/files/images/abc.webp');
+    expect(normalizeFileUrl('https://blobs.example/blobs/attachments/a.pdf')).toBe(
       '/api/site-public/files/attachments/a.pdf',
     );
-    expect(normalizeFileUrl('/api/drive/public/images/abc.webp?__tenant=t1&Width=800')).toBe(
+    expect(normalizeFileUrl('/blobs/images/abc.webp?__tenant=t1&Width=800')).toBe(
       '/api/site-public/files/images/abc.webp?Width=800',
     );
   });
@@ -18,9 +18,9 @@ describe('normalizeFileUrl', () => {
   });
 
   it("is applied before sizing and before putting an address on the API host", () => {
-    expect(isSiteFileUrl('/api/drive/public/images/abc.webp')).toBe(true);
-    expect(sizedFileUrl('/api/drive/public/images/abc.webp?__tenant=t1', 120)).toBe('/api/site-public/files/images/abc.webp?Width=120');
-    expect(absoluteFileUrl('/api/drive/public/images/abc.webp?__tenant=t1', 'https://api.example', 't1')).toBe(
+    expect(isSiteFileUrl('/blobs/images/abc.webp')).toBe(true);
+    expect(sizedFileUrl('/blobs/images/abc.webp?__tenant=t1', 120)).toBe('/api/site-public/files/images/abc.webp?Width=120');
+    expect(absoluteFileUrl('/blobs/images/abc.webp?__tenant=t1', 'https://api.example', 't1')).toBe(
       'https://api.example/api/site-public/files/images/abc.webp?__tenant=t1',
     );
   });

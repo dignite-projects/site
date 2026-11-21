@@ -31,14 +31,14 @@ paint, whether or not the host's content types use a rich-text field and whether
 `/site`. Registering Site adds roughly 950 KB (about 170 KB gzipped) to a production build of an ABP
 admin app, so a host that enforces a bundle budget in `angular.json` may need to raise it.
 
-Site's files are kept in Dignite Drive. The file field type (registration key `FileExplorer`) and the SEO
-share images use the Drive's file input, `drive-file-input` from `@dignite/ng.drive`, which this package
-declares as its own `dependency`; its proxies call the API named `Drive`, which falls back to
-`environment.apis.default` when the Drive is installed in the host of the `SiteAdmin` API. A host with
-Drive Pro replaces the input with its library picker (`Drive.FileInputComponent`). `provideSite()` also
-registers `SiteCKEditorUploadProvider` as the `CKEDITOR_UPLOAD_PROVIDER` (which needs
-`@dignite/ng.flex-fields-ckeditor >= 10.0.0-rc.25`), so an image inserted into a CKEditor field is uploaded
-to the Drive. See [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).
+Site's files are kept in Dignite Blob Management. The file field type (registration key `FileExplorer`) and the SEO
+share images use this package's own file input, `site-file-input`, which uploads through Site's administration API
+(`api/site-admin/files`) and, with the ticket it gets, straight to Blob Management at
+`api/blob-management/uploads/{ticket}` on the same host - the host of the `SiteAdmin` API, which installs Blob
+Management, so no API entry of its own is needed. `provideSite()` also registers `SiteCKEditorUploadProvider` as the
+`CKEDITOR_UPLOAD_PROVIDER` (which needs `@dignite/ng.flex-fields-ckeditor >= 10.0.0-rc.25`), so an image inserted into a
+CKEditor field is uploaded to Site's `images` container. See
+[Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).
 
 That `>= 10.0.0-rc.13` floor is load-bearing, not cosmetic. Below `rc.12` those packages were
 the adapters' `peerDependencies`, and every ABP 10.7 + Angular 22 host installs with
