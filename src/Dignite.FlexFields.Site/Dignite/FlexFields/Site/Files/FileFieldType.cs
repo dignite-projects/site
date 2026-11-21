@@ -9,14 +9,14 @@ using Dignite.FlexFields.Site.Localization;
 namespace Dignite.FlexFields.Site.Files;
 
 /// <summary>
-/// The file field type: one or more files picked from Site's file library by the admin UI's file picker
-/// (<c>@dignite/ng.site</c>'s file field). It came from <c>Dignite.Abp.FlexFields</c> together with the file
-/// library itself, and keeps that module's registration key, <see cref="ControlName"/> - a persisted value
-/// in every field definition, Matrix block configurations included.
+/// The file field type: one or more of Site's files, which Blob Management keeps, attached by the admin UI's
+/// file input (<c>@dignite/ng.site</c>'s file field). It came from <c>Dignite.Abp.FlexFields</c> together with
+/// the file library Site had before, and keeps that module's registration key, <see cref="ControlName"/> - a
+/// persisted value in every field definition, Matrix block configurations included.
 ///
 /// <para>
-/// <b>Not indexable on purpose.</b> The stored value is what the picker hands back - an array of file
-/// descriptor objects (id, container, blob name, name, MIME type, size, url) - not a scalar or a list of
+/// <b>Not indexable on purpose.</b> The stored value is what the file input hands back - an array of file
+/// objects (id, container, name, MIME type, size, url) - not a scalar or a list of
 /// scalars, so there is nothing sensible to put in a typed index column; the same reason RichText or Matrix
 /// return <c>null</c> here.
 /// </para>
@@ -24,8 +24,8 @@ namespace Dignite.FlexFields.Site.Files;
 /// <para>
 /// <b>No reference to Site's domain.</b> This project references only <c>Dignite.Abp.FlexFields.Abstractions</c>,
 /// like the Content and Seo field types, so it validates only what it can see - presence, per
-/// <c>Required</c>. Whether a picked file exists is the picker's job at pick time and the public read
-/// endpoint's at fetch time.
+/// <c>Required</c>. Whether a picked file exists is the file input's job at pick time and Blob Management's
+/// public read's at fetch time.
 /// </para>
 /// </summary>
 public class FileFieldType : FieldTypeBase, IHasValueShape

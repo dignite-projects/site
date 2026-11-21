@@ -42,7 +42,8 @@ public class FileTools : ITransientDependency
     [Description(
         "Lists the site's file containers you may upload to, with the largest file each takes and its allowed file " +
         "extensions. A container that processes pictures says so: imageMaxWidth and imageMaxHeight are the size a picture " +
-        "is shrunk to fit (a smaller one is not enlarged), and a JPEG is stored as WebP, so the size, the name and the " +
+        "is shrunk to fit (a smaller one is not enlarged), and a JPEG - or a PNG that is not small - is stored as WebP, " +
+        "so the size, the name and the " +
         "mimeType of the stored file differ from the file you sent; use the url, name and mimeType a file tool returns. " +
         "Call this before any other file tool: they take a containerName from this list.")]
     [Authorize]
