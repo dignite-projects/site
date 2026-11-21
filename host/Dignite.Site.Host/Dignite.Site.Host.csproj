@@ -25,8 +25,6 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Public.Web\Dignite.Site.Public.Web.csproj" />
     <!-- The MCP endpoint (GitHub issue #26). -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
-    <!-- The migration of the file library Site kept before 3.0 into Blob Management, run by data seeding. Remove it once
-         the files are migrated. -->
     <!-- Blob Management, in this process: where Site's files are kept (images, attachments, theme-assets), and the
          public read, upload and read-link endpoints a browser uses. -->
     <PackageReference Include="Dignite.Abp.BlobManagement.Application" Version="$(DigniteAbpModulesVersion)" />
@@ -118,10 +116,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Linux natives for the SkiaSharp imaging provider Site's upload resize and public ?Width=&Height=
-         resize run on (Volo.Abp.Imaging.SkiaSharp, via Admin/Public.Application). That package brings the
-         Windows and macOS natives only; without this, on Linux, loading libSkiaSharp fails the first time
-         an image is processed. Same version as abp-modules pins (ABP 10.7.0's SkiaSharp 3.119.0). -->
+    <!-- Linux natives for SkiaSharp, which Blob Management - installed in this host - converts, turns upright and
+         resizes pictures with, on upload and on a public read's ?width=&height=. SkiaSharp brings the Windows and
+         macOS natives only; without this, on Linux, loading libSkiaSharp fails the first time an image is processed.
+         Same version as abp-modules pins (ABP 10.7.0's SkiaSharp 3.119.0). -->
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />
   </ItemGroup>
   

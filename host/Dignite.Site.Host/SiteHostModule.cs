@@ -164,10 +164,11 @@ namespace Dignite.Site.Host;
 
     // Blob Management, in this process: Site's files are kept in it. Its containers - images, attachments and
     // theme-assets, the ones Site's fields name - are declared, with their storage provider, in ConfigureBlobStoring.
-    // BlobManagementHttpApiModule serves what a browser reaches
-    // without Site in between - the upload with a ticket Site's admin UI posts to and the public read Site's file
-    // endpoint reads through. It is a trusted, in-process caller of the file service, so no OAuth client is granted
-    // anything. It has no MCP tools: Site's own file tools call the same service.
+    // BlobManagementHttpApiModule serves what a browser reaches without Site in between - the upload with a ticket
+    // Site's admin UI posts to, and the public read at /blobs that the site's pages, og:image and the admin UI's
+    // previews load files from - and the container and directory APIs Site's file picker calls with the user's token.
+    // Site is a trusted, in-process caller of the file service, so no OAuth client is granted anything. It has no MCP
+    // tools: Site's own file tools call the same service.
     typeof(BlobManagementApplicationModule),
     typeof(BlobManagementHttpApiModule),
     typeof(BlobManagementEntityFrameworkCoreModule)
@@ -288,8 +289,8 @@ public class SiteHostModule : AbpModule
     /// <summary>
     /// The storage provider for each <see cref="SiteFileContainerNames"/> container (GitHub issue #41):
     /// filesystem for dev. Each container is a Blob Management container with its preset (size, types, image handling);
-    /// Blob Management declares managed containers in code only. The same base path as before the files moved to Blob Management, so the bytes Site's own
-    /// file library stored are where it looks for them. Production provider (Azure/S3/other) is still an open decision
+    /// Blob Management declares managed containers in code only. The base path is the one Site stored its files under
+    /// before they moved to Blob Management, so the bytes stored then stay where it looks for them. Production provider (Azure/S3/other) is still an open decision
     /// (#41) - swapping it later only touches this method, since Blob Management addresses blobs through IBlobContainer
     /// by container name, never by provider.
     /// </summary>
@@ -614,6 +615,9 @@ public class SiteHostModule : AbpModule
         app.UseCorrelationId();
         app.MapAbpStaticAssets();
         app.UseRouting();
+        // Blob Management's anonymous addresses - the public read and its resizing, the upload with a ticket - name
+        // ASP.NET Core rate limiting policies, which only act where the limiter runs after routing.
+        app.UseRateLimiter();
         app.UseCors(DefaultCorsPolicyName);
         app.UseAbpStudioLink();
         app.UseAbpSecurityHeaders();
