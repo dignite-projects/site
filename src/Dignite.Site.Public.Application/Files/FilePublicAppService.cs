@@ -7,7 +7,6 @@ using Dignite.Abp.BlobStoring.Imaging;
 using Dignite.Abp.BlobManagement.Public;
 using Dignite.Site.Files;
 using Volo.Abp;
-using Volo.Abp.BlobStoring;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Threading;
@@ -22,8 +21,7 @@ namespace Dignite.Site.Public.Files;
 /// container, found by its physical BLOB name (<see cref="IBlobManagementPublicAppService"/>), which Blob Management gives the
 /// same form Site's own names had. Blob Management keeps the bytes, and the file's own public mark decides what is read; this endpoint keeps Site's
 /// address, which names no tenant, and what Site does on read - the format a browser takes, any size, a cache of what it
-/// rendered. A file Blob Management does not have is looked up among the descriptors of the file library Site kept before
-/// (<see cref="FindLegacyAsync"/>), until they are migrated; the next major version drops that fallback.
+/// rendered. Site keeps no file library of its own: a file Blob Management does not have is not found.
 /// </para>
 /// <para>
 /// <b>What is rendered</b> is decided here, from the request and the file's recorded type, as an
@@ -33,8 +31,7 @@ namespace Dignite.Site.Public.Files;
 /// <para>
 /// Anonymous on purpose, and not feature-gated (see <c>SiteFeatures.Enable</c>): it serves a published
 /// site's images to its visitors. What keeps it from serving anything else: Blob Management answers only for
-/// files marked public, the legacy fallback only for <see cref="SiteFileContainerNames.All"/>, and the
-/// containers' upload rules keep script-capable types (SVG, HTML, JS) out of them.
+/// files marked public, and the containers' upload rules keep script-capable types (SVG, HTML, JS) out of them.
 /// </para>
 /// </summary>
 public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
@@ -42,10 +39,6 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     protected const int MaxDecompressionRatio = 100;
 
     protected IBlobManagementPublicAppService BlobManagementPublicAppService { get; }
-
-    protected IFileDescriptorRepository FileDescriptorRepository { get; }
-
-    protected IBlobContainerFactory BlobContainerFactory { get; }
 
     protected ImageVariantRenderer ImageVariantRenderer { get; }
 
@@ -56,14 +49,10 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 
     public FilePublicAppService(
         IBlobManagementPublicAppService blobManagementPublicAppService,
-        IFileDescriptorRepository fileDescriptorRepository,
-        IBlobContainerFactory blobContainerFactory,
         ImageVariantRenderer imageVariantRenderer,
         RenderedImageCache renderedImageCache)
     {
         BlobManagementPublicAppService = blobManagementPublicAppService;
-        FileDescriptorRepository = fileDescriptorRepository;
-        BlobContainerFactory = blobContainerFactory;
         ImageVariantRenderer = imageVariantRenderer;
         RenderedImageCache = renderedImageCache;
     }
@@ -112,7 +101,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     }
 
     /// <summary>
-    /// The file at <c>{containerName}/{blobName}</c>: Blob Management's, else a legacy descriptor's, else <c>null</c>.
+    /// The file at <c>{containerName}/{blobName}</c>: Blob Management's, else <c>null</c>.
     /// </summary>
     protected virtual async Task<SiteStoredFile?> FindAsync(string containerName, string blobName, CancellationToken cancellationToken)
     {
@@ -121,7 +110,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             return null;
         }
 
-        return await FindInBlobManagementAsync(containerName, blobName) ?? await FindLegacyAsync(containerName, blobName, cancellationToken);
+        return await FindInBlobManagementAsync(containerName, blobName);
     }
 
     /// <summary>
@@ -153,32 +142,6 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
                     containerName, blobName, new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest());
                 return read.Content?.GetStream();
             });
-    }
-
-    /// <summary>
-    /// The live descriptor addressed by <paramref name="blobName"/> in one of Site's containers, from the file library
-    /// Site kept before its files moved to Blob Management, or <c>null</c> - for a container that is not Site's as much as for a
-    /// name that does not exist. Its bytes are its own blob, or the one it refers to.
-    /// </summary>
-    protected virtual async Task<SiteStoredFile?> FindLegacyAsync(string containerName, string blobName, CancellationToken cancellationToken)
-    {
-        if (!SiteFileContainerNames.Contains(containerName))
-        {
-            return null;
-        }
-
-        var file = await FileDescriptorRepository.FindByBlobNameAsync(containerName, blobName, cancellationToken);
-        if (file == null)
-        {
-            return null;
-        }
-
-        return new SiteStoredFile(
-            file.ContainerName,
-            file.GetActualBlobName(),
-            file.Name,
-            file.MimeType,
-            token => BlobContainerFactory.Create(file.ContainerName).GetOrNullAsync(file.GetActualBlobName(), token));
     }
 
     /// <summary>

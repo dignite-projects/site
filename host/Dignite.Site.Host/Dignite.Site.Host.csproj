@@ -27,7 +27,6 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
     <!-- The migration of the file library Site kept before 3.0 into Blob Management, run by data seeding. Remove it once
          the files are migrated. -->
-    <ProjectReference Include="..\..\src\Dignite.Site.BlobManagement.Migration\Dignite.Site.BlobManagement.Migration.csproj" />
     <!-- Blob Management, in this process: where Site's files are kept (images, attachments, theme-assets), and the
          public read, upload and read-link endpoints a browser uses. -->
     <PackageReference Include="Dignite.Abp.BlobManagement.Application" Version="$(DigniteAbpModulesVersion)" />

@@ -1,6 +1,5 @@
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
-using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
 using Dignite.Site.Themes;
@@ -23,10 +22,6 @@ public class SiteDbContext : AbpDbContext<SiteDbContext>, ISiteDbContext
     public DbSet<Content> Contents { get; set; } = default!;
 
     public DbSet<ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; } = default!;
-
-    public DbSet<DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
-
-    public DbSet<FileDescriptor> FileDescriptors { get; set; } = default!;
 
     public DbSet<SiteTheme> SiteThemes { get; set; } = default!;
 

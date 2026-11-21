@@ -185,16 +185,6 @@ The value a field stores is the same either way. A file picked from the window i
 
 Site's [MCP tools](mcp/tools.md#files) let an AI client keep files: `site_list_file_containers`, `site_create_upload_url`, `site_confirm_file`, `site_list_files`, `site_get_file` and `site_delete_file`. The bytes of an upload go from the machine the file is on to Blob Management with the command the link comes with, and never through the client. Site's instructions tell the client which containers its fields use and what to store: a file field takes the file objects the tools return, an SEO image and a template the file's `url`. The tools are authorized by the same rules as the administration API ([Permissions](#permissions)); `SiteMcpOptions.BaseUrl` sets the address a link starts with when a gateway in front does not forward the original host.
 
-## Upgrading from Site's File Library
-
-Before 3.0, Site kept its own file library (`SiteFileDescriptors`, `SiteDirectoryDescriptors`), with these containers and addresses. Site 3.0 serves its files from Blob Management, and still serves a file Blob Management does not have yet from the old library, so nothing breaks while it is migrated. To migrate, in a host that installs Blob Management in its own process and database (Entity Framework Core):
-
-1. Install Blob Management and declare the containers as above, with the same container names and the same storage provider and settings as before: the stored bytes are then where Blob Management looks for them.
-2. Reference `Dignite.Site.BlobManagement.Migration` and depend on `SiteBlobManagementMigrationModule`. It runs when the host seeds its data, for the host and every tenant, and in a **dry run** first: it writes nothing and logs what it would do.
-3. Read the report, set `SiteBlobManagementMigration:DryRun` to `false` and seed again. Every file keeps its id, so file fields still name it, and its address, so stored addresses keep working, and is marked public; a file that shared its bytes with another gets a copy of its own, because Blob Management shares no bytes between files. The directory a file was filed in is kept on the file (`Site:DirectoryPath` in its extra properties), and the report lists every directory; Blob Management's `DirectoryPathImporter` files the files into a container that allows directories.
-4. Grant the roles that edit contents and the theme the permissions the table above names; they already hold them if they edited contents before.
-5. Remove the migration package. The next major version of Site removes the old tables.
-
 ## See Also
 
 * [Field Types](field-types.md)

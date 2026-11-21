@@ -15,59 +15,20 @@ using ManagedFileManager = Dignite.Abp.BlobManagement.FileDescriptorManager;
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// The public read endpoint's logic: a live public file of Blob Management at Site's address, optionally resized, or one of the file
-/// library Site kept before, until it is migrated; anything else - another container, a deleted file, a name that does
-/// not exist - is simply not found. Files are uploaded to Blob Management and marked public as an editor's upload
-/// stores them (its presets: a JPEG in images is stored as WebP).
+/// The public read endpoint's logic: a live public file of Blob Management at Site's address, optionally resized;
+/// anything else - another container, a deleted file, a name that does not exist - is simply not found. Files are
+/// uploaded to Blob Management and marked public as an editor's upload stores them (its presets: a JPEG in images is
+/// stored as WebP).
 /// </summary>
 public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly IFilePublicAppService _filePublicAppService;
     private readonly ManagedFileManager _managedFiles;
-    private readonly LegacySiteFiles _legacyFiles;
 
     public FilePublicAppService_Tests()
     {
         _filePublicAppService = GetRequiredService<IFilePublicAppService>();
         _managedFiles = GetRequiredService<ManagedFileManager>();
-        _legacyFiles = GetRequiredService<LegacySiteFiles>();
-    }
-
-    /// <summary>
-    /// A file of the file library Site kept before is served at its address until it is migrated.
-    /// </summary>
-    [Fact]
-    public async Task Should_Serve_A_File_Of_The_Legacy_Library()
-    {
-        var bytes = TestFiles.Pdf("legacy");
-        var file = await WithUnitOfWorkAsync(() => _legacyFiles.CreateAsync(SiteFileContainerNames.Attachments, "legacy.pdf", bytes));
-
-        using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput());
-
-        content.ContentType.ShouldBe("application/pdf");
-        content.FileName.ShouldBe("legacy.pdf");
-        (await ReadAllAsync(content.GetStream())).ShouldBe(bytes);
-    }
-
-    /// <summary>
-    /// A legacy reference has an address of its own and the bytes of another descriptor's blob; it is served at its own
-    /// address, resized as any other picture.
-    /// </summary>
-    [Fact]
-    public async Task Should_Serve_A_Legacy_Reference_At_Its_Own_Address()
-    {
-        var reference = await WithUnitOfWorkAsync(async () =>
-        {
-            var owner = await _legacyFiles.CreateAsync(SiteFileContainerNames.Images, "owner.png", Stripes(400, 300));
-            return await _legacyFiles.CreateReferenceAsync(owner, "copy.png");
-        });
-
-        using var content = await _filePublicAppService.GetAsync(
-            reference.ContainerName, reference.BlobName, new GetFileInput { Width = 100, Format = SiteFileFormats.Original });
-
-        var info = TestFiles.Identify(await ReadAllAsync(content.GetStream()));
-        info.Width.ShouldBe(100);
-        content.FileName.ShouldBe("copy.png");
     }
 
     /// <summary>Blob Management's own address of a file is Site's address once <see cref="SiteFileUrl.Normalize"/> has it.</summary>

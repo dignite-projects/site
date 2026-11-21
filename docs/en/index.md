@@ -38,8 +38,7 @@ Site is the AI-native successor of [Dignite.Cms](https://github.com/dignite-proj
 | `Dignite.Site.Domain.Shared` | Constants, enums, setting names, localization and error codes. |
 | `Dignite.Site.Domain` | Pages, content types, fields, contents, routing, and the builders of the head metadata, sitemap and feeds. |
 | `Dignite.Site.EntityFrameworkCore` | The database provider: the Entity Framework Core repositories, and `ConfigureSite()` for your `DbContext`. |
-| `Dignite.Site.MongoDB` | The MongoDB repositories of the file library Site kept before 3.0, and nothing else: pages, content types, fields and contents have no MongoDB implementation, so Site needs an Entity Framework Core database. |
-| `Dignite.Site.BlobManagement.Migration` | The migration of the file library Site kept before 3.0 into Blob Management, added to a host for the upgrade; see [Files](files.md#upgrading-from-sites-file-library). |
+| `Dignite.Site.MongoDB` | Site's MongoDB module, which keeps no entity yet: pages, content types, fields and contents have no MongoDB implementation, so Site needs an Entity Framework Core database. |
 | `Dignite.FlexFields.Site` | Site's own field types: content reference, file and SEO. |
 | `Dignite.Site.Common.*` | The contracts and services that the administration and public sides share. |
 | `Dignite.Site.Admin.*` | The administration API (`/api/site-admin/`): pages, content types, fields, contents and files. Protected by the `SiteAdmin.*` permissions and the `Site.Enable` feature. |

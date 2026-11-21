@@ -1,7 +1,7 @@
 # Site files: internals
 
 How Site uses Blob Management for its files. What it does - the containers, the permissions, the upload, the addresses,
-serving, the admin UI, MCP and the upgrade - is documented for users in [docs/en/files.md](../docs/en/files.md); this
+serving, the admin UI and MCP - is documented for users in [docs/en/files.md](../docs/en/files.md); this
 page covers what a contributor needs on top of that. The decisions behind it are in abp-modules'
 `blob-management/dev-docs/` (`positioning-decision.md`, `business-system-integration-decision.md`,
 `peer-comparison.md`, `upload-checksum-decision.md`) and, for how Site arrived here, in
@@ -21,14 +21,14 @@ is Site's: its address, what it does on read, who may upload where, and how its 
 | Public read | `FilePublicAppService` (Public.Application) over `IBlobManagementPublicAppService`; `FilePublicController` (Public.HttpApi) unchanged. |
 | Who may upload where | `SiteFileAuthorization` (Admin.Application): the container to permissions table. |
 | The admin API | `IFileAdminAppService` / `FileAdminAppService` (Admin.Application.Contracts, Admin.Application) over `IBlobManagementFileService` and `IBlobManagementContainerAppService`; `FileAdminController` (Admin.HttpApi); the C# client proxy and its manifest entry in `site-admin-generate-proxy.json`. |
-| Legacy descriptors | `FileDescriptor`, `DirectoryDescriptor` and their repositories (Domain, EF Core, MongoDB), read only; removed in the next major version. |
-| Migration | `Dignite.Site.BlobManagement.Migration`: `SiteBlobManagementMigrator`, run by a data seed contributor. |
 | Admin UI | `@dignite/ng.site`: `SiteFileInputComponent`, `SiteFileUploadService`, `SiteUploadCleanup`, `SiteCKEditorUploadProvider`, the file field's control and the SEO image inputs; `SiteFilePickerModalComponent` and `SiteDirectoryTreeComponent` for the `Library` input mode, over `SiteBlobContainerService` and `SiteBlobDirectoryService` (Blob Management's container and directory endpoints, written by hand). The proxy `FileAdminService` is written by hand in the style of the generated ones. |
 | Management page | The dev host (`angular/`) installs `@dignite/ng.blob-management` - usage, containers, directories and files, read only - under Administration > Blob Management (`provideBlobManagementConfig()`, the `blob-management` route). The package is not on any registry yet, so `angular/package.json` points at a tarball of abp-modules' build in `../../_local-feed`; point it at the published version before the branch is pushed. Seeing it takes `BlobManagement.Containers`, which the data seed grants the admin role. The tarball is newer than the `10.7.7-preview.1` server package, which lacks six of the page's texts (`Menu:Files`, `Usage:Tenants`, `Usage:Host`, `Usage:Allocation`, `Usage:Refresh`, `Permission:TenantUsages`); the host adds them to Blob Management's resource from `host/Dignite.Site.Host/Localization/BlobManagementPreview/` (en, zh-Hans) - remove them with the server package that carries them. |
 | MCP | `FileTools` (Mcp) over `IFileAdminAppService`; `SiteMcpConsts.FileInstructions` tells a client how Site's fields use them. |
 
 Site's packages reference only `Dignite.Abp.BlobManagement.Application.Contracts` (Admin.Application, Public.Application).
-Only the migration package references `Dignite.Abp.BlobManagement.Domain`, because it writes file rows in process.
+Site keeps no file table of its own: the host's migration `Site_RemoveLegacyFileLibrary` dropped `SiteFileDescriptors` and
+`SiteDirectoryDescriptors`, and the migrator that moved their rows into Blob Management
+(`Dignite.Site.BlobManagement.Migration`) went with them; it is in the history before that commit.
 
 ## The upload
 
@@ -55,30 +55,30 @@ type checks Site's own file library had to carry, all of which Blob Management d
 ## The public read
 
 `FilePublicAppService.GetAsync` finds the file as a `SiteStoredFile` - container, the id of the stored bytes (the
-physical BLOB name), name, type and a way to open the bytes - from Blob Management first, then from a legacy descriptor:
-
-- **Blob Management.** `IBlobManagementPublicAppService.ReadAsync(container, blob, no size, HeadersOnly)` answers for a
-  public file whose physical BLOB name is `blob`. The bytes are read with a second call only when they are needed, so a
-  rendition already in `RenderedImageCache` costs one lookup. Blob Management's own sizing is not used: Site renders from
-  the stored bytes, at any size, in the format the request takes.
-- **The legacy library**, for a file not yet migrated, in `SiteFileContainerNames.All` only. The fallback goes with the
-  legacy tables.
+physical BLOB name), name, type and a way to open the bytes - in Blob Management, and a file it does not have is not
+found:
+`IBlobManagementPublicAppService.ReadAsync(container, blob, no size, HeadersOnly)` answers for a public file whose
+physical BLOB name is `blob`. The bytes are read with a second call only when they are needed, so a rendition already in
+`RenderedImageCache` costs one lookup. Blob Management's own sizing is not used: Site renders from the stored bytes, at
+any size, in the format the request takes.
 
 What follows - planning the rendition, the decode bounds, `RenderedImageCache`, the ETag and `Vary` in the controller -
-is as it was. A remote Blob Management (`Dignite.Abp.BlobManagement.HttpApi.Client`) reports a missing file as a remote
-call error rather than `EntityNotFoundException`; only the in-process case is handled and tested today.
+is as it was.
 
-## Why the address survives the move
+**Blob Management in another service.** The admin side works unchanged: `IBlobManagementFileService` and
+`IBlobManagementContainerAppService` are Contracts interfaces, and `Dignite.Abp.BlobManagement.HttpApi.Client` replaces
+the in-process implementation of the first with `RemoteBlobManagementFileService`; the host swaps the module. The public
+read does not: `IBlobManagementPublicAppService` has no remote implementation, because Blob Management's public read is
+an address (`BlobManagementPublicController` is left out of the API definition, so no client proxy is generated), so
+`FilePublicAppService` cannot resolve it in a host without Blob Management in process. It also needs a missing file to be
+`EntityNotFoundException`, which a remote call does not raise; only the in-process case is handled and tested today.
+Blob Management's public read is rate limited per client address, which behind Site would be Site's.
 
-Blob Management names the physical BLOB of a file kept by id `{32 hex}{extension of the stored type}`, the form Site's
-own names had, and its public read finds a file by that name. The migration gives each file the legacy file's own BLOB
-name and id, and copies a dedup reference's bytes to its own name - Blob Management shares no bytes between files - so
-`api/site-public/files/{container}/{blob}` finds every file it found before and a field's `id` names the same file.
-Containers keep their names and their storage provider, so an owner's bytes are not moved at all.
+## The address of a file
 
-The migration writes the legacy file's SHA-256 (upper-case hex) into `Hash`: the `10.7.7-preview.1` descriptor requires
-one. A release of Blob Management after it keeps a hash only for an upload verified against one, as base64; the
-migration then stops writing it (`upload-checksum-decision.md`).
+Blob Management names the physical BLOB of a file kept by id `{32 hex}{extension of the stored type}`, and its public
+read finds a file by that name, so `api/site-public/files/{container}/{blob}` is `{container}/{blob}` of Blob Management's
+`/blobs/` address, and `SiteFileUrl.Normalize` turns one into the other.
 
 ## The file picker and the directories
 
@@ -105,8 +105,6 @@ language may use it. Leaving without saving deletes nothing yet.
 - `FileAdminAppService_Tests` and `FileTools_Tests` run the whole upload - ticket, Blob Management's upload service,
   confirmation - in process, with the principal `AsEditorAsync` sets: the test base has no current user.
 - `FilePublicAppService_Tests` uploads through Blob Management's `FileDescriptorManager` and marks the file public (so the
-  `Images` preset runs) and keeps two tests for the legacy fallback; `LegacySiteFiles` writes legacy rows as the library
-  did, a JPEG in `images` as upright WebP.
-- `SiteBlobManagementMigrator_Tests` covers the dry run, owners, references, an orphaned blob and a second run.
+  `Images` preset runs).
 - The EF Core test module installs Blob Management as the dev Host does; `common.test.props` reads
   `DigniteAbpModulesVersion` from `common.props`.

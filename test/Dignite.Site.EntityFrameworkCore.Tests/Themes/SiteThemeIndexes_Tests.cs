@@ -37,8 +37,6 @@ public class SiteThemeIndexes_Tests
     public void The_Filters_The_Mapping_Sets_Should_Be_In_The_Script()
     {
         Script.ShouldContain(
-            "CREATE UNIQUE INDEX [IX_SiteFileDescriptors_ContainerName_BlobName] ON [SiteFileDescriptors] ([ContainerName], [BlobName]) WHERE TenantId IS NULL;");
-        Script.ShouldContain(
             "CREATE UNIQUE INDEX [IX_SitePages_TenantId_Route] ON [SitePages] ([TenantId], [Route]) WHERE IsDeleted = 0;");
     }
 }

@@ -1,6 +1,5 @@
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
-using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
 using Dignite.Site.Themes;
@@ -29,10 +28,6 @@ public interface ISiteDbContext : IEfCoreDbContext
     /// avoids ever naming a concrete DbContext.
     /// </summary>
     DbSet<ContentFlexFieldIndex> ContentFlexFieldIndexes { get; }
-
-    DbSet<DirectoryDescriptor> DirectoryDescriptors { get; }
-
-    DbSet<FileDescriptor> FileDescriptors { get; }
 
     DbSet<SiteTheme> SiteThemes { get; }
 

@@ -2,7 +2,6 @@ using Dignite.Abp.FlexFields;
 using Dignite.Abp.FlexFields.EntityFrameworkCore;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
-using Dignite.Site.Files;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
 using Dignite.Site.Themes;
@@ -31,8 +30,6 @@ public class SiteEntityFrameworkCoreModule : AbpModule
             options.AddRepository<ContentType, EfCoreContentTypeRepository>();
             options.AddRepository<Field, EfCoreFieldRepository>();
             options.AddRepository<Content, EfCoreContentRepository>();
-            options.AddRepository<FileDescriptor, EfCoreFileDescriptorRepository>();
-            options.AddRepository<DirectoryDescriptor, EfCoreDirectoryDescriptorRepository>();
             options.AddRepository<SiteTheme, EfCoreSiteThemeRepository>();
             options.AddRepository<SiteThemeFile, EfCoreSiteThemeFileRepository>();
             options.AddRepository<SiteRelease, EfCoreSiteReleaseRepository>();

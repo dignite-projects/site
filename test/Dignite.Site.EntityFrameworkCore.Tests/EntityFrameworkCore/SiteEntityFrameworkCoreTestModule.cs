@@ -1,7 +1,6 @@
 ﻿using Dignite.Abp.BlobManagement;
 using Dignite.Abp.BlobManagement.EntityFrameworkCore;
 using Dignite.Abp.BlobManagement.Presets;
-using Dignite.Site.BlobManagementMigration;
 using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Microsoft.Data.Sqlite;
@@ -36,10 +35,7 @@ namespace Dignite.Site.EntityFrameworkCore;
     typeof(AbpBlobStoringFileSystemModule),
     // Blob Management, where Site's files are kept, installed in this process as the dev Host installs it.
     typeof(BlobManagementApplicationModule),
-    typeof(BlobManagementEntityFrameworkCoreModule),
-    // The migration of the legacy file library to Blob Management, as a host adds it for the upgrade. Its seed contributor
-    // runs with the test data, in a dry run (the default): nothing is written until a test asks for it.
-    typeof(SiteBlobManagementMigrationModule)
+    typeof(BlobManagementEntityFrameworkCoreModule)
 )]
 public class SiteEntityFrameworkCoreTestModule : AbpModule
 {

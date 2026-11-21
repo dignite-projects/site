@@ -15,7 +15,6 @@
     <!-- The MCP tool classes are ordinary ABP services, so they are tested here against the same seeded
          scenario as the app services they call - no HTTP, no MCP transport. -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
-    <ProjectReference Include="..\..\src\Dignite.Site.BlobManagement.Migration\Dignite.Site.BlobManagement.Migration.csproj" />
     <ProjectReference Include="..\Dignite.Site.Application.Tests\Dignite.Site.Application.Tests.csproj" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.7.0"/>
     <!-- Not a database: SiteThemeIndexes_Tests generates the DDL SQL Server gets from the model, without a server,

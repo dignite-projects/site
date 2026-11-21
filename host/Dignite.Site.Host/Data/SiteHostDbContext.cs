@@ -25,23 +25,17 @@ namespace Dignite.Site.Host.Data;
 /// derived from, and EF Core cannot compose a query across two.
 ///
 /// <para>
-/// The file library's tables (<c>SiteFileDescriptors</c>, <c>SiteDirectoryDescriptors</c>) are Site's own
-/// and configured by <c>ConfigureSite()</c> with the rest; this class only supplies the concrete DbSets the
-/// interface requires, the same division <see cref="ISiteDbContext"/> has between here and
-/// <c>SiteDbContext</c>.
+/// Site's files are Blob Management's (<c>BlobFileDescriptors</c>, <c>BlobDirectoryDescriptors</c>), configured by
+/// <c>ConfigureBlobManagement()</c>; this class supplies the concrete DbSets <see cref="IBlobManagementDbContext"/>
+/// requires, as it does for <see cref="ISiteDbContext"/>.
 /// </para>
 /// </summary>
 [ReplaceDbContext(typeof(ISiteDbContext), typeof(IBlobManagementDbContext))]
 public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext, IBlobManagementDbContext
 {
-    /// <summary>
-    /// Blob Management's files (<c>BlobFileDescriptors</c>). Explicit: <see cref="ISiteDbContext"/> has a
-    /// <c>FileDescriptors</c> of its own, the legacy descriptors of Site's file library.
-    /// </summary>
-    DbSet<Dignite.Abp.BlobManagement.FileDescriptor> IBlobManagementDbContext.FileDescriptors => Set<Dignite.Abp.BlobManagement.FileDescriptor>();
+    public DbSet<Dignite.Abp.BlobManagement.FileDescriptor> FileDescriptors { get; set; } = default!;
 
-    /// <summary>Blob Management's directories (<c>BlobDirectoryDescriptors</c>); explicit for the same reason.</summary>
-    DbSet<Dignite.Abp.BlobManagement.DirectoryDescriptor> IBlobManagementDbContext.DirectoryDescriptors => Set<Dignite.Abp.BlobManagement.DirectoryDescriptor>();
+    public DbSet<Dignite.Abp.BlobManagement.DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
 
     public DbSet<Dignite.Site.Pages.Page> Pages { get; set; } = default!;
 
@@ -53,10 +47,6 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
     public DbSet<Dignite.Site.Contents.Content> Contents { get; set; } = default!;
 
     public DbSet<Dignite.Site.Contents.ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; } = default!;
-
-    public DbSet<Dignite.Site.Files.DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
-
-    public DbSet<Dignite.Site.Files.FileDescriptor> FileDescriptors { get; set; } = default!;
 
     public DbSet<Dignite.Site.Themes.SiteTheme> SiteThemes { get; set; } = default!;
 

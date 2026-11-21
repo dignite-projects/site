@@ -17,11 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   authorizes no user, so Site does: `IFileAdminAppService` (`api/site-admin/files`) asks for an upload ticket, confirms
   the uploaded file and deletes it, and lists the containers and files, by the permission of the container - the
   `SiteAdmin.Contents.*`, `SiteAdmin.Seo.Update` and `SiteAdmin.Themes.Edit` that uploading needed before Site's files
-  moved. Gone: the administration API of directories, the file library's upload links, `FileDescriptorManager`,
-  `DirectoryManager` and the error codes `Site:0700xx`, `Site:080001` and `Site:080003`. See [Files](docs/en/files.md).
+  moved. Gone: the file library's entities and repositories (`Dignite.Site.Files.FileDescriptor`, `DirectoryDescriptor`,
+  `IFileDescriptorRepository`, `IDirectoryDescriptorRepository`, `FileDescriptorSorting`, `FileDescriptorConsts`,
+  `DirectoryDescriptorConsts`, with the Entity Framework Core and MongoDB repositories, and the `FileDescriptors` and
+  `DirectoryDescriptors` sets of `ISiteDbContext` and `ISiteMongoDbContext`), the administration API of directories, the
+  file library's upload links, `FileDescriptorManager`, `DirectoryManager` and the error codes `Site:0700xx`, `Site:080001` and `Site:080003`. See [Files](docs/en/files.md).
 - **The file address stays Site's.** `/api/site-public/files/{container}/{blob}` takes the file from Blob Management's
-  public read and keeps serving WebP to a browser that takes it, any size and the rendering cache; a file not yet
-  migrated is served from the old library. `SiteFileUrl.Normalize` turns Blob Management's address of a file
+  public read and keeps serving WebP to a browser that takes it, any size and the rendering cache. `SiteFileUrl.Normalize` turns Blob Management's address of a file
   (`/blobs/...?__tenant=`) into Site's, and `Sized`, `Absolutize` and `IsSiteFile` apply it, so a field that stores it
   renders Site's. See [Addresses](docs/en/files.md#addresses).
 - **MCP: Site's file tools are rebuilt on Blob Management's upload tickets.** `site_list_file_containers`,
@@ -72,10 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and settings as Site's containers had, so the stored bytes are where Blob Management looks for them; add a migration
   for `BlobFileDescriptors` and `BlobDirectoryDescriptors`. See
   [Installing Blob Management in the Host](docs/en/files.md#installing-blob-management-in-the-host).
-- **Migrate the files** with `Dignite.Site.BlobManagement.Migration`: a dry run first, then
-  `SiteBlobManagementMigration:DryRun` set to `false`. Every file keeps its id and its address, and is marked public.
-  Entity Framework Core hosts with Blob Management in the same process and database only. See
-  [Upgrading from Site's File Library](docs/en/files.md#upgrading-from-sites-file-library).
+- **Site does not migrate the files of its old file library.** There is no migrator and no read of the old tables: the
+  host's migration `Site_RemoveLegacyFileLibrary` drops `SiteFileDescriptors` and `SiteDirectoryDescriptors`, and an
+  address that only the old library knew is not found. Files a site still needs have to be in Blob Management before the
+  host runs that migration.
 - **Permissions stay Site's.** Uploading to `images` and `attachments` needs `SiteAdmin.Contents.Create` or `.Update`
   (`images` also `SiteAdmin.Seo.Update`), and to `theme-assets` `SiteAdmin.Themes.Edit`; the roles that edit contents and
   the theme hold them already. Nothing of Blob Management's own is granted: in the same process it is a trusted caller.
@@ -83,8 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   browser's uploads; a host that runs several instances persists and shares the Data Protection key ring.
 - **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of
   `UploadBaseUrl`.
-- **The old tables stay** (`SiteFileDescriptors`, `SiteDirectoryDescriptors`), read only: the next major version
-  removes them. Upgrade to it only after the files are migrated.
 
 ## [2.3.0] - 2026-11-09
 

@@ -20,7 +20,7 @@ namespace Dignite.Site.Contents;
 /// <summary>
 /// GitHub issue #42: the file field type (registration key "FileExplorer"), pointed at one of Site's file
 /// containers. Unlike CKEditor's plain-string value, a meaningful round trip here has to reference a file
-/// that actually exists - so this stores one first (<see cref="LegacySiteFiles"/>), rather than fabricating a
+/// that actually exists - so this stores one in Blob Management first, rather than fabricating a
 /// descriptor-shaped value nothing backs.
 /// </summary>
 public class FileField_Tests : SiteEntityFrameworkCoreTestBase
@@ -29,7 +29,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
     private readonly IRepository<ContentType, Guid> _contentTypeRepository;
     private readonly IContentRepository _contentRepository;
     private readonly ContentManager _contentManager;
-    private readonly LegacySiteFiles _files;
+    private readonly Dignite.Abp.BlobManagement.FileDescriptorManager _files;
     private readonly ISiteSchemaAdminAppService _schemaAppService;
 
     public FileField_Tests()
@@ -38,7 +38,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
         _contentTypeRepository = GetRequiredService<IRepository<ContentType, Guid>>();
         _contentRepository = GetRequiredService<IContentRepository>();
         _contentManager = GetRequiredService<ContentManager>();
-        _files = GetRequiredService<LegacySiteFiles>();
+        _files = GetRequiredService<Dignite.Abp.BlobManagement.FileDescriptorManager>();
         _schemaAppService = GetRequiredService<ISiteSchemaAdminAppService>();
     }
 
@@ -49,7 +49,9 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
         {
             var (name, contentTypeId) = await CreateFileFieldAndContentTypeAsync();
 
-            var file = await _files.CreateAsync(SiteFileContainerNames.Attachments, "notes.pdf", TestFiles.Pdf("issue #42 attachment"));
+            using var stream = new MemoryStream(TestFiles.Pdf("issue #42 attachment"));
+            var file = await _files.SetPublicAsync(
+                await _files.UploadAsync(SiteFileContainerNames.Attachments, "notes.pdf", stream), true);
 
             var value = new List<FileReference> { FileReference.From(file) };
 
@@ -185,7 +187,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
         public string Name { get; set; } = string.Empty;
         public string Url { get; set; } = string.Empty;
 
-        public static FileReference From(FileDescriptor file) => new()
+        public static FileReference From(Dignite.Abp.BlobManagement.FileDescriptor file) => new()
         {
             Id = file.Id,
             ContainerName = file.ContainerName,

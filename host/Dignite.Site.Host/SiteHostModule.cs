@@ -75,7 +75,6 @@ using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Abp.BlobManagement;
 using Dignite.Abp.BlobManagement.EntityFrameworkCore;
 using Dignite.Abp.BlobManagement.Localization;
-using Dignite.Site.BlobManagementMigration;
 
 using Microsoft.Extensions.Hosting;
 
@@ -171,12 +170,7 @@ namespace Dignite.Site.Host;
     // anything. It has no MCP tools: Site's own file tools call the same service.
     typeof(BlobManagementApplicationModule),
     typeof(BlobManagementHttpApiModule),
-    typeof(BlobManagementEntityFrameworkCoreModule),
-
-    // The migration of the files Site's own file library kept before 3.0 into Blob Management, when the data is seeded
-    // (--migrate-database). A dry run unless SiteBlobManagementMigration:DryRun is false; remove it once the files are
-    // migrated.
-    typeof(SiteBlobManagementMigrationModule)
+    typeof(BlobManagementEntityFrameworkCoreModule)
 )]
 public class SiteHostModule : AbpModule
 {
