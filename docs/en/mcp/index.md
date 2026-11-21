@@ -32,7 +32,7 @@ The MCP endpoint accepts the same bearer tokens as the application's HTTP API: a
 
 * Each tool requires the `SiteAdmin.*` [permission](../settings.md#permissions) of the application service behind it, and `tools/list` lists only the tools the user is granted.
 * `site_resolve_path` requires no permission: it reads only what any visitor can see.
-* Site has no file tools: files are uploaded with the Drive's `drive_*` tools, authorized by the Drive's own permissions; see [Files](../files.md#mcp).
+* The file tools (`site_create_upload_url` and the others) are authorized by the permissions of the container they work on - the same `SiteAdmin.Contents.*`, `SiteAdmin.Seo.Update` and `SiteAdmin.Themes.Edit` that uploading in the admin UI needs - and are listed to any signed-in user; see [Files](../files.md#permissions).
 * While the `Site.Enable` [feature](../settings.md#the-site-feature) is off, every tool that needs a permission is refused.
 
 An unattended client, such as a publishing job in CI, authenticates with the client credentials flow instead. Its token carries no user, so its permissions are granted to the OAuth client itself; grant it only what that job needs.

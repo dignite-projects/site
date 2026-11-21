@@ -7,7 +7,7 @@
 
 # Tools
 
-Every tool of Site is named `site_*`, and its resources, `site://schema` and `site://theme-guide`, use the `site://` scheme, so they never collide with the tools of other modules on the same server. Pages, content types, fields and contents are addressed by their names, from the schema; files and directories by the ids the file tools return.
+Every tool of Site is named `site_*`, and its resources, `site://schema` and `site://theme-guide`, use the `site://` scheme, so they never collide with the tools of other modules on the same server. Pages, content types, fields and contents are addressed by their names, from the schema; files by the ids the file tools return.
 
 The descriptions below are summaries; a client reads the full description of each tool and parameter from `tools/list`. Parameters marked optional can be left out; for the update tools, a parameter left out keeps its current value.
 
@@ -155,7 +155,18 @@ The theme is not part of the schema: its files are addressed by path, and `site_
 
 ## Files
 
-Site has no file tools of its own. Files are kept in the Drive, and a host that adds `Dignite.Drive.Mcp` gives the client the Drive's tools on the same server: `drive_list_containers`, `drive_upload_file`, `drive_create_upload_url`, `drive_get_file` and `drive_delete_file`, authorized by the Drive's own permissions ([the Drive's MCP tools](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/drive/mcp.md)). Site's instructions tell the client which containers its fields use and what to store; see [Files](../files.md#mcp).
+Files are kept in Dignite Blob Management; an upload goes straight from the machine the file is on to Blob Management, with the command a link comes with, and never through the client. Every tool works on one of the site's containers - `images`, `attachments` or `theme-assets` - and is authorized by the permission that uploading to that container needs ([Permissions](../files.md#permissions)).
+
+| Tool | What it does |
+|---|---|
+| `site_list_file_containers` | Lists the containers the caller may upload to, with the largest file each takes, its allowed extensions and the size a picture is shrunk to. Call it before any other file tool. |
+| `site_create_upload_url` | Returns a one-use link, good for a few minutes, for one file, with the `fileId` it will have and the command that posts it: `command` for sh, bash, zsh and cmd.exe, `powerShellCommand` for PowerShell, with `FILE_PATH` to be replaced. |
+| `site_confirm_file` | Keeps an uploaded file, with the `fileId`, and makes it readable by the site's visitors; returns the file with its `url`. A file never confirmed is deleted after a day. |
+| `site_list_files` | Lists the files of a container, newest first, with an optional `filter` on the name, `skip` and `take` (up to 100). Pending files are not listed. |
+| `site_get_file` | Returns one file by its id. |
+| `site_delete_file` | Deletes a file by its id. Destructive. |
+
+Site's instructions tell the client which containers its fields use and what to store; see [Files](../files.md#mcp).
 
 ## See Also
 

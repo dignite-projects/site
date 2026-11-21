@@ -21,7 +21,7 @@ A field's type decides how its configuration is read, how its value is validated
 | `Table` | A list of rows with the same columns | No | FlexFields |
 | `CKEditor` | Rich text, as HTML or Markdown | No | FlexFields CKEditor |
 | `Content` | References to other contents | Yes | Site |
-| `FileExplorer` | Files uploaded to the [Drive](files.md) | No | Site |
+| `FileExplorer` | Files uploaded to Site's [file containers](files.md) | No | Site |
 | `Seo` | The SEO metadata of a content | No | Site |
 
 A field is searchable only if its type is indexable **and** the content type marks its use `Searchable`; see [Arranging Fields](content-types-and-fields.md#arranging-fields).
@@ -35,7 +35,7 @@ A configuration is checked when a field is created or updated: a key the field t
 The configuration of the FlexFields field types, such as `Text.CharLimit` or the options of a `Select`, is described in the FlexFields documentation:
 
 * [Field Types](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/flex-fields/field-types.md): `Text`, `Number`, `DateTime`, `Select`, `Boolean`, `Tree`, `Matrix` and `Table`.
-* [CKEditor Field Type](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/flex-fields/ckeditor.md): `CKEditor`. In Site, set `CKEditor.ImagesContainerName` to `images` to let editors insert images, which are [uploaded to the Drive](files.md#ckeditor-image-upload).
+* [CKEditor Field Type](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/flex-fields/ckeditor.md): `CKEditor`. In Site, set `CKEditor.ImagesContainerName` to `images` to let editors insert images, which are [uploaded to Site's file containers](files.md#ckeditor-image-upload).
 
 ## Content
 
@@ -55,7 +55,7 @@ The field validates only whether a required value is present: whether a referenc
 
 ## File
 
-A `FileExplorer` field holds one or more files uploaded to a [Drive](files.md) container in the admin UI. The value is a list of the files as the Drive returns them:
+A `FileExplorer` field holds one or more files uploaded to one of Site's [file containers](files.md) in the admin UI. The value is a list of the files as the upload returns them:
 
 ````json
 [
@@ -65,18 +65,18 @@ A `FileExplorer` field holds one or more files uploaded to a [Drive](files.md) c
     "name": "cover.webp",
     "mimeType": "image/webp",
     "size": 248133,
-    "url": "/api/drive/public/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.webp?__tenant=..."
+    "url": "/api/site-public/files/images/4f9e0c2a7b3d4e5f8a1b2c3d4e5f6a7b.webp"
   }
 ]
 ````
 
-The site serves the file at its own [address](files.md#addresses), which the `url` is turned into when a page is rendered. A value stored before Site used the Drive has Site's address in `url` and a `blobName` as well; it keeps working.
+The `url` is the site's own [address](files.md#addresses) of the file; a Blob Management address of it (`/blobs/...`) is turned into it when a page is rendered. A value stored before Site's files moved to Blob Management has a `blobName` as well; it keeps working.
 
-A client writing the value passes the file objects a `drive_*` tool returns, as a list even for one file. Only the `url` is required: a content is refused when a value is something else, such as a plain string, or when a file in it has no `url`. `site_list_field_types` lists the keys of each file object as the field type's `valueShape`.
+A client writing the value passes the file objects a `site_*` file tool returns, as a list even for one file. Only the `url` is required: a content is refused when a value is something else, such as a plain string, or when a file in it has no `url`. `site_list_field_types` lists the keys of each file object as the field type's `valueShape`.
 
 | Configuration key | Default | Description |
 |---|---|---|
-| `FileExplorer.FileContainerName` | None; required | The Drive container the files are uploaded to, usually `images` or `attachments`. |
+| `FileExplorer.FileContainerName` | None; required | The file container the files are uploaded to, usually `images` or `attachments`. |
 | `FileExplorer.UploadFileMultiple` | `false` | Whether the field takes more than one file. |
 
 The `url` is the file's relative [address](files.md#addresses). In a template, `GetFileUrl` reads the first file's address of a field; see [Razor Templates](rendering/razor-templates.md#reading-field-values).

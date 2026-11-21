@@ -1,53 +1,52 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Site's files are kept in Dignite Drive: the containers Site's fields use, how a host installs them, the Drive's permissions, Site's relative addresses, resizing and WebP on read, and the upgrade from Site's own file library."
+    "Description": "Site's files are kept in Dignite Blob Management: the containers Site's fields use, how a host installs them, who may upload and delete, how a file is uploaded, Site's relative addresses, resizing and WebP on read, the MCP file tools, and the upgrade from Site's own file library."
 }
 ```
 
 # Files
 
-The images and attachments of a site - what a file field holds, the share image of the SEO field and of the SEO settings, the images inserted into a CKEditor field, the favicon and fonts a theme links - are kept in **[Dignite Drive](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/drive/index.md)**, the per-tenant drive of Dignite ABP Modules. Site references only the open edition of the Drive. The Drive stores the files, checks the uploads and decides who may upload and delete; Site serves them to the site's visitors at its own address, with the format each browser takes and any size.
+The images and attachments of a site - what a file field holds, the share image of the SEO field and of the SEO settings, the images inserted into a CKEditor field, the favicon and fonts a theme links - are kept in **[Dignite Blob Management](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/index.md)**, the BLOB management module of Dignite ABP Modules. Blob Management stores the files, checks the uploads against each container's rules and counts what each tenant stores. It has no rules of its own about who may do what: Site applies its own permissions before it calls, and serves the files to the site's visitors at its own address, with the format each browser takes and any size.
 
-Files are uploaded with the Drive's file input in the admin UI, by an AI client with the Drive's MCP tools, or from a CKEditor field. In a host with only the open Drive there is no file library to browse: a file is attached where it is used. A host that installs Drive Pro shows its library picker in place of the file input, without anything in Site changing.
+Files are uploaded in the admin UI with Site's file input, by an AI client with Site's file tools, or from a CKEditor field. There is no file library to browse: a file is attached where it is used.
 
 ## Containers
 
-Site's fields use three Drive containers, which the host declares as **user drives** that are **read publicly**:
+Site's fields use three containers, which the host declares as Blob Management containers. Site marks every file it keeps as public, so the site's visitors read them:
 
-| Container | For | Drive preset | Accepts | Size limit |
+| Container | For | Preset | Accepts | Size limit |
 |---|---|---|---|---|
 | `images` | Pictures a content shows, share images | `Images` | JPEG, PNG, GIF, WebP | 25 MB |
 | `attachments` | Documents to download | `Documents` | PDF, Office documents, text, CSV, ZIP | 20 MB |
 | `theme-assets` | The binary files a [theme](rendering/scriban-templates.md) links: the favicon, web fonts | `BinaryAssets` | ICO, WOFF2, WOFF, TTF, OTF | 5 MB |
 
-`SiteFileContainerNames` holds the three names. A file field's configuration names its container, and may name another container the host declares. The presets are the Drive's ([Setting Up the Drive](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/drive/drive-host.md)); the `Images` preset stores a **JPEG as WebP**, turned upright, removes the metadata a design tool piles into a picture, and shrinks a picture wider than 2560 or taller than 4096 pixels. A file's type is detected from its bytes, SVG, HTML and scripts are accepted by no preset, and the same bytes uploaded twice into a container are stored once.
+`SiteFileContainerNames` holds the three names. A file field's configuration names its container, and may name another container the host declares for the same use. The presets are Blob Management's ([Setting Up](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/setting-up.md)); the `Images` preset stores a **JPEG as WebP**, turned upright, removes the metadata a design tool piles into a picture, and shrinks a picture wider than 2560 or taller than 4096 pixels. A file's type is detected from its bytes, and SVG, HTML and scripts are accepted by no preset.
 
-## Installing the Drive in the Host
+## Installing Blob Management in the Host
 
-Site's packages reference the Drive's contracts only; the host installs the Drive. In the host that runs Site's administration API, reference `Dignite.Drive.Application`, `Dignite.Drive.HttpApi` and `Dignite.Drive.EntityFrameworkCore` (and `Dignite.Drive.Mcp` for its MCP tools), and depend on their modules:
+Site's packages reference Blob Management's contracts only; the host installs Blob Management. In the host that runs Site's administration API, reference `Dignite.Abp.BlobManagement.Application`, `Dignite.Abp.BlobManagement.HttpApi` and `Dignite.Abp.BlobManagement.EntityFrameworkCore`, and depend on their modules:
 
 ````csharp
 [DependsOn(
-    typeof(DriveApplicationModule),
-    typeof(DriveHttpApiModule),
-    typeof(DriveEntityFrameworkCoreModule),
-    typeof(DriveMcpModule)
+    typeof(BlobManagementApplicationModule),
+    typeof(BlobManagementHttpApiModule),
+    typeof(BlobManagementEntityFrameworkCoreModule)
 )]
 public class MyHostModule : AbpModule
 {
 }
 ````
 
-Call `builder.ConfigureDrive()` in the host's migrations `DbContext` and add a migration: it creates `DriveFileDescriptors`. Then declare the three containers in the `Drive` section of `appsettings.json`:
+In the same process Blob Management is a trusted caller of Site's services: no OAuth client is registered and nothing is granted to one. Call `builder.ConfigureBlobManagement()` in the host's migrations `DbContext` and add a migration: it creates `BlobFileDescriptors` and `BlobDirectoryDescriptors`. Then declare the three containers in the `BlobManagement` section of `appsettings.json`:
 
 ````json
 {
-  "Drive": {
+  "BlobManagement": {
     "Containers": {
-      "images": { "Kind": "UserDrive", "PublicRead": true, "Preset": "Images" },
-      "attachments": { "Kind": "UserDrive", "PublicRead": true, "Preset": "Documents" },
-      "theme-assets": { "Kind": "UserDrive", "PublicRead": true, "Preset": "BinaryAssets" }
+      "images": { "Preset": "Images" },
+      "attachments": { "Preset": "Documents" },
+      "theme-assets": { "Preset": "BinaryAssets" }
     }
   }
 }
@@ -68,19 +67,31 @@ Configure<AbpBlobStoringOptions>(options =>
 });
 ````
 
-Pictures are converted and resized with SkiaSharp, which the Drive and Site's public read depend on. A host that runs on Linux also references the `SkiaSharp.NativeAssets.Linux` package.
+Pictures are converted and resized with SkiaSharp, which Blob Management and Site's public read depend on. A host that runs on Linux also references the `SkiaSharp.NativeAssets.Linux` package.
+
+Upload tickets are signed with ASP.NET Core Data Protection: a host that runs several instances persists and shares one key ring ([Hosting Modes](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/hosting.md#data-protection)). An admin UI served from another origin than the API posts its files to `/api/blob-management/uploads/`, which the API's CORS policy (`App:CorsOrigins`) has to allow.
 
 ## Permissions
 
-Files are authorized by the Drive's own permissions, not by Site's:
+Blob Management authorizes no user for files, so Site does:
 
-| Operation | Requires |
-|---|---|
-| Upload a file | `Drive.Files.Upload` |
-| Delete a file | Being the file's uploader, or `Drive.Files.Delete` |
-| Read a file | Nothing: the containers are read publicly |
+| Container | Upload requires | Delete requires |
+|---|---|---|
+| `images` | `SiteAdmin.Contents.Create`, `SiteAdmin.Contents.Update` or `SiteAdmin.Seo.Update` | Being the file's uploader, or `SiteAdmin.Contents.Delete` |
+| `attachments` | `SiteAdmin.Contents.Create` or `SiteAdmin.Contents.Update` | Being the file's uploader, or `SiteAdmin.Contents.Delete` |
+| `theme-assets` | `SiteAdmin.Themes.Edit` | Being the file's uploader, or `SiteAdmin.Themes.Edit` |
 
-Grant `Drive.Files.Upload` to the roles that edit contents and the theme, and `Drive.Files.Delete` where others' files should be deletable; see [the Drive's permissions](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/drive/permissions.md). The tenant's `Drive.Enable` feature has to be on to upload.
+A user may delete the file they uploaded only while they may still upload to its container. Reading a file needs nothing: the files are public. The tenant's `BlobManagement.Enable` feature has to be on to upload.
+
+## Uploading a File
+
+A file is uploaded in three steps, and the bytes never pass through Site's own endpoints:
+
+1. `POST /api/site-admin/files/upload-tickets` with the container asks for a one-use ticket. Site checks the caller's permission for the container and asks Blob Management for the ticket, which carries the tenant, the container, the file's id and the uploader.
+2. The client posts the file as the multipart field `file` to the ticket's `uploadUrl` - `/api/blob-management/uploads/{ticket}`, on the same host - without any credential. Blob Management checks the file against the container's limits and stores it. It is **pending**: nobody reads it.
+3. `POST /api/site-admin/files/{id}/confirm` keeps the file and makes it public. Only its uploader may confirm it. A file never confirmed is deleted after a day.
+
+Also under `api/site-admin/files`: `GET` lists the files of a container the caller may upload to (`containerName`, `filter`), `GET {id}` reads one, `GET containers` lists the containers the caller may upload to with their limits, and `DELETE {id}` deletes a file.
 
 ## Addresses
 
@@ -92,7 +103,7 @@ A file's address on the site is **relative**:
 
 It names no tenant: the endpoint serves the file of the tenant the request resolves to, by the host name or however the deployment resolves tenants for every other request. No host name is written into a content, so moving the public site, the API or a gateway to another host leaves every stored address valid.
 
-The Drive returns its own address of a file (`/api/drive/public/{container}/{blob}`, naming the tenant with `?__tenant=`), and a file field or an SEO image may store it. Site serves the same file at its own address: `SiteFileUrl.Normalize` turns the one into the other, and `SiteFileUrl.Sized` and `SiteFileUrl.Absolutize`, which templates and the head metadata use, apply it first. Each consumer puts a host in front of the relative address:
+Blob Management returns its own address of a public file (`/blobs/{container}/{blob}`, naming the tenant with `?__tenant=`), and a file field or an SEO image may store it. Site serves the same file at its own address: `SiteFileUrl.Normalize` turns the one into the other, and `SiteFileUrl.Sized` and `SiteFileUrl.Absolutize`, which templates and the head metadata use, apply it first. Only an address whose path starts with `/blobs/` is turned. Each consumer puts a host in front of the relative address:
 
 | Consumer | Resolves the address against |
 |---|---|
@@ -104,7 +115,7 @@ An absolute address that a user typed into a field, such as the address of an ex
 
 ## Serving Files
 
-`GET` and `HEAD` on `/api/site-public/files/{containerName}/{blobName}` serve a file anonymously. The endpoint takes the file from the Drive's public read, so it serves the files of the Drive's publicly read containers; a container that is not read publicly, a deleted file and an unknown name are all answered with `404`.
+`GET` and `HEAD` on `/api/site-public/files/{containerName}/{blobName}` serve a file anonymously. The endpoint takes the file from Blob Management's public read, so it serves the files marked public; a file that is not, a deleted file and an unknown name are all answered with `404`.
 
 * `?Width=` and `?Height=` resize an image on the way out, up to 4096 pixels a side; with both given, the image is cropped to fill the box. The source can be at most 4096 x 4096. Anything that is not an image is served as stored, and so is a GIF.
 * A request whose `Accept` header lists `image/webp`, as every current browser's does for an image, gets **WebP**: a stored WebP (every JPEG uploaded to `images`) as it is, a PNG as lossless WebP, so a screenshot, a logo or a picture with text keeps every pixel and its transparency, and a JPEG stored by an earlier version as lossy WebP. Served at its stored size, a PNG or JPEG stays as stored when its WebP would be no smaller.
@@ -138,30 +149,28 @@ Since addresses are relative, the public web application must answer `/api/site-
 * A host that runs Site in-process, with `SiteHttpApiModule`, does so already.
 * A public web application that calls Site through `Dignite.Site.Public.HttpApi.Client` should also depend on `SitePublicHttpApiModule`. Its controller then serves the files through the client proxy, with the caching headers above; without it, files are still served, but with no caching headers.
 
-A gateway in front of the administration API must also route `GET` and `HEAD` on `/api/site-public/files/` to the service that runs Site, for the previews in the admin UI, and `/api/drive/` to the service that runs the Drive, for uploads.
+A gateway in front of the administration API must also route `GET` and `HEAD` on `/api/site-public/files/` to the service that runs Site, for the previews in the admin UI, and `/api/blob-management/` to the service that runs Blob Management, for uploads.
 
 ## Attaching Files in the Admin UI
 
-A file field, the SEO field's share image and the default share image of the SEO settings use the Drive's file input, `drive-file-input` from `@dignite/ng.drive`, fixed to the field's container (`images` for share images). It uploads the chosen files and shows the files attached. Removing a file takes it out of the form; a file uploaded while the form is edited and removed again before it is saved is deleted from the Drive once the form is saved. A file that was in the form before is not deleted by removing it: other contents may still use it.
-
-A host that installs Drive Pro registers its library picker under the input's replaceable component key, `Drive.FileInputComponent`, and the same forms pick from the library.
+A file field, the SEO field's share image and the default share image of the SEO settings use `site-file-input` from `@dignite/ng.site`, fixed to the field's container (`images` for share images). It checks each chosen file against the container's size and type limits, uploads it in the three steps above, and shows the files attached. Removing a file takes it out of the form; a file uploaded while the form is edited and removed again before it is saved is deleted once the form is saved. A file that was in the form before is not deleted by removing it: other contents may still use it.
 
 ## CKEditor Image Upload
 
-`provideSite()` of `@dignite/ng.site` registers the upload provider of `@dignite/ng.flex-fields-ckeditor`. An image inserted into a CKEditor field is uploaded to the Drive container named by the field's `CKEditor.ImagesContainerName` configuration, normally `images`, and embedded by Site's relative address. The editor shows the image from the `SiteAdmin` API's host and saves the relative address, for HTML and Markdown fields alike.
+`provideSite()` of `@dignite/ng.site` registers the upload provider of `@dignite/ng.flex-fields-ckeditor`. An image inserted into a CKEditor field is uploaded to the container named by the field's `CKEditor.ImagesContainerName` configuration, normally `images`, and embedded by Site's relative address. The editor shows the image from the `SiteAdmin` API's host and saves the relative address, for HTML and Markdown fields alike.
 
 ## MCP
 
-Site has no file tools of its own. A host that adds `Dignite.Drive.Mcp` gives AI clients the Drive's tools - `drive_list_containers`, `drive_upload_file`, `drive_create_upload_url`, `drive_get_file` and `drive_delete_file` - on the same MCP server ([the Drive's MCP tools](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/drive/mcp.md)). Site's instructions tell the client which containers its fields use and what to store: a file field takes the file objects the tools return, an SEO image and a template the file's `url`. There is no tool that lists a container's files in the open Drive, so a client keeps the `id` it needs to delete a file.
+Site's [MCP tools](mcp/tools.md#files) let an AI client keep files: `site_list_file_containers`, `site_create_upload_url`, `site_confirm_file`, `site_list_files`, `site_get_file` and `site_delete_file`. The bytes of an upload go from the machine the file is on to Blob Management with the command the link comes with, and never through the client. Site's instructions tell the client which containers its fields use and what to store: a file field takes the file objects the tools return, an SEO image and a template the file's `url`. The tools are authorized by the same rules as the administration API ([Permissions](#permissions)); `SiteMcpOptions.BaseUrl` sets the address a link starts with when a gateway in front does not forward the original host.
 
 ## Upgrading from Site's File Library
 
-Before 3.0, Site kept its own file library (`SiteFileDescriptors`, `SiteDirectoryDescriptors`), with these containers and addresses. Site 3.0 serves its files from the Drive, and still serves a file the Drive does not have yet from the old library, so nothing breaks while it is migrated. To migrate, in a host that installs the Drive in its own process and database (Entity Framework Core):
+Before 3.0, Site kept its own file library (`SiteFileDescriptors`, `SiteDirectoryDescriptors`), with these containers and addresses. Site 3.0 serves its files from Blob Management, and still serves a file Blob Management does not have yet from the old library, so nothing breaks while it is migrated. To migrate, in a host that installs Blob Management in its own process and database (Entity Framework Core):
 
-1. Install the Drive and declare the containers as above, with the same container names and the same storage provider and settings as before: the stored bytes are then where the Drive looks for them.
-2. Reference `Dignite.Site.Drive.Migration` and depend on `SiteDriveMigrationModule`. It runs when the host seeds its data, for the host and every tenant, and in a **dry run** first: it writes nothing and logs what it would do.
-3. Read the report, set `SiteDriveMigration:DryRun` to `false` and seed again. Every file keeps its id, so file fields still name it, and its address, so stored addresses keep working; a file that shared its bytes with another gets a copy of its own. The directory a file was filed in is kept on the Drive's file (`Site:DirectoryPath` in its extra properties), and the report lists every directory.
-4. Grant the Drive's permissions to the roles that edit contents and the theme (see [Permissions](#permissions)).
+1. Install Blob Management and declare the containers as above, with the same container names and the same storage provider and settings as before: the stored bytes are then where Blob Management looks for them.
+2. Reference `Dignite.Site.BlobManagement.Migration` and depend on `SiteBlobManagementMigrationModule`. It runs when the host seeds its data, for the host and every tenant, and in a **dry run** first: it writes nothing and logs what it would do.
+3. Read the report, set `SiteBlobManagementMigration:DryRun` to `false` and seed again. Every file keeps its id, so file fields still name it, and its address, so stored addresses keep working, and is marked public; a file that shared its bytes with another gets a copy of its own, because Blob Management shares no bytes between files. The directory a file was filed in is kept on the file (`Site:DirectoryPath` in its extra properties), and the report lists every directory; Blob Management's `DirectoryPathImporter` files the files into a container that allows directories.
+4. Grant the roles that edit contents and the theme the permissions the table above names; they already hold them if they edited contents before.
 5. Remove the migration package. The next major version of Site removes the old tables.
 
 ## See Also

@@ -78,7 +78,7 @@ Pages, content types, fields and contents are stored through Entity Framework Co
 
 ## File Storage
 
-Site's files are kept in Dignite Drive, which the host installs: its modules, `ConfigureDrive()` in the `DbContext`, and the containers Site's fields use - `images`, `attachments` and `theme-assets` - declared as publicly read user drives in the `Drive` section of `appsettings.json`; see [Files](files.md#installing-the-drive-in-the-host). Then choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for the containers, for example the database provider:
+Site's files are kept in Dignite Blob Management, which the host installs: its modules, `ConfigureBlobManagement()` in the `DbContext`, and the containers Site's fields use - `images`, `attachments` and `theme-assets` - declared in the `BlobManagement` section of `appsettings.json`; see [Files](files.md#installing-blob-management-in-the-host). Then choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for the containers, for example the database provider:
 
 ````csharp
 Configure<AbpBlobStoringOptions>(options =>
@@ -93,7 +93,7 @@ Configure<AbpBlobStoringOptions>(options =>
 });
 ````
 
-Configure only the provider: the Drive's presets set the containers' upload rules. A host on Linux also references `SkiaSharp.NativeAssets.Linux`. Grant the Drive's `Drive.Files.Upload` permission to the roles that edit contents. See [Files](files.md).
+Configure only the provider: Blob Management's presets set the containers' upload rules. A host on Linux also references `SkiaSharp.NativeAssets.Linux`. Uploading follows Site's own permissions, which the roles that edit contents already hold. See [Files](files.md).
 
 ## The Public Site
 

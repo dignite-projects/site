@@ -107,7 +107,7 @@ The template decides which schema.org types a page carries and what goes in them
 
 * Several nodes become one `@graph` under one `@context`; a single node gets the `@context` itself.
 * A property with nothing in it, such as a field that is empty on this content, is left out, at any depth, so a template need not ask first.
-* An address written `~/...` is put in the page's language, as [`url`](#functions) does, and made absolute on the site's primary domain; so is the address of an uploaded file (`/api/site-public/files/...`, or the Drive's `/api/drive/public/...`, which becomes the site's). Any other text is written as it is.
+* An address written `~/...` is put in the page's language, as [`url`](#functions) does, and made absolute on the site's primary domain; so is the address of an uploaded file (`/api/site-public/files/...`, or Blob Management's `/blobs/...`, which becomes the site's). Any other text is written as it is.
 * `<`, `>` and `&` are escaped, so a title that holds `</script>` cannot end the script.
 
 Each node must be an object with an `@type`; anything else fails the render. A key such as `@type` is written in quotes:

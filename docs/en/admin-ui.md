@@ -98,10 +98,10 @@ The menu is hidden while the `Site.Enable` [feature](settings.md#the-site-featur
 `provideSite()` registers a control, a configuration editor and a view for every [field type](field-types.md):
 
 * The FlexFields built-ins: `Text`, `Number`, `DateTime`, `Select`, `Boolean`, `Tree`, `Matrix` and `Table`.
-* `CKEditor`, whose images are uploaded to the Drive; see [Files](files.md).
-* Site's own `Content` (a content picker), `FileExplorer` (files uploaded to the Drive) and `Seo` (meta title, description, share image and `noindex`).
+* `CKEditor`, whose images are uploaded to Site's file containers; see [Files](files.md).
+* Site's own `Content` (a content picker), `FileExplorer` (files uploaded to Site's file containers) and `Seo` (meta title, description, share image and `noindex`).
 
-The file field and the SEO share images use the Drive's file input, `drive-file-input` from `@dignite/ng.drive`, which `@dignite/ng.site` depends on. Its proxies call the API named `Drive`; without an `apis.Drive` entry in the environment they use `apis.default`, which is right when the Drive is installed in the host of the `SiteAdmin` API. See [Files](files.md).
+The file field and the SEO share images use `site-file-input` from `@dignite/ng.site`, which uploads to Blob Management through Site's administration API: a ticket from `api/site-admin/files`, the file posted to `api/blob-management/uploads/{ticket}` on the same host, and a confirmation. Blob Management is installed in the host of the `SiteAdmin` API, so the UI needs no API entry of its own. See [Files](files.md).
 
 ## Global Styles
 

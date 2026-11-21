@@ -82,7 +82,7 @@ The `Site.Enable` feature, on by default, switches the administration side of Si
 | `SiteAdmin.Seo` | Reading the SEO settings: the default share image. |
 | `SiteAdmin.Seo.Update` | Setting them. |
 
-Files are authorized by the Drive's permissions, not by Site's; see [Files](files.md#permissions). The public read API needs no permission. The MCP tools are authorized by the same permissions as the administration API; see [MCP Server](mcp/index.md#authorization).
+Files are authorized by the permission of the container they go to - `SiteAdmin.Contents.*`, `SiteAdmin.Seo.Update` or `SiteAdmin.Themes.Edit`; see [Files](files.md#permissions). The public read API needs no permission. The MCP tools are authorized by the same permissions as the administration API; see [MCP Server](mcp/index.md#authorization).
 
 ## See Also
 
