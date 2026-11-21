@@ -18,7 +18,7 @@ namespace Dignite.Site.Public.Files;
 /// <para>
 /// <b>Upright.</b> A camera writes a photo sideways and records how to turn it in its EXIF orientation, which a
 /// browser applies to the stored file. Re-encoding drops the EXIF, so the orientation is applied to the pixels here
-/// (<see cref="ImageOrientation"/>, which the Drive's images preset uses too when it stores a picture).
+/// (<see cref="ImageOrientation"/>, which Blob Management's images preset uses too when it stores a picture).
 /// </para>
 /// <para>
 /// A size is applied as ABP's <c>ImageResizeMode.Crop</c> does, so an address resized before renders the same

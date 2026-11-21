@@ -40,7 +40,7 @@ public static class SiteErrorCodes
     public const string InvalidValueFormat = "Site:060001";
 
     // Site:0700xx (the file library's directories) and Site:080001/080003 (files outside Site's containers, upload
-    // links) are retired with the file library: files are the Drive's, and its errors are its own. Not reused.
+    // links) are retired with the file library: files are Blob Management's, and its errors are its own. Not reused.
 
     // The legacy file descriptors, read until the next version removes them. The public read endpoint's on-request
     // resize reuses the codes of Dignite.Abp.BlobStoring.Imaging (Dignite.Abp.BlobStoring.Imaging:*).

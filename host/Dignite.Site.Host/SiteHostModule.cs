@@ -72,10 +72,10 @@ using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Dignite.Site.Public;
 using Dignite.Abp.AspNetCore.Mcp;
-using Dignite.Drive;
-using Dignite.Drive.EntityFrameworkCore;
-using Dignite.Drive.Mcp;
-using Dignite.Site.DriveMigration;
+using Dignite.Abp.BlobManagement;
+using Dignite.Abp.BlobManagement.EntityFrameworkCore;
+using Dignite.Abp.BlobManagement.Localization;
+using Dignite.Site.BlobManagementMigration;
 
 using Microsoft.Extensions.Hosting;
 
@@ -139,7 +139,7 @@ namespace Dignite.Site.Host;
     typeof(AbpEntityFrameworkCoreSqliteModule),
 
     // The active BLOB storage provider (GitHub issue #41) - filesystem for dev, production provider
-    // still open. ConfigureBlobStoring below is what actually points Site's Drive containers at it; this
+    // still open. ConfigureBlobStoring below is what actually points Site's file containers at it; this
     // DependsOn is what makes that provider resolvable at all.
     typeof(AbpBlobStoringFileSystemModule),
 
@@ -163,19 +163,20 @@ namespace Dignite.Site.Host;
     // Dignite.Abp.AspNetCore.Mcp, and is configured for this deployment in ConfigureMcp.
     typeof(SiteMcpModule),
 
-    // The Drive, in this process: Site's files are kept in it. Its containers - images, attachments and
-    // theme-assets, the ones Site's fields name - are declared in the Drive section of appsettings.json; their
-    // storage provider is set in ConfigureBlobStoring. DriveHttpApiModule serves the file API the admin UI uploads
-    // to and the public read Site's file endpoint reads through; DriveMcpModule adds the drive_* tools to the MCP
-    // server, which Site's file instructions point to.
-    typeof(DriveApplicationModule),
-    typeof(DriveHttpApiModule),
-    typeof(DriveEntityFrameworkCoreModule),
-    typeof(DriveMcpModule),
+    // Blob Management, in this process: Site's files are kept in it. Its containers - images, attachments and
+    // theme-assets, the ones Site's fields name - are declared in the BlobManagement section of appsettings.json;
+    // their storage provider is set in ConfigureBlobStoring. BlobManagementHttpApiModule serves what a browser reaches
+    // without Site in between - the upload with a ticket Site's admin UI posts to and the public read Site's file
+    // endpoint reads through. It is a trusted, in-process caller of the file service, so no OAuth client is granted
+    // anything. It has no MCP tools: Site's own file tools call the same service.
+    typeof(BlobManagementApplicationModule),
+    typeof(BlobManagementHttpApiModule),
+    typeof(BlobManagementEntityFrameworkCoreModule),
 
-    // The migration of the files Site's own file library kept before 3.0 into the Drive, when the data is seeded
-    // (--migrate-database). A dry run unless SiteDriveMigration:DryRun is false; remove it once the files are migrated.
-    typeof(SiteDriveMigrationModule)
+    // The migration of the files Site's own file library kept before 3.0 into Blob Management, when the data is seeded
+    // (--migrate-database). A dry run unless SiteBlobManagementMigration:DryRun is false; remove it once the files are
+    // migrated.
+    typeof(SiteBlobManagementMigrationModule)
 )]
 public class SiteHostModule : AbpModule
 {
@@ -292,12 +293,12 @@ public class SiteHostModule : AbpModule
 
     /// <summary>
     /// The storage provider for each <see cref="SiteFileContainerNames"/> container (GitHub issue #41):
-    /// filesystem for dev. Only the provider - each container is a Drive container, declared with its preset (size,
-    /// types, image handling) in the Drive section of appsettings.json, and <c>Containers.Configure</c> merges this
-    /// onto it. The same base path as before the files moved to the Drive, so the bytes Site's own file library stored
-    /// are where the Drive looks for them. Production provider (Azure/S3/other) is still an open decision (#41) -
-    /// swapping it later only touches this method, since the Drive addresses blobs through IBlobContainer by container
-    /// name, never by provider.
+    /// filesystem for dev. Only the provider - each container is a Blob Management container, declared with its preset
+    /// (size, types, image handling) in the BlobManagement section of appsettings.json, and <c>Containers.Configure</c>
+    /// merges this onto it. The same base path as before the files moved to Blob Management, so the bytes Site's own
+    /// file library stored are where it looks for them. Production provider (Azure/S3/other) is still an open decision
+    /// (#41) - swapping it later only touches this method, since Blob Management addresses blobs through IBlobContainer
+    /// by container name, never by provider.
     /// </summary>
     private void ConfigureBlobStoring(IHostEnvironment hostingEnvironment)
     {
@@ -473,6 +474,12 @@ public class SiteHostModule : AbpModule
                 .Add<SiteHostResource>("en")
                 .AddBaseTypes(typeof(AbpValidationResource), typeof(AbpUiResource))
                 .AddVirtualJson("/Localization/Host");
+
+            // The management page of the Angular build asks for texts 10.7.7-preview.1 of Blob Management does not have
+            // yet; they are added to its resource here. Remove them with the release that carries them.
+            options.Resources
+                .Get<BlobManagementResource>()
+                .AddVirtualJson("/Localization/BlobManagementPreview");
 
             options.DefaultResourceType = typeof(SiteHostResource);
             

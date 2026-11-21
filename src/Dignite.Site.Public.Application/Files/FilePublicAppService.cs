@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dignite.Abp.BlobStoring.Imaging;
-using Dignite.Drive.Public;
+using Dignite.Abp.BlobManagement.Public;
 using Dignite.Site.Files;
 using Volo.Abp;
 using Volo.Abp.BlobStoring;
@@ -18,11 +18,11 @@ namespace Dignite.Site.Public.Files;
 /// The public read endpoint's logic: find the file in the current tenant (the request's, resolved like any other), open
 /// its bytes, and serve an image rendered from it when the request asks for a size or a format.
 /// <para>
-/// <b>Where the file is.</b> Site's files are the Drive's: <c>{container}/{blob}</c> is a file of a <c>PublicRead</c>
-/// Drive container, found by its physical BLOB name (<see cref="IDrivePublicAppService"/>), which the Drive gives the
-/// same form Site's own names had. The Drive keeps the bytes and decides what is public; this endpoint keeps Site's
+/// <b>Where the file is.</b> Site's files are Blob Management's: <c>{container}/{blob}</c> is a public file of a managed
+/// container, found by its physical BLOB name (<see cref="IBlobManagementPublicAppService"/>), which Blob Management gives the
+/// same form Site's own names had. Blob Management keeps the bytes, and the file's own public mark decides what is read; this endpoint keeps Site's
 /// address, which names no tenant, and what Site does on read - the format a browser takes, any size, a cache of what it
-/// rendered. A file the Drive does not have is looked up among the descriptors of the file library Site kept before
+/// rendered. A file Blob Management does not have is looked up among the descriptors of the file library Site kept before
 /// (<see cref="FindLegacyAsync"/>), until they are migrated; the next major version drops that fallback.
 /// </para>
 /// <para>
@@ -32,8 +32,8 @@ namespace Dignite.Site.Public.Files;
 /// </para>
 /// <para>
 /// Anonymous on purpose, and not feature-gated (see <c>SiteFeatures.Enable</c>): it serves a published
-/// site's images to its visitors. What keeps it from serving anything else: the Drive answers only for its
-/// <c>PublicRead</c> containers, the legacy fallback only for <see cref="SiteFileContainerNames.All"/>, and the
+/// site's images to its visitors. What keeps it from serving anything else: Blob Management answers only for
+/// files marked public, the legacy fallback only for <see cref="SiteFileContainerNames.All"/>, and the
 /// containers' upload rules keep script-capable types (SVG, HTML, JS) out of them.
 /// </para>
 /// </summary>
@@ -41,7 +41,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
 {
     protected const int MaxDecompressionRatio = 100;
 
-    protected IDrivePublicAppService DrivePublicAppService { get; }
+    protected IBlobManagementPublicAppService BlobManagementPublicAppService { get; }
 
     protected IFileDescriptorRepository FileDescriptorRepository { get; }
 
@@ -55,13 +55,13 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
         LazyServiceProvider.LazyGetService<ICancellationTokenProvider>()?.Token ?? CancellationToken.None;
 
     public FilePublicAppService(
-        IDrivePublicAppService drivePublicAppService,
+        IBlobManagementPublicAppService blobManagementPublicAppService,
         IFileDescriptorRepository fileDescriptorRepository,
         IBlobContainerFactory blobContainerFactory,
         ImageVariantRenderer imageVariantRenderer,
         RenderedImageCache renderedImageCache)
     {
-        DrivePublicAppService = drivePublicAppService;
+        BlobManagementPublicAppService = blobManagementPublicAppService;
         FileDescriptorRepository = fileDescriptorRepository;
         BlobContainerFactory = blobContainerFactory;
         ImageVariantRenderer = imageVariantRenderer;
@@ -112,7 +112,7 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
     }
 
     /// <summary>
-    /// The file at <c>{containerName}/{blobName}</c>: the Drive's, else a legacy descriptor's, else <c>null</c>.
+    /// The file at <c>{containerName}/{blobName}</c>: Blob Management's, else a legacy descriptor's, else <c>null</c>.
     /// </summary>
     protected virtual async Task<SiteStoredFile?> FindAsync(string containerName, string blobName, CancellationToken cancellationToken)
     {
@@ -121,21 +121,21 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             return null;
         }
 
-        return await FindInDriveAsync(containerName, blobName) ?? await FindLegacyAsync(containerName, blobName, cancellationToken);
+        return await FindInBlobManagementAsync(containerName, blobName) ?? await FindLegacyAsync(containerName, blobName, cancellationToken);
     }
 
     /// <summary>
-    /// The file of a <c>PublicRead</c> Drive container whose physical BLOB is <paramref name="blobName"/>, or <c>null</c>.
-    /// The Drive is asked for the file's information only; its bytes are read when they are needed - not at all when the
+    /// The public file of a managed container whose physical BLOB is <paramref name="blobName"/>, or <c>null</c>.
+    /// Blob Management is asked for the file's information only; its bytes are read when they are needed - not at all when the
     /// rendition asked for is in <see cref="RenderedImageCache"/>.
     /// </summary>
-    protected virtual async Task<SiteStoredFile?> FindInDriveAsync(string containerName, string blobName)
+    protected virtual async Task<SiteStoredFile?> FindInBlobManagementAsync(string containerName, string blobName)
     {
-        DrivePublicReadResult found;
+        BlobManagementPublicReadResult found;
         try
         {
-            found = await DrivePublicAppService.ReadAsync(
-                containerName, blobName, new DrivePublicReadInput(), new DrivePublicReadRequest { HeadersOnly = true });
+            found = await BlobManagementPublicAppService.ReadAsync(
+                containerName, blobName, new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest { HeadersOnly = true });
         }
         catch (EntityNotFoundException)
         {
@@ -149,15 +149,15 @@ public class FilePublicAppService : SitePublicAppService, IFilePublicAppService
             found.File.MimeType,
             async _ =>
             {
-                var read = await DrivePublicAppService.ReadAsync(
-                    containerName, blobName, new DrivePublicReadInput(), new DrivePublicReadRequest());
+                var read = await BlobManagementPublicAppService.ReadAsync(
+                    containerName, blobName, new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest());
                 return read.Content?.GetStream();
             });
     }
 
     /// <summary>
     /// The live descriptor addressed by <paramref name="blobName"/> in one of Site's containers, from the file library
-    /// Site kept before its files moved to the Drive, or <c>null</c> - for a container that is not Site's as much as for a
+    /// Site kept before its files moved to Blob Management, or <c>null</c> - for a container that is not Site's as much as for a
     /// name that does not exist. Its bytes are its own blob, or the one it refers to.
     /// </summary>
     protected virtual async Task<SiteStoredFile?> FindLegacyAsync(string containerName, string blobName, CancellationToken cancellationToken)

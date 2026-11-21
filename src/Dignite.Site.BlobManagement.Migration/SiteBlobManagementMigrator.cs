@@ -16,33 +16,37 @@ using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.MultiTenancy;
 using Volo.Abp.Uow;
-using DriveFile = Dignite.Drive.FileDescriptor;
-using DriveFileConsts = Dignite.Drive.FileDescriptorConsts;
+using BlobManagementFile = Dignite.Abp.BlobManagement.FileDescriptor;
+using BlobManagementFileConsts = Dignite.Abp.BlobManagement.FileDescriptorConsts;
 using LegacyFile = Dignite.Site.Files.FileDescriptor;
 
-namespace Dignite.Site.DriveMigration;
+namespace Dignite.Site.BlobManagementMigration;
 
 /// <summary>
-/// Moves the live files of the file library Site kept before 3.0 (<c>SiteFileDescriptors</c>) into the Drive, in the
-/// current tenant, so that nothing a site stored stops working:
+/// Moves the live files of the file library Site kept before 3.0 (<c>SiteFileDescriptors</c>) into Blob Management, in
+/// the current tenant, so that nothing a site stored stops working:
 /// <list type="bullet">
-/// <item>Each live legacy file becomes a Drive file of the same <b>id</b> (what a file field stores), name, type, size,
-/// creator and creation time, in the container of the same name.</item>
+/// <item>Each live legacy file becomes a Blob Management file of the same <b>id</b> (what a file field stores), name,
+/// type, size, creator and creation time, in the container of the same name, <b>marked public</b>: every file of Site's
+/// containers is read by the site's visitors.</item>
 /// <item>Its physical <b>BLOB name is the legacy file's own BLOB name</b>, so Site's address of it
-/// (<c>/api/site-public/files/{container}/{blob}</c>), which reads the Drive by that name, keeps working; no stored
-/// address is rewritten. A file that owned its bytes keeps them where they are - the Drive's container of that name
+/// (<c>/api/site-public/files/{container}/{blob}</c>), which reads Blob Management by that name, keeps working; no stored
+/// address is rewritten. A file that owned its bytes keeps them where they are - Blob Management's container of that name
 /// reads the same storage. A dedup <i>reference</i> - an address of its own, the bytes of another file's blob - gets a
-/// copy of those bytes under its own name; a blob that only references used, its owner deleted, is removed once the
-/// copies are committed.</item>
-/// <item>The directory a file was filed in is kept on the Drive file as <c>ExtraProperties["Site:DirectoryPath"]</c>
-/// (<c>a/b</c>, by name): the open Drive has no directories, Drive Pro can file it again from there.</item>
-/// <item>One file per content holds the dedup key; the others share nothing, as if stored without dedup.</item>
+/// copy of those bytes under its own name, because Blob Management shares no bytes between files: a BLOB goes with its
+/// file. A blob that only references used, its owner deleted, is removed once the copies are committed.</item>
+/// <item>The directory a file was filed in is kept on the file as <c>ExtraProperties["Site:DirectoryPath"]</c>
+/// (<c>a/b</c>, by name): Site's containers have no directories, and a container that allows them can file the files
+/// from there with Blob Management's <c>DirectoryPathImporter</c>.</item>
+/// <item>The file keeps its SHA-256 (upper-case hex, as the legacy library recorded it): the descriptor of the
+/// 10.7.7-preview.1 release of Blob Management requires one. A later release keeps a hash only for an upload verified
+/// against one, as base64; this migration then stops writing it.</item>
 /// </list>
 /// Bytes are copied with the storage provider directly, past the container's upload pipeline: a legacy file is stored
-/// as it was, not converted again. Runs again safely: a file the Drive has (by id) is skipped, a copy that exists is not
-/// made twice. <see cref="SiteDriveMigrationOptions.DryRun"/> reports without writing.
+/// as it was, not converted again. Runs again safely: a file Blob Management has (by id) is skipped, a copy that exists is
+/// not made twice. <see cref="SiteBlobManagementMigrationOptions.DryRun"/> reports without writing.
 /// </summary>
-public class SiteDriveMigrator : ITransientDependency
+public class SiteBlobManagementMigrator : ITransientDependency
 {
     public const string DirectoryPathProperty = "Site:DirectoryPath";
 
@@ -50,7 +54,7 @@ public class SiteDriveMigrator : ITransientDependency
 
     protected IDirectoryDescriptorRepository LegacyDirectories { get; }
 
-    protected IRepository<DriveFile, Guid> DriveFiles { get; }
+    protected IRepository<BlobManagementFile, Guid> BlobManagementFiles { get; }
 
     protected IBlobProviderSelector BlobProviderSelector { get; }
 
@@ -64,25 +68,25 @@ public class SiteDriveMigrator : ITransientDependency
 
     protected IUnitOfWorkManager UnitOfWorkManager { get; }
 
-    protected SiteDriveMigrationOptions Options { get; }
+    protected SiteBlobManagementMigrationOptions Options { get; }
 
-    public ILogger<SiteDriveMigrator> Logger { get; set; } = NullLogger<SiteDriveMigrator>.Instance;
+    public ILogger<SiteBlobManagementMigrator> Logger { get; set; } = NullLogger<SiteBlobManagementMigrator>.Instance;
 
-    public SiteDriveMigrator(
+    public SiteBlobManagementMigrator(
         IFileDescriptorRepository legacyFiles,
         IDirectoryDescriptorRepository legacyDirectories,
-        IRepository<DriveFile, Guid> driveFiles,
+        IRepository<BlobManagementFile, Guid> blobManagementFiles,
         IBlobProviderSelector blobProviderSelector,
         IBlobContainerConfigurationProvider blobContainerConfigurationProvider,
         IBlobNormalizeNamingService blobNormalizeNamingService,
         IDataFilter dataFilter,
         ICurrentTenant currentTenant,
         IUnitOfWorkManager unitOfWorkManager,
-        IOptions<SiteDriveMigrationOptions> options)
+        IOptions<SiteBlobManagementMigrationOptions> options)
     {
         LegacyFiles = legacyFiles;
         LegacyDirectories = legacyDirectories;
-        DriveFiles = driveFiles;
+        BlobManagementFiles = blobManagementFiles;
         BlobProviderSelector = blobProviderSelector;
         BlobContainerConfigurationProvider = blobContainerConfigurationProvider;
         BlobNormalizeNamingService = blobNormalizeNamingService;
@@ -92,9 +96,9 @@ public class SiteDriveMigrator : ITransientDependency
         Options = options.Value;
     }
 
-    public virtual async Task<SiteDriveMigrationReport> MigrateAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<SiteBlobManagementMigrationReport> MigrateAsync(CancellationToken cancellationToken = default)
     {
-        var report = new SiteDriveMigrationReport { TenantId = CurrentTenant.Id, DryRun = Options.DryRun };
+        var report = new SiteBlobManagementMigrationReport { TenantId = CurrentTenant.Id, DryRun = Options.DryRun };
 
         var files = await LegacyFiles.GetListAsync(cancellationToken: cancellationToken);
         var directories = await LegacyDirectories.GetListAsync(cancellationToken: cancellationToken);
@@ -119,10 +123,9 @@ public class SiteDriveMigrator : ITransientDependency
             .GroupBy(file => (file.ContainerName, file.BlobName))
             .ToDictionary(group => group.Key, group => group.OrderBy(file => file.IsDeleted).First());
 
-        var claimedDedupKeys = new HashSet<string>();
         foreach (var file in files)
         {
-            await MigrateFileAsync(file, owners, paths, claimedDedupKeys, report, cancellationToken);
+            await MigrateFileAsync(file, owners, paths, report, cancellationToken);
         }
 
         await RemoveOrphanedBlobsAsync(files, report, cancellationToken);
@@ -135,22 +138,21 @@ public class SiteDriveMigrator : ITransientDependency
         LegacyFile file,
         Dictionary<(string ContainerName, string BlobName), LegacyFile> owners,
         Dictionary<Guid, string> paths,
-        HashSet<string> claimedDedupKeys,
-        SiteDriveMigrationReport report,
+        SiteBlobManagementMigrationReport report,
         CancellationToken cancellationToken)
     {
         using (DataFilter.Disable<ISoftDelete>())
         {
-            if (await DriveFiles.FindAsync(file.Id, includeDetails: false, cancellationToken) != null)
+            if (await BlobManagementFiles.FindAsync(file.Id, includeDetails: false, cancellationToken) != null)
             {
                 report.AlreadyMigrated++;
                 return;
             }
         }
 
-        if (file.BlobName.Length > DriveFileConsts.MaxBlobNameLength)
+        if (file.BlobName.Length > BlobManagementFileConsts.MaxBlobNameLength)
         {
-            report.Skipped.Add($"{file.ContainerName}/{file.BlobName}: the name is longer than the Drive's {DriveFileConsts.MaxBlobNameLength} characters.");
+            report.Skipped.Add($"{file.ContainerName}/{file.BlobName}: the name is longer than Blob Management's {BlobManagementFileConsts.MaxBlobNameLength} characters.");
             return;
         }
 
@@ -184,15 +186,7 @@ public class SiteDriveMigrator : ITransientDependency
             report.Owners++;
         }
 
-        var dedupKey = DriveFile.CreateDedupKey(file.TenantId, file.ContainerName, hash);
-        var ownsBlob = !claimedDedupKeys.Contains(dedupKey) &&
-                       !await DriveFiles.AnyAsync(driveFile => driveFile.DedupKey == dedupKey, cancellationToken);
-        if (ownsBlob)
-        {
-            claimedDedupKeys.Add(dedupKey);
-        }
-
-        var migrated = new DriveFile(
+        var migrated = new BlobManagementFile(
             file.Id,
             file.ContainerName,
             file.Name,
@@ -200,13 +194,14 @@ public class SiteDriveMigrator : ITransientDependency
             file.MimeType.IsNullOrWhiteSpace() ? "application/octet-stream" : file.MimeType,
             file.Size,
             hash,
-            ownsBlob,
             clientId: null,
             tenantId: file.TenantId)
         {
             CreatorId = file.CreatorId,
             CreationTime = file.CreationTime
         };
+
+        migrated.SetPublic(true);
 
         if (file.DirectoryId is { } directoryId && paths.TryGetValue(directoryId, out var path))
         {
@@ -215,7 +210,7 @@ public class SiteDriveMigrator : ITransientDependency
 
         if (!Options.DryRun)
         {
-            await DriveFiles.InsertAsync(migrated, autoSave: true, cancellationToken);
+            await BlobManagementFiles.InsertAsync(migrated, autoSave: true, cancellationToken);
         }
     }
 
@@ -226,7 +221,7 @@ public class SiteDriveMigrator : ITransientDependency
     protected virtual Dictionary<Guid, string> DescribeDirectories(
         List<DirectoryDescriptor> directories,
         List<LegacyFile> files,
-        SiteDriveMigrationReport report)
+        SiteBlobManagementMigrationReport report)
     {
         var byId = directories.ToDictionary(directory => directory.Id);
         var paths = new Dictionary<Guid, string>();
@@ -263,11 +258,11 @@ public class SiteDriveMigrator : ITransientDependency
 
     /// <summary>
     /// Removes, once the migration is committed, the blobs that only references used and whose owner had been
-    /// deleted: every live reference to them now has a copy of its own, and no Drive file names them.
+    /// deleted: every live reference to them now has a copy of its own, and no file of Blob Management names them.
     /// </summary>
     protected virtual async Task RemoveOrphanedBlobsAsync(
         List<LegacyFile> files,
-        SiteDriveMigrationReport report,
+        SiteBlobManagementMigrationReport report,
         CancellationToken cancellationToken)
     {
         var orphans = files
@@ -280,7 +275,7 @@ public class SiteDriveMigrator : ITransientDependency
         var removable = new List<(string ContainerName, string BlobName)>();
         foreach (var orphan in orphans)
         {
-            if (!await DriveFiles.AnyAsync(file => file.ContainerName == orphan.ContainerName && file.BlobName == orphan.BlobName, cancellationToken))
+            if (!await BlobManagementFiles.AnyAsync(file => file.ContainerName == orphan.ContainerName && file.BlobName == orphan.BlobName, cancellationToken))
             {
                 removable.Add(orphan);
             }
@@ -362,13 +357,13 @@ public class SiteDriveMigrator : ITransientDependency
         return (BlobProviderSelector.Get(containerName), configuration, naming.BlobName!);
     }
 
-    protected virtual void Log(SiteDriveMigrationReport report)
+    protected virtual void Log(SiteBlobManagementMigrationReport report)
     {
         Logger.LogInformation(
-            "Site's legacy files {Mode} for tenant {TenantId}: {Files} live files, {AlreadyMigrated} already in the Drive, " +
+            "Site's legacy files {Mode} for tenant {TenantId}: {Files} live files, {AlreadyMigrated} already in Blob Management, " +
             "{Owners} owning their bytes, {References} dedup references ({CopiedBytes} bytes copied), {OrphanedBlobs} orphaned blobs removed, " +
             "{Directories} directories ({EmptyDirectories} empty), {Skipped} skipped.",
-            report.DryRun ? "(dry run, nothing written)" : "migrated to the Drive",
+            report.DryRun ? "(dry run, nothing written)" : "migrated to Blob Management",
             report.TenantId?.ToString() ?? "host",
             report.Files, report.AlreadyMigrated, report.Owners, report.References, report.CopiedBytes, report.OrphanedBlobs,
             report.Directories, report.EmptyDirectories, report.Skipped.Count);

@@ -1,7 +1,7 @@
-﻿using Dignite.Drive;
-using Dignite.Drive.EntityFrameworkCore;
-using Dignite.Drive.Presets;
-using Dignite.Site.DriveMigration;
+﻿using Dignite.Abp.BlobManagement;
+using Dignite.Abp.BlobManagement.EntityFrameworkCore;
+using Dignite.Abp.BlobManagement.Presets;
+using Dignite.Site.BlobManagementMigration;
 using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Microsoft.Data.Sqlite;
@@ -34,12 +34,12 @@ namespace Dignite.Site.EntityFrameworkCore;
     // The BLOB storage provider backing ConfigureBlobStoring below (GitHub issue #41) - same provider as
     // the dev Host, so this proves the same code path, not a test-only substitute.
     typeof(AbpBlobStoringFileSystemModule),
-    // The Drive, where Site's files are kept, installed in this process as the dev Host installs it.
-    typeof(DriveApplicationModule),
-    typeof(DriveEntityFrameworkCoreModule),
-    // The migration of the legacy file library to the Drive, as a host adds it for the upgrade. Its seed contributor
+    // Blob Management, where Site's files are kept, installed in this process as the dev Host installs it.
+    typeof(BlobManagementApplicationModule),
+    typeof(BlobManagementEntityFrameworkCoreModule),
+    // The migration of the legacy file library to Blob Management, as a host adds it for the upgrade. Its seed contributor
     // runs with the test data, in a dry run (the default): nothing is written until a test asks for it.
-    typeof(SiteDriveMigrationModule)
+    typeof(SiteBlobManagementMigrationModule)
 )]
 public class SiteEntityFrameworkCoreTestModule : AbpModule
 {
@@ -69,9 +69,9 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
     }
 
     /// <summary>
-    /// Site's containers as the dev Host declares them: Drive user drives, read publicly, with the Drive's presets (the
-    /// Host does it in the Drive section of appsettings.json), on the same provider kind (GitHub issue #41), pointed at
-    /// a temp directory instead of App_Data so tests never touch a real deployment's files.
+    /// Site's containers as the dev Host declares them: Blob Management containers with its presets (the Host does it in
+    /// the BlobManagement section of appsettings.json), on the same provider kind (GitHub issue #41), pointed at a temp
+    /// directory instead of App_Data so tests never touch a real deployment's files.
     /// </summary>
     private void ConfigureBlobStoring()
     {
@@ -84,11 +84,7 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
                 options.Containers.Configure(containerName, container =>
                 {
                     container.UseFileSystem(fileSystem => fileSystem.BasePath = basePath);
-                    container.UseDriveContainer(drive =>
-                    {
-                        drive.Kind = DriveContainerKind.UserDrive;
-                        drive.PublicRead = true;
-                    });
+                    container.UseBlobManagementContainer();
                 });
             }
 
@@ -132,9 +128,9 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
             new DbContextOptionsBuilder<SiteDbContext>().UseSqlite(connection).Options
         ).GetService<IRelationalDatabaseCreator>().CreateTables();
 
-        // The Drive's own context, on the same connection: DriveFileDescriptors.
-        new DriveDbContext(
-            new DbContextOptionsBuilder<DriveDbContext>().UseSqlite(connection).Options
+        // Blob Management's own context, on the same connection: BlobFileDescriptors and BlobDirectoryDescriptors.
+        new BlobManagementDbContext(
+            new DbContextOptionsBuilder<BlobManagementDbContext>().UseSqlite(connection).Options
         ).GetService<IRelationalDatabaseCreator>().CreateTables();
 
         return connection;

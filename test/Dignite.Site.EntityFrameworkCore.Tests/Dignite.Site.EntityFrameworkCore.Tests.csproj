@@ -15,7 +15,7 @@
     <!-- The MCP tool classes are ordinary ABP services, so they are tested here against the same seeded
          scenario as the app services they call - no HTTP, no MCP transport. -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
-    <ProjectReference Include="..\..\src\Dignite.Site.Drive.Migration\Dignite.Site.Drive.Migration.csproj" />
+    <ProjectReference Include="..\..\src\Dignite.Site.BlobManagement.Migration\Dignite.Site.BlobManagement.Migration.csproj" />
     <ProjectReference Include="..\Dignite.Site.Application.Tests\Dignite.Site.Application.Tests.csproj" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.7.0"/>
     <!-- Not a database: SiteThemeIndexes_Tests generates the DDL SQL Server gets from the model, without a server,
@@ -24,9 +24,9 @@
     <!-- The file library's test containers (GitHub issue #41) - same provider as the dev Host,
          pointed at a temp directory instead of App_Data. -->
     <PackageReference Include="Volo.Abp.BlobStoring.FileSystem" Version="10.7.0" />
-    <!-- The Drive, installed as Dignite.Site.Host installs it: Site's files are kept in it. -->
-    <PackageReference Include="Dignite.Drive.Application" Version="$(DigniteAbpModulesVersion)" />
-    <PackageReference Include="Dignite.Drive.EntityFrameworkCore" Version="$(DigniteAbpModulesVersion)" />
+    <!-- Blob Management, installed as Dignite.Site.Host installs it: Site's files are kept in it. -->
+    <PackageReference Include="Dignite.Abp.BlobManagement.Application" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Abp.BlobManagement.EntityFrameworkCore" Version="$(DigniteAbpModulesVersion)" />
     <!-- The upload and on-request resize tests run images through SkiaSharp (Volo.Abp.Imaging.SkiaSharp,
          via Admin/Public.Application), and TestFiles draws its pictures with it. That package brings the
          Windows and macOS natives only; this one lets the tests run on the ubuntu CI runners. Same version

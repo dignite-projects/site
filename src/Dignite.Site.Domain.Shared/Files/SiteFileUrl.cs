@@ -20,10 +20,11 @@ namespace Dignite.Site.Files;
 /// MCP tools build and recognize the same addresses.
 /// </para>
 /// <para>
-/// <b>The Drive's addresses.</b> Site's files are the Drive's, and the Drive hands out its own public address
-/// (<c>/api/drive/public/{container}/{blob}?__tenant=...</c>), which a file field or an SEO image may store. Site serves
-/// the same file at its own address, with the format a browser takes and any size, so <see cref="Normalize"/> turns the
-/// one into the other, and <see cref="Sized"/>, <see cref="Absolutize"/> and <see cref="IsSiteFile"/> do it first.
+/// <b>Blob Management's addresses.</b> Site's files are Blob Management's, and it hands out its own public address
+/// (<c>/blobs/{container}/{blob}?__tenant=...</c>) for a file marked public, which a file field or an SEO image may
+/// store. Site serves the same file at its own address, with the format a browser takes and any size, so
+/// <see cref="Normalize"/> turns the one into the other, and <see cref="Sized"/>, <see cref="Absolutize"/> and
+/// <see cref="IsSiteFile"/> do it first.
 /// </para>
 /// </summary>
 public static class SiteFileUrl
@@ -49,12 +50,13 @@ public static class SiteFileUrl
     private const string LegacyPathMarker = "/file-explorer/files/";
 
     /// <summary>
-    /// The path segment of the Drive's public read endpoint (<c>api/drive/public/{container}/{blob}</c>), whatever host
-    /// it is served from.
+    /// The path Blob Management's public read is served at (<c>/blobs/{container}/{blob}</c>), on whatever host it is
+    /// reached. It is recognized only at the start of an address's path: <c>/blobs/</c> inside another path is no file of
+    /// Blob Management's.
     /// </summary>
-    private const string DrivePathMarker = "/api/drive/public/";
+    private const string BlobManagementPathPrefix = "/blobs/";
 
-    /// <summary>The query parameter the Drive names a file's tenant with; Site's address names none.</summary>
+    /// <summary>The query parameter Blob Management names a file's tenant with; Site's address names none.</summary>
     private const string TenantParameter = "__tenant";
 
     /// <summary>
@@ -127,29 +129,22 @@ public static class SiteFileUrl
         return !string.IsNullOrWhiteSpace(url)
                && (url.Contains(PathMarker, StringComparison.OrdinalIgnoreCase)
                    || url.Contains(LegacyPathMarker, StringComparison.OrdinalIgnoreCase)
-                   || url.Contains(DrivePathMarker, StringComparison.OrdinalIgnoreCase));
+                   || TryGetBlobManagementPath(url, out _));
     }
 
     /// <summary>
-    /// The Site address of a file the Drive addresses as <paramref name="url"/>: <c>/api/drive/public/{container}/{blob}</c>,
-    /// relative or on any host, becomes <c>/api/site-public/files/{container}/{blob}</c>, relative, without the Drive's
-    /// <c>__tenant</c> - the site's request names its tenant - and with every other query parameter kept. Any other
-    /// address, a blank one included, is returned as it is.
+    /// The Site address of a file Blob Management addresses as <paramref name="url"/>: <c>/blobs/{container}/{blob}</c>,
+    /// relative or on any host, becomes <c>/api/site-public/files/{container}/{blob}</c>, relative, without Blob
+    /// Management's <c>__tenant</c> - the site's request names its tenant - and with every other query parameter kept. Any
+    /// other address, a blank one included, is returned as it is.
     /// </summary>
     public static string? Normalize(string? url)
     {
-        if (string.IsNullOrWhiteSpace(url))
+        if (string.IsNullOrWhiteSpace(url) || !TryGetBlobManagementPath(url, out var rest))
         {
             return url;
         }
 
-        var marker = url.IndexOf(DrivePathMarker, StringComparison.OrdinalIgnoreCase);
-        if (marker < 0)
-        {
-            return url;
-        }
-
-        var rest = url[(marker + DrivePathMarker.Length)..];
         var queryStart = rest.IndexOf('?');
         var path = queryStart < 0 ? rest : rest[..queryStart];
         var kept = queryStart < 0
@@ -161,6 +156,40 @@ public static class SiteFileUrl
 
         var address = $"/{RoutePrefix}/{path}";
         return kept.Length == 0 ? address : $"{address}?{string.Join('&', kept)}";
+    }
+
+    /// <summary>
+    /// Whether <paramref name="url"/> - relative, or absolute on any host - is the public address of a file of Blob
+    /// Management (its path starts with <c>/blobs/</c>); <paramref name="rest"/> is what follows that prefix, query
+    /// included.
+    /// </summary>
+    private static bool TryGetBlobManagementPath(string url, out string rest)
+    {
+        rest = string.Empty;
+
+        var pathStart = 0;
+        if (!url.StartsWith('/'))
+        {
+            var schemeEnd = url.IndexOf("://", StringComparison.Ordinal);
+            if (schemeEnd <= 0)
+            {
+                return false;
+            }
+
+            pathStart = url.IndexOf('/', schemeEnd + 3);
+            if (pathStart < 0)
+            {
+                return false;
+            }
+        }
+
+        if (string.Compare(url, pathStart, BlobManagementPathPrefix, 0, BlobManagementPathPrefix.Length, StringComparison.OrdinalIgnoreCase) != 0)
+        {
+            return false;
+        }
+
+        rest = url[(pathStart + BlobManagementPathPrefix.Length)..];
+        return rest.Length > 0;
     }
 
     /// <summary>

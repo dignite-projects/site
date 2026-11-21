@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Dignite.Site.DriveMigration;
+using Dignite.Site.BlobManagementMigration;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Public.Files;
 using Microsoft.Extensions.Options;
@@ -11,31 +11,31 @@ using Volo.Abp.BlobStoring;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 using Xunit;
-using DriveFile = Dignite.Drive.FileDescriptor;
+using BlobManagementFile = Dignite.Abp.BlobManagement.FileDescriptor;
 
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// The migration of the legacy file library to the Drive (<see cref="SiteDriveMigrator"/>): ids, addresses and bytes
+/// The migration of the legacy file library to Blob Management (<see cref="SiteBlobManagementMigrator"/>): ids, addresses and bytes
 /// survive, references get bytes of their own, nothing is written in a dry run, and a second run changes nothing.
 /// </summary>
-public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
+public class SiteBlobManagementMigrator_Tests : SiteEntityFrameworkCoreTestBase
 {
-    private readonly SiteDriveMigrator _migrator;
+    private readonly SiteBlobManagementMigrator _migrator;
     private readonly LegacySiteFiles _legacyFiles;
     private readonly IFileDescriptorRepository _legacyRepository;
     private readonly IDirectoryDescriptorRepository _directories;
-    private readonly IRepository<DriveFile, Guid> _driveFiles;
+    private readonly IRepository<BlobManagementFile, Guid> _managedFiles;
     private readonly IFilePublicAppService _filePublicAppService;
     private readonly IBlobContainerFactory _containers;
 
-    public SiteDriveMigrator_Tests()
+    public SiteBlobManagementMigrator_Tests()
     {
-        _migrator = GetRequiredService<SiteDriveMigrator>();
+        _migrator = GetRequiredService<SiteBlobManagementMigrator>();
         _legacyFiles = GetRequiredService<LegacySiteFiles>();
         _legacyRepository = GetRequiredService<IFileDescriptorRepository>();
         _directories = GetRequiredService<IDirectoryDescriptorRepository>();
-        _driveFiles = GetRequiredService<IRepository<DriveFile, Guid>>();
+        _managedFiles = GetRequiredService<IRepository<BlobManagementFile, Guid>>();
         _filePublicAppService = GetRequiredService<IFilePublicAppService>();
         _containers = GetRequiredService<IBlobContainerFactory>();
     }
@@ -50,7 +50,7 @@ public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
         report.DryRun.ShouldBeTrue();
         report.Files.ShouldBe(1);
         report.Owners.ShouldBe(1);
-        (await WithUnitOfWorkAsync(() => _driveFiles.GetCountAsync())).ShouldBe(0);
+        (await WithUnitOfWorkAsync(() => _managedFiles.GetCountAsync())).ShouldBe(0);
     }
 
     [Fact]
@@ -69,17 +69,17 @@ public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
 
         report.Owners.ShouldBe(1);
         report.DirectoryPaths[SiteFileContainerNames.Attachments].ShouldBe(new[] { "events", "events/2026" });
-        var migrated = await WithUnitOfWorkAsync(() => _driveFiles.GetAsync(file.Id));
+        var migrated = await WithUnitOfWorkAsync(() => _managedFiles.GetAsync(file.Id));
         migrated.BlobName.ShouldBe(file.BlobName);
         migrated.ContainerName.ShouldBe(file.ContainerName);
         migrated.Name.ShouldBe("kept.pdf");
         migrated.MimeType.ShouldBe("application/pdf");
         migrated.Size.ShouldBe(bytes.Length);
         migrated.CreationTime.ShouldBe(file.CreationTime);
-        migrated.OwnsBlob().ShouldBeTrue();
-        migrated.GetProperty<string>(SiteDriveMigrator.DirectoryPathProperty).ShouldBe("events/2026");
+        migrated.IsPublic.ShouldBeTrue();
+        migrated.GetProperty<string>(SiteBlobManagementMigrator.DirectoryPathProperty).ShouldBe("events/2026");
 
-        // The Drive now answers for the address, with the bytes that were there.
+        // Blob Management now answers for the address, with the bytes that were there.
         await WithUnitOfWorkAsync(() => _legacyRepository.DeleteAsync(file.Id));
         using var content = await _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput());
         (await ReadAllAsync(content.GetStream())).ShouldBe(bytes);
@@ -106,10 +106,9 @@ public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
         report.CopiedBytes.ShouldBe(bytes.Length);
         report.OrphanedBlobs.ShouldBe(1);
 
-        var migrated = await WithUnitOfWorkAsync(() => _driveFiles.GetAsync(reference.Id));
+        var migrated = await WithUnitOfWorkAsync(() => _managedFiles.GetAsync(reference.Id));
         migrated.BlobName.ShouldBe(reference.BlobName);
-        migrated.Hash.ShouldBe(owner.Hash);
-        migrated.OwnsBlob().ShouldBeTrue();
+        migrated.IsPublic.ShouldBeTrue();
 
         var container = _containers.Create(SiteFileContainerNames.Attachments);
         (await container.ExistsAsync(reference.BlobName)).ShouldBeTrue();
@@ -120,7 +119,7 @@ public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     [Fact]
-    public async Task Of_Two_Files_With_The_Same_Bytes_One_Holds_The_Dedup_Key()
+    public async Task Of_Two_Files_With_The_Same_Bytes_Each_Keeps_Bytes_Of_Its_Own()
     {
         Migrate();
         var (owner, reference) = await WithUnitOfWorkAsync(async () =>
@@ -131,11 +130,11 @@ public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
 
         var report = await WithUnitOfWorkAsync(() => _migrator.MigrateAsync());
 
+        // Blob Management shares no bytes between files: the owner keeps its blob, the reference gets a copy.
         report.Owners.ShouldBe(1);
         report.References.ShouldBe(1);
         report.OrphanedBlobs.ShouldBe(0);
-        var files = await WithUnitOfWorkAsync(() => _driveFiles.GetListAsync());
-        files.Count(file => file.OwnsBlob()).ShouldBe(1);
+        (await WithUnitOfWorkAsync(() => _managedFiles.GetCountAsync())).ShouldBe(2);
         (await _containers.Create(SiteFileContainerNames.Attachments).ExistsAsync(owner.BlobName)).ShouldBeTrue();
         (await _containers.Create(SiteFileContainerNames.Attachments).ExistsAsync(reference.BlobName)).ShouldBeTrue();
     }
@@ -151,7 +150,7 @@ public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
 
         second.AlreadyMigrated.ShouldBe(1);
         second.Owners.ShouldBe(0);
-        (await WithUnitOfWorkAsync(() => _driveFiles.GetCountAsync())).ShouldBe(1);
+        (await WithUnitOfWorkAsync(() => _managedFiles.GetCountAsync())).ShouldBe(1);
     }
 
     [Fact]
@@ -171,7 +170,7 @@ public class SiteDriveMigrator_Tests : SiteEntityFrameworkCoreTestBase
 
     private void Migrate()
     {
-        GetRequiredService<IOptions<SiteDriveMigrationOptions>>().Value.DryRun = false;
+        GetRequiredService<IOptions<SiteBlobManagementMigrationOptions>>().Value.DryRun = false;
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)

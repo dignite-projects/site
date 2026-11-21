@@ -1,4 +1,4 @@
-using Dignite.Drive.EntityFrameworkCore;
+using Dignite.Abp.BlobManagement.EntityFrameworkCore;
 using Dignite.Site.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.DependencyInjection;
@@ -31,14 +31,17 @@ namespace Dignite.Site.Host.Data;
 /// <c>SiteDbContext</c>.
 /// </para>
 /// </summary>
-[ReplaceDbContext(typeof(ISiteDbContext), typeof(IDriveDbContext))]
-public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext, IDriveDbContext
+[ReplaceDbContext(typeof(ISiteDbContext), typeof(IBlobManagementDbContext))]
+public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext, IBlobManagementDbContext
 {
     /// <summary>
-    /// The Drive's files (<c>DriveFileDescriptors</c>). Explicit: <see cref="ISiteDbContext"/> has a <c>FileDescriptors</c>
-    /// of its own, the legacy descriptors of Site's file library.
+    /// Blob Management's files (<c>BlobFileDescriptors</c>). Explicit: <see cref="ISiteDbContext"/> has a
+    /// <c>FileDescriptors</c> of its own, the legacy descriptors of Site's file library.
     /// </summary>
-    DbSet<Dignite.Drive.FileDescriptor> IDriveDbContext.FileDescriptors => Set<Dignite.Drive.FileDescriptor>();
+    DbSet<Dignite.Abp.BlobManagement.FileDescriptor> IBlobManagementDbContext.FileDescriptors => Set<Dignite.Abp.BlobManagement.FileDescriptor>();
+
+    /// <summary>Blob Management's directories (<c>BlobDirectoryDescriptors</c>); explicit for the same reason.</summary>
+    DbSet<Dignite.Abp.BlobManagement.DirectoryDescriptor> IBlobManagementDbContext.DirectoryDescriptors => Set<Dignite.Abp.BlobManagement.DirectoryDescriptor>();
 
     public DbSet<Dignite.Site.Pages.Page> Pages { get; set; } = default!;
 
@@ -93,6 +96,6 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
         /* Configure your own entities here */
 
         builder.ConfigureSite();
-        builder.ConfigureDrive();
+        builder.ConfigureBlobManagement();
     }
 }

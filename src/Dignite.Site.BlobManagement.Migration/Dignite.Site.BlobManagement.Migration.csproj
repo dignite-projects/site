@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Dignite.Site.BlobManagementMigration</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The legacy file and directory descriptors it reads. -->
+    <ProjectReference Include="..\Dignite.Site.Domain\Dignite.Site.Domain.csproj" />
+    <!-- Blob Management's file descriptors it writes, in the same process and database: this package is for a host that
+         installs Blob Management in-process. Site's other packages reference only its contracts. -->
+    <PackageReference Include="Dignite.Abp.BlobManagement.Domain" Version="$(DigniteAbpModulesVersion)" />
+  </ItemGroup>
+
+</Project>

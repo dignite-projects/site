@@ -165,6 +165,11 @@
     "Seo:SelectImage": "画像を選択",
     "Seo:NoImage": "既定の共有画像は設定されていません。",
     "Seo:Hint": "SNS で共有されたページに専用の共有画像がないときに表示されます。ライブラリの画像は 1200 x 630 に切り抜かれます。",
+    "Files:Upload": "アップロード",
+    "Files:Remove": "削除",
+    "Files:FileTooLarge": "「{0}」はこのコンテナが受け付ける {1} を超えています。",
+    "Files:FileTypeNotAllowed": "「{0}」はこのコンテナが受け付けない種類のファイルです。",
+    "Files:UploadFailed": "{1} 件中 {0} 件のファイルをアップロードできませんでした。",
 
     "Pages": "ページ",
     "NewPage": "新規ページ",

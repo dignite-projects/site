@@ -3,18 +3,18 @@ using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.MultiTenancy;
 
-namespace Dignite.Site.DriveMigration;
+namespace Dignite.Site.BlobManagementMigration;
 
 /// <summary>
-/// Runs <see cref="SiteDriveMigrator"/> when the host seeds its data, for the host and for each tenant it seeds.
+/// Runs <see cref="SiteBlobManagementMigrator"/> when the host seeds its data, for the host and for each tenant it seeds.
 /// </summary>
-public class SiteDriveMigrationDataSeedContributor : IDataSeedContributor, ITransientDependency
+public class SiteBlobManagementMigrationDataSeedContributor : IDataSeedContributor, ITransientDependency
 {
-    protected SiteDriveMigrator Migrator { get; }
+    protected SiteBlobManagementMigrator Migrator { get; }
 
     protected ICurrentTenant CurrentTenant { get; }
 
-    public SiteDriveMigrationDataSeedContributor(SiteDriveMigrator migrator, ICurrentTenant currentTenant)
+    public SiteBlobManagementMigrationDataSeedContributor(SiteBlobManagementMigrator migrator, ICurrentTenant currentTenant)
     {
         Migrator = migrator;
         CurrentTenant = currentTenant;

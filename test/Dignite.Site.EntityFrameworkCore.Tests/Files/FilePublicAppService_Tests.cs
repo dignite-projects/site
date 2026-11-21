@@ -9,27 +9,27 @@ using SkiaSharp;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 using Xunit;
-using DriveFile = Dignite.Drive.FileDescriptor;
-using DriveFileManager = Dignite.Drive.FileDescriptorManager;
+using ManagedFile = Dignite.Abp.BlobManagement.FileDescriptor;
+using ManagedFileManager = Dignite.Abp.BlobManagement.FileDescriptorManager;
 
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// The public read endpoint's logic: a live file of the Drive at Site's address, optionally resized, or one of the file
+/// The public read endpoint's logic: a live public file of Blob Management at Site's address, optionally resized, or one of the file
 /// library Site kept before, until it is migrated; anything else - another container, a deleted file, a name that does
-/// not exist - is simply not found. Files are uploaded to the Drive as an editor's upload stores them (the Drive's
-/// presets: a JPEG in images is stored as WebP).
+/// not exist - is simply not found. Files are uploaded to Blob Management and marked public as an editor's upload
+/// stores them (its presets: a JPEG in images is stored as WebP).
 /// </summary>
 public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly IFilePublicAppService _filePublicAppService;
-    private readonly DriveFileManager _driveFiles;
+    private readonly ManagedFileManager _managedFiles;
     private readonly LegacySiteFiles _legacyFiles;
 
     public FilePublicAppService_Tests()
     {
         _filePublicAppService = GetRequiredService<IFilePublicAppService>();
-        _driveFiles = GetRequiredService<DriveFileManager>();
+        _managedFiles = GetRequiredService<ManagedFileManager>();
         _legacyFiles = GetRequiredService<LegacySiteFiles>();
     }
 
@@ -70,15 +70,15 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         content.FileName.ShouldBe("copy.png");
     }
 
-    /// <summary>The Drive's own address of a file is Site's address once <see cref="SiteFileUrl.Normalize"/> has it.</summary>
+    /// <summary>Blob Management's own address of a file is Site's address once <see cref="SiteFileUrl.Normalize"/> has it.</summary>
     [Fact]
-    public async Task Should_Serve_A_Drive_Address_Normalized_To_Sites()
+    public async Task Should_Serve_A_Blob_Management_Address_Normalized_To_Sites()
     {
-        var bytes = TestFiles.Pdf("drive");
-        var file = await UploadAsync(SiteFileContainerNames.Attachments, "drive.pdf", bytes);
-        var driveAddress = $"/api/drive/public/{file.ContainerName}/{file.BlobName}?__tenant={Guid.NewGuid():N}";
+        var bytes = TestFiles.Pdf("managed");
+        var file = await UploadAsync(SiteFileContainerNames.Attachments, "managed.pdf", bytes);
+        var managedAddress = $"/blobs/{file.ContainerName}/{file.BlobName}?__tenant={Guid.NewGuid():N}";
 
-        var siteAddress = SiteFileUrl.Normalize(driveAddress)!;
+        var siteAddress = SiteFileUrl.Normalize(managedAddress)!;
         siteAddress.ShouldBe(SiteFileUrl.Build(file.ContainerName, file.BlobName));
 
         var blobName = siteAddress[(siteAddress.LastIndexOf('/') + 1)..];
@@ -372,7 +372,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
     public async Task Should_Not_Serve_A_Deleted_File()
     {
         var file = await UploadAsync(SiteFileContainerNames.Attachments, "deleted.pdf", TestFiles.Pdf("deleted"));
-        await WithUnitOfWorkAsync(() => _driveFiles.DeleteAsync(file));
+        await WithUnitOfWorkAsync(() => _managedFiles.DeleteAsync(file));
 
         await Should.ThrowAsync<EntityNotFoundException>(() =>
             _filePublicAppService.GetAsync(file.ContainerName, file.BlobName, new GetFileInput()));
@@ -395,12 +395,13 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
             _filePublicAppService.GetAsync(SiteFileContainerNames.Attachments, "does-not-exist", new GetFileInput()));
     }
 
-    private Task<DriveFile> UploadAsync(string containerName, string fileName, byte[] bytes)
+    private Task<ManagedFile> UploadAsync(string containerName, string fileName, byte[] bytes)
     {
         return WithUnitOfWorkAsync(async () =>
         {
             using var stream = new MemoryStream(bytes);
-            return await _driveFiles.UploadAsync(containerName, fileName, stream);
+            var file = await _managedFiles.UploadAsync(containerName, fileName, stream);
+            return await _managedFiles.SetPublicAsync(file, true);
         });
     }
 
@@ -535,7 +536,7 @@ public class FilePublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         return data.ToArray();
     }
 
-    private Task<byte[]> ReadStoredAsync(DriveFile file)
+    private Task<byte[]> ReadStoredAsync(ManagedFile file)
     {
         return WithUnitOfWorkAsync(async () =>
         {

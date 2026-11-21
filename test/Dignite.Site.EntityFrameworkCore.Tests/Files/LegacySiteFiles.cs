@@ -12,9 +12,9 @@ using Volo.Abp.MultiTenancy;
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// Writes a file the way Site's own file library stored it before Site used the Drive: the bytes under a new blob name
+/// Writes a file the way Site's own file library stored it before Site used Blob Management: the bytes under a new blob name
 /// in the container, and a <see cref="FileDescriptor"/> row that owns them. The library is gone, so tests that read
-/// such files - the public read endpoint's fallback, the migration to the Drive - make them with this. Like the library
+/// such files - the public read endpoint's fallback, the migration to Blob Management - make them with this. Like the library
 /// since 10.7.5, a JPEG for <see cref="SiteFileContainerNames.Images"/> is stored as lossy WebP, turned upright, and named
 /// <c>.webp</c>; everything else is stored as given, and nothing is resized.
 /// </summary>

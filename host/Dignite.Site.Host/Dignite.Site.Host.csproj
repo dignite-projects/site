@@ -25,15 +25,14 @@
     <ProjectReference Include="..\..\src\Dignite.Site.Public.Web\Dignite.Site.Public.Web.csproj" />
     <!-- The MCP endpoint (GitHub issue #26). -->
     <ProjectReference Include="..\..\src\Dignite.Site.Mcp\Dignite.Site.Mcp.csproj" />
-    <!-- The migration of the file library Site kept before 3.0 into the Drive, run by data seeding. Remove it once
+    <!-- The migration of the file library Site kept before 3.0 into Blob Management, run by data seeding. Remove it once
          the files are migrated. -->
-    <ProjectReference Include="..\..\src\Dignite.Site.Drive.Migration\Dignite.Site.Drive.Migration.csproj" />
-    <!-- The Drive, in this process: where Site's files are kept (images, attachments, theme-assets), its file API and
-         public read, and its drive_* MCP tools. -->
-    <PackageReference Include="Dignite.Drive.Application" Version="$(DigniteAbpModulesVersion)" />
-    <PackageReference Include="Dignite.Drive.HttpApi" Version="$(DigniteAbpModulesVersion)" />
-    <PackageReference Include="Dignite.Drive.EntityFrameworkCore" Version="$(DigniteAbpModulesVersion)" />
-    <PackageReference Include="Dignite.Drive.Mcp" Version="$(DigniteAbpModulesVersion)" />
+    <ProjectReference Include="..\..\src\Dignite.Site.BlobManagement.Migration\Dignite.Site.BlobManagement.Migration.csproj" />
+    <!-- Blob Management, in this process: where Site's files are kept (images, attachments, theme-assets), and the
+         public read, upload and read-link endpoints a browser uses. -->
+    <PackageReference Include="Dignite.Abp.BlobManagement.Application" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Abp.BlobManagement.HttpApi" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Abp.BlobManagement.EntityFrameworkCore" Version="$(DigniteAbpModulesVersion)" />
     <!-- Writes a site's settings through Setting Management (its languages, today), which this host loads. -->
   </ItemGroup>
 
@@ -148,6 +147,9 @@
   <ItemGroup>
     <Content Remove="Localization\Host\*.json" />
     <EmbeddedResource Include="Localization\Host\*.json" />
+    <!-- Texts of Blob Management that 10.7.7-preview.1 lacks and the Angular build of its management page uses. -->
+    <Content Remove="Localization\BlobManagementPreview\*.json" />
+    <EmbeddedResource Include="Localization\BlobManagementPreview\*.json" />
   </ItemGroup>
 
   <ItemGroup>

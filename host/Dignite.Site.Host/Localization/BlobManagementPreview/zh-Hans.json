@@ -1,0 +1,11 @@
+{
+  "culture": "zh-Hans",
+  "texts": {
+    "Menu:Files": "文件",
+    "Usage:Tenants": "租户",
+    "Usage:Host": "宿主",
+    "Usage:Allocation": "配额",
+    "Usage:Refresh": "刷新",
+    "Permission:TenantUsages": "按租户查看用量（仅宿主）"
+  }
+}

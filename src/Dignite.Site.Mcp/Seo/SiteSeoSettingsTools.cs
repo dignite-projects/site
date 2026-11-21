@@ -27,7 +27,7 @@ public class SiteSeoSettingsTools : ITransientDependency
         "absolute URL. An empty string removes it. Returns the setting as stored.")]
     [Authorize(SiteAdminPermissions.Seo.Update)]
     public virtual Task<SiteSeoSettingsDto> SetDefaultShareImageAsync(
-        [Description("The image's url, as drive_upload_file or drive_get_file returns it, or an absolute URL; empty to remove it.")]
+        [Description("The image's url, as site_confirm_file or site_get_file returns it, or an absolute URL; empty to remove it.")]
         string url)
     {
         return SeoSettingsAppService.UpdateAsync(new UpdateSiteSeoSettingsDto { DefaultShareImage = url });

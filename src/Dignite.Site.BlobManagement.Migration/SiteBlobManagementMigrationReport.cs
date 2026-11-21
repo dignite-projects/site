@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 
-namespace Dignite.Site.DriveMigration;
+namespace Dignite.Site.BlobManagementMigration;
 
-/// <summary>What <see cref="SiteDriveMigrator"/> did, or would do in a dry run, for one tenant (or the host).</summary>
-public class SiteDriveMigrationReport
+/// <summary>What <see cref="SiteBlobManagementMigrator"/> did, or would do in a dry run, for one tenant (or the host).</summary>
+public class SiteBlobManagementMigrationReport
 {
     public Guid? TenantId { get; set; }
 
@@ -13,10 +13,10 @@ public class SiteDriveMigrationReport
     /// <summary>Live legacy files found.</summary>
     public int Files { get; set; }
 
-    /// <summary>Files the Drive has already (by id), from an earlier run: skipped.</summary>
+    /// <summary>Files Blob Management has already (by id), from an earlier run: skipped.</summary>
     public int AlreadyMigrated { get; set; }
 
-    /// <summary>Files whose bytes were their own blob: the Drive row names that blob, nothing is copied.</summary>
+    /// <summary>Files whose bytes were their own blob: the file of Blob Management names that blob, nothing is copied.</summary>
     public int Owners { get; set; }
 
     /// <summary>

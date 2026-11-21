@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Dignite.Site.Public.Files;
 
 /// <summary>
-/// A file the public read endpoint serves, wherever it is kept (<see cref="FilePublicAppService"/>): the Drive's, or a
+/// A file the public read endpoint serves, wherever it is kept (<see cref="FilePublicAppService"/>): Blob Management's, or a
 /// descriptor of the file library Site kept before.
 /// </summary>
 /// <param name="ContainerName">The container in the address.</param>

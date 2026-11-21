@@ -165,6 +165,11 @@
     "Seo:SelectImage": "Choose image",
     "Seo:NoImage": "No default share image.",
     "Seo:Hint": "Shown when a page shared on a social network has no share image of its own. An image from the library is cropped to 1200 x 630.",
+    "Files:Upload": "Upload",
+    "Files:Remove": "Remove",
+    "Files:FileTooLarge": "'{0}' is larger than the {1} this container takes.",
+    "Files:FileTypeNotAllowed": "'{0}' is not a type this container takes.",
+    "Files:UploadFailed": "{0} of {1} files could not be uploaded.",
 
     "Pages": "Pages",
     "NewPage": "New page",

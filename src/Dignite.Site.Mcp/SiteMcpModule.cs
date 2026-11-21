@@ -2,6 +2,7 @@ using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Site.Mcp.ContentTypes;
 using Dignite.Site.Mcp.Contents;
 using Dignite.Site.Mcp.Fields;
+using Dignite.Site.Mcp.Files;
 using Dignite.Site.Mcp.Languages;
 using Dignite.Site.Mcp.Pages;
 using Dignite.Site.Mcp.Routing;
@@ -55,11 +56,11 @@ public class SiteMcpModule : AbpModule
             .AddTools<SiteThemeTransferTools>()
             .AddTools<SiteLanguageTools>()
             .AddTools<SiteSeoSettingsTools>()
+            .AddTools<FileTools>()
             .AddResources<SiteSchemaResources>()
             .AddResources<SiteThemeResources>()
             .AddInstructions(SiteMcpConsts.Instructions)
-            // Site has no file tools of its own: files are the Drive's (drive_* tools, Dignite.Drive.Mcp in the host).
-            // What Site adds is how its fields use them.
+            // How Site's fields use the file tools (FileTools).
             .AddInstructions(SiteMcpConsts.FileInstructions));
     }
 }

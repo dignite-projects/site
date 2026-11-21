@@ -45,21 +45,21 @@ public static class SiteMcpConsts
         "line `+++`, then `layout = \"layouts/landing\"` (or `\"none\"`), then `+++` - else it uses the theme's " +
         "default layout. Every reference is a full path from the theme's root: `{{ include \"blog/_sidebar\" }}`, " +
         "`{{ asset_url \"css/site.css\" }}`. Binary files (images, fonts) are not theme files: upload them with " +
-        "the drive_* tools.";
+        "site_create_upload_url (to the theme-assets container) and site_confirm_file.";
 
     /// <summary>
-    /// How Site's fields use files. Site has no file tools: files are uploaded with the Drive's <c>drive_*</c> tools,
-    /// which the host adds (<c>Dignite.Drive.Mcp</c>). Separate from <see cref="Instructions"/> so each stays about one
-    /// surface; both are handed to the client.
+    /// How Site's fields use files, and the tools that keep them (<c>FileTools</c>). Separate from
+    /// <see cref="Instructions"/> so each stays about one surface; both are handed to the client.
     /// </summary>
     public const string FileInstructions =
-        "Site files: upload images and attachments with the drive_* tools (`drive_list_containers` first, for the " +
-        "containers you may upload to and their limits). Site uses three of them: `images` for pictures a content " +
-        "field shows (JPEG, PNG, GIF, WebP; no SVG), `attachments` for documents to download (PDF, Office, text, " +
-        "CSV, ZIP; no pictures), and `theme-assets` for the binary files a theme links (favicon, web fonts). A file " +
-        "field's configuration names one of them.\n\n" +
-        "What to store: a file field takes an array of the file objects the drive_* tools return (keep `id`, " +
-        "`name` and `url`); an SEO share image, the default share image and a template take the file's `url`. Keep " +
-        "the `id` too: there is no tool that lists a container's files, and deleting a file " +
-        "(`drive_delete_file`) needs its id.";
+        "Site files: upload images and attachments by link - `site_list_file_containers` first, for the containers " +
+        "you may upload to and their limits; then `site_create_upload_url` for a container, run the command it returns " +
+        "on the machine the file is on, and `site_confirm_file` with the fileId to keep it. Site uses three containers: " +
+        "`images` for pictures a content field shows (JPEG, PNG, GIF, WebP; no SVG), `attachments` for documents to " +
+        "download (PDF, Office, text, CSV, ZIP; no pictures), and `theme-assets` for the binary files a theme links " +
+        "(favicon, web fonts). A file field's configuration names one of them.\n\n" +
+        "What to store: a file field takes an array of the file objects `site_confirm_file`, `site_get_file` and " +
+        "`site_list_files` return (keep `id`, `name` and `url`); an SEO share image, the default share image and a " +
+        "template take the file's `url`. Keep the `id` too: deleting a file (`site_delete_file`) needs it, and " +
+        "`site_list_files` finds it again by name.";
 }

@@ -53,7 +53,7 @@ public class FileFieldType : FieldTypeBase, IHasValueShape
         {
             Required = true,
             Description = "The file container the value's files are uploaded to, one of the names " +
-                          "drive_list_containers gives, e.g. images."
+                          "site_list_file_containers gives, e.g. images."
         },
         new(FileFieldConfigurationNames.UploadFileMultiple, FieldConfigurationValueKind.Boolean)
         {
@@ -65,16 +65,17 @@ public class FileFieldType : FieldTypeBase, IHasValueShape
     public override IReadOnlyList<FieldConfigurationKey>? ConfigurationKeys => Keys;
 
     /// <summary>
-    /// The value is an array of file objects - an array even for one file - and the objects are what the Drive's tools
-    /// return (<c>drive_upload_file</c>, <c>drive_get_file</c>, the response of an upload link) or what the file input
-    /// stores. Values stored before Site used the Drive carry <c>containerName</c> and <c>blobName</c> as well.
+    /// The value is an array of file objects - an array even for one file - and the objects are what Site's file tools
+    /// return (<c>site_confirm_file</c>, <c>site_get_file</c>, <c>site_list_files</c>) or what the admin UI's file input
+    /// stores. Values stored before Site's files moved to Blob Management carry <c>containerName</c> and
+    /// <c>blobName</c> as well.
     /// The properties are named <c>[].key</c>, the key of each element. Plain English, like the configuration keys'
     /// descriptions: it documents a wire shape for a client choosing what to write.
     /// </summary>
     public IReadOnlyList<FieldValueShapeProperty> ValueShape => new[]
     {
-        new FieldValueShapeProperty { Name = "[].url", Type = "string", Description = "Required: the file's address, as the drive_* tools return it. A template reads the first file's url." },
-        new FieldValueShapeProperty { Name = "[].id", Type = "string (GUID)", Description = "The file's id in the Drive; deleting the file needs it." },
+        new FieldValueShapeProperty { Name = "[].url", Type = "string", Description = "Required: the file's address, as site_confirm_file returns it. A template reads the first file's url." },
+        new FieldValueShapeProperty { Name = "[].id", Type = "string (GUID)", Description = "The file's id; deleting the file needs it." },
         new FieldValueShapeProperty { Name = "[].name", Type = "string", Description = "The file name." },
         new FieldValueShapeProperty { Name = "[].containerName", Type = "string", Description = "The container the file is in." },
         new FieldValueShapeProperty { Name = "[].mimeType", Type = "string", Description = "The type detected from the file's bytes." },
