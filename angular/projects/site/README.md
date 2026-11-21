@@ -34,8 +34,11 @@ admin app, so a host that enforces a bundle budget in `angular.json` may need to
 Site's files are kept in Dignite Blob Management. The file field type (registration key `FileExplorer`) and the SEO
 share images use this package's own file input, `site-file-input`, which uploads through Site's administration API
 (`api/site-admin/files`) and, with the ticket it gets, straight to Blob Management at
-`api/blob-management/uploads/{ticket}` on the same host - the host of the `SiteAdmin` API, which installs Blob
-Management, so no API entry of its own is needed. `provideSite()` also registers `SiteCKEditorUploadProvider` as the
+`api/blob-management/uploads/{ticket}`. Blob Management is reached under the API name `BlobManagement`: without an
+`apis.BlobManagement` entry in the environment ABP takes `apis.default`, which is right when the host of the API installs
+Blob Management; when it runs as a service of its own, point `apis.BlobManagement.url` at it (or at the gateway) and ask
+for its scope in `oAuthConfig.scope`, since the file picker reads its containers and directories with the user's token.
+`provideSite()` also registers `SiteCKEditorUploadProvider` as the
 `CKEDITOR_UPLOAD_PROVIDER` (which needs `@dignite/ng.flex-fields-ckeditor >= 10.0.0-rc.25`), so an image inserted into a
 CKEditor field is uploaded to Site's `images` container. See
 [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).

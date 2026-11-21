@@ -46,8 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ticket from Site's API straight to Blob Management and confirms the file. CKEditor uploads take the same way. A file
   uploaded while a form is edited and removed again is deleted once the form is saved (`SiteUploadCleanup`). The file
   field's configuration lists the containers the user may upload to. Removed from `@dignite/ng.site`: the file picker,
-  the browsing modal, the directory tree, the upload component and `ValidatorsService`; the admin directory proxies went
-  with them. Added: `SiteFileInputComponent`, `SiteFileUploadService`, `FileAdminService`, `SiteUploadCleanup`,
+  the browsing modal, the directory tree, the upload component, `ValidatorsService` and `ObjectUrlService`; the admin
+  directory proxies went with them, and so did the texts of the file library's screens in the `Site` resource
+  (`Files:MyFiles`, `Files:Move` and twenty others no screen uses any more). Added: `SiteFileInputComponent`, `SiteFileUploadService`, `FileAdminService`, `SiteUploadCleanup`,
   `fileOfUrl`. The admin UI posts an upload to, and shows files from, the `BlobManagement` API
   (`environment.apis.BlobManagement`, else `apis.default`); `absoluteFileUrl` and `relativeFileUrl` take both API hosts.
   See [Admin UI](docs/en/admin-ui.md).
@@ -90,20 +91,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   host runs that migration.
 - **Permissions stay Site's.** Uploading to `images` and `attachments` needs `SiteAdmin.Contents.Create` or `.Update`
   (`images` also `SiteAdmin.Seo.Update`), and to `theme-assets` `SiteAdmin.Themes.Edit`; the roles that edit contents and
-  the theme hold them already. Nothing of Blob Management's own is granted: in the same process it is a trusted caller.
+  the theme hold them already. Nothing of Blob Management's own is granted: in the same process Site is a trusted caller.
+- **Run ASP.NET Core's rate limiter** after routing (`app.UseRateLimiter()` after `app.UseRouting()`) in the host that
+  installs Blob Management: its anonymous addresses - the public read and its resizing, the upload with a ticket - name
+  rate limiting policies, which act only there.
 - **Allow Site's sizes on its containers**: `UseBlobManagementPublicSizes(SiteImageSizes.All.ToArray())` on `images`,
   `attachments` and `theme-assets`, in the host that runs Blob Management. Blob Management answers any other size with
   `400`, `og:image`'s 1200 x 630 among them. A template that asks `file_url` for a width and a height together gives a
   pair from that list. See [Serving Files](docs/en/files.md#serving-files).
-- **`/blobs/` answers on the site's origin.** A host that runs Blob Management in process does so already. Behind a
-  gateway, route `GET` and `HEAD` on `blobs/` from every site's origin to the service that runs Blob Management, and
-  `api/blob-management/` to it too, for the browser's uploads; keep routing `api/site-public/files/` to Site for the
-  earlier addresses. A host that runs several instances persists and shares the Data Protection key ring. A CDN in front
+- **`/blobs/` answers on the site's origin.** An application that serves the site and installs Blob Management and
+  Site's HttpApi does so already. Otherwise - a site served by an application of its own, apart from the administration
+  API, or Blob Management run as a service of its own - the gateway routes `GET` and `HEAD` on `blobs/` from every site's
+  origin to the application that runs Blob Management, and `api/site-public/files/` to the one that runs Site's HttpApi,
+  for the earlier addresses; the gateway in front of the admin UI's `BlobManagement` API routes `blobs/` and
+  `api/blob-management/` there too, for previews, uploads and the file picker's directories. A host that runs several instances persists and shares the Data Protection key ring. A CDN in front
   of `blobs/` caches resized pictures, which Blob Management renders on every request that reaches it. See
   [Reaching Blob Management from Every Site](docs/en/files.md#reaching-blob-management-from-every-site).
 - **Blob Management may run as a service of its own**: the host swaps its three modules for
   `BlobManagementHttpApiClientModule` and configures Site as an OAuth client that Blob Management grants
-  `BlobManagement.Container.Files` on the three containers. See
+  `BlobManagement.Container.Files` on the three containers. The Angular admin UI points `apis.BlobManagement` at it and
+  asks for its scope in `oAuthConfig.scope`. Listing the containers with their limits (`GET api/site-admin/files/containers`,
+  `site_list_file_containers`) needs a Blob Management that answers a client for a container's limits, which
+  10.7.7-preview.2 does not. See
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
 - **A host that configured `SiteImageRenderingOptions`** removes it: Site renders no pictures.
 - **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of

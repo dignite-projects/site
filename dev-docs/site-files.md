@@ -66,10 +66,10 @@ as a remote service - which it is deliberately not (`BlobManagementPublicControl
 and would put every visitor behind Site's one client address in Blob Management's rate limit.
 
 What that costs, against the read endpoint Site had: no WebP for a browser that takes it beyond what the `Images` preset
-stores (a PNG stays a PNG), no JPEG for a client without WebP, and only the sizes the container allows. The first goes
-with Blob Management's next release, whose `Images` preset stores a PNG of 16 KB or more as lossless WebP on upload
-(`StorePngAsWebp`); Blob Management converts on upload rather than on read, so the second stays. The sizes are
-`SiteImageSizes`.
+stores, no JPEG for a client without WebP, and only the sizes the container allows. The first is mostly gone: the
+`Images` preset stores a PNG as lossless WebP on upload (`StorePngAsWebp`), unless it is small, 16-bit or animated - the
+size below which a PNG stays a PNG is Blob Management's to set. Blob Management converts on upload rather than on read,
+so the second stays. The sizes are `SiteImageSizes`.
 
 **Sizes.** `SiteImageSizes.All` is Blob Management's default list with `og:image`'s 1200 and 630; the dev host sets it on
 Site's containers with `UseBlobManagementPublicSizes`, and a Blob Management that runs apart has to be given the same
@@ -79,7 +79,25 @@ thumbnails.
 
 **Blob Management in another service.** `IBlobManagementFileService` and `IBlobManagementContainerAppService` are
 Contracts interfaces, and `Dignite.Abp.BlobManagement.HttpApi.Client` replaces the in-process implementation of the first
-with `RemoteBlobManagementFileService`; the host swaps the module and nothing in Site changes. Not tried end to end yet.
+with `RemoteBlobManagementFileService` and of the second with the generated client proxy; the host swaps the module and
+nothing in Site changes. Not tried end to end yet. What reading the code turned up:
+
+- Site's back end then calls Blob Management with a client-credentials token, which carries no user. Blob Management
+  10.7.7-preview.2 answers `GET api/blob-management/containers/{name}` for users only ("a client reads a container's limits
+  from its own configuration"), so `FileAdminAppService.GetContainersAsync` - `GET api/site-admin/files/containers` and the
+  MCP tool `site_list_file_containers` - fails there, and so it does in process for an MCP client signed in with client
+  credentials. The file input then offers an upload with no size or type check of its own (Blob Management still checks
+  on upload), and the file field's configuration lists all three containers. Site has no configuration of its own to read
+  the limits from, and keeping a copy of the presets in Site's host would drift from Blob Management's. Appwrite's server
+  SDK reads a bucket's `maximumFileSize` and `allowedFileExtensions` with an API key (`getBucket`), and Supabase's
+  `getBucket` returns `file_size_limit` and `allowed_mime_types`. So the fix is Blob Management's: one container's limits
+  for any authenticated caller, a client's `access` being none - on the branch
+  `fix/blob-management-container-limits-for-clients` of abp-modules, not released yet.
+- The admin UI calls Blob Management's container and directory APIs itself, with the user's token (the file picker), so
+  its token has to be one Blob Management accepts: `oAuthConfig.scope` names Blob Management's scope beside Site's.
+- A site served by an application of its own (`Dignite.Site.Public.Web` with Site's data remote) answers neither
+  `/blobs/` nor `/api/site-public/files/`, whether Blob Management runs apart or in the host of the administration API: its
+  gateway routes both ([Reaching Blob Management from Every Site](../docs/en/files.md#reaching-blob-management-from-every-site)).
 
 ## The address of a file
 

@@ -7,7 +7,7 @@
 
 # Files
 
-The images and attachments of a site - what a file field holds, the share image of the SEO field and of the SEO settings, the images inserted into a CKEditor field, the favicon and fonts a theme links - are kept in **[Dignite Blob Management](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/index.md)**, the BLOB management module of Dignite ABP Modules. Blob Management stores the files, checks the uploads against each container's rules and counts what each tenant stores. It has no rules of its own about who may do what: Site applies its own permissions before it calls, and serves the files to the site's visitors at its own address, with the format each browser takes and any size.
+The images and attachments of a site - what a file field holds, the share image of the SEO field and of the SEO settings, the images inserted into a CKEditor field, the favicon and fonts a theme links - are kept in **[Dignite Blob Management](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/index.md)**, the BLOB management module of Dignite ABP Modules. Blob Management stores the files, checks the uploads against each container's rules and counts what each tenant stores. It has no rules of its own about who may do what: Site applies its own permissions before it calls. Blob Management serves the files to the site's visitors at its own address, as they are stored or resized to one of the sizes the container allows.
 
 Files are uploaded in the admin UI with Site's file input, by an AI client with Site's file tools, or from a CKEditor field. There is no file library to browse: a file is attached where it is used.
 
@@ -21,7 +21,7 @@ Site's fields use three containers, which the host declares as Blob Management c
 | `attachments` | Documents to download | `Documents` | PDF, Office documents, text, CSV, ZIP | 20 MB |
 | `theme-assets` | The binary files a [theme](rendering/scriban-templates.md) links: the favicon, web fonts | `BinaryAssets` | ICO, WOFF2, WOFF, TTF, OTF | 5 MB |
 
-A container has no directories unless the host sets `AllowDirectories` on it ([Directories](#directories)). `SiteFileContainerNames` holds the three names. A file field's configuration names its container, and may name another container the host declares for the same use. The presets are Blob Management's ([Setting Up](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/setting-up.md)); the `Images` preset stores a **JPEG as WebP**, turned upright, removes the metadata a design tool piles into a picture, and shrinks a picture wider than 2560 or taller than 4096 pixels. A file's type is detected from its bytes, and SVG, HTML and scripts are accepted by no preset.
+A container has no directories unless the host sets `AllowDirectories` on it ([Directories](#directories)). `SiteFileContainerNames` holds the three names. A file field's configuration names one of them: Site's administration API and MCP tools reach no other container, whatever else the host declares. The presets are Blob Management's ([Setting Up](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/setting-up.md)); the `Images` preset stores a **JPEG as WebP**, and a **PNG as lossless WebP** unless it is small, 16-bit or animated, turned upright, removes the metadata a design tool piles into a picture, and shrinks a picture wider than 2560 or taller than 4096 pixels. A file's type is detected from its bytes, and SVG, HTML and scripts are accepted by no preset.
 
 ## Installing Blob Management in the Host
 
@@ -38,7 +38,7 @@ public class MyHostModule : AbpModule
 }
 ````
 
-In the same process Blob Management is a trusted caller of Site's services: no OAuth client is registered and nothing is granted to one. Call `builder.ConfigureBlobManagement()` in the host's migrations `DbContext` and add a migration: it creates `BlobFileDescriptors` and `BlobDirectoryDescriptors`. Then declare the three containers as Blob Management containers, each with its preset, and choose where their bytes are stored, with any [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing#blob-storage-providers):
+In the same process Site is a trusted caller of Blob Management's services: no OAuth client is registered and nothing is granted to one. Call `builder.ConfigureBlobManagement()` in the host's migrations `DbContext` and add a migration: it creates `BlobFileDescriptors` and `BlobDirectoryDescriptors`. Then declare the three containers as Blob Management containers, each with its preset, and choose where their bytes are stored, with any [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing#blob-storage-providers):
 
 ````csharp
 Configure<AbpBlobStoringOptions>(options =>
@@ -74,6 +74,13 @@ Configure<AbpBlobStoringOptions>(options =>
 Blob Management declares its containers in code only; it reads no configuration section for them.
 
 Pictures are converted and resized with SkiaSharp, which Blob Management depends on. A host that runs Blob Management on Linux also references the `SkiaSharp.NativeAssets.Linux` package. The sizes a picture may be resized to are set on the containers too ([Serving Files](#serving-files)).
+
+The addresses a browser reaches anonymously - the public read and its resizing, and the upload with a ticket - are rate limited per client address by ASP.NET Core's limiter, which acts only where the host runs it after routing ([Rate Limits](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/hosting.md#rate-limits)):
+
+````csharp
+app.UseRouting();
+app.UseRateLimiter();
+````
 
 Upload tickets are signed with ASP.NET Core Data Protection: a host that runs several instances persists and shares one key ring ([Hosting Modes](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/hosting.md#data-protection)). An admin UI served from another origin than the API posts its files to `/api/blob-management/uploads/`, which the API's CORS policy (`App:CorsOrigins`) has to allow.
 
@@ -139,7 +146,7 @@ Before 3.0 Site served its files at `/api/site-public/files/{containerName}/{blo
 A browser reads a file straight from Blob Management, anonymously, at its address: Site is not in between. Blob Management serves the files marked public - Site marks every file it keeps public when it confirms it - and answers a file that is not, a deleted file and an unknown name with `404`. What it does on a read is described in Blob Management's documentation ([Hosting Modes](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/hosting.md)); for Site's pictures:
 
 * `?width=` and `?height=` resize a JPEG, PNG or WebP on request; with both given, the picture is cropped to fill the box. Only the sizes the container allows are served, any other is answered with `400`. Anything else is served as stored, and so is a GIF.
-* A picture is served in the format it is stored in. The `images` container stores an uploaded JPEG as WebP already; a PNG stays a PNG.
+* A picture is served in the format it is stored in, whatever the browser asks for. The `images` container stores an uploaded JPEG, and a PNG that is not small, 16-bit or animated, as WebP already; a GIF stays a GIF.
 * Responses carry an `ETag` and `Cache-Control: public` for a day. A CDN in front of `/blobs/` is where resized pictures are cached: Blob Management renders a size on every request that reaches it.
 
 The host allows on Site's containers the sizes in `SiteImageSizes.All`: Blob Management's default list (64, 128, 256, 384, 512, 768, 1024, 1536, 2048 and 4096) and the `og:image` box, 1200 and 630. In the host that runs Blob Management:
@@ -171,16 +178,17 @@ In a template, build a resized address with `file_url` ([Scriban Templates](rend
 
 ### Reaching Blob Management from Every Site
 
-Since addresses are relative, `/blobs/` has to answer on every origin a site is served from:
+Since addresses are relative, two paths have to answer on every origin a site is served from: `/blobs/`, Blob Management's public read, and `/api/site-public/files/`, the redirect of the earlier addresses, which `Dignite.Site.Public.HttpApi` serves.
 
-* A host that installs Blob Management in its own process, with `BlobManagementHttpApiModule`, does so already.
-* When Blob Management runs as a service of its own, the gateway or reverse proxy in front of each site routes `GET` and `HEAD` on `/blobs/` to it, and so does the one in front of the administration API, for the previews in the admin UI. It also routes `/api/blob-management/` to it, for uploads, and `/api/site-public/files/` to the service that runs Site, for the earlier addresses.
+* When one application serves the site and installs both - Blob Management with `BlobManagementHttpApiModule`, and Site's HttpApi - nothing has to be routed.
+* Otherwise the gateway or reverse proxy in front of each site routes `GET` and `HEAD` on `/blobs/` to the application that installs Blob Management, and on `/api/site-public/files/` to the one that runs Site's HttpApi. This is the case when the site is served by an application of its own, apart from the administration API ([When the Site Runs in Another Application](rendering/scriban-templates.md#when-the-site-runs-in-another-application)) - the site's application installs `Dignite.Site.Public.Web` and reaches Site's data remotely, so it answers neither path - and when Blob Management runs as a service of its own.
+* The origin the admin UI reaches the `BlobManagement` API at answers `/blobs/`, for the previews, and `/api/blob-management/`, for uploads and the file picker's directories. When that is not the application that installs Blob Management, its gateway routes both there.
 
 ## Blob Management as a Service of Its Own
 
 Site's application services call Blob Management through its contracts only, so a host whose Blob Management runs elsewhere swaps the three modules above for `BlobManagementHttpApiClientModule` (`Dignite.Abp.BlobManagement.HttpApi.Client`) and points the `BlobManagement` remote service at it. Site then calls it as an OAuth client with the client credentials flow, so the host also configures that client (ABP's `IdentityClients` section), and Blob Management's administrator grants it `BlobManagement.Container.Files` on the three containers. The sizes above are then declared in the service that runs Blob Management, and the Data Protection key ring that signs upload tickets is that service's alone.
 
-In the Angular admin UI, `environment.apis.BlobManagement.url` names that service (or the gateway that routes to it): the admin UI posts uploads to it and shows files from it.
+In the Angular admin UI, `environment.apis.BlobManagement.url` names that service (or the gateway that routes to it): the admin UI posts uploads to it, shows files from it, and reads a container's limits and directories from it with the signed-in user's token. That token has to be one Blob Management accepts, so the admin UI asks for the scope under which the authorization server knows Blob Management, besides its own (`oAuthConfig.scope`).
 
 ## Attaching Files in the Admin UI
 

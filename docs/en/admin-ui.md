@@ -76,7 +76,7 @@ export const appConfig: ApplicationConfig = {
 };
 ````
 
-`@abp/ng.setting-management` is an optional peer dependency of `@dignite/ng.site`: install it when the application uses this tab. The tab is shown to a user with the `SiteAdmin.Languages` permission and can change the list with `SiteAdmin.Languages.Update`. It sets the whole ordered list; the first language is the default and its pages have no language prefix. The **SEO** tab, shown with `SiteAdmin.Seo` and changed with `SiteAdmin.Seo.Update`, uploads the site's default share image to the Drive's `images` container: the image shown when a page shared on a social network has none of its own. See [Settings](settings.md).
+`@abp/ng.setting-management` is an optional peer dependency of `@dignite/ng.site`: install it when the application uses this tab. The tab is shown to a user with the `SiteAdmin.Languages` permission and can change the list with `SiteAdmin.Languages.Update`. It sets the whole ordered list; the first language is the default and its pages have no language prefix. The **SEO** tab, shown with `SiteAdmin.Seo` and changed with `SiteAdmin.Seo.Update`, uploads the site's default share image to the `images` container ([Files](files.md)): the image shown when a page shared on a social network has none of its own. See [Settings](settings.md).
 
 ## Screens
 
