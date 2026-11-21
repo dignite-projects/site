@@ -1,8 +1,8 @@
 # Site 文件改为浏览器直连 Blob Management：改造方案（草案，2026-11-21）
 
 > 状态：2026-11-21 已实施，结论并入 [site-files.md](site-files.md)；本文保留为决策记录。实施时与第 3、4 节不同的地方见
-> 第 6 节"定案"：没有加 `SiteFileOptions` 和 `SiteMcpOptions.BlobManagementUrl`，模板检查里的尺寸警告没做。U1、U2 未向
-> 上游提出。
+> 第 6 节"定案"：没有加 `SiteFileOptions` 和 `SiteMcpOptions.BlobManagementUrl`，模板检查里的尺寸警告没做。U1 已在
+> abp-modules 以上传时转换的方式处理、待发布；U2 不需要（第 5 节）。
 
 ## 0. 结论
 
@@ -173,8 +173,13 @@ Supabase 的做法是资源服务按 `Accept` 自动给 WebP，`format=origin` �
 
 - **U1 格式协商**：公开读支持按 `Accept` 自动给 WebP，响应加 `Vary: Accept`，`format=origin` 关闭（Supabase 先例）。
   不提就接受 3.4 的损失。
+  **结果（2026-11-21）**：abp-modules 没有做读时协商，改为上传时转换（`97cbaaf9`，`StorePngAsWebp`：`images` 预设把
+  16 KB 以上的 PNG 存成无损 WebP，同 JPEG 转 WebP 的做法）。待 abp-modules 发布。发布后 3.4 的第一项损失消失；第二项
+  （不支持 WebP 的客户端拿不到 JPEG）仍在。
 - **U2 对外地址前缀**：`PublicBaseUrl` 能作用于 `BlobManagementFileDto.Url` 和票据的 `UploadUrl`，或者在 Contracts
   里提供一个按配置拼出对外地址的工具。有了它 Site 就删掉自己的 `SiteFileOptions.PublicBaseUrl` 和 MCP 的新选项。
+  **不需要（2026-11-21）**：见第 6 节 D4 定案。正文 HTML 存的是相对地址，站点域名上无论如何都要路由 `/blobs/*`，
+  对外前缀对 Site 没有用处，不向上游提。
 - 撤回上次提过的"给 `IBlobManagementPublicAppService` 补远程实现"和"按名字查文件"，都不需要了。
 
 ## 6. 待你决策
@@ -191,7 +196,7 @@ Supabase 的做法是资源服务按 `Accept` 自动给 WebP，`format=origin` �
 `/blobs/...`，渲染时 Site 不改写正文 HTML，所以无论加不加前缀选项，站点域名上都必须能到达 `/blobs/*`；前缀选项
 只能覆盖 og:image、JSON-LD 和 `file_url`，会让人误以为可以不配路由。于是只支持"站点域名路由 `/blobs/*` 和
 `/api/blob-management/*`"这一种部署（BM 自己的设计也是这样），CDN 放在这条路由前面。`SiteFileOptions` 和
-`SiteMcpOptions.BlobManagementUrl` 都不加；U2 照提，用于以后支持独立的文件域名。
+`SiteMcpOptions.BlobManagementUrl` 都不加。同样的理由下 U2 也不需要，不向上游提。
 
 D2 的实现：Site 用 `SiteImageSizes.All`（BM 默认阶梯加上 og:image 的 630、1200）作为向上取档的依据，宿主用同一份
 列表配置 `images` 容器的白名单（`UseBlobManagementPublicSizes`）。BM 独立部署时，BM 一侧要配置同样的列表，文档写明。

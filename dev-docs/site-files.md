@@ -66,8 +66,10 @@ as a remote service - which it is deliberately not (`BlobManagementPublicControl
 and would put every visitor behind Site's one client address in Blob Management's rate limit.
 
 What that costs, against the read endpoint Site had: no WebP for a browser that takes it beyond what the `Images` preset
-stores (a PNG stays a PNG), no JPEG for a client without WebP, and only the sizes the container allows. The first two are
-asked of Blob Management (U1 in the plan); the sizes are `SiteImageSizes`.
+stores (a PNG stays a PNG), no JPEG for a client without WebP, and only the sizes the container allows. The first goes
+with Blob Management's next release, whose `Images` preset stores a PNG of 16 KB or more as lossless WebP on upload
+(`StorePngAsWebp`); Blob Management converts on upload rather than on read, so the second stays. The sizes are
+`SiteImageSizes`.
 
 **Sizes.** `SiteImageSizes.All` is Blob Management's default list with `og:image`'s 1200 and 630; the dev host sets it on
 Site's containers with `UseBlobManagementPublicSizes`, and a Blob Management that runs apart has to be given the same
