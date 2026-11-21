@@ -108,11 +108,10 @@ jobs:
       #
       # release.yml used to install with npm here, because Yarn Classic fetched a dependency whose
       # lockfile entry carried a GitHub Packages "resolved" URL through a code path that never
-      # attached registry auth. No such entry remains - every @dignite/* package resolves from public
-      # npmjs - so both workflows run the same yarn command; release.yml's step carries the longer
-      # account. (10.0.0-rc.16 briefly put a GitHub Packages URL back in the lockfile and reopened
-      # exactly that wound; CHANGELOG.md has the story and why the fix was to publish the dependency
-      # publicly rather than to keep authenticating against it here.)
+      # attached registry auth - true of an npm: alias, not of a package installed under its own
+      # name, which @dignite-projects/ng.blob-management is (below). Both workflows run the same yarn
+      # command; release.yml's step carries the longer account. (10.0.0-rc.16 briefly put a GitHub
+      # Packages URL back in the lockfile and reopened exactly that wound; CHANGELOG.md has the story.)
       #
       # It matters for the duplicate check below specifically: npm dedupes graphs that Yarn Classic
       # splits into nested copies, so running that check after an npm install would pass vacuously.
