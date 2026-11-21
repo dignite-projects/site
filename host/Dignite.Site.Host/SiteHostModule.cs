@@ -73,8 +73,8 @@ using Dignite.Site.Mcp;
 using Dignite.Site.Public;
 using Dignite.Abp.AspNetCore.Mcp;
 using Dignite.Abp.BlobManagement;
+using Dignite.Abp.BlobManagement.Presets;
 using Dignite.Abp.BlobManagement.EntityFrameworkCore;
-using Dignite.Abp.BlobManagement.Localization;
 
 using Microsoft.Extensions.Hosting;
 
@@ -163,8 +163,8 @@ namespace Dignite.Site.Host;
     typeof(SiteMcpModule),
 
     // Blob Management, in this process: Site's files are kept in it. Its containers - images, attachments and
-    // theme-assets, the ones Site's fields name - are declared in the BlobManagement section of appsettings.json;
-    // their storage provider is set in ConfigureBlobStoring. BlobManagementHttpApiModule serves what a browser reaches
+    // theme-assets, the ones Site's fields name - are declared, with their storage provider, in ConfigureBlobStoring.
+    // BlobManagementHttpApiModule serves what a browser reaches
     // without Site in between - the upload with a ticket Site's admin UI posts to and the public read Site's file
     // endpoint reads through. It is a trusted, in-process caller of the file service, so no OAuth client is granted
     // anything. It has no MCP tools: Site's own file tools call the same service.
@@ -287,9 +287,8 @@ public class SiteHostModule : AbpModule
 
     /// <summary>
     /// The storage provider for each <see cref="SiteFileContainerNames"/> container (GitHub issue #41):
-    /// filesystem for dev. Only the provider - each container is a Blob Management container, declared with its preset
-    /// (size, types, image handling) in the BlobManagement section of appsettings.json, and <c>Containers.Configure</c>
-    /// merges this onto it. The same base path as before the files moved to Blob Management, so the bytes Site's own
+    /// filesystem for dev. Each container is a Blob Management container with its preset (size, types, image handling);
+    /// Blob Management declares managed containers in code only. The same base path as before the files moved to Blob Management, so the bytes Site's own
     /// file library stored are where it looks for them. Production provider (Azure/S3/other) is still an open decision
     /// (#41) - swapping it later only touches this method, since Blob Management addresses blobs through IBlobContainer
     /// by container name, never by provider.
@@ -307,6 +306,24 @@ public class SiteHostModule : AbpModule
                 options.Containers.Configure(containerName, container =>
                 {
                     container.UseFileSystem(fileSystem => fileSystem.BasePath = basePath);
+
+                    switch (containerName)
+                    {
+                        case SiteFileContainerNames.Images:
+                            container.UseBlobManagementContainer(managed => managed.AllowDirectories = true);
+                            container.UseImagesPreset();
+                            break;
+                        case SiteFileContainerNames.Attachments:
+                            container.UseBlobManagementContainer(managed => managed.AllowDirectories = true);
+                            container.UseDocumentsPreset();
+                            break;
+                        case SiteFileContainerNames.ThemeAssets:
+                            container.UseBlobManagementContainer();
+                            container.UseBinaryAssetsPreset();
+                            break;
+                        default:
+                            throw new InvalidOperationException($"No Blob Management preset for Site's container '{containerName}'.");
+                    }
 
                     // The sizes Site asks Blob Management's public read for (og:image's box, and a template's
                     // file_url rounded up to one of them); any other is answered 400.
@@ -472,12 +489,6 @@ public class SiteHostModule : AbpModule
                 .Add<SiteHostResource>("en")
                 .AddBaseTypes(typeof(AbpValidationResource), typeof(AbpUiResource))
                 .AddVirtualJson("/Localization/Host");
-
-            // The management page of the Angular build asks for texts 10.7.7-preview.1 of Blob Management does not have
-            // yet; they are added to its resource here. Remove them with the release that carries them.
-            options.Resources
-                .Get<BlobManagementResource>()
-                .AddVirtualJson("/Localization/BlobManagementPreview");
 
             options.DefaultResourceType = typeof(SiteHostResource);
             

@@ -38,25 +38,29 @@ public class MyHostModule : AbpModule
 }
 ````
 
-In the same process Blob Management is a trusted caller of Site's services: no OAuth client is registered and nothing is granted to one. Call `builder.ConfigureBlobManagement()` in the host's migrations `DbContext` and add a migration: it creates `BlobFileDescriptors` and `BlobDirectoryDescriptors`. Then declare the three containers in the `BlobManagement` section of `appsettings.json`:
-
-````json
-{
-  "BlobManagement": {
-    "Containers": {
-      "images": { "Preset": "Images", "AllowDirectories": true },
-      "attachments": { "Preset": "Documents", "AllowDirectories": true },
-      "theme-assets": { "Preset": "BinaryAssets" }
-    }
-  }
-}
-````
-
-and choose where their bytes are stored, with any [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing#blob-storage-providers):
+In the same process Blob Management is a trusted caller of Site's services: no OAuth client is registered and nothing is granted to one. Call `builder.ConfigureBlobManagement()` in the host's migrations `DbContext` and add a migration: it creates `BlobFileDescriptors` and `BlobDirectoryDescriptors`. Then declare the three containers as Blob Management containers, each with its preset, and choose where their bytes are stored, with any [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing#blob-storage-providers):
 
 ````csharp
 Configure<AbpBlobStoringOptions>(options =>
 {
+    options.Containers.Configure(SiteFileContainerNames.Images, container =>
+    {
+        container.UseBlobManagementContainer(managed => managed.AllowDirectories = true);
+        container.UseImagesPreset();
+    });
+
+    options.Containers.Configure(SiteFileContainerNames.Attachments, container =>
+    {
+        container.UseBlobManagementContainer(managed => managed.AllowDirectories = true);
+        container.UseDocumentsPreset();
+    });
+
+    options.Containers.Configure(SiteFileContainerNames.ThemeAssets, container =>
+    {
+        container.UseBlobManagementContainer();
+        container.UseBinaryAssetsPreset();
+    });
+
     foreach (var containerName in SiteFileContainerNames.All)
     {
         options.Containers.Configure(containerName, container =>
@@ -66,6 +70,8 @@ Configure<AbpBlobStoringOptions>(options =>
     }
 });
 ````
+
+Blob Management declares its containers in code only; it reads no configuration section for them.
 
 Pictures are converted and resized with SkiaSharp, which Blob Management depends on. A host that runs Blob Management on Linux also references the `SkiaSharp.NativeAssets.Linux` package. The sizes a picture may be resized to are set on the containers too ([Serving Files](#serving-files)).
 

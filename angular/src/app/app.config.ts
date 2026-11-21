@@ -10,7 +10,7 @@ import { registerLocaleForEsBuild } from '@abp/ng.core/locale';
 import { provideThemeLeptonX } from '@abp/ng.theme.lepton-x';
 import { provideSideMenuLayout } from '@abp/ng.theme.lepton-x/layouts';
 import { provideLogo, withEnvironmentOptions } from "@abp/ng.theme.shared";
-import { provideBlobManagementConfig } from '@dignite/ng.blob-management/config';
+import { provideBlobManagementConfig } from '@dignite-projects/ng.blob-management/config';
 import { provideSite } from '@dignite/ng.site/config';
 import { provideSiteSettingTabs } from '@dignite/ng.site/setting-management';
 import { ApplicationConfig } from '@angular/core';

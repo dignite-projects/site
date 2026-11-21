@@ -78,7 +78,7 @@ Pages, content types, fields and contents are stored through Entity Framework Co
 
 ## File Storage
 
-Site's files are kept in Dignite Blob Management, which the host installs: its modules, `ConfigureBlobManagement()` in the `DbContext`, and the containers Site's fields use - `images`, `attachments` and `theme-assets` - declared in the `BlobManagement` section of `appsettings.json`; see [Files](files.md#installing-blob-management-in-the-host). Then choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for the containers, for example the database provider:
+Site's files are kept in Dignite Blob Management, which the host installs: its modules, `ConfigureBlobManagement()` in the `DbContext`, and the containers Site's fields use - `images`, `attachments` and `theme-assets` - declared in code with their presets; see [Files](files.md#installing-blob-management-in-the-host). Then choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for the containers, for example the database provider:
 
 ````csharp
 Configure<AbpBlobStoringOptions>(options =>

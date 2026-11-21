@@ -146,9 +146,6 @@
   <ItemGroup>
     <Content Remove="Localization\Host\*.json" />
     <EmbeddedResource Include="Localization\Host\*.json" />
-    <!-- Texts of Blob Management that 10.7.7-preview.1 lacks and the Angular build of its management page uses. -->
-    <Content Remove="Localization\BlobManagementPreview\*.json" />
-    <EmbeddedResource Include="Localization\BlobManagementPreview\*.json" />
   </ItemGroup>
 
   <ItemGroup>

@@ -24,7 +24,7 @@ export const APP_ROUTES: Routes = [
   },
   {
     path: 'blob-management',
-    loadChildren: () => import('@dignite/ng.blob-management').then(m => m.createRoutes()),
+    loadChildren: () => import('@dignite-projects/ng.blob-management').then(m => m.createRoutes()),
   },
   {
     path: 'site',

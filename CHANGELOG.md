@@ -12,8 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking: Site's files are kept in Dignite Blob Management; Site's own file library is gone.** The images and
   attachments of contents, the share images and the files a theme links are stored in Blob Management, which the host
   installs (Application, HttpApi and Entity Framework Core), with `images`, `attachments` and `theme-assets` declared in
-  its `BlobManagement` configuration section and every file Site keeps marked public. Uploads are checked by Blob
-  Management's presets (the `images` preset stores a JPEG as WebP, turned upright, as Site did). Blob Management
+  code with their presets and every file Site keeps marked public. Uploads are checked by Blob
+  Management's presets (the `images` preset stores a JPEG as WebP, turned upright, as Site did, and a PNG of 16 KB or more
+  as lossless WebP). Blob Management
   authorizes no user, so Site does: `IFileAdminAppService` (`api/site-admin/files`) asks for an upload ticket, confirms
   the uploaded file and deletes it, and lists the containers and files, by the permission of the container - the
   `SiteAdmin.Contents.*`, `SiteAdmin.Seo.Update` and `SiteAdmin.Themes.Edit` that uploading needed before Site's files
