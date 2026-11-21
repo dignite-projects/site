@@ -39,6 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the browsing modal, the directory tree, the upload component and `ValidatorsService`; the admin directory proxies went
   with them. Added: `SiteFileInputComponent`, `SiteFileUploadService`, `FileAdminService`, `normalizeFileUrl`,
   `SiteUploadCleanup`, `fileOfUrl`. See [Admin UI](docs/en/admin-ui.md).
+- **A file field can pick from the files already uploaded, directories included.** The new setting `FileExplorer.InputMode`
+  (`Upload`, the default, or `Library`) makes the field's button open a window over the container's files - searchable,
+  paged, several at a time when the field takes several, with an upload into the directory shown - and, when the container
+  sets `AllowDirectories` and the user may see them, its directory tree, where directories are created, renamed and deleted
+  as far as the user's grants on the container go. `GET api/site-admin/files` and `POST api/site-admin/files/upload-tickets`
+  take a `directoryId`. The directory permissions are Blob Management's: grant `BlobManagement.Container.View` (or give
+  the role the management permission) and `CreateDirectories`, `UpdateDirectories` and `DeleteDirectories` on each
+  container. See [Directories](docs/en/files.md#directories).
 
 - **`file_url` takes its width as optional.** A Scriban template that wants the image as stored writes
   `file_url url` instead of having to name a width, and `null` counts as not given: it used to be turned into

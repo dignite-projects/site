@@ -5,7 +5,7 @@ import { AbstractControl, FormControl, ReactiveFormsModule, ValidatorFn, Validat
 import { FieldTypeControlBase } from '@dignite/ng.flex-fields';
 import { SiteFileInputComponent } from '../../files/components/site-file-input.component';
 import { SiteStoredFile } from '../../files/services/site-stored-file';
-import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration } from './file-configuration';
+import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration, FileInputMode } from './file-configuration';
 
 /**
  * Edits a file field's value with `site-file-input`: uploads files to the field's container and holds them as a list of
@@ -24,6 +24,18 @@ import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration } from './file-c
 export class FileControlComponent extends FieldTypeControlBase {
   get multiple(): boolean {
     return !!this.fieldValue?.field.configuration[FILE_FIELD_CONFIGURATION_NAMES.uploadFileMultiple];
+  }
+
+  /** `Upload` unless the field's configuration says `Library`: a stored value of anything else is the default. */
+  get inputMode(): FileInputMode {
+    return this.fieldValue?.field.configuration[FILE_FIELD_CONFIGURATION_NAMES.inputMode] === FileInputMode.Library
+      ? FileInputMode.Library
+      : FileInputMode.Upload;
+  }
+
+  /** Whether files are chosen from a window of those already uploaded, rather than uploaded at once. */
+  get library(): boolean {
+    return this.inputMode === FileInputMode.Library;
   }
 
   get containerName(): string {

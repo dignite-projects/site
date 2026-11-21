@@ -18,9 +18,12 @@ export class SiteFileUploadService {
   private readonly files = inject(FileAdminService);
   private readonly rest = inject(RestService);
 
-  /** The stored form of the file once it is kept: its id, its name and type as stored, and Site's address of it. */
-  upload(file: File, containerName: string): Observable<SiteStoredFile> {
-    return this.files.createUploadTicket({ containerName }).pipe(
+  /**
+   * The stored form of the file once it is kept: its id, its name and type as stored, and Site's address of it. It is
+   * filed in `directoryId` when one is given - a directory of the container, which has to allow them.
+   */
+  upload(file: File, containerName: string, directoryId?: string | null): Observable<SiteStoredFile> {
+    return this.files.createUploadTicket({ containerName, directoryId: directoryId ?? undefined }).pipe(
       switchMap(ticket => {
         const form = new FormData();
         form.append('file', file, file.name);

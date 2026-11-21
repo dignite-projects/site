@@ -29,12 +29,24 @@ public class GetSiteFilesInput : PagedAndSortedResultRequestDto
 
     /// <summary>A part of the name, whatever its case.</summary>
     public string? Filter { get; set; }
+
+    /// <summary>
+    /// The directory whose files are listed; <c>null</c> is the top of the container - or the whole container, when it
+    /// has no directories. Directories are Blob Management's (<c>api/blob-management/directories</c>).
+    /// </summary>
+    public Guid? DirectoryId { get; set; }
 }
 
 public class CreateSiteFileUploadTicketInput
 {
     [Required]
     public string ContainerName { get; set; } = default!;
+
+    /// <summary>
+    /// The directory the file is filed in; <c>null</c> is the top of the container. The container has to allow
+    /// directories and the directory has to be one of its own, which Blob Management checks.
+    /// </summary>
+    public Guid? DirectoryId { get; set; }
 }
 
 public class SiteFileUploadTicketDto

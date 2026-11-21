@@ -2,11 +2,13 @@ import type { PagedAndSortedResultRequestDto } from '@abp/ng.core';
 
 export interface CreateSiteFileUploadTicketInput {
   containerName: string;
+  directoryId?: string | null;
 }
 
 export interface GetSiteFilesInput extends PagedAndSortedResultRequestDto {
   containerName: string;
   filter?: string | null;
+  directoryId?: string | null;
 }
 
 export interface SiteFileContainerDto {

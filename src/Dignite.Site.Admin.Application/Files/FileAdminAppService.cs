@@ -70,6 +70,7 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
         {
             ContainerName = input.ContainerName,
             Filter = input.Filter,
+            DirectoryId = input.DirectoryId,
             Sorting = input.Sorting,
             SkipCount = input.SkipCount,
             MaxResultCount = input.MaxResultCount
@@ -93,6 +94,7 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
         var ticket = await BlobManagementFileService.CreateUploadTicketAsync(new CreateBlobManagementUploadTicketInput
         {
             ContainerName = input.ContainerName,
+            DirectoryId = input.DirectoryId,
             UploaderId = CurrentUser.Id
         });
 

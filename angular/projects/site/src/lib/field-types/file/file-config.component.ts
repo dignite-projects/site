@@ -4,7 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { FieldTypeConfigBase } from '@dignite/ng.flex-fields';
 import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import { SITE_FILE_CONTAINER_NAMES } from '../../files/services/site-file-containers';
-import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration } from './file-configuration';
+import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration, FileInputMode } from './file-configuration';
 
 /**
  * Designer-side editor for a file field's configuration: which of Site's file containers the files are uploaded to, one
@@ -20,6 +20,7 @@ import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration } from './file-c
 export class FileConfigComponent extends FieldTypeConfigBase {
   readonly containerNames = signal<readonly string[]>(SITE_FILE_CONTAINER_NAMES);
   readonly names = FILE_FIELD_CONFIGURATION_NAMES;
+  readonly inputModes = FileInputMode;
 
   constructor() {
     super();

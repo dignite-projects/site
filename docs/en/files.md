@@ -21,7 +21,7 @@ Site's fields use three containers, which the host declares as Blob Management c
 | `attachments` | Documents to download | `Documents` | PDF, Office documents, text, CSV, ZIP | 20 MB |
 | `theme-assets` | The binary files a [theme](rendering/scriban-templates.md) links: the favicon, web fonts | `BinaryAssets` | ICO, WOFF2, WOFF, TTF, OTF | 5 MB |
 
-`SiteFileContainerNames` holds the three names. A file field's configuration names its container, and may name another container the host declares for the same use. The presets are Blob Management's ([Setting Up](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/setting-up.md)); the `Images` preset stores a **JPEG as WebP**, turned upright, removes the metadata a design tool piles into a picture, and shrinks a picture wider than 2560 or taller than 4096 pixels. A file's type is detected from its bytes, and SVG, HTML and scripts are accepted by no preset.
+A container has no directories unless the host sets `AllowDirectories` on it ([Directories](#directories)). `SiteFileContainerNames` holds the three names. A file field's configuration names its container, and may name another container the host declares for the same use. The presets are Blob Management's ([Setting Up](https://github.com/dignite-projects/abp-modules/blob/main/docs/en/blob-management/setting-up.md)); the `Images` preset stores a **JPEG as WebP**, turned upright, removes the metadata a design tool piles into a picture, and shrinks a picture wider than 2560 or taller than 4096 pixels. A file's type is detected from its bytes, and SVG, HTML and scripts are accepted by no preset.
 
 ## Installing Blob Management in the Host
 
@@ -44,8 +44,8 @@ In the same process Blob Management is a trusted caller of Site's services: no O
 {
   "BlobManagement": {
     "Containers": {
-      "images": { "Preset": "Images" },
-      "attachments": { "Preset": "Documents" },
+      "images": { "Preset": "Images", "AllowDirectories": true },
+      "attachments": { "Preset": "Documents", "AllowDirectories": true },
       "theme-assets": { "Preset": "BinaryAssets" }
     }
   }
@@ -83,15 +83,30 @@ Blob Management authorizes no user for files, so Site does:
 
 A user may delete the file they uploaded only while they may still upload to its container. Reading a file needs nothing: the files are public. The tenant's `BlobManagement.Enable` feature has to be on to upload.
 
+## Directories
+
+A container that sets `AllowDirectories` keeps its files in a tree of directories, which Blob Management owns: Site's file picker (the `Library` input mode of a file field, below) reads and changes the tree through Blob Management's own API with the signed-in user's token, and Site adds no rule of its own to it. What a user may do is Blob Management's answer for the container (`GET api/blob-management/containers/{name}`, any signed-in user, returns it as `access` with the container's limits):
+
+| To | The user needs, on the container |
+|---|---|
+| See the directory tree | `BlobManagement.Containers` - the management permission, module-wide - or `BlobManagement.Container.View` |
+| Create a directory | `BlobManagement.Container.CreateDirectories` |
+| Rename or move a directory | `BlobManagement.Container.UpdateDirectories` |
+| Delete a directory, which has to be empty | `BlobManagement.Container.DeleteDirectories` |
+
+The last three are grants on the container alone: not even the management permission stands in for them. Grant them to a role in ABP's resource permission dialog - the **Permissions** button of a container on Blob Management's Files page, which takes `BlobManagement.ManagePermissions` - or in a data seed with `IResourcePermissionManager`; the dev host seeds them for the `admin` role on the three containers. A user without the right to see the tree gets the files at the top of the container only, with a note, and none of the buttons that change it.
+
+Uploading into a directory needs only the permission to upload to the container ([Permissions](#permissions)): Blob Management checks that the directory is one of the container's, and files are not hidden by their directory.
+
 ## Uploading a File
 
 A file is uploaded in three steps, and the bytes never pass through Site's own endpoints:
 
-1. `POST /api/site-admin/files/upload-tickets` with the container asks for a one-use ticket. Site checks the caller's permission for the container and asks Blob Management for the ticket, which carries the tenant, the container, the file's id and the uploader.
+1. `POST /api/site-admin/files/upload-tickets` with the container (and a `directoryId`, to file the upload in a directory) asks for a one-use ticket. Site checks the caller's permission for the container and asks Blob Management for the ticket, which carries the tenant, the container, the file's id and the uploader.
 2. The client posts the file as the multipart field `file` to the ticket's `uploadUrl` - `/api/blob-management/uploads/{ticket}`, on the same host - without any credential. Blob Management checks the file against the container's limits and stores it. It is **pending**: nobody reads it.
 3. `POST /api/site-admin/files/{id}/confirm` keeps the file and makes it public. Only its uploader may confirm it. A file never confirmed is deleted after a day.
 
-Also under `api/site-admin/files`: `GET` lists the files of a container the caller may upload to (`containerName`, `filter`), `GET {id}` reads one, `GET containers` lists the containers the caller may upload to with their limits, and `DELETE {id}` deletes a file.
+Also under `api/site-admin/files`: `GET` lists the files of a container the caller may upload to (`containerName`, `filter`, and `directoryId` - none is the top of the container), `GET {id}` reads one, `GET containers` lists the containers the caller may upload to with their limits, and `DELETE {id}` deletes a file.
 
 ## Addresses
 
@@ -154,6 +169,13 @@ A gateway in front of the administration API must also route `GET` and `HEAD` on
 ## Attaching Files in the Admin UI
 
 A file field, the SEO field's share image and the default share image of the SEO settings use `site-file-input` from `@dignite/ng.site`, fixed to the field's container (`images` for share images). It checks each chosen file against the container's size and type limits, uploads it in the three steps above, and shows the files attached. Removing a file takes it out of the form; a file uploaded while the form is edited and removed again before it is saved is deleted once the form is saved. A file that was in the form before is not deleted by removing it: other contents may still use it.
+
+A file field has a setting, **How files are attached** (`FileExplorer.InputMode`), with two values:
+
+* **Upload directly** (`Upload`, the default): the button opens the computer's file chooser and the files chosen are uploaded at once.
+* **Choose from the files already uploaded** (`Library`): the button opens a window over the container's files, a page at a time and searchable by name, in which the user picks one file - or several, when the field takes several - or uploads another into the directory shown. When the container has directories and the user may see them ([Directories](#directories)), the tree stands beside the list, and the user creates, renames and deletes directories there as far as their grants go.
+
+The value a field stores is the same either way. A file picked from the window is only attached: the form's cleanup never deletes it.
 
 ## CKEditor Image Upload
 

@@ -30,6 +30,9 @@
     "Seo:CharLimitAdvisoryHint": "Counted in columns, as a search result is limited by width: a Chinese, Japanese or Korean character takes two. These limits are guidance, not validation. A search engine truncates an over-long title or description rather than rejecting it, so a longer value still saves.",
     "File:FileContainerName": "File container",
     "File:UploadFileMultiple": "Allow multiple files",
+    "File:InputMode": "How files are attached",
+    "File:InputMode:Upload": "Upload directly",
+    "File:InputMode:Library": "Choose from the files already uploaded",
     "File:ContainerNotConfigured": "This field has no file container configured yet. Set one in the field's configuration before it can be used."
   }
 }

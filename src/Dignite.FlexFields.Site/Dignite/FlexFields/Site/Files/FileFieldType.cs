@@ -59,6 +59,12 @@ public class FileFieldType : FieldTypeBase, IHasValueShape
         {
             DefaultValue = new FileFieldConfiguration().UploadFileMultiple,
             Description = "Whether the value is a list of files rather than one."
+        },
+        new(FileFieldConfigurationNames.InputMode, FieldConfigurationValueKind.Enum, typeof(FileInputMode))
+        {
+            DefaultValue = (int)new FileFieldConfiguration().InputMode,
+            Description = "How the admin UI attaches files: upload them at once, or choose from the files already " +
+                          "uploaded to the container, in its directories when it has them."
         }
     };
 

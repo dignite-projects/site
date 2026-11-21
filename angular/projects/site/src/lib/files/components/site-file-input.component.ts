@@ -6,15 +6,21 @@ import { catchError, concatMap, EMPTY, finalize, from, tap } from 'rxjs';
 import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import type { SiteFileContainerDto } from '../../proxy/dignite/site/admin/files/models';
 import { FormatFileSizePipe } from '../pipes/format-file-size.pipe';
+import { refuseFile } from '../services/site-file-limits';
 import { SiteFileUploadService } from '../services/site-file-upload.service';
 import { SiteFileUrlService } from '../services/site-file-url.service';
 import { SiteStoredFile } from '../services/site-stored-file';
 import { SiteUploadCleanup } from '../services/site-upload-cleanup';
+import { SiteFilePickerModalComponent } from './site-file-picker-modal.component';
 
 /**
  * Attaches files to a form: uploads the files the user chooses into one of Site's file containers (`SiteFileUploadService`),
  * shows the files attached with their address, and takes one out again. It is a form control whose value is the list of
  * the files (`SiteStoredFile`), which is what a file field stores; the share image takes `value[0].url`.
+ *
+ * In `library` mode the button opens a window of the files already uploaded to the container (`site-file-picker-modal`),
+ * its directories included, to pick from - and to upload into - instead of a computer's file chooser; what it holds and
+ * stores is the same.
  *
  * Each file is checked against the container's size and type limits before it is sent - Blob Management checks again
  * when it arrives - and the files chosen are uploaded one after another, so one that fails does not stop the others.
@@ -24,7 +30,7 @@ import { SiteUploadCleanup } from '../services/site-upload-cleanup';
 @Component({
   selector: 'site-file-input',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CoreModule, FormatFileSizePipe],
+  imports: [CoreModule, FormatFileSizePipe, SiteFilePickerModalComponent],
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SiteFileInputComponent), multi: true }],
   template: `
     <input
@@ -39,15 +45,24 @@ import { SiteUploadCleanup } from '../services/site-upload-cleanup';
       type="button"
       class="btn btn-sm btn-outline-primary"
       [disabled]="disabled() || uploading() || !containerName()"
-      (click)="picker.click()"
+      (click)="library() ? (libraryOpen.set(true)) : picker.click()"
     >
       @if (uploading()) {
         <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
       } @else {
-        <i class="fa fa-upload me-1" aria-hidden="true"></i>
+        <i class="fa me-1" [class.fa-upload]="!library()" [class.fa-folder-open-o]="library()" aria-hidden="true"></i>
       }
-      {{ 'Site::Files:Upload' | abpLocalization }}
+      {{ (library() ? 'Site::Files:ChooseFiles' : 'Site::Files:Upload') | abpLocalization }}
     </button>
+
+    @if (library() && containerName(); as name) {
+      <site-file-picker-modal
+        [containerName]="name"
+        [multiple]="multiple()"
+        [(visible)]="libraryOpen"
+        (picked)="pick($event)"
+      />
+    }
 
     @if (value().length > 0) {
       <ul class="list-group mt-2">
@@ -84,7 +99,6 @@ export class SiteFileInputComponent implements ControlValueAccessor {
   private readonly uploads = inject(SiteFileUploadService);
   private readonly toaster = inject(ToasterService);
   private readonly cleanup = inject(SiteUploadCleanup, { optional: true });
-  private readonly fileSize = new FormatFileSizePipe();
   protected readonly urls = inject(SiteFileUrlService);
 
   /** One of Site's file containers: `images`, `attachments` or `theme-assets`. */
@@ -92,6 +106,12 @@ export class SiteFileInputComponent implements ControlValueAccessor {
 
   /** Whether several files may be attached; otherwise an upload replaces the file attached. */
   readonly multiple = input(false);
+
+  /** Whether the files are picked from a window of those already uploaded, rather than uploaded at once. */
+  readonly library = input(false);
+
+  /** Whether that window is open. */
+  protected readonly libraryOpen = signal(false);
 
   /** The files attached. */
   readonly value = model<SiteStoredFile[]>([]);
@@ -175,6 +195,20 @@ export class SiteFileInputComponent implements ControlValueAccessor {
       .subscribe();
   }
 
+  /**
+   * Attaches the files picked from the window. Only picked, not uploaded here: the page's cleanup is not told, so saving
+   * the form never deletes a file another content may use.
+   */
+  pick(files: SiteStoredFile[]): void {
+    if (!this.multiple()) {
+      this.setValue(files.slice(0, 1));
+      return;
+    }
+
+    const attached = new Set(this.value().map(file => file.id));
+    this.setValue([...this.value(), ...files.filter(file => !attached.has(file.id))]);
+  }
+
   /** Takes the file out of the value; the file itself stays where it is. */
   remove(file: SiteStoredFile): void {
     this.setValue(this.value().filter(item => item.id !== file.id));
@@ -204,21 +238,11 @@ export class SiteFileInputComponent implements ControlValueAccessor {
   }
 
   private accepts(file: File): boolean {
-    const maxFileSize = this.container()?.maxFileSize ?? 0;
-    if (maxFileSize > 0 && file.size > maxFileSize) {
-      this.toaster.error('Site::Files:FileTooLarge', '', {
-        messageLocalizationParams: [file.name, this.fileSize.transform(maxFileSize)],
-      });
-      return false;
+    const refusal = refuseFile(file, this.container());
+    if (refusal) {
+      this.toaster.error(refusal.key, '', { messageLocalizationParams: refusal.params });
     }
 
-    const extensions = this.container()?.allowedFileExtensions ?? [];
-    const name = file.name.toLowerCase();
-    if (extensions.length > 0 && !extensions.some(extension => name.endsWith(extension.toLowerCase()))) {
-      this.toaster.error('Site::Files:FileTypeNotAllowed', '', { messageLocalizationParams: [file.name] });
-      return false;
-    }
-
-    return true;
+    return !refusal;
   }
 }

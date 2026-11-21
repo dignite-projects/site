@@ -78,6 +78,7 @@ A client writing the value passes the file objects a `site_*` file tool returns,
 |---|---|---|
 | `FileExplorer.FileContainerName` | None; required | The file container the files are uploaded to, usually `images` or `attachments`. |
 | `FileExplorer.UploadFileMultiple` | `false` | Whether the field takes more than one file. |
+| `FileExplorer.InputMode` | `0` | How the admin UI attaches files: `0`, upload them at once; `1`, choose from the files already uploaded to the container, in its directories when it has them. See [Files](files.md#attaching-files-in-the-admin-ui). |
 
 The `url` is the file's relative [address](files.md#addresses). In a template, `GetFileUrl` reads the first file's address of a field; see [Razor Templates](rendering/razor-templates.md#reading-field-values).
 

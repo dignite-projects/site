@@ -49,6 +49,14 @@ describe('SiteFileUploadService', () => {
     });
   });
 
+  it('files the upload in the directory it is given, when there is one', async () => {
+    const { files, service } = setUp();
+
+    await firstValueFrom(service.upload(new File(['x'], 'photo.jpg'), 'images', 'dir-1'));
+
+    expect(files.createUploadTicket).toHaveBeenCalledWith({ containerName: 'images', directoryId: 'dir-1' });
+  });
+
   it('does not confirm a file whose upload failed', async () => {
     const { files, request, service } = setUp();
     request.mockReturnValue(throwError(() => new Error('too large')));

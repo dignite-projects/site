@@ -23,7 +23,7 @@ is Site's: its address, what it does on read, who may upload where, and how its 
 | The admin API | `IFileAdminAppService` / `FileAdminAppService` (Admin.Application.Contracts, Admin.Application) over `IBlobManagementFileService` and `IBlobManagementContainerAppService`; `FileAdminController` (Admin.HttpApi); the C# client proxy and its manifest entry in `site-admin-generate-proxy.json`. |
 | Legacy descriptors | `FileDescriptor`, `DirectoryDescriptor` and their repositories (Domain, EF Core, MongoDB), read only; removed in the next major version. |
 | Migration | `Dignite.Site.BlobManagement.Migration`: `SiteBlobManagementMigrator`, run by a data seed contributor. |
-| Admin UI | `@dignite/ng.site`: `SiteFileInputComponent`, `SiteFileUploadService`, `SiteUploadCleanup`, `SiteCKEditorUploadProvider`, the file field's control and the SEO image inputs. The proxy `FileAdminService` is written by hand in the style of the generated ones. |
+| Admin UI | `@dignite/ng.site`: `SiteFileInputComponent`, `SiteFileUploadService`, `SiteUploadCleanup`, `SiteCKEditorUploadProvider`, the file field's control and the SEO image inputs; `SiteFilePickerModalComponent` and `SiteDirectoryTreeComponent` for the `Library` input mode, over `SiteBlobContainerService` and `SiteBlobDirectoryService` (Blob Management's container and directory endpoints, written by hand). The proxy `FileAdminService` is written by hand in the style of the generated ones. |
 | Management page | The dev host (`angular/`) installs `@dignite/ng.blob-management` - usage, containers, directories and files, read only - under Administration > Blob Management (`provideBlobManagementConfig()`, the `blob-management` route). The package is not on any registry yet, so `angular/package.json` points at a tarball of abp-modules' build in `../../_local-feed`; point it at the published version before the branch is pushed. Seeing it takes `BlobManagement.Containers`, which the data seed grants the admin role. The tarball is newer than the `10.7.7-preview.1` server package, which lacks six of the page's texts (`Menu:Files`, `Usage:Tenants`, `Usage:Host`, `Usage:Allocation`, `Usage:Refresh`, `Permission:TenantUsages`); the host adds them to Blob Management's resource from `host/Dignite.Site.Host/Localization/BlobManagementPreview/` (en, zh-Hans) - remove them with the server package that carries them. |
 | MCP | `FileTools` (Mcp) over `IFileAdminAppService`; `SiteMcpConsts.FileInstructions` tells a client how Site's fields use them. |
 
@@ -79,6 +79,19 @@ Containers keep their names and their storage provider, so an owner's bytes are 
 The migration writes the legacy file's SHA-256 (upper-case hex) into `Hash`: the `10.7.7-preview.1` descriptor requires
 one. A release of Blob Management after it keeps a hash only for an upload verified against one, as base64; the
 migration then stops writing it (`upload-checksum-decision.md`).
+
+## The file picker and the directories
+
+A file field's `FileExplorer.InputMode` (`FileInputMode`: `Upload` = 0, `Library` = 1; an enum key of the field type, stored as its number, as the date field's `DateTime.InputMode` is) decides what the button of `site-file-input` does. In `Library` mode it opens `site-file-picker-modal`: the files of one directory, a page at a time, searchable, selectable across pages, with an upload button that files into the directory shown, and - beside the list - `site-directory-tree` when the container has directories and the user may see them. The window is built new; the old library's picker, modal and tree (before `4dbc05d`) carried drag and drop, a "my files" root and rename and move of files, none of which this needs.
+
+Who answers what, and why:
+
+- **Files** come from `IFileAdminAppService.GetListAsync` (`directoryId` added), so Site's rule for the container applies, as for every other file call.
+- **Directories and the container's limits** come from Blob Management's own endpoints (`api/blob-management/directories`, `api/blob-management/containers/{name}`), called by the browser with the user's token. Blob Management authorizes the tree by grants on the container (`BlobManagement.Container.View`/`CreateDirectories`/`UpdateDirectories`/`DeleteDirectories`), and it deliberately has no trusted path for an application to write directories (`positioning-decision.md`, *Not chosen*), so a Site endpoint in front of it would add nothing. It would also fail in the one deployment where Blob Management is remote: the client-credentials token Site's back end calls with carries no user, which the directory API refuses.
+- **What the user may do** is the `access` of the container (`GET api/blob-management/containers/{name}`, any signed-in user): the tree is shown when `allowDirectories` and `access.view`, and each button needs its own flag. `view` is true for a holder of `BlobManagement.Containers`; the three that write are never implied by it, so a role has to be granted them. `SiteFileDirectoryPermissionsDataSeedContributor` does it for `admin` in the dev host.
+- **An upload's `directoryId`** is passed to Blob Management's ticket, which checks that the directory belongs to the container and that the container allows directories. Site does not ask whether the user may see that directory: the file service is a trusted caller and files are not hidden by their directory (`positioning-decision.md`).
+
+Not done: moving a directory (Blob Management's page does, by dragging), renaming or moving files, deleting files from the window, and filing the legacy library's `Site:DirectoryPath` into the directories (`DirectoryPathImporter`).
 
 ## Deleting what a form no longer holds
 

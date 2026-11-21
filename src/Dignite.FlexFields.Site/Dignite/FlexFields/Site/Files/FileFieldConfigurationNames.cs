@@ -10,4 +10,5 @@ public static class FileFieldConfigurationNames
 {
     public const string FileContainerName = "FileExplorer.FileContainerName";
     public const string UploadFileMultiple = "FileExplorer.UploadFileMultiple";
+    public const string InputMode = "FileExplorer.InputMode";
 }

@@ -67,7 +67,7 @@ export class FileAdminService {
       method: 'GET',
       headers: { Accept: 'application/json' },
       url: '/api/site-admin/files',
-      params: { containerName: input.containerName, filter: input.filter, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
+      params: { containerName: input.containerName, filter: input.filter, directoryId: input.directoryId, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
     },
       { apiName: this.apiName,...config });
 }
