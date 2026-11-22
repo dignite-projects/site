@@ -18,7 +18,7 @@ public class SiteHeadOptions
     public string? FallbackDescription { get; set; }
 
     /// <summary>
-    /// A share image for the page - a post's cover, say - as written: a file library address or an absolute URL.
+    /// A share image for the page - a post's cover, say - as written: a file's address or an absolute URL.
     /// Used when the content's SEO field has none, in place of the site's default share image.
     /// </summary>
     public string? Image { get; set; }

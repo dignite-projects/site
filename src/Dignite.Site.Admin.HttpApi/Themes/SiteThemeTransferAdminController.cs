@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Dignite.Site.Admin.Files;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Authorization;

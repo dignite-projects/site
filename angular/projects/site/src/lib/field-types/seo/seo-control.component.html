@@ -68,27 +68,15 @@
             ></site-file-preview>
           </div>
         }
-        <div>
-          <button type="button" class="btn btn-sm btn-outline-primary" (click)="ogImagePickerOpen = true">
-            <i class="fa fa-image me-1" aria-hidden="true"></i>
-            {{ 'FlexFieldsSite::Seo:SelectOgImage' | abpLocalization }}
-          </button>
-          @if (ogImage) {
-            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" (click)="removeOgImage()">
-              <i class="fa fa-trash me-1" aria-hidden="true"></i>
-              {{ 'FlexFieldsSite::Seo:RemoveOgImage' | abpLocalization }}
-            </button>
-          }
-        </div>
+        <site-file-input
+          [containerName]="ogImageContainerName"
+          [multiple]="false"
+          [value]="ogImageFiles()"
+          (valueChange)="onOgImageChange($event)"
+        />
         <small class="form-text text-muted d-block">
           {{ 'FlexFieldsSite::Seo:OgImageHint' | abpLocalization }}
         </small>
-        <site-file-modal
-          [(visible)]="ogImagePickerOpen"
-          [multiple]="false"
-          [fileContainerName]="ogImageContainerName"
-          (selectFilefn)="onOgImagePicked($event)"
-        ></site-file-modal>
       </div>
 
       <div class="form-check">

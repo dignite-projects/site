@@ -1,8 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Dignite.Site.Files;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -10,102 +8,55 @@ using Volo.Abp.Application.Dtos;
 namespace Dignite.Site.Admin.Files;
 
 /// <summary>
-/// The file library's admin API. Every <see cref="FileDescriptorDto.Url"/> it returns is the public read
-/// endpoint's relative address (<see cref="SiteFileUrl.Build"/>); a client that shows the file from another
-/// origin - the admin UI - puts its own API host in front of it.
+/// Site's files over HTTP. Who may upload to which container is decided in <see cref="IFileAdminAppService"/>, per
+/// container, so the only gate here is a signed-in user.
 /// </summary>
 [RemoteService(Name = SiteAdminRemoteServiceConsts.RemoteServiceName)]
 [Area(SiteAdminRemoteServiceConsts.ModuleName)]
+[Authorize]
 [Route("api/site-admin/files")]
 public class FileAdminController : SiteAdminController, IFileAdminAppService
 {
-    protected IFileAdminAppService FileAdminAppService { get; }
+    protected IFileAdminAppService FileAppService { get; }
 
-    protected IFileUploadTicketService FileUploadTicketService { get; }
-
-    public FileAdminController(IFileAdminAppService fileAdminAppService, IFileUploadTicketService fileUploadTicketService)
+    public FileAdminController(IFileAdminAppService fileAppService)
     {
-        FileAdminAppService = fileAdminAppService;
-        FileUploadTicketService = fileUploadTicketService;
+        FileAppService = fileAppService;
+    }
+
+    [HttpGet("containers")]
+    public virtual Task<ListResultDto<SiteFileContainerDto>> GetContainersAsync()
+    {
+        return FileAppService.GetContainersAsync();
     }
 
     [HttpGet]
-    [Route("{id:guid}")]
-    public virtual Task<FileDescriptorDto> GetAsync(Guid id)
+    public virtual Task<PagedResultDto<SiteFileDto>> GetListAsync(GetSiteFilesInput input)
     {
-        return FileAdminAppService.GetAsync(id);
+        return FileAppService.GetListAsync(input);
     }
 
-    [HttpGet]
-    public virtual Task<PagedResultDto<FileDescriptorDto>> GetListAsync(GetFilesInput input)
+    [HttpGet("{id}")]
+    public virtual Task<SiteFileDto> GetAsync(Guid id)
     {
-        return FileAdminAppService.GetListAsync(input);
+        return FileAppService.GetAsync(id);
     }
 
-    /// <summary>
-    /// <c>multipart/form-data</c>: the file under <c>file</c>; <c>containerName</c> and <c>directoryId</c> as
-    /// query parameters, so <see cref="FileUploadSizeLimitFilter"/> knows the container before the body is read.
-    /// </summary>
-    [HttpPost]
-    [TypeFilter(typeof(FileUploadSizeLimitFilter))]
-    public virtual Task<FileDescriptorDto> CreateAsync(CreateFileInput input)
+    [HttpPost("upload-tickets")]
+    public virtual Task<SiteFileUploadTicketDto> CreateUploadTicketAsync(CreateSiteFileUploadTicketInput input)
     {
-        return FileAdminAppService.CreateAsync(input);
+        return FileAppService.CreateUploadTicketAsync(input);
     }
 
-    /// <summary>
-    /// A link to <see cref="UploadByTicketAsync"/>: for a client that has the file at hand but cannot send its bytes
-    /// through this API call.
-    /// </summary>
-    [HttpPost]
-    [Route("upload-tickets")]
-    public virtual Task<FileUploadTicketDto> CreateUploadTicketAsync(CreateFileUploadTicketInput input)
+    [HttpPost("{id}/confirm")]
+    public virtual Task<SiteFileDto> ConfirmAsync(Guid id)
     {
-        return FileAdminAppService.CreateUploadTicketAsync(input);
+        return FileAppService.ConfirmAsync(id);
     }
 
-    /// <summary>
-    /// Stores the file sent as the raw body (<c>PUT</c>, any content type) under the link the ticket makes. Anonymous:
-    /// the ticket is the credential - signed, short-lived, single use, and bound to a container, a name and a size. The
-    /// body is bounded by the ticket's limit before it is read.
-    /// </summary>
-    [HttpPut]
-    [Route(FileUploadTicketPaths.RouteTemplate)]
-    [AllowAnonymous]
-    [IgnoreAntiforgeryToken]
-    [DisableFormValueModelBinding]
-    public virtual async Task<FileDescriptorDto> UploadByTicketAsync(string ticket)
-    {
-        return await FileUploadTicketService.UploadAsync(ticket, maxBytes =>
-        {
-            var feature = HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
-            if (feature is { IsReadOnly: false })
-            {
-                feature.MaxRequestBodySize = maxBytes;
-            }
-
-            return new FileUploadBody(Request.Body, Request.ContentLength);
-        });
-    }
-
-    [HttpPut]
-    [Route("{id:guid}")]
-    public virtual Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input)
-    {
-        return FileAdminAppService.UpdateAsync(id, input);
-    }
-
-    [HttpDelete]
-    [Route("{id:guid}")]
+    [HttpDelete("{id}")]
     public virtual Task DeleteAsync(Guid id)
     {
-        return FileAdminAppService.DeleteAsync(id);
-    }
-
-    [HttpGet]
-    [Route("containers/{containerName}")]
-    public virtual Task<FileContainerConfigurationDto> GetContainerConfigurationAsync(string containerName)
-    {
-        return FileAdminAppService.GetContainerConfigurationAsync(containerName);
+        return FileAppService.DeleteAsync(id);
     }
 }

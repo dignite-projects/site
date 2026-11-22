@@ -1,201 +1,209 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Dignite.Abp.BlobManagement.Files;
+using Dignite.Abp.BlobManagement.Uploads;
 using Dignite.Site.Admin.Files;
-using Dignite.Site.Admin.Permissions;
 using Dignite.Site.EntityFrameworkCore;
-using Dignite.Site.Security;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Dignite.Abp.BlobManagement.Public;
 using Shouldly;
-using Volo.Abp;
 using Volo.Abp.Content;
-using Volo.Abp.MultiTenancy;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Security.Claims;
 using Xunit;
 
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// The admin API of the file library through its application services, against the real database and
-/// filesystem container. Authorization always allows here (see FileDescriptorAuthorizationHandler_Tests for
-/// the rules); these cover what the services do with the rows.
+/// Site's files through <see cref="IFileAdminAppService"/>, in front of Blob Management: the three steps of an upload
+/// (a ticket, the browser's post, the confirmation), what the site's visitors can read afterwards, and the files that are
+/// not Site's.
 /// </summary>
 public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 {
-    private readonly IFileAdminAppService _fileAppService;
-    private readonly IDirectoryAdminAppService _directoryAppService;
-    private readonly IDirectoryDescriptorRepository _directoryRepository;
-    private readonly ICurrentTenant _currentTenant;
+    private readonly IFileAdminAppService _files;
+    private readonly IBlobManagementUploadAppService _uploads;
+    private readonly IBlobManagementFileService _blobManagementFiles;
+    private readonly IBlobManagementPublicAppService _publicFiles;
 
     public FileAdminAppService_Tests()
     {
-        _fileAppService = GetRequiredService<IFileAdminAppService>();
-        _directoryAppService = GetRequiredService<IDirectoryAdminAppService>();
-        _directoryRepository = GetRequiredService<IDirectoryDescriptorRepository>();
-        _currentTenant = GetRequiredService<ICurrentTenant>();
+        _files = GetRequiredService<IFileAdminAppService>();
+        _uploads = GetRequiredService<IBlobManagementUploadAppService>();
+        _blobManagementFiles = GetRequiredService<IBlobManagementFileService>();
+        _publicFiles = GetRequiredService<IBlobManagementPublicAppService>();
     }
 
     [Fact]
-    public async Task Should_Upload_Into_The_Callers_Own_Directory_And_List_It()
+    public async Task Should_List_Site_Containers_With_Their_Limits()
     {
-        var directory = await _directoryAppService.CreateAsync(new CreateDirectoryInput
-        {
-            ContainerName = SiteFileContainerNames.Images,
-            Name = "covers"
-        });
+        var containers = await AsEditorAsync(() => _files.GetContainersAsync());
 
-        var file = await UploadAsync(SiteFileContainerNames.Images, "cover.png", TestFiles.Png(16, 16), directory.Id);
-
-        file.DirectoryId.ShouldBe(directory.Id);
-        file.MimeType.ShouldBe("image/png");
-        // Relative to whichever host serves the site - the same for the HTTP API, the MCP tools and in-process callers.
-        file.Url.ShouldBe($"/api/site-public/files/{SiteFileContainerNames.Images}/{file.BlobName}");
-
-        var listed = await _fileAppService.GetListAsync(new GetFilesInput
-        {
-            ContainerName = SiteFileContainerNames.Images,
-            DirectoryId = directory.Id
-        });
-        listed.Items.ShouldHaveSingleItem().Id.ShouldBe(file.Id);
-
-        var tree = await _directoryAppService.GetListAsync(new GetDirectoriesInput { ContainerName = SiteFileContainerNames.Images });
-        tree.Items.ShouldContain(d => d.Id == directory.Id);
-    }
-
-    [Fact]
-    public async Task Upload_Should_Refuse_A_Directory_Of_Another_Container()
-    {
-        var directory = await _directoryAppService.CreateAsync(new CreateDirectoryInput
-        {
-            ContainerName = SiteFileContainerNames.Attachments,
-            Name = "documents"
-        });
-
-        var exception = await Should.ThrowAsync<BusinessException>(() =>
-            UploadAsync(SiteFileContainerNames.Images, "cover.png", TestFiles.Png(16, 16), directory.Id));
-
-        exception.Code.ShouldBe(SiteErrorCodes.DirectoryNotFound);
-    }
-
-    [Fact]
-    public async Task Upload_Should_Refuse_Another_Users_Directory()
-    {
-        var foreign = await WithUnitOfWorkAsync(() => _directoryRepository.InsertAsync(
-            new DirectoryDescriptor(Guid.NewGuid(), SiteFileContainerNames.Images, "theirs", null, 0, _currentTenant.Id)
-            {
-                CreatorId = Guid.NewGuid()
-            },
-            autoSave: true));
-
-        var exception = await Should.ThrowAsync<BusinessException>(() =>
-            UploadAsync(SiteFileContainerNames.Images, "cover.png", TestFiles.Png(16, 16), foreign.Id));
-
-        exception.Code.ShouldBe(SiteErrorCodes.DirectoryNotFound);
-    }
-
-    [Fact]
-    public async Task Upload_Should_Refuse_A_Container_That_Is_Not_Sites()
-    {
-        var exception = await Should.ThrowAsync<BusinessException>(() =>
-            UploadAsync("invoices", "a.pdf", TestFiles.Pdf()));
-
-        exception.Code.ShouldBe(SiteErrorCodes.FileContainerNotAvailable);
-    }
-
-    [Fact]
-    public async Task Update_Should_Rename_And_Move_Only_What_Was_Sent()
-    {
-        var directory = await _directoryAppService.CreateAsync(new CreateDirectoryInput
-        {
-            ContainerName = SiteFileContainerNames.Attachments,
-            Name = "reports"
-        });
-        var file = await UploadAsync(SiteFileContainerNames.Attachments, "report.pdf", TestFiles.Pdf("rename"), directory.Id);
-
-        var renamed = await _fileAppService.UpdateAsync(file.Id, new UpdateFileInput { Name = "annual-report.pdf" });
-        renamed.Name.ShouldBe("annual-report.pdf");
-        renamed.DirectoryId.ShouldBe(directory.Id);
-
-        var moved = await _fileAppService.UpdateAsync(file.Id, new UpdateFileInput { DirectoryId = null });
-        moved.DirectoryId.ShouldBeNull();
-        moved.Name.ShouldBe("annual-report.pdf");
-    }
-
-    [Fact]
-    public async Task Delete_Should_Remove_The_File()
-    {
-        var file = await UploadAsync(SiteFileContainerNames.Attachments, "gone.pdf", TestFiles.Pdf("gone"));
-
-        await _fileAppService.DeleteAsync(file.Id);
-
-        var listed = await _fileAppService.GetListAsync(new GetFilesInput { ContainerName = SiteFileContainerNames.Attachments });
-        listed.Items.ShouldNotContain(f => f.Id == file.Id);
-    }
-
-    [Theory]
-    [InlineData(SiteFileContainerNames.Images, 25, ".png", ".pdf")]
-    [InlineData(SiteFileContainerNames.Attachments, 20, ".pdf", ".png")]
-    public async Task Container_Configuration_Should_Report_What_The_Pipeline_Enforces(string containerName, int maxMb, string allowed, string refused)
-    {
-        var configuration = await _fileAppService.GetContainerConfigurationAsync(containerName);
-
-        configuration.MaxBlobSize.ShouldBe(maxMb * 1024L * 1024L);
-        configuration.AllowedFileTypeNames.ShouldContain(allowed);
-        configuration.AllowedFileTypeNames.ShouldNotContain(refused);
-        configuration.AllowedFileTypeNames.ShouldNotContain(".svg");
-        configuration.CreateFilePermissionName.ShouldBe(SiteAdminPermissions.Contents.Create);
-        configuration.GetFilePermissionName.ShouldBeNull();
-    }
-
-    [Fact]
-    public async Task Directory_Delete_Should_Refuse_A_Directory_With_Files()
-    {
-        var directory = await _directoryAppService.CreateAsync(new CreateDirectoryInput
-        {
-            ContainerName = SiteFileContainerNames.Attachments,
-            Name = "busy"
-        });
-        await UploadAsync(SiteFileContainerNames.Attachments, "busy.pdf", TestFiles.Pdf("busy"), directory.Id);
-
-        var exception = await Should.ThrowAsync<BusinessException>(() => _directoryAppService.DeleteAsync(directory.Id));
-
-        exception.Code.ShouldBe(SiteErrorCodes.DirectoryHasFiles);
-    }
-
-    [Fact]
-    public async Task Directory_Move_Should_Refuse_Moving_Into_Its_Own_Child()
-    {
-        var parent = await _directoryAppService.CreateAsync(new CreateDirectoryInput { ContainerName = SiteFileContainerNames.Images, Name = "parent" });
-        var child = await _directoryAppService.CreateAsync(new CreateDirectoryInput { ContainerName = SiteFileContainerNames.Images, Name = "child", ParentId = parent.Id });
-
-        var exception = await Should.ThrowAsync<BusinessException>(() =>
-            _directoryAppService.MoveAsync(parent.Id, new MoveDirectoryInput(child.Id, 0)));
-
-        exception.Code.ShouldBe(SiteErrorCodes.DirectoryCannotMoveIntoItself);
-
-        var renamed = await _directoryAppService.UpdateAsync(child.Id, new UpdateDirectoryInput { Name = "renamed" });
-        renamed.Name.ShouldBe("renamed");
-        (await _directoryAppService.GetListAsync(new GetDirectoriesInput { ContainerName = SiteFileContainerNames.Images }))
-            .Items.Single(d => d.Id == parent.Id).Children.ShouldHaveSingleItem().Name.ShouldBe("renamed");
+        containers.Items.Select(container => container.Name)
+            .ShouldBe(SiteFileContainerNames.All, ignoreOrder: true);
+        containers.Items.ShouldAllBe(container => container.MaxFileSize > 0);
     }
 
     /// <summary>
-    /// Directories belong to a user, so these run as one (the suite's other tests run without a user).
+    /// A caller with no user - an MCP client signed in with client credentials, or Site's own back end calling a Blob
+    /// Management that runs apart - lists the containers with their limits too: Blob Management answers a client for a
+    /// container's limits (from 10.7.7-preview.3).
     /// </summary>
-    protected override void AfterAddApplication(IServiceCollection services)
+    [Fact]
+    public async Task Should_List_Site_Containers_With_Their_Limits_For_A_Client_Without_A_User()
     {
-        services.Replace(ServiceDescriptor.Singleton<ICurrentPrincipalAccessor, FakeCurrentPrincipalAccessor>());
+        var principalAccessor = GetRequiredService<ICurrentPrincipalAccessor>();
+        var client = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(AbpClaimTypes.ClientId, "Site_Mcp_Service")
+        }));
+
+        using (principalAccessor.Change(client))
+        {
+            var containers = await WithUnitOfWorkAsync(() => _files.GetContainersAsync());
+
+            containers.Items.Select(container => container.Name)
+                .ShouldBe(SiteFileContainerNames.All, ignoreOrder: true);
+            containers.Items.ShouldAllBe(container => container.MaxFileSize > 0);
+        }
     }
 
-    private Task<FileDescriptorDto> UploadAsync(string containerName, string fileName, byte[] bytes, Guid? directoryId = null)
+    [Fact]
+    public async Task An_Upload_Is_Pending_Until_It_Is_Confirmed_And_Then_Public_At_Sites_Address()
     {
-        return _fileAppService.CreateAsync(new CreateFileInput
+        var bytes = TestFiles.Pdf("admin");
+
+        var ticket = await AsEditorAsync(() =>
+            _files.CreateUploadTicketAsync(new CreateSiteFileUploadTicketInput { ContainerName = SiteFileContainerNames.Attachments }));
+        ticket.UploadUrl.ShouldContain("/uploads/");
+
+        var uploaded = await AsEditorAsync(async () =>
         {
-            ContainerName = containerName,
-            DirectoryId = directoryId,
-            File = new RemoteStreamContent(new MemoryStream(bytes), fileName, "application/octet-stream")
+            using var stream = new MemoryStream(bytes);
+            return await _uploads.UploadAsync(TicketOf(ticket), new RemoteStreamContent(stream, "admin.pdf", "application/pdf"));
         });
+        uploaded.Id.ShouldBe(ticket.FileId);
+        uploaded.IsPending.ShouldBeTrue();
+
+        // Pending: the uploader sees it, with no address, and the site's visitors cannot read it.
+        var pending = await AsEditorAsync(() => _files.GetAsync(ticket.FileId));
+        pending.IsPending.ShouldBeTrue();
+        pending.Url.ShouldBeNull();
+        (await AsEditorAsync(() => _files.GetListAsync(new GetSiteFilesInput { ContainerName = SiteFileContainerNames.Attachments })))
+            .Items.ShouldBeEmpty();
+
+        var confirmed = await AsEditorAsync(() => _files.ConfirmAsync(ticket.FileId));
+
+        confirmed.IsPending.ShouldBeFalse();
+        confirmed.Name.ShouldBe("admin.pdf");
+        confirmed.MimeType.ShouldBe("application/pdf");
+        confirmed.Size.ShouldBe(bytes.Length);
+        confirmed.Url.ShouldNotBeNull();
+        confirmed.Url!.ShouldStartWith("/blobs/" + SiteFileContainerNames.Attachments + "/");
+
+        var read = await _publicFiles.ReadAsync(
+            SiteFileContainerNames.Attachments, BlobNameOf(confirmed.Url), new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest());
+        using var memory = new MemoryStream();
+        await read.Content!.GetStream().CopyToAsync(memory);
+        memory.ToArray().ShouldBe(bytes);
+
+        (await AsEditorAsync(() => _files.GetListAsync(new GetSiteFilesInput { ContainerName = SiteFileContainerNames.Attachments })))
+            .Items.Select(file => file.Id).ShouldBe(new[] { ticket.FileId });
+    }
+
+    [Fact]
+    public async Task Confirming_Twice_Changes_Nothing()
+    {
+        var file = await UploadAndConfirmAsync(SiteFileContainerNames.Attachments, "twice.pdf", TestFiles.Pdf("twice"));
+
+        var again = await AsEditorAsync(() => _files.ConfirmAsync(file.Id));
+
+        again.Url.ShouldBe(file.Url);
+        again.IsPending.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_Deleted_File_Is_Gone_And_Deleting_It_Again_Is_No_Error()
+    {
+        var file = await UploadAndConfirmAsync(SiteFileContainerNames.Attachments, "gone.pdf", TestFiles.Pdf("gone"));
+
+        await AsEditorAsync(() => _files.DeleteAsync(file.Id));
+        await AsEditorAsync(() => _files.DeleteAsync(file.Id));
+
+        await Should.ThrowAsync<EntityNotFoundException>(() => _publicFiles.ReadAsync(
+            SiteFileContainerNames.Attachments, BlobNameOf(file.Url!), new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest()));
+    }
+
+    [Fact]
+    public async Task A_Container_That_Is_Not_Sites_Is_Refused()
+    {
+        await Should.ThrowAsync<Exception>(() =>
+            AsEditorAsync(() => _files.CreateUploadTicketAsync(new CreateSiteFileUploadTicketInput { ContainerName = "invoices" })));
+    }
+
+    [Fact]
+    public async Task An_Unknown_File_Is_Not_Found()
+    {
+        var id = Guid.NewGuid();
+        await Should.ThrowAsync<EntityNotFoundException>(() => AsEditorAsync(() => _files.GetAsync(id)));
+    }
+
+    /// <summary>
+    /// The call runs as a signed-in editor - the tests of the test base run with no user - because an upload is counted
+    /// for, and may be deleted by, its uploader.
+    /// </summary>
+    private async Task<T> AsEditorAsync<T>(Func<Task<T>> func)
+    {
+        var principalAccessor = GetRequiredService<ICurrentPrincipalAccessor>();
+        var editor = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(AbpClaimTypes.UserId, EditorId.ToString()),
+            new Claim(AbpClaimTypes.UserName, "editor")
+        }));
+
+        using (principalAccessor.Change(editor))
+        {
+            return await base.WithUnitOfWorkAsync(func);
+        }
+    }
+
+    private async Task AsEditorAsync(Func<Task> func)
+    {
+        await AsEditorAsync(async () =>
+        {
+            await func();
+            return true;
+        });
+    }
+
+    private static readonly Guid EditorId = Guid.Parse("2e701e62-0953-4dd3-910b-dc6cc93ccb0d");
+
+    private async Task<SiteFileDto> UploadAndConfirmAsync(string containerName, string name, byte[] bytes)
+    {
+        var ticket = await AsEditorAsync(() =>
+            _files.CreateUploadTicketAsync(new CreateSiteFileUploadTicketInput { ContainerName = containerName }));
+
+        await AsEditorAsync(async () =>
+        {
+            using var stream = new MemoryStream(bytes);
+            return await _uploads.UploadAsync(TicketOf(ticket), new RemoteStreamContent(stream, name));
+        });
+
+        return await AsEditorAsync(() => _files.ConfirmAsync(ticket.FileId));
+    }
+
+    /// <summary>The ticket is the last segment of the upload address.</summary>
+    private static string TicketOf(SiteFileUploadTicketDto ticket)
+    {
+        return ticket.UploadUrl[(ticket.UploadUrl.LastIndexOf('/') + 1)..];
+    }
+
+    /// <summary>The physical BLOB name in Blob Management's public address, <c>/blobs/{container}/{blob}[?...]</c>.</summary>
+    private static string BlobNameOf(string url)
+    {
+        var path = url.Split('?')[0];
+        return path[(path.LastIndexOf('/') + 1)..];
     }
 }

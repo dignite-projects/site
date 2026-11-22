@@ -44,10 +44,11 @@ jobs:
     permissions:
       contents: read
 
-    # No package credential of any kind here: every @dignite/* dependency resolves from public
-    # npmjs, so `yarn install` below needs no authentication. This job briefly did need one, while
-    # flex-fields 10.0.0-rc.16 existed only on GitHub Packages; see CHANGELOG.md for that detour and
-    # why tagging the release in abp-modules was the better answer than carrying the workaround.
+    # One package credential, PACKAGES_READ_TOKEN (a PAT with read:packages - GITHUB_TOKEN reads only
+    # packages this repository published): Dignite Blob Management exists only as abp-modules
+    # pre-releases on GitHub Packages, NuGet (NuGet.Config) and npm (@dignite-projects/ng.blob-management)
+    # alike. A pull request from a fork gets no secrets and cannot restore. Drop the credential with the
+    # GitHub Packages source once Blob Management is on NuGet.org and npmjs.
 
     steps:
       - name: Checkout site
@@ -62,6 +63,8 @@ jobs:
 
       - name: Restore
         run: dotnet restore Dignite.Site.slnx
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
       - name: Build
         run: dotnet build Dignite.Site.slnx --no-restore --configuration Release
@@ -105,14 +108,23 @@ jobs:
       #
       # release.yml used to install with npm here, because Yarn Classic fetched a dependency whose
       # lockfile entry carried a GitHub Packages "resolved" URL through a code path that never
-      # attached registry auth. No such entry remains - every @dignite/* package resolves from public
-      # npmjs - so both workflows run the same yarn command; release.yml's step carries the longer
-      # account. (10.0.0-rc.16 briefly put a GitHub Packages URL back in the lockfile and reopened
-      # exactly that wound; CHANGELOG.md has the story and why the fix was to publish the dependency
-      # publicly rather than to keep authenticating against it here.)
+      # attached registry auth - true of an npm: alias, not of a package installed under its own
+      # name, which @dignite-projects/ng.blob-management is (below). Both workflows run the same yarn
+      # command; release.yml's step carries the longer account. (10.0.0-rc.16 briefly put a GitHub
+      # Packages URL back in the lockfile and reopened exactly that wound; CHANGELOG.md has the story.)
       #
       # It matters for the duplicate check below specifically: npm dedupes graphs that Yarn Classic
       # splits into nested copies, so running that check after an npm install would pass vacuously.
+      # The token for @dignite-projects/ng.blob-management goes in the user-level .npmrc, not in
+      # angular/.npmrc: a ${VAR} placeholder there makes every yarn command fail when the variable is
+      # unset (CHANGELOG.md, the rc.16 detour). The package is a direct dependency under its own
+      # @dignite-projects name, not an npm: alias - Yarn Classic picks a tarball's credential by the
+      # name it installs a package under, so an alias under @dignite would download with none.
+      - name: Authenticate to GitHub Packages (npm)
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
+        run: echo "//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}" >> ~/.npmrc
+
       - name: Install Angular dependencies
         working-directory: site/angular
         run: yarn install --frozen-lockfile --non-interactive

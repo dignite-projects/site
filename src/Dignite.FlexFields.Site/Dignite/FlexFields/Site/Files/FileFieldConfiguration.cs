@@ -19,6 +19,11 @@ public class FileFieldConfiguration : FieldConfigurationBase
         set => ConfigurationDictionary.SetConfiguration(FileFieldConfigurationNames.UploadFileMultiple, value);
     }
 
+    public FileInputMode InputMode {
+        get => ConfigurationDictionary.GetConfiguration(FileFieldConfigurationNames.InputMode, FileInputMode.Upload);
+        set => ConfigurationDictionary.SetConfiguration(FileFieldConfigurationNames.InputMode, value);
+    }
+
     public FileFieldConfiguration(FieldConfigurationDictionary fieldConfiguration)
         : base(fieldConfiguration)
     {

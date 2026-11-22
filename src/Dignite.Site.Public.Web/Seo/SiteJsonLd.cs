@@ -109,7 +109,8 @@ public static class SiteJsonLd
     /// <summary>
     /// The rewrite <see cref="Serialize"/> applies to each string: <c>~/...</c> is put in the page's language by
     /// <paramref name="localize"/> (the rule <c>url</c> and a Razor <c>~/</c> link follow) and then on
-    /// <paramref name="baseUrl"/>; an address of the site's file library (<c>/api/site-public/files/...</c>) is put on
+    /// <paramref name="baseUrl"/>; a relative address of one of the site's files (<c>/blobs/...</c>, or an earlier
+    /// <c>/api/site-public/files/...</c>) is put on
     /// <paramref name="baseUrl"/>. Any other string is left as it is. Without a <paramref name="baseUrl"/>, the
     /// addresses stay site-relative.
     /// </summary>
@@ -118,7 +119,6 @@ public static class SiteJsonLd
     public static Func<string, string> CreateUrlResolver(string? baseUrl, Func<string, string> localize)
     {
         var root = string.IsNullOrWhiteSpace(baseUrl) ? string.Empty : baseUrl.TrimEnd('/');
-        var filePrefix = "/" + SiteFileUrl.RoutePrefix + "/";
 
         return value =>
         {
@@ -128,7 +128,9 @@ public static class SiteJsonLd
                 return root + (localized.StartsWith('~') ? localized[1..] : localized);
             }
 
-            return value.StartsWith(filePrefix, StringComparison.OrdinalIgnoreCase) ? root + value : value;
+            var isRelativeSiteFile = value.StartsWith('/') && !value.StartsWith("//", StringComparison.Ordinal) &&
+                                     SiteFileUrl.IsSiteFile(value);
+            return isRelativeSiteFile ? root + value : value;
         };
     }
 

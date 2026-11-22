@@ -14,7 +14,7 @@ npm install @dignite/ng.site
 [README](https://github.com/dignite-projects/site/blob/main/README.md) / `angular/.npmrc` for the registry setup, and alias the dependency:
 `"@dignite/ng.site": "npm:@dignite-projects/ng.site@<version>"`.)
 
-### CKEditor dependency and the file library
+### CKEditor dependency and files
 
 `provideSite()` (from `@dignite/ng.site/config`) unconditionally registers the CKEditor field type and
 Site's own field types - it's not optional, skipping one makes `FieldTypeResolver.get(...)` throw and the
@@ -31,12 +31,17 @@ paint, whether or not the host's content types use a rich-text field and whether
 `/site`. Registering Site adds roughly 950 KB (about 170 KB gzipped) to a production build of an ABP
 admin app, so a host that enforces a bundle budget in `angular.json` may need to raise it.
 
-The file picker, the file field type (registration key `FileExplorer`) and the SEO share-image picker
-are this package's own (`src/lib/files`, `src/lib/field-types/file`) and talk to Site's admin API
-(`apiName: 'SiteAdmin'`) - there is no separate file-picker package to install any more, and no extra
-entry to keep in `environment.apis`. `provideSite()` also registers `SiteCKEditorUploadProvider` as the
-`CKEDITOR_UPLOAD_PROVIDER` (which needs `@dignite/ng.flex-fields-ckeditor >= 10.0.0-rc.25`), so an image
-inserted into a CKEditor field is uploaded into Site's file library. See [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).
+Site's files are kept in Dignite Blob Management. The file field type (registration key `FileExplorer`) and the SEO
+share images use this package's own file input, `site-file-input`, which uploads through Site's administration API
+(`api/site-admin/files`) and, with the ticket it gets, straight to Blob Management at
+`api/blob-management/uploads/{ticket}`. Blob Management is reached under the API name `BlobManagement`: without an
+`apis.BlobManagement` entry in the environment ABP takes `apis.default`, which is right when the host of the API installs
+Blob Management; when it runs as a service of its own, point `apis.BlobManagement.url` at it (or at the gateway) and ask
+for its scope in `oAuthConfig.scope`, since the file picker reads its containers and directories with the user's token.
+`provideSite()` also registers `SiteCKEditorUploadProvider` as the
+`CKEDITOR_UPLOAD_PROVIDER` (which needs `@dignite/ng.flex-fields-ckeditor >= 10.0.0-rc.25`), so an image inserted into a
+CKEditor field is uploaded to Site's `images` container. See
+[Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md).
 
 That `>= 10.0.0-rc.13` floor is load-bearing, not cosmetic. Below `rc.12` those packages were
 the adapters' `peerDependencies`, and every ABP 10.7 + Angular 22 host installs with

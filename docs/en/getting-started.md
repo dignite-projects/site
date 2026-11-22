@@ -29,7 +29,7 @@ Install each package into its layer and add its module to the `[DependsOn]` attr
 
 `Dignite.Site.Application` and `Dignite.Site.HttpApi` bring both the administration and the public sides. An application that hosts only one of them installs `Dignite.Site.Admin.*` or `Dignite.Site.Public.*` instead; see [Packages](index.md#packages).
 
-The Dignite ABP Modules packages that Site builds on (FlexFields, BLOB Storing and the MCP server) come with these packages; there is nothing to install for them.
+The Dignite ABP Modules packages that Site builds on (FlexFields, Blob Management's contracts and the MCP server) come with these packages; there is nothing to install for them. Blob Management itself, which keeps Site's files, is installed by the host ([File Storage](#file-storage)).
 
 ## The Database
 
@@ -44,10 +44,11 @@ public class MyProjectDbContext : AbpDbContext<MyProjectDbContext>, ISiteDbConte
     public DbSet<Field> Fields { get; set; }
     public DbSet<Content> Contents { get; set; }
     public DbSet<ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; }
-    public DbSet<DirectoryDescriptor> DirectoryDescriptors { get; set; }
-    public DbSet<FileDescriptor> FileDescriptors { get; set; }
-    public DbSet<SiteTemplate> SiteTemplates { get; set; }
-    public DbSet<SiteTemplateVersion> SiteTemplateVersions { get; set; }
+    public DbSet<SiteTheme> SiteThemes { get; set; }
+    public DbSet<SiteThemeFile> SiteThemeFiles { get; set; }
+    public DbSet<SiteRelease> SiteReleases { get; set; }
+    public DbSet<SiteReleaseFile> SiteReleaseFiles { get; set; }
+    public DbSet<SiteThemeBlob> SiteThemeBlobs { get; set; }
 
     // ...
 
@@ -74,11 +75,11 @@ Run your application's data seeder (the `DbMigrator` of a layered solution) afte
 
 ### MongoDB
 
-Pages, content types, fields and contents are stored through Entity Framework Core only. `Dignite.Site.MongoDB` holds the repositories of the [file library](files.md) and nothing else, so Site needs an Entity Framework Core database.
+Pages, content types, fields, contents and themes are stored through Entity Framework Core only. `Dignite.Site.MongoDB` keeps no entity yet, so Site needs an Entity Framework Core database.
 
 ## File Storage
 
-Site's file library stores its bytes in two BLOB containers, `images` and `attachments`. Choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for both, for example the database provider:
+Site's files are kept in Dignite Blob Management, which the host installs: its modules, `ConfigureBlobManagement()` in the `DbContext`, and the containers Site's fields use - `images`, `attachments` and `theme-assets` - declared in code with their presets; see [Files](files.md#installing-blob-management-in-the-host). Then choose a [BLOB storage provider](https://abp.io/docs/latest/framework/infrastructure/blob-storing) for the containers, for example the database provider:
 
 ````csharp
 Configure<AbpBlobStoringOptions>(options =>
@@ -93,7 +94,7 @@ Configure<AbpBlobStoringOptions>(options =>
 });
 ````
 
-Configure only the provider: Site sets the containers' upload rules itself. A host on Linux also references `SkiaSharp.NativeAssets.Linux`. See [Files](files.md).
+Configure only the provider: Blob Management's presets set the containers' upload rules. A host on Linux also references `SkiaSharp.NativeAssets.Linux`. Uploading follows Site's own permissions, which the roles that edit contents already hold. See [Files](files.md).
 
 ## The Public Site
 

@@ -9,14 +9,14 @@ using Dignite.FlexFields.Site.Localization;
 namespace Dignite.FlexFields.Site.Files;
 
 /// <summary>
-/// The file field type: one or more files picked from Site's file library by the admin UI's file picker
-/// (<c>@dignite/ng.site</c>'s file field). It came from <c>Dignite.Abp.FlexFields</c> together with the file
-/// library itself, and keeps that module's registration key, <see cref="ControlName"/> - a persisted value
-/// in every field definition, Matrix block configurations included.
+/// The file field type: one or more of Site's files, which Blob Management keeps, attached by the admin UI's
+/// file input (<c>@dignite/ng.site</c>'s file field). It came from <c>Dignite.Abp.FlexFields</c> together with
+/// the file library Site had before, and keeps that module's registration key, <see cref="ControlName"/> - a
+/// persisted value in every field definition, Matrix block configurations included.
 ///
 /// <para>
-/// <b>Not indexable on purpose.</b> The stored value is what the picker hands back - an array of file
-/// descriptor objects (id, container, blob name, name, MIME type, size, url) - not a scalar or a list of
+/// <b>Not indexable on purpose.</b> The stored value is what the file input hands back - an array of file
+/// objects (id, container, name, MIME type, size, url) - not a scalar or a list of
 /// scalars, so there is nothing sensible to put in a typed index column; the same reason RichText or Matrix
 /// return <c>null</c> here.
 /// </para>
@@ -24,8 +24,8 @@ namespace Dignite.FlexFields.Site.Files;
 /// <para>
 /// <b>No reference to Site's domain.</b> This project references only <c>Dignite.Abp.FlexFields.Abstractions</c>,
 /// like the Content and Seo field types, so it validates only what it can see - presence, per
-/// <c>Required</c>. Whether a picked file exists is the picker's job at pick time and the public read
-/// endpoint's at fetch time.
+/// <c>Required</c>. Whether a picked file exists is the file input's job at pick time and Blob Management's
+/// public read's at fetch time.
 /// </para>
 /// </summary>
 public class FileFieldType : FieldTypeBase, IHasValueShape
@@ -52,31 +52,38 @@ public class FileFieldType : FieldTypeBase, IHasValueShape
         new(FileFieldConfigurationNames.FileContainerName, FieldConfigurationValueKind.String)
         {
             Required = true,
-            Description = "The file container the value's files are uploaded to and picked from, one of the names " +
+            Description = "The file container the value's files are uploaded to, one of the names " +
                           "site_list_file_containers gives, e.g. images."
         },
         new(FileFieldConfigurationNames.UploadFileMultiple, FieldConfigurationValueKind.Boolean)
         {
             DefaultValue = new FileFieldConfiguration().UploadFileMultiple,
             Description = "Whether the value is a list of files rather than one."
+        },
+        new(FileFieldConfigurationNames.InputMode, FieldConfigurationValueKind.Enum, typeof(FileInputMode))
+        {
+            DefaultValue = (int)new FileFieldConfiguration().InputMode,
+            Description = "How the admin UI attaches files: upload them at once, or choose from the files already " +
+                          "uploaded to the container, in its directories when it has them."
         }
     };
 
     public override IReadOnlyList<FieldConfigurationKey>? ConfigurationKeys => Keys;
 
     /// <summary>
-    /// The value is an array of file objects - an array even for one file - and the objects are what the file tools
-    /// return (<c>site_upload_file</c>, <c>site_get_file</c>, the response of an upload link) or what the picker stores.
+    /// The value is an array of file objects - an array even for one file - and the objects are what Site's file tools
+    /// return (<c>site_confirm_file</c>, <c>site_get_file</c>, <c>site_list_files</c>) or what the admin UI's file input
+    /// stores. Values stored before Site's files moved to Blob Management carry <c>containerName</c> and
+    /// <c>blobName</c> as well.
     /// The properties are named <c>[].key</c>, the key of each element. Plain English, like the configuration keys'
     /// descriptions: it documents a wire shape for a client choosing what to write.
     /// </summary>
     public IReadOnlyList<FieldValueShapeProperty> ValueShape => new[]
     {
-        new FieldValueShapeProperty { Name = "[].url", Type = "string", Description = "Required: the file's address, as the file tools return it. A template reads the first file's url." },
-        new FieldValueShapeProperty { Name = "[].id", Type = "string (GUID)", Description = "The file's id in the library." },
+        new FieldValueShapeProperty { Name = "[].url", Type = "string", Description = "Required: the file's address, as site_confirm_file returns it. A template reads the first file's url." },
+        new FieldValueShapeProperty { Name = "[].id", Type = "string (GUID)", Description = "The file's id; deleting the file needs it." },
         new FieldValueShapeProperty { Name = "[].name", Type = "string", Description = "The file name." },
         new FieldValueShapeProperty { Name = "[].containerName", Type = "string", Description = "The container the file is in." },
-        new FieldValueShapeProperty { Name = "[].blobName", Type = "string", Description = "The name the file is stored under." },
         new FieldValueShapeProperty { Name = "[].mimeType", Type = "string", Description = "The type detected from the file's bytes." },
         new FieldValueShapeProperty { Name = "[].size", Type = "integer", Description = "The size in bytes." },
     };

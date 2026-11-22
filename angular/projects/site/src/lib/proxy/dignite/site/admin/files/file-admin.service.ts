@@ -1,6 +1,6 @@
-import type { CreateFileInput, FileContainerConfigurationDto, FileDescriptorDto, GetFilesInput, UpdateFileInput } from './models';
+import type { CreateSiteFileUploadTicketInput, GetSiteFilesInput, SiteFileContainerDto, SiteFileDto, SiteFileUploadTicketDto } from './models';
 import { RestService, Rest } from '@abp/ng.core';
-import type { PagedResultDto } from '@abp/ng.core';
+import type { ListResultDto, PagedResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
 
 @Injectable({
@@ -11,54 +11,63 @@ export class FileAdminService {
   apiName = 'SiteAdmin';
   
 
-  create = (input: CreateFileInput, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, FileDescriptorDto>({
+  
+  confirm = (id: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, SiteFileDto>({
       method: 'POST',
-      url: '/api/site-admin/files',
-      params: { containerName: input.containerName, directoryId: input.directoryId },
-      body: input.file,
+      headers: { Accept: 'application/json' },
+      url: `/api/site-admin/files/${id}/confirm`,
     },
-    { apiName: this.apiName,...config });
+      { apiName: this.apiName,...config });
   
 
+  
+  createUploadTicket = (input: CreateSiteFileUploadTicketInput, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, SiteFileUploadTicketDto>({
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      url: '/api/site-admin/files/upload-tickets',
+      body: input,
+    },
+      { apiName: this.apiName,...config });
+  
+
+  
   delete = (id: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, void>({
       method: 'DELETE',
       url: `/api/site-admin/files/${id}`,
     },
-    { apiName: this.apiName,...config });
+      { apiName: this.apiName,...config });
   
 
+  
   get = (id: string, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, FileDescriptorDto>({
+    this.restService.request<any, SiteFileDto>({
       method: 'GET',
+      headers: { Accept: 'application/json' },
       url: `/api/site-admin/files/${id}`,
     },
-    { apiName: this.apiName,...config });
+      { apiName: this.apiName,...config });
   
 
-  getContainerConfiguration = (containerName: string, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, FileContainerConfigurationDto>({
+  
+  getContainers = (config?: Partial<Rest.Config>) =>
+    this.restService.request<any, ListResultDto<SiteFileContainerDto>>({
       method: 'GET',
-      url: `/api/site-admin/files/containers/${containerName}`,
+      headers: { Accept: 'application/json' },
+      url: '/api/site-admin/files/containers',
     },
-    { apiName: this.apiName,...config });
+      { apiName: this.apiName,...config });
   
 
-  getList = (input: GetFilesInput, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, PagedResultDto<FileDescriptorDto>>({
+  
+  getList = (input: GetSiteFilesInput, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, PagedResultDto<SiteFileDto>>({
       method: 'GET',
+      headers: { Accept: 'application/json' },
       url: '/api/site-admin/files',
-      params: { containerName: input.containerName, directoryId: input.directoryId, creatorId: input.creatorId, filter: input.filter, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
+      params: { containerName: input.containerName, filter: input.filter, directoryId: input.directoryId, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
     },
-    { apiName: this.apiName,...config });
-  
-
-  update = (id: string, input: UpdateFileInput, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, FileDescriptorDto>({
-      method: 'PUT',
-      url: `/api/site-admin/files/${id}`,
-      body: input,
-    },
-    { apiName: this.apiName,...config });
+      { apiName: this.apiName,...config });
 }

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Admin.Themes;
 using Dignite.Site.Mcp.Errors;
-using Dignite.Site.Mcp.Files;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -29,13 +28,13 @@ public class SiteThemeTransferTools : ITransientDependency
 
     protected ISiteThemeTransferAdminAppService TransferAppService { get; }
     protected ISiteThemeAdminAppService ThemeAppService { get; }
-    protected SiteMcpFileOptions Options { get; }
+    protected SiteMcpOptions Options { get; }
     protected IHttpContextAccessor? HttpContextAccessor { get; }
 
     public SiteThemeTransferTools(
         ISiteThemeTransferAdminAppService transferAppService,
         ISiteThemeAdminAppService themeAppService,
-        IOptions<SiteMcpFileOptions> options,
+        IOptions<SiteMcpOptions> options,
         IHttpContextAccessor? httpContextAccessor = null)
     {
         TransferAppService = transferAppService;
@@ -117,21 +116,20 @@ public class SiteThemeTransferTools : ITransientDependency
     }
 
     /// <summary>
-    /// Where the links point: <see cref="SiteMcpFileOptions.UploadBaseUrl"/>, which a file upload link starts with too,
-    /// else the scheme and host this MCP request came in on (see <c>FileTools.GetUploadBaseUrl</c>). A host behind a
-    /// gateway routes <c>api/site-admin/theme/download/*</c> and <c>api/site-admin/theme/upload/*</c> through, as it does
-    /// <c>api/site-admin/files/upload/*</c>.
+    /// Where the links point: <see cref="SiteMcpOptions.BaseUrl"/>, else the scheme and host this MCP request came in on.
+    /// A host behind a gateway routes <c>api/site-admin/theme/download/*</c> and <c>api/site-admin/theme/upload/*</c>
+    /// through.
     /// </summary>
     protected virtual string GetBaseUrl()
     {
-        if (!string.IsNullOrWhiteSpace(Options.UploadBaseUrl))
+        if (!string.IsNullOrWhiteSpace(Options.BaseUrl))
         {
-            return Options.UploadBaseUrl!;
+            return Options.BaseUrl!;
         }
 
         var request = HttpContextAccessor?.HttpContext?.Request
                       ?? throw new InvalidOperationException(
-                          $"The address of a theme link is unknown: {nameof(SiteMcpFileOptions)}.{nameof(SiteMcpFileOptions.UploadBaseUrl)} is not set and there is no request to take it from.");
+                          $"The address of a theme link is unknown: {nameof(SiteMcpOptions)}.{nameof(SiteMcpOptions.BaseUrl)} is not set and there is no request to take it from.");
 
         return $"{request.Scheme}://{request.Host}{request.PathBase}";
     }

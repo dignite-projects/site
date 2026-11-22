@@ -9,6 +9,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: Site's files are kept in Dignite Blob Management; Site's own file library is gone.** The images and
+  attachments of contents, the share images and the files a theme links are stored in Blob Management, which the host
+  installs (Application, HttpApi and Entity Framework Core), with `images`, `attachments` and `theme-assets` declared in
+  code with their presets and every file Site keeps marked public. Uploads are checked by Blob
+  Management's presets (the `images` preset stores a JPEG as WebP, turned upright, as Site did, and a PNG of 64 KB or more
+  as lossless WebP). Blob Management
+  authorizes no user, so Site does: `IFileAdminAppService` (`api/site-admin/files`) asks for an upload ticket, confirms
+  the uploaded file and deletes it, and lists the containers and files, by the permission of the container - the
+  `SiteAdmin.Contents.*`, `SiteAdmin.Seo.Update` and `SiteAdmin.Themes.Edit` that uploading needed before Site's files
+  moved. Gone: the file library's entities and repositories (`Dignite.Site.Files.FileDescriptor`, `DirectoryDescriptor`,
+  `IFileDescriptorRepository`, `IDirectoryDescriptorRepository`, `FileDescriptorSorting`, `FileDescriptorConsts`,
+  `DirectoryDescriptorConsts`, with the Entity Framework Core and MongoDB repositories, and the `FileDescriptors` and
+  `DirectoryDescriptors` sets of `ISiteDbContext` and `ISiteMongoDbContext`), the administration API of directories, the
+  file library's upload links, `FileDescriptorManager`, `DirectoryManager` and the error codes `Site:0700xx`, `Site:080001` and `Site:080003`. See [Files](docs/en/files.md).
+- **Breaking: browsers read Site's files from Blob Management.** A file's address is Blob Management's public address,
+  `/blobs/{container}/{blob}` (with `?__tenant=` for a tenant's file), relative, as the file's `url` gives it, and fields,
+  settings, CKEditor's HTML and templates store it as it is; Site no longer reads, converts or caches a file's bytes.
+  `SiteFileUrl.Sized` writes Blob Management's `?width=&height=` and rounds a size given alone up to one of
+  `SiteImageSizes.All`, the sizes the host allows on Site's containers. Pictures are served in their stored format:
+  Site's WebP for a browser that takes it, JPEG for one that does not, and PNG as lossless WebP are gone, as are
+  `IFilePublicAppService`, `GetFileInput`, `SiteFileFormats`, `SiteImageRenderingOptions`, `SiteImageConsts`,
+  `SiteFileTypes`, `SiteFileUrl.Build` and `SiteFileUrl.Normalize`, and Site's references to
+  `Dignite.Abp.BlobStoring.Imaging` and SkiaSharp. `/api/site-public/files/{container}/{blob}` and its `download/` address
+  answer `301` with Blob Management's address of the file, so the addresses stored before keep working. See
+  [Addresses](docs/en/files.md#addresses) and [Serving Files](docs/en/files.md#serving-files).
+- **MCP: Site's file tools are rebuilt on Blob Management's upload tickets.** `site_list_file_containers`,
+  `site_create_upload_url`, `site_confirm_file`, `site_list_files`, `site_get_file` and `site_delete_file` replace the
+  nine file and directory tools; `site_upload_file`, `site_update_file`, `site_list_directories` and
+  `site_create_directory` are gone, with `SiteMcpFileOptions` and the raised request size limit. An upload link takes a
+  form (`curl -F`) rather than the body of a `PUT`, goes to Blob Management, and the file is kept with
+  `site_confirm_file`. The theme and upload links take their address from the new `SiteMcpOptions.BaseUrl`. See
+  [MCP](docs/en/files.md#mcp).
+- **Breaking (Angular): the admin UI attaches files with its own file input.** The file field (key `FileExplorer`), the
+  SEO field's share image and the default share image of the SEO settings render `site-file-input`, which uploads with a
+  ticket from Site's API straight to Blob Management and confirms the file. CKEditor uploads take the same way. A file
+  uploaded while a form is edited and removed again is deleted once the form is saved (`SiteUploadCleanup`). The file
+  field's configuration lists the containers the user may upload to. Removed from `@dignite/ng.site`: the file picker,
+  the browsing modal, the directory tree, the upload component, `ValidatorsService` and `ObjectUrlService`; the admin
+  directory proxies went with them, and so did the texts of the file library's screens in the `Site` resource
+  (`Files:MyFiles`, `Files:Move` and twenty others no screen uses any more). Added: `SiteFileInputComponent`,
+  `SiteFileUploadService`, `FileAdminService`, `SiteUploadCleanup`, `fileOfUrl`, and `SiteFileContainersService`, which
+  asks once for the containers the user may upload to and shares the answer among the file inputs of a form and the file
+  field's configuration. The admin UI posts an upload to, and shows files from, the `BlobManagement` API
+  (`environment.apis.BlobManagement`, else `apis.default`); `absoluteFileUrl` and `relativeFileUrl` take both API hosts.
+  See [Admin UI](docs/en/admin-ui.md).
+- **A file field can pick from the files already uploaded, directories included.** The new setting `FileExplorer.InputMode`
+  (`Upload`, the default, or `Library`) makes the field's button open a window over the container's files - searchable,
+  paged, several at a time when the field takes several, with an upload into the directory shown - and, when the container
+  sets `AllowDirectories` and the user may see them, its directory tree, where directories are created, renamed and deleted
+  as far as the user's grants on the container go. `GET api/site-admin/files` and `POST api/site-admin/files/upload-tickets`
+  take a `directoryId`. The directory permissions are Blob Management's: grant `BlobManagement.Container.View` (or give
+  the role the management permission) and `CreateDirectories`, `UpdateDirectories` and `DeleteDirectories` on each
+  container. See [Directories](docs/en/files.md#directories).
+
 - **`file_url` takes its width as optional.** A Scriban template that wants the image as stored writes
   `file_url url` instead of having to name a width, and `null` counts as not given: it used to be turned into
   `Width=0`. `file_url url null 200` scales by height alone. `SiteFileUrl.Sized` (both `Dignite.Site.Files` and
@@ -26,6 +80,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behaves as before, but code built against an earlier version needs a rebuild; in `@dignite/ng.site`,
   `SiteThemeAdminService.check` takes a `SiteThemeCheckInput`. See
   [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
+
+### Migrate
+
+- **Install Blob Management in the host** and declare its containers, with the same names and the same storage provider
+  and settings as Site's containers had, so the stored bytes are where Blob Management looks for them; add a migration
+  for `BlobFileDescriptors` and `BlobDirectoryDescriptors`. See
+  [Installing Blob Management in the Host](docs/en/files.md#installing-blob-management-in-the-host).
+- **Site does not migrate the files of its old file library.** There is no migrator and no read of the old tables: the
+  host's migration `Site_RemoveLegacyFileLibrary` drops `SiteFileDescriptors` and `SiteDirectoryDescriptors`, and an
+  address that only the old library knew is not found. Files a site still needs have to be in Blob Management before the
+  host runs that migration.
+- **Permissions stay Site's.** Uploading to `images` and `attachments` needs `SiteAdmin.Contents.Create` or `.Update`
+  (`images` also `SiteAdmin.Seo.Update`), and to `theme-assets` `SiteAdmin.Themes.Edit`; the roles that edit contents and
+  the theme hold them already. Nothing of Blob Management's own is granted: in the same process Site is a trusted caller.
+- **Run ASP.NET Core's rate limiter** after routing (`app.UseRateLimiter()` after `app.UseRouting()`) in the host that
+  installs Blob Management: its anonymous addresses - the public read and its resizing, the upload with a ticket - name
+  rate limiting policies, which act only there.
+- **Allow Site's sizes on its containers**: `UseBlobManagementPublicSizes(SiteImageSizes.All.ToArray())` on `images`,
+  `attachments` and `theme-assets`, in the host that runs Blob Management. Blob Management answers any other size with
+  `400`, `og:image`'s 1200 x 630 among them. A template that asks `file_url` for a width and a height together gives a
+  pair from that list. See [Serving Files](docs/en/files.md#serving-files).
+- **`/blobs/` answers on the site's origin.** An application that serves the site and installs Blob Management and
+  Site's HttpApi does so already. Otherwise - a site served by an application of its own, apart from the administration
+  API, or Blob Management run as a service of its own - the gateway routes `GET` and `HEAD` on `blobs/` from every site's
+  origin to the application that runs Blob Management, and `api/site-public/files/` to the one that runs Site's HttpApi,
+  for the earlier addresses; the gateway in front of the admin UI's `BlobManagement` API routes `blobs/` and
+  `api/blob-management/` there too, for previews, uploads and the file picker's directories. A host that runs several instances persists and shares the Data Protection key ring. A CDN in front
+  of `blobs/` caches resized pictures, which Blob Management renders on every request that reaches it. See
+  [Reaching Blob Management from Every Site](docs/en/files.md#reaching-blob-management-from-every-site).
+- **Blob Management may run as a service of its own**: the host swaps its three modules for
+  `BlobManagementHttpApiClientModule` and configures Site as an OAuth client that Blob Management grants
+  `BlobManagement.Container.Files` on the three containers. The Angular admin UI points `apis.BlobManagement` at it and
+  asks for its scope in `oAuthConfig.scope`. Site reads the containers' limits as that client, which Blob Management
+  answers from 10.7.7-preview.3, the version Site depends on. See
+  [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
+- **A host that configured `SiteImageRenderingOptions`** removes it: Site renders no pictures.
+- **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of
+  `UploadBaseUrl`.
 
 ## [2.3.0] - 2026-11-09
 

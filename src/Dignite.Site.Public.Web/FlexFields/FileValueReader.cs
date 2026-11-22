@@ -7,13 +7,13 @@ namespace Dignite.Site.Public.FlexFields;
 
 /// <summary>
 /// Reads a file field's value (registration key <c>FileExplorer</c>, see <c>FileFieldType</c>) - what the admin
-/// UI's file picker denormalizes at pick time: an array of file descriptor objects
-/// (id/containerName/blobName/name/mimeType/size/url, ...; the admin API's <c>FileDescriptorDto</c>) -
-/// leniently: a fresh in-memory value is a
+/// UI's file input denormalizes at pick time: an array of file objects
+/// (id/containerName/name/mimeType/size/url, and blobName in a value stored before Site's files moved to
+/// Blob Management; the admin API's <c>SiteFileDto</c>) - leniently: a fresh in-memory value is a
 /// <see cref="IEnumerable"/> of dictionary-like objects, one that has round-tripped through JSON
 /// storage is a <see cref="JsonElement"/> array of objects. Property names are read as stored -
 /// <c>Dictionary&lt;string, object?&gt;</c> serializes its keys literally, so whatever casing the value
-/// was written with (this project reads the same camelCase the Angular <c>FileDescriptorDto</c> uses)
+/// was written with (this project reads the same camelCase the Angular <c>SiteStoredFile</c> uses)
 /// round-trips unchanged; there is no reflection-based naming policy in between to second-guess.
 /// </summary>
 internal static class FileValueReader

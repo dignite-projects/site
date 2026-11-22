@@ -39,25 +39,9 @@ public static class SiteErrorCodes
     /// </summary>
     public const string InvalidValueFormat = "Site:060001";
 
-    // The file library's directories (Dignite.Site.Files). A directory belongs to the user who
-    // created it, so "not found" also answers for another user's or another tenant's directory.
-    public const string DirectoryNameAlreadyExists = "Site:070001";
-    public const string DirectoryNotFound = "Site:070002";
-    public const string DirectoryCannotMoveAcrossContainers = "Site:070003";
-    public const string DirectoryCannotMoveIntoItself = "Site:070004";
-    public const string DirectoryHasChildren = "Site:070005";
-    public const string DirectoryHasFiles = "Site:070006";
-    public const string DirectoryRequiresUser = "Site:070007";
-
-    // The file library's files (Dignite.Site.Files). Upload rules - size, type, image bounds - are the
-    // codes of Dignite.Abp.BlobStoring.Pipeline (Dignite.Abp.BlobStoring:*, raised by its contributors and
-    // IMimeTypeDetector) and Dignite.Abp.BlobStoring.Imaging (Dignite.Abp.BlobStoring.Imaging:*), localized
-    // by those packages; the public read endpoint's on-request resize reuses the Imaging codes.
-    public const string FileContainerNotAvailable = "Site:080001";
-    public const string FileSortingNotSupported = "Site:080002";
-
-    /// <summary>An upload link that is not one this site issued, has expired, or has been used. One code for all three.</summary>
-    public const string FileUploadTicketInvalid = "Site:080003";
+    // Site:0700xx (the file library's directories) and Site:080001/080002/080003 (files outside Site's containers, the
+    // legacy descriptors' sorting, upload links) are retired with the file library: files are Blob Management's, and its
+    // errors are its own. Not reused.
 
     // The tenant's theme (Dignite.Site.Themes): a working copy of files, published as immutable releases.
     public const string SiteThemeFileAlreadyExists = "Site:090001";

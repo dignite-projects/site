@@ -1,5 +1,4 @@
 using Localization.Resources.AbpUi;
-using Dignite.Site.Admin.Files;
 using Dignite.Site.Localization;
 using Dignite.Site.Common;
 using System.Net;
@@ -27,7 +26,7 @@ public class SiteAdminHttpApiModule : AbpModule
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        // The upload links are signed with it (FileUploadTicketProtector). Added by every application that has
+        // The theme links are signed with it (SiteThemeTransferTicketProtector). Added by every application that has
         // authentication already, and adding it again changes nothing: it keeps the keys the host configured.
         context.Services.AddDataProtection();
 
@@ -36,13 +35,6 @@ public class SiteAdminHttpApiModule : AbpModule
             options.Resources
                 .Get<SiteResource>()
                 .AddBaseTypes(typeof(AbpUiResource));
-        });
-
-        Configure<AbpAspNetCoreMvcOptions>(options =>
-        {
-            // An upload is multipart/form-data with the rest in the query string; without this ABP's
-            // service convention would bind CreateFileInput from a JSON body instead.
-            options.ConventionalControllers.FormBodyBindingIgnoredTypes.Add(typeof(CreateFileInput));
         });
 
         Configure<AbpExceptionHttpStatusCodeOptions>(options =>

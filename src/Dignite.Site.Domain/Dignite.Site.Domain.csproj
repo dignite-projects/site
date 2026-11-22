@@ -25,11 +25,6 @@
     <ProjectReference Include="..\Dignite.Site.Domain.Shared\Dignite.Site.Domain.Shared.csproj" />
     <PackageReference Include="Dignite.Abp.FlexFields.Domain" Version="$(DigniteAbpModulesVersion)" />
     <PackageReference Include="Dignite.Abp.FlexFields.CKEditor" Version="$(DigniteAbpModulesVersion)" />
-    <!-- The file library's upload rules: the BLOB pipeline contributors (size cap, content-type check) that
-         run inside IBlobContainer.SaveAsync, plus the content-based IMimeTypeDetector and the capped
-         BlobStreamBuffering that FileDescriptorManager calls itself. A library on ABP BlobStoring, not a
-         module with data of its own - the file library itself is Site's (Files/, Directories/). -->
-    <PackageReference Include="Dignite.Abp.BlobStoring.Pipeline" Version="$(DigniteAbpModulesVersion)" />
     <!-- Content/Seo/file field types (GitHub issue #49) - same bolt-on role as CKEditor above,
          just living in this repo instead of abp-modules. Matrix/Table used to live here too, until
          flex-fields shipped them as kernel built-ins at 10.0.0-rc.16. -->

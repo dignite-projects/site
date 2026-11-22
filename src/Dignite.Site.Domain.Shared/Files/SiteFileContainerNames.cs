@@ -5,17 +5,17 @@ using System.Linq;
 namespace Dignite.Site.Files;
 
 /// <summary>
-/// The blob containers Site's file library stores into. A file field (GitHub issue #42) points its
+/// The Blob Management containers Site's files are kept in. A file field (GitHub issue #42) points its
 /// <c>FileFieldConfiguration.FileContainerName</c> at one of these.
 /// <para>
 /// Containers are split by <b>policy</b> (allowed types, size limit), not by what a file is used for -
-/// purpose-level grouping is what directories are for. Each container's policy is owned by
-/// <c>SiteAdminApplicationModule</c>; a host only chooses the storage provider.
+/// purpose-level grouping is what directories are for. The host declares each one as a Blob Management
+/// container with its preset - its policy - and its storage provider.
 /// </para>
 /// <para>
-/// <see cref="All"/> is also the boundary of the file library: the admin API, the public read endpoint and
-/// the MCP tools refuse any other container, even one the host registered for another module - a Site
-/// editor's permissions say nothing about another module's blobs.
+/// <see cref="All"/> is also the boundary of Site's files: the admin API and the MCP tools refuse any other
+/// container, even one the host declared for another module - a Site editor's permissions say nothing about
+/// another module's files.
 /// </para>
 /// </summary>
 public static class SiteFileContainerNames
@@ -33,13 +33,13 @@ public static class SiteFileContainerNames
     public const string Images = "images";
 
     /// <summary>
-    /// Publicly readable files a theme uses and a picture or a document is not: a favicon, a font (<see cref="SiteFileTypes.ThemeAssets"/>).
+    /// Publicly readable files a theme uses and a picture or a document is not: a favicon, a font.
     /// Uploading to it is the theme's permission, <c>SiteAdmin.Themes.Edit</c>, not the content's: it is design, not content.
     /// A theme's own static files are text (<c>css/site.css</c>) and live in the theme; these are the binary ones it links.
     /// </summary>
     public const string ThemeAssets = "theme-assets";
 
-    /// <summary>Every container Site's file library uses.</summary>
+    /// <summary>Every container Site's files are kept in.</summary>
     public static IReadOnlyList<string> All { get; } = new[] { Images, Attachments, ThemeAssets };
 
     /// <summary>

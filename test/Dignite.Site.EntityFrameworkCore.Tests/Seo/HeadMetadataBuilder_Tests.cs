@@ -367,11 +367,11 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
         var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
 
         metadata.OgImageUrl.ShouldBe(
-            "https://api.acme.example/api/site-public/files/images/share.jpg?__tenant=&Width=1200&Height=630");
+            "https://api.acme.example/api/site-public/files/images/share.jpg?__tenant=&width=1200&height=630");
     }
 
     /// <summary>
-    /// A file-library address is stored relative (<c>SiteFileUrl.Build</c>), and <c>og:image</c> has to be
+    /// A file address is stored relative (Blob Management's <c>/blobs/...</c>), and <c>og:image</c> has to be
     /// absolute: it is put on the site's primary domain - the same origin as the canonical URL - and sized.
     /// </summary>
     [Fact]
@@ -387,14 +387,14 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
                 ["title"] = "Has a relative image",
                 [SeoFieldNames.FieldName] = new SeoFieldValue
                 {
-                    OgImage = "/api/site-public/files/images/share.jpg?__tenant="
+                    OgImage = "/blobs/images/share.webp?__tenant=1"
                 }
             }));
 
         var metadata = await BuildAsync($"/blog/{slug}", SiteTestData.EnglishCulture);
 
         metadata.OgImageUrl.ShouldBe(
-            $"{BaseUrl}/api/site-public/files/images/share.jpg?__tenant=&Width=1200&Height=630");
+            $"{BaseUrl}/blobs/images/share.webp?__tenant=1&width=1200&height=630");
     }
 
     /// <summary>
@@ -685,7 +685,7 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
 
         var metadata = await BuildAsync("/blog/my-trip", SiteTestData.EnglishCulture);
 
-        metadata.OgImageUrl.ShouldBe("https://acme.example/api/site-public/files/images/share.jpg?Width=1200&Height=630");
+        metadata.OgImageUrl.ShouldBe("https://acme.example/api/site-public/files/images/share.jpg?width=1200&height=630");
         metadata.IsDefaultOgImage.ShouldBeTrue();
         metadata.OgImageWidth.ShouldBe(1200);
         metadata.OgImageHeight.ShouldBe(630);

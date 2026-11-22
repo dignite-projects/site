@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Restores every NuGet package this workflow just packed, in an isolated scratch project pointed
 # at the same sources a real consumer would use: this run's own artifacts/ folder and public
-# nuget.org. Catches an unresolvable transitive dependency in this workflow, instead of a
-# downstream consumer's restore. No package registry credentials are needed.
+# nuget.org - and, when GITHUB_PACKAGES_TOKEN is set (release.yml sets it for a pre-release only),
+# the dignite-projects GitHub Packages feed a pre-release's consumers read it and its abp-modules
+# pre-release dependencies from. Catches an unresolvable transitive dependency in this workflow,
+# instead of a downstream consumer's restore.
 set -euo pipefail
 shopt -s nullglob
 
@@ -39,6 +41,21 @@ export NUGET_PACKAGES="$workdir/.nuget-packages"
   echo '</Project>'
 } > "$workdir/RestoreSmoke.csproj"
 
+github_source=""
+github_credentials=""
+sources_label="packed + nuget.org"
+if [ -n "${GITHUB_PACKAGES_TOKEN:-}" ]; then
+  # NuGet reads the token from the environment (%GITHUB_PACKAGES_TOKEN%); it is never written here.
+  github_source='    <add key="github-dignite-projects" value="https://nuget.pkg.github.com/dignite-projects/index.json" />'
+  github_credentials='  <packageSourceCredentials>
+    <github-dignite-projects>
+      <add key="Username" value="dignite-projects" />
+      <add key="ClearTextPassword" value="%GITHUB_PACKAGES_TOKEN%" />
+    </github-dignite-projects>
+  </packageSourceCredentials>'
+  sources_label="packed + nuget.org + GitHub Packages"
+fi
+
 cat > "$workdir/NuGet.Config" <<EOF
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
@@ -46,11 +63,13 @@ cat > "$workdir/NuGet.Config" <<EOF
     <clear />
     <add key="packed" value="$artifacts_abs" />
     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+$github_source
   </packageSources>
+$github_credentials
 </configuration>
 EOF
 
-echo "Restoring ${#package_ids[@]} packed packages at $version against packed + nuget.org..."
+echo "Restoring ${#package_ids[@]} packed packages at $version against $sources_label..."
 if ! dotnet restore "$workdir/RestoreSmoke.csproj" --configfile "$workdir/NuGet.Config"; then
   echo "::error::Restoring the packed packages failed - at least one dependency (likely a cross-repo abp-modules version) doesn't resolve on any configured source. Do not push these packages."
   exit 1

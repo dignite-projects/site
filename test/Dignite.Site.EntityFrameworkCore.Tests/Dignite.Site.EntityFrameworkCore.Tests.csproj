@@ -23,6 +23,9 @@
     <!-- The file library's test containers (GitHub issue #41) - same provider as the dev Host,
          pointed at a temp directory instead of App_Data. -->
     <PackageReference Include="Volo.Abp.BlobStoring.FileSystem" Version="10.7.0" />
+    <!-- Blob Management, installed as Dignite.Site.Host installs it: Site's files are kept in it. -->
+    <PackageReference Include="Dignite.Abp.BlobManagement.Application" Version="$(DigniteAbpModulesVersion)" />
+    <PackageReference Include="Dignite.Abp.BlobManagement.EntityFrameworkCore" Version="$(DigniteAbpModulesVersion)" />
     <!-- The upload and on-request resize tests run images through SkiaSharp (Volo.Abp.Imaging.SkiaSharp,
          via Admin/Public.Application), and TestFiles draws its pictures with it. That package brings the
          Windows and macOS natives only; this one lets the tests run on the ubuntu CI runners. Same version

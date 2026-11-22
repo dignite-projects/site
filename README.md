@@ -17,7 +17,7 @@ Dignite Site is the AI-native next generation of [Dignite.Cms](https://github.co
 - [Getting Started](https://github.com/dignite-projects/site/blob/main/docs/en/getting-started.md) - install Site into an ABP application and build a first page from an AI client
 - [Pages and Routing](https://github.com/dignite-projects/site/blob/main/docs/en/pages-and-routing.md), [Content Types and Fields](https://github.com/dignite-projects/site/blob/main/docs/en/content-types-and-fields.md), [Contents](https://github.com/dignite-projects/site/blob/main/docs/en/contents.md) - the content model
 - [Razor Templates](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/razor-templates.md), [Scriban Templates](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/scriban-templates.md), [Multilingual Sites](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/languages.md), [Localizing Template Texts](https://github.com/dignite-projects/site/blob/main/docs/en/rendering/template-localization.md) - rendering a site
-- [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md) - the file library for images and attachments
+- [Files](https://github.com/dignite-projects/site/blob/main/docs/en/files.md) - images and attachments, kept in Dignite Blob Management
 - [SEO](https://github.com/dignite-projects/site/blob/main/docs/en/seo/index.md) - head metadata, sitemap, feeds, `robots.txt` and `llms.txt`
 - [MCP Server](https://github.com/dignite-projects/site/blob/main/docs/en/mcp/index.md) - the tools an AI client works with, and [how to connect one](https://github.com/dignite-projects/site/blob/main/docs/en/mcp/connecting-clients.md)
 
@@ -46,8 +46,8 @@ dotnet build Dignite.Site.slnx --no-restore --configuration Release
 ```
 
 The .NET dependencies from [abp-modules](https://github.com/dignite-projects/abp-modules)
-(FlexFields, BLOB storage and the MCP server) are NuGet packages from nuget.org, pinned to
-`10.7.1` by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
+(FlexFields, BLOB storage, the MCP server and Dignite Blob Management, where Site's files are kept) are NuGet
+packages from nuget.org, pinned by `DigniteAbpModulesVersion` in `common.props`. No sibling `abp-modules`
 checkout or package registry credentials are needed. Local builds, PR CI and release builds
 use the same package references. See [angular/README.md](https://github.com/dignite-projects/site/blob/main/angular/README.md) for the admin UI setup.
 

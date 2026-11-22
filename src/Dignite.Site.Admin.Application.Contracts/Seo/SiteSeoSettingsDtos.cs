@@ -13,7 +13,7 @@ public class SiteSeoSettingsDto
 
 public class UpdateSiteSeoSettingsDto
 {
-    /// <summary>A file library address (<c>/api/site-public/files/...</c>) or an absolute URL; empty clears it.</summary>
+    /// <summary>A file's address (Blob Management's <c>/blobs/...</c>) or an absolute URL; empty clears it.</summary>
     [StringLength(2048)]
     public string? DefaultShareImage { get; set; }
 }

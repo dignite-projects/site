@@ -22,7 +22,7 @@ A site has no configuration entity of its own: every tenant is one site, and its
 | `Site.Branding.AppName` | Empty | The site's display name. Empty uses the application's default. |
 | `Site.Branding.LogoUrl` | Empty | The logo shown on a light background. |
 | `Site.Branding.LogoReverseUrl` | Empty | The logo shown on a dark background. |
-| `Site.Seo.DefaultShareImage` | Empty | The image shown when a page shared on a social network has no share image of its own: a file library address or an absolute URL. See [Share Images](seo/index.md#share-images). Set on the SEO tab of the admin UI's Setting Management page, with `PUT /api/site-admin/seo-settings`, or with the `site_set_default_share_image` [MCP tool](mcp/tools.md). |
+| `Site.Seo.DefaultShareImage` | Empty | The image shown when a page shared on a social network has no share image of its own: the address of an image uploaded to the site's [files](files.md), or an absolute URL. See [Share Images](seo/index.md#share-images). Set on the SEO tab of the admin UI's Setting Management page, with `PUT /api/site-admin/seo-settings`, or with the `site_set_default_share_image` [MCP tool](mcp/tools.md). |
 
 The `Site.Robots.*` and `Site.EnableLlmsTxt` settings are described in [robots.txt and llms.txt](seo/robots-and-llms-txt.md). The branding settings replace ABP's branding provider, so the theme of an ABP application shows each tenant's own name and logo.
 
@@ -82,7 +82,7 @@ The `Site.Enable` feature, on by default, switches the administration side of Si
 | `SiteAdmin.Seo` | Reading the SEO settings: the default share image. |
 | `SiteAdmin.Seo.Update` | Setting them. |
 
-The file library has no permissions of its own; see [Files](files.md#permissions). The public read API needs no permission. The MCP tools are authorized by the same permissions as the administration API; see [MCP Server](mcp/index.md#authorization).
+Files are authorized by the permission of the container they go to - `SiteAdmin.Contents.*`, `SiteAdmin.Seo.Update` or `SiteAdmin.Themes.Edit`; see [Files](files.md#permissions). The public read API needs no permission. The MCP tools are authorized by the same permissions as the administration API; see [MCP Server](mcp/index.md#authorization).
 
 ## See Also
 

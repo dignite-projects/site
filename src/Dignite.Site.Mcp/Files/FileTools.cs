@@ -1,340 +1,191 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Files;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
-using Volo.Abp.Application.Dtos;
-using Volo.Abp.Authorization;
-using Volo.Abp.Content;
 using Volo.Abp.DependencyInjection;
-using Volo.Abp.Domain.Entities;
-using Volo.Abp.Validation;
 
 namespace Dignite.Site.Mcp.Files;
 
 /// <summary>
-/// Listing, reading, uploading and changing files in the site's file library. Each tool is a container check
-/// followed by one application service call - the service holds the container's authorization, the upload
-/// pipeline (size, type detection from the real bytes, image processing) and the update rules, and none of
-/// that is repeated here.
+/// The site's files, which Blob Management keeps: which containers there are, an upload by link, and the files of a
+/// container. The bytes of an upload go from the machine the file is on to Blob Management, by the command a link comes
+/// with, and never through the model, which would have to write out every byte and could change some on the way; the
+/// model files the upload with <c>site_confirm_file</c>. What each container takes, and who may use it, is
+/// <see cref="IFileAdminAppService"/>'s - the tools only call it.
 /// </summary>
 [McpServerToolType]
 public class FileTools : ITransientDependency
 {
     protected IFileAdminAppService FileAppService { get; }
 
-    protected SiteMcpFileContainerGuard ContainerGuard { get; }
+    protected SiteMcpOptions Options { get; }
 
-    protected SiteMcpFileOptions Options { get; }
-
-    /// <summary>Where the request being served came in; absent outside a web request, then the link is a path only.</summary>
     protected IHttpContextAccessor? HttpContextAccessor { get; }
 
     public FileTools(
         IFileAdminAppService fileAppService,
-        SiteMcpFileContainerGuard containerGuard,
-        IOptions<SiteMcpFileOptions> options,
+        IOptions<SiteMcpOptions> options,
         IHttpContextAccessor? httpContextAccessor = null)
     {
         FileAppService = fileAppService;
-        ContainerGuard = containerGuard;
         Options = options.Value;
         HttpContextAccessor = httpContextAccessor;
     }
 
-    [McpServerTool(Name = "site_list_files", Title = "List files", ReadOnly = true)]
+    [McpServerTool(Name = "site_list_file_containers", Title = "List file containers", ReadOnly = true)]
     [Description(
-        "Lists files in a file container, newest first. Without the Contents management permission only " +
-        "your own files are returned. Every filter is optional.")]
-    public virtual async Task<PagedResultDto<FileDescriptorDto>> ListFilesAsync(
-        [Description("A container name from site_list_file_containers.")]
-        string containerName,
-        [Description("Only files directly in this directory, by id from site_list_directories.")]
-        Guid? directoryId = null,
-        [Description("Free-text filter over the file name.")]
-        string? filter = null,
-        [Description("How many to skip, for paging.")]
-        int skipCount = 0,
-        [Description("How many to return, at most 100. Keep this small unless you need more.")]
-        int maxResultCount = 20)
+        "Lists the site's file containers you may upload to, with the largest file each takes and its allowed file " +
+        "extensions. A container that processes pictures says so: imageMaxWidth and imageMaxHeight are the size a picture " +
+        "is shrunk to fit (a smaller one is not enlarged), and a JPEG - or a PNG that is not small - is stored as WebP, " +
+        "so the size, the name and the " +
+        "mimeType of the stored file differ from the file you sent; use the url, name and mimeType a file tool returns. " +
+        "Call this before any other file tool: they take a containerName from this list.")]
+    [Authorize]
+    public virtual async Task<List<SiteFileContainerDto>> ListFileContainersAsync()
     {
-        var container = ContainerGuard.GetContainer(containerName);
-        return await FileAppService.GetListAsync(new GetFilesInput
-        {
-            ContainerName = container.Name,
-            DirectoryId = directoryId,
-            Filter = filter,
-            SkipCount = Math.Max(skipCount, 0),
-            MaxResultCount = Math.Clamp(maxResultCount, 1, 100)
-        });
+        return (await FileAppService.GetContainersAsync()).Items.ToList();
     }
 
-    [McpServerTool(Name = "site_get_file", Title = "Get a file", ReadOnly = true)]
-    [Description("Returns one file's details, including its url.")]
-    public virtual async Task<FileDescriptorDto> GetFileAsync(
-        [Description("The file's id, from site_list_files or site_upload_file.")]
-        Guid id)
-    {
-        return await GetExposedFileAsync(id);
-    }
-
-    [McpServerTool(Name = "site_create_upload_url", Title = "Get a link to upload a file to")]
+    [McpServerTool(Name = "site_create_upload_url", Title = "Get a link that uploads a file")]
     [Description(
-        "The way to upload a real file - a photo, a background, an icon: returns a one-time link, good for ten minutes, " +
-        "that the file is sent to with a PUT, and the command that does it. The bytes go from the machine the file is on " +
-        "to the site and never through you, so a large file costs nothing here; run the command on that machine " +
-        "(replace FILE_PATH): command for sh, bash, zsh and cmd.exe, powerShellCommand for PowerShell. The response of the PUT is the stored file, with its url - the address to put in a " +
-        "content field. The same rules apply as to site_upload_file (the container's types and size; the type is detected " +
-        "from the bytes, so the extension of fileName must match them), checked now for the link and again when the file " +
-        "arrives. Without a shell to run it in, use site_upload_file for a file of a few kilobytes.")]
+        "Returns a one-use link, good for a few minutes, that uploads one file to a container. Run the command on the " +
+        "machine the file is on (replace FILE_PATH) - the bytes go there and never through you: command for sh, bash, " +
+        "zsh and cmd.exe, powerShellCommand for PowerShell. Its output is the pending file as JSON; the file is not " +
+        "kept, and has no url, until you call site_confirm_file with its id. Upload one file per link.")]
+    [Authorize]
     public virtual async Task<McpUploadUrl> CreateUploadUrlAsync(
-        [Description("A container name from site_list_file_containers.")]
-        string containerName,
-        [Description("The file name the file will be stored under, with its extension, e.g. 'hero.jpg'.")]
-        string fileName,
-        [Description("The directory to put it in, by id from site_list_directories. Omit for the top level.")]
-        Guid? directoryId = null)
+        [Description("A name from site_list_file_containers: images, attachments or theme-assets.")]
+        string containerName)
     {
-        var container = ContainerGuard.GetContainer(containerName);
-        if (string.IsNullOrWhiteSpace(fileName))
+        var ticket = await FileAppService.CreateUploadTicketAsync(new CreateSiteFileUploadTicketInput
         {
-            throw Invalid(nameof(fileName), "A file name is required.");
-        }
-
-        var ticket = await FileAppService.CreateUploadTicketAsync(new CreateFileUploadTicketInput
-        {
-            ContainerName = container.Name,
-            FileName = fileName,
-            DirectoryId = directoryId
+            ContainerName = containerName
         });
 
-        var url = GetUploadBaseUrl().TrimEnd('/') + "/" + ticket.Path;
-
+        var url = GetBaseUrl().TrimEnd('/') + "/" + ticket.UploadUrl.TrimStart('/');
         return new McpUploadUrl
         {
+            FileId = ticket.FileId,
             Url = url,
-            ExpiresAt = ticket.ExpiresAt,
-            MaxBytes = ticket.MaxBytes,
-            ContainerName = ticket.ContainerName,
-            FileName = ticket.FileName,
-            Command = $"curl -sS --fail-with-body -X PUT -H \"Content-Type: application/octet-stream\" --data-binary \"@FILE_PATH\" \"{url}\"",
-            PowerShellCommand = $"Invoke-RestMethod -Method Put -ContentType application/octet-stream -InFile \"FILE_PATH\" -Uri \"{url}\""
+            ExpiresAt = DateTime.SpecifyKind(ticket.ExpirationTime, DateTimeKind.Utc),
+            ContainerName = containerName,
+            Command = $"curl -X POST -F \"file=@FILE_PATH\" \"{url}\"",
+            PowerShellCommand = $"curl.exe -X POST -F \"file=@FILE_PATH\" \"{url}\""
         };
     }
 
-    /// <summary>
-    /// Where the link points: the configured address, else the scheme and host this MCP request came in on - the address
-    /// the client reached the site at, so the link is one it can reach too. A path base (the site served below a path) is kept.
-    /// Behind a proxy that address is right when the host trusts the proxy's forwarded headers, as it has to for every other
-    /// address it builds; where it does not, <see cref="SiteMcpFileOptions.UploadBaseUrl"/> says it. With neither there is no
-    /// address to give, and a link that starts with a path would only look like one that works.
-    /// </summary>
-    protected virtual string GetUploadBaseUrl()
+    [McpServerTool(Name = "site_confirm_file", Title = "Keep an uploaded file")]
+    [Description(
+        "Keeps a file uploaded with a link from site_create_upload_url and makes it readable by the site's visitors. " +
+        "Returns the file: store its id, name and url in a content field (a file field takes an array of them), or its " +
+        "url in an SEO image field or a template. A file you do not confirm is deleted after a day.")]
+    [Authorize]
+    public virtual Task<SiteFileDto> ConfirmFileAsync(
+        [Description("The fileId site_create_upload_url returned.")]
+        Guid fileId)
     {
-        if (!string.IsNullOrWhiteSpace(Options.UploadBaseUrl))
-        {
-            return Options.UploadBaseUrl!;
-        }
-
-        var request = HttpContextAccessor?.HttpContext?.Request
-                      ?? throw new InvalidOperationException(
-                          $"The address of an upload link is unknown: {nameof(SiteMcpFileOptions)}.{nameof(SiteMcpFileOptions.UploadBaseUrl)} is not set and there is no request to take it from.");
-
-        return $"{request.Scheme}://{request.Host}{request.PathBase}";
+        return FileAppService.ConfirmAsync(fileId);
     }
 
-    [McpServerTool(Name = "site_upload_file", Title = "Upload a file")]
+    [McpServerTool(Name = "site_list_files", Title = "List the files of a container", ReadOnly = true)]
     [Description(
-        "Uploads a file from base64-encoded bytes and returns it with its url - the address to put in a " +
-        "content field. Small files only: the bytes are text you have to write out, so this suits a file of a few " +
-        "kilobytes, and site_create_upload_url is the way to send anything larger. " +
-        "site_list_file_containers gives each container's maxUploadSize. " +
-        "The container's own rules (allowed types, size, image processing) apply, and the file type is " +
-        "detected from the bytes themselves, so the file name's extension must match the content.")]
-    public virtual async Task<FileDescriptorDto> UploadFileAsync(
-        [Description("A container name from site_list_file_containers.")]
+        "Lists the files kept in one container, newest first, a page at a time (up to 100). Files that are uploaded and " +
+        "not confirmed yet are not listed.")]
+    [Authorize]
+    public virtual async Task<McpFilePage> ListFilesAsync(
+        [Description("A name from site_list_file_containers.")]
         string containerName,
-        [Description("The file name, with its extension, e.g. 'cover.png'.")]
-        string fileName,
-        [Description("The file's bytes, base64-encoded. A data: URL is also accepted.")]
-        string contentBase64,
-        [Description("The directory to put it in, by id from site_list_directories. Omit for the top level.")]
-        Guid? directoryId = null)
+        [Description("A part of the file's name, whatever its case.")]
+        string? filter = null,
+        [Description("How many files to skip. Default 0.")]
+        int skip = 0,
+        [Description("How many files to return, 1 to 100. Default 20.")]
+        int take = 20)
     {
-        var container = ContainerGuard.GetContainer(containerName);
-        if (string.IsNullOrWhiteSpace(fileName))
+        var page = await FileAppService.GetListAsync(new GetSiteFilesInput
         {
-            throw Invalid(nameof(fileName), "A file name is required.");
-        }
-
-        var configuration = await FileAppService.GetContainerConfigurationAsync(container.Name);
-        var bytes = Decode(contentBase64, Options.GetMaxUploadSize(configuration));
-
-        return await FileAppService.CreateAsync(new CreateFileInput
-        {
-            ContainerName = container.Name,
-            DirectoryId = directoryId,
-            // The content type here is never used: the upload pipeline detects the real one from the bytes.
-            File = new RemoteStreamContent(new MemoryStream(bytes, writable: false), fileName, "application/octet-stream", bytes.LongLength)
+            ContainerName = containerName,
+            Filter = filter,
+            Sorting = "CreationTime desc",
+            SkipCount = Math.Max(skip, 0),
+            MaxResultCount = Math.Clamp(take, 1, 100)
         });
+
+        return new McpFilePage { TotalCount = page.TotalCount, Items = page.Items.ToList() };
     }
 
-    [McpServerTool(Name = "site_update_file", Title = "Rename or move a file", Idempotent = true)]
-    [Description(
-        "Renames a file or moves it to another of your directories. Only what you pass changes; everything " +
-        "else is kept. Needs read access to the file as well: a file you cannot read is reported as not " +
-        "found, even if you could otherwise change it.")]
-    public virtual async Task<FileDescriptorDto> UpdateFileAsync(
-        [Description("The file's id.")]
-        Guid id,
-        [Description("The new file name. Omit to keep it.")]
-        string? name = null,
-        [Description("Move it into this directory, by id. Omit to leave it where it is.")]
-        Guid? directoryId = null,
-        [Description("True to move it to the container's top level. Cannot be combined with directoryId.")]
-        bool moveToRoot = false)
+    [McpServerTool(Name = "site_get_file", Title = "Get a file", ReadOnly = true)]
+    [Description("Returns one file by its id: its name, type, size and url.")]
+    [Authorize]
+    public virtual Task<SiteFileDto> GetFileAsync(
+        [Description("The file's id, from site_list_files or site_confirm_file.")]
+        Guid fileId)
     {
-        if (moveToRoot && directoryId.HasValue)
-        {
-            throw Invalid(nameof(directoryId), "Pass either directoryId or moveToRoot, not both.");
-        }
-
-        await GetExposedFileAsync(id);
-
-        // Set only what was passed: UpdateFileInput tracks whether DirectoryId was assigned, and an
-        // unassigned one is left alone rather than cleared.
-        var input = new UpdateFileInput();
-        if (name != null)
-        {
-            input.Name = name;
-        }
-
-        if (moveToRoot)
-        {
-            input.DirectoryId = null;
-        }
-        else if (directoryId.HasValue)
-        {
-            input.DirectoryId = directoryId;
-        }
-
-        return await FileAppService.UpdateAsync(id, input);
+        return FileAppService.GetAsync(fileId);
     }
 
     [McpServerTool(Name = "site_delete_file", Title = "Delete a file", Destructive = true)]
     [Description(
-        "Deletes a file. Anything that links to its url stops working. Needs read access to the file as " +
-        "well: a file you cannot read is reported as not found, even if you could otherwise delete it.")]
-    public virtual async Task<string> DeleteFileAsync(
+        "Deletes a file for good: its address stops working wherever a content, a template or a setting still uses it. " +
+        "Delete one only when nothing uses it. A file that is not there is not an error.")]
+    [Authorize]
+    public virtual Task DeleteFileAsync(
         [Description("The file's id.")]
-        Guid id)
+        Guid fileId)
     {
-        var file = await GetExposedFileAsync(id);
-        await FileAppService.DeleteAsync(id);
-        return $"Deleted '{file.Name}' ({id}).";
+        return FileAppService.DeleteAsync(fileId);
     }
+
+    /// <summary>Where the links point: <see cref="SiteMcpOptions.BaseUrl"/>, else the scheme and host this MCP request came in on.</summary>
+    protected virtual string GetBaseUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(Options.BaseUrl))
+        {
+            return Options.BaseUrl!;
+        }
+
+        var request = HttpContextAccessor?.HttpContext?.Request
+                      ?? throw new InvalidOperationException(
+                          $"The address of an upload link is unknown: {nameof(SiteMcpOptions)}.{nameof(SiteMcpOptions.BaseUrl)} is not set and there is no request to take it from.");
+        return $"{request.Scheme}://{request.Host}{request.PathBase}";
+    }
+}
+
+/// <summary>An upload link as <c>site_create_upload_url</c> hands it over: where to send the file, and how.</summary>
+public class McpUploadUrl
+{
+    /// <summary>The id the file will have; <c>site_confirm_file</c> takes it.</summary>
+    public Guid FileId { get; set; }
+
+    /// <summary>Send the file here as a multipart <c>POST</c>, in the field <c>file</c>. The link is the credential: single use, short-lived.</summary>
+    public string Url { get; set; } = default!;
+
+    public string Method { get; set; } = "POST";
+
+    public DateTime ExpiresAt { get; set; }
+
+    public string ContainerName { get; set; } = default!;
 
     /// <summary>
-    /// The file, if it exists, the caller may read it and it lives in an exposed container - otherwise the
-    /// same not-found for all three, so a caller cannot probe which ids exist. Update and delete go through
-    /// here too: the container is only known by reading the file, and it must be known to keep MCP inside the
-    /// exposed ones. The tool descriptions say so.
+    /// A command that sends the file from sh, bash, zsh or cmd.exe, with <c>FILE_PATH</c> to be replaced by the path of
+    /// the file. Run it on the machine the file is on. In PowerShell, where <c>curl</c> is another command, use
+    /// <see cref="PowerShellCommand"/>.
     /// </summary>
-    protected virtual async Task<FileDescriptorDto> GetExposedFileAsync(Guid id)
-    {
-        FileDescriptorDto file;
-        try
-        {
-            file = await FileAppService.GetAsync(id);
-        }
-        catch (Exception exception) when (exception is AbpAuthorizationException or EntityNotFoundException)
-        {
-            throw ContainerGuard.NotFound("file", id);
-        }
+    public string Command { get; set; } = default!;
 
-        ContainerGuard.EnsureExposed(file.ContainerName, "file", id);
-        return file;
-    }
+    /// <summary><see cref="Command"/> for PowerShell (Windows PowerShell 5.1 and PowerShell 7).</summary>
+    public string PowerShellCommand { get; set; } = default!;
+}
 
-    /// <summary>
-    /// Decodes the upload, refusing an oversized one from its encoded length alone - before allocating the
-    /// decoded copy, so the limit binds ahead of the buffer it protects.
-    /// </summary>
-    protected virtual byte[] Decode(string contentBase64, long maxUploadSize)
-    {
-        if (string.IsNullOrWhiteSpace(contentBase64))
-        {
-            throw Invalid(nameof(contentBase64), "The file content is empty.");
-        }
+public class McpFilePage
+{
+    public long TotalCount { get; set; }
 
-        var payload = contentBase64.Trim();
-        if (payload.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-        {
-            var marker = payload.IndexOf(";base64,", StringComparison.OrdinalIgnoreCase);
-            if (marker < 0)
-            {
-                throw Invalid(nameof(contentBase64), "A data: URL must be base64-encoded (';base64,').");
-            }
-
-            payload = payload[(marker + ";base64,".Length)..];
-        }
-
-        // Base64 encodes every 3 bytes as 4 characters, so the encoded length bounds the decoded size - once
-        // the whitespace a decoder skips (line-wrapped base64) and the trailing '=' padding are left out.
-        if (DecodedLength(payload) > maxUploadSize)
-        {
-            throw Invalid(nameof(contentBase64), $"The file is larger than {maxUploadSize} bytes, the most this container accepts here.");
-        }
-
-        byte[] bytes;
-        try
-        {
-            bytes = Convert.FromBase64String(payload);
-        }
-        catch (FormatException)
-        {
-            throw Invalid(nameof(contentBase64), "The content is not valid base64.");
-        }
-
-        if (bytes.Length == 0)
-        {
-            throw Invalid(nameof(contentBase64), "The file content is empty.");
-        }
-
-        if (bytes.LongLength > maxUploadSize)
-        {
-            throw Invalid(nameof(contentBase64), $"The file is larger than {maxUploadSize} bytes, the most this container accepts here.");
-        }
-
-        return bytes;
-    }
-
-    /// <summary>The number of bytes <paramref name="base64"/> decodes to, if it is valid base64.</summary>
-    protected static long DecodedLength(string base64)
-    {
-        long significant = 0;
-        var padding = 0;
-        foreach (var character in base64)
-        {
-            if (char.IsWhiteSpace(character))
-            {
-                continue;
-            }
-
-            significant++;
-            padding = character == '=' ? padding + 1 : 0;
-        }
-
-        return significant / 4 * 3 - Math.Min(padding, 2);
-    }
-
-    protected static AbpValidationException Invalid(string member, string message)
-    {
-        return new AbpValidationException(message, new List<ValidationResult> { new(message, new[] { member }) });
-    }
+    public List<SiteFileDto> Items { get; set; } = new();
 }

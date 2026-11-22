@@ -1,3 +1,4 @@
+using Dignite.Abp.BlobManagement.EntityFrameworkCore;
 using Dignite.Site.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.DependencyInjection;
@@ -24,15 +25,18 @@ namespace Dignite.Site.Host.Data;
 /// derived from, and EF Core cannot compose a query across two.
 ///
 /// <para>
-/// The file library's tables (<c>SiteFileDescriptors</c>, <c>SiteDirectoryDescriptors</c>) are Site's own
-/// and configured by <c>ConfigureSite()</c> with the rest; this class only supplies the concrete DbSets the
-/// interface requires, the same division <see cref="ISiteDbContext"/> has between here and
-/// <c>SiteDbContext</c>.
+/// Site's files are Blob Management's (<c>BlobFileDescriptors</c>, <c>BlobDirectoryDescriptors</c>), configured by
+/// <c>ConfigureBlobManagement()</c>; this class supplies the concrete DbSets <see cref="IBlobManagementDbContext"/>
+/// requires, as it does for <see cref="ISiteDbContext"/>.
 /// </para>
 /// </summary>
-[ReplaceDbContext(typeof(ISiteDbContext))]
-public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
+[ReplaceDbContext(typeof(ISiteDbContext), typeof(IBlobManagementDbContext))]
+public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext, IBlobManagementDbContext
 {
+    public DbSet<Dignite.Abp.BlobManagement.FileDescriptor> FileDescriptors { get; set; } = default!;
+
+    public DbSet<Dignite.Abp.BlobManagement.DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
+
     public DbSet<Dignite.Site.Pages.Page> Pages { get; set; } = default!;
 
     public DbSet<Dignite.Site.ContentTypes.ContentType> ContentTypes { get; set; } = default!;
@@ -43,10 +47,6 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
     public DbSet<Dignite.Site.Contents.Content> Contents { get; set; } = default!;
 
     public DbSet<Dignite.Site.Contents.ContentFlexFieldIndex> ContentFlexFieldIndexes { get; set; } = default!;
-
-    public DbSet<Dignite.Site.Files.DirectoryDescriptor> DirectoryDescriptors { get; set; } = default!;
-
-    public DbSet<Dignite.Site.Files.FileDescriptor> FileDescriptors { get; set; } = default!;
 
     public DbSet<Dignite.Site.Themes.SiteTheme> SiteThemes { get; set; } = default!;
 
@@ -86,5 +86,6 @@ public class SiteHostDbContext : AbpDbContext<SiteHostDbContext>, ISiteDbContext
         /* Configure your own entities here */
 
         builder.ConfigureSite();
+        builder.ConfigureBlobManagement();
     }
 }

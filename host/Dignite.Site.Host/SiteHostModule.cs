@@ -72,6 +72,9 @@ using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Dignite.Site.Public;
 using Dignite.Abp.AspNetCore.Mcp;
+using Dignite.Abp.BlobManagement;
+using Dignite.Abp.BlobManagement.Presets;
+using Dignite.Abp.BlobManagement.EntityFrameworkCore;
 
 using Microsoft.Extensions.Hosting;
 
@@ -135,8 +138,8 @@ namespace Dignite.Site.Host;
     typeof(AbpEntityFrameworkCoreSqliteModule),
 
     // The active BLOB storage provider (GitHub issue #41) - filesystem for dev, production provider
-    // still open. ConfigureBlobStoring below is what actually points SiteFileContainerNames.Attachments at
-    // it; this DependsOn is what makes that provider resolvable at all.
+    // still open. ConfigureBlobStoring below is what actually points Site's file containers at it; this
+    // DependsOn is what makes that provider resolvable at all.
     typeof(AbpBlobStoringFileSystemModule),
 
     // The Site content kernel - EF Core for SiteHostDbContext's ISiteDbContext replacement (see
@@ -156,9 +159,19 @@ namespace Dignite.Site.Host;
     // maps an HTTP endpoint - it needs a host with a pipeline, and it needs to sit behind the same
     // authentication, multi-tenancy and unit-of-work middleware everything else here does. SiteMcpModule
     // only contributes the site_* tools; the server itself (transport, /mcp, filters) comes with it from
-    // Dignite.Abp.AspNetCore.Mcp, and is configured for this deployment in ConfigureMcp. Its site_* tools
-    // include the file library's (both Site containers by default - SiteMcpFileOptions).
-    typeof(SiteMcpModule)
+    // Dignite.Abp.AspNetCore.Mcp, and is configured for this deployment in ConfigureMcp.
+    typeof(SiteMcpModule),
+
+    // Blob Management, in this process: Site's files are kept in it. Its containers - images, attachments and
+    // theme-assets, the ones Site's fields name - are declared, with their storage provider, in ConfigureBlobStoring.
+    // BlobManagementHttpApiModule serves what a browser reaches without Site in between - the upload with a ticket
+    // Site's admin UI posts to, and the public read at /blobs that the site's pages, og:image and the admin UI's
+    // previews load files from - and the container and directory APIs Site's file picker calls with the user's token.
+    // Site is a trusted, in-process caller of the file service, so no OAuth client is granted anything. It has no MCP
+    // tools: Site's own file tools call the same service.
+    typeof(BlobManagementApplicationModule),
+    typeof(BlobManagementHttpApiModule),
+    typeof(BlobManagementEntityFrameworkCoreModule)
 )]
 public class SiteHostModule : AbpModule
 {
@@ -275,11 +288,11 @@ public class SiteHostModule : AbpModule
 
     /// <summary>
     /// The storage provider for each <see cref="SiteFileContainerNames"/> container (GitHub issue #41):
-    /// filesystem for dev. Only the provider - each container's policy (its BLOB pipeline contributors for
-    /// size, types and image resizing, and its permissions) comes from SiteAdminApplicationModule, and
-    /// <c>Containers.Configure</c> merges this onto it. Production provider (Azure/S3/other) is still an open
-    /// decision (#41) - swapping it later only touches this method, since FileDescriptorManager addresses
-    /// blobs through IBlobContainer by container name, never by provider.
+    /// filesystem for dev. Each container is a Blob Management container with its preset (size, types, image handling);
+    /// Blob Management declares managed containers in code only. The base path is the one Site stored its files under
+    /// before they moved to Blob Management, so the bytes stored then stay where it looks for them. Production provider (Azure/S3/other) is still an open decision
+    /// (#41) - swapping it later only touches this method, since Blob Management addresses blobs through IBlobContainer
+    /// by container name, never by provider.
     /// </summary>
     private void ConfigureBlobStoring(IHostEnvironment hostingEnvironment)
     {
@@ -294,6 +307,28 @@ public class SiteHostModule : AbpModule
                 options.Containers.Configure(containerName, container =>
                 {
                     container.UseFileSystem(fileSystem => fileSystem.BasePath = basePath);
+
+                    switch (containerName)
+                    {
+                        case SiteFileContainerNames.Images:
+                            container.UseBlobManagementContainer(managed => managed.AllowDirectories = true);
+                            container.UseImagesPreset();
+                            break;
+                        case SiteFileContainerNames.Attachments:
+                            container.UseBlobManagementContainer(managed => managed.AllowDirectories = true);
+                            container.UseDocumentsPreset();
+                            break;
+                        case SiteFileContainerNames.ThemeAssets:
+                            container.UseBlobManagementContainer();
+                            container.UseBinaryAssetsPreset();
+                            break;
+                        default:
+                            throw new InvalidOperationException($"No Blob Management preset for Site's container '{containerName}'.");
+                    }
+
+                    // The sizes Site asks Blob Management's public read for (og:image's box, and a template's
+                    // file_url rounded up to one of them); any other is answered 400.
+                    container.UseBlobManagementPublicSizes(SiteImageSizes.All.ToArray());
                 });
             }
         });
@@ -580,6 +615,9 @@ public class SiteHostModule : AbpModule
         app.UseCorrelationId();
         app.MapAbpStaticAssets();
         app.UseRouting();
+        // Blob Management's anonymous addresses - the public read and its resizing, the upload with a ticket - name
+        // ASP.NET Core rate limiting policies, which only act where the limiter runs after routing.
+        app.UseRateLimiter();
         app.UseCors(DefaultCorsPolicyName);
         app.UseAbpStudioLink();
         app.UseAbpSecurityHeaders();

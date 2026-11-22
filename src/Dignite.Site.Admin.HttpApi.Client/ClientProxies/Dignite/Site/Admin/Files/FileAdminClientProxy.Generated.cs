@@ -17,44 +17,40 @@ namespace Dignite.Site.Admin.Files;
 [ExposeServices(typeof(IFileAdminAppService), typeof(FileAdminClientProxy))]
 public partial class FileAdminClientProxy : ClientProxyBase<IFileAdminAppService>, IFileAdminAppService
 {
-    public virtual async Task<FileDescriptorDto> GetAsync(Guid id)
+    public virtual async Task<ListResultDto<SiteFileContainerDto>> GetContainersAsync()
     {
-        return await RequestAsync<FileDescriptorDto>(nameof(GetAsync), new ClientProxyRequestTypeValue
+        return await RequestAsync<ListResultDto<SiteFileContainerDto>>(nameof(GetContainersAsync));
+    }
+
+    public virtual async Task<PagedResultDto<SiteFileDto>> GetListAsync(GetSiteFilesInput input)
+    {
+        return await RequestAsync<PagedResultDto<SiteFileDto>>(nameof(GetListAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(GetSiteFilesInput), input }
+        });
+    }
+
+    public virtual async Task<SiteFileDto> GetAsync(Guid id)
+    {
+        return await RequestAsync<SiteFileDto>(nameof(GetAsync), new ClientProxyRequestTypeValue
         {
             { typeof(Guid), id }
         });
     }
 
-    public virtual async Task<PagedResultDto<FileDescriptorDto>> GetListAsync(GetFilesInput input)
+    public virtual async Task<SiteFileUploadTicketDto> CreateUploadTicketAsync(CreateSiteFileUploadTicketInput input)
     {
-        return await RequestAsync<PagedResultDto<FileDescriptorDto>>(nameof(GetListAsync), new ClientProxyRequestTypeValue
+        return await RequestAsync<SiteFileUploadTicketDto>(nameof(CreateUploadTicketAsync), new ClientProxyRequestTypeValue
         {
-            { typeof(GetFilesInput), input }
+            { typeof(CreateSiteFileUploadTicketInput), input }
         });
     }
 
-    public virtual async Task<FileDescriptorDto> CreateAsync(CreateFileInput input)
+    public virtual async Task<SiteFileDto> ConfirmAsync(Guid id)
     {
-        return await RequestAsync<FileDescriptorDto>(nameof(CreateAsync), new ClientProxyRequestTypeValue
+        return await RequestAsync<SiteFileDto>(nameof(ConfirmAsync), new ClientProxyRequestTypeValue
         {
-            { typeof(CreateFileInput), input }
-        });
-    }
-
-    public virtual async Task<FileUploadTicketDto> CreateUploadTicketAsync(CreateFileUploadTicketInput input)
-    {
-        return await RequestAsync<FileUploadTicketDto>(nameof(CreateUploadTicketAsync), new ClientProxyRequestTypeValue
-        {
-            { typeof(CreateFileUploadTicketInput), input }
-        });
-    }
-
-    public virtual async Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input)
-    {
-        return await RequestAsync<FileDescriptorDto>(nameof(UpdateAsync), new ClientProxyRequestTypeValue
-        {
-            { typeof(Guid), id },
-            { typeof(UpdateFileInput), input }
+            { typeof(Guid), id }
         });
     }
 
@@ -63,14 +59,6 @@ public partial class FileAdminClientProxy : ClientProxyBase<IFileAdminAppService
         await RequestAsync(nameof(DeleteAsync), new ClientProxyRequestTypeValue
         {
             { typeof(Guid), id }
-        });
-    }
-
-    public virtual async Task<FileContainerConfigurationDto> GetContainerConfigurationAsync(string containerName)
-    {
-        return await RequestAsync<FileContainerConfigurationDto>(nameof(GetContainerConfigurationAsync), new ClientProxyRequestTypeValue
-        {
-            { typeof(string), containerName }
         });
     }
 }

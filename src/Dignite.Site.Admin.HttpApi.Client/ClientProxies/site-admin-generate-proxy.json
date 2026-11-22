@@ -2170,22 +2170,56 @@
             }
           }
         },
-        "Dignite.Site.Admin.Files.DirectoryAdminController": {
-          "controllerName": "DirectoryAdmin",
-          "controllerGroupName": "DirectoryAdmin",
+        "Dignite.Site.Admin.Files.FileAdminController": {
+          "controllerName": "FileAdmin",
+          "controllerGroupName": "FileAdmin",
           "isRemoteService": true,
           "isIntegrationService": false,
           "apiVersion": null,
-          "type": "Dignite.Site.Admin.Files.DirectoryAdminController",
+          "type": "Dignite.Site.Admin.Files.FileAdminController",
           "summary": null,
           "remarks": null,
           "description": null,
           "displayName": null,
           "interfaces": [
             {
-              "type": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "name": "IDirectoryAdminAppService",
+              "type": "Dignite.Site.Admin.Files.IFileAdminAppService",
+              "name": "IFileAdminAppService",
               "methods": [
+                {
+                  "name": "GetContainersAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.SiteFileContainerDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.SiteFileContainerDto>",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
+                {
+                  "name": "GetListAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "Dignite.Site.Admin.Files.GetSiteFilesInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.GetSiteFilesInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.GetSiteFilesInput",
+                      "isOptional": false,
+                      "defaultValue": null,
+                      "summary": null,
+                      "description": null,
+                      "displayName": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.SiteFileDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.SiteFileDto>",
+                    "summary": null,
+                    "contentTypes": null,
+                    "isRemoteStream": false
+                  }
+                },
                 {
                   "name": "GetAsync",
                   "parametersOnMethod": [
@@ -2202,21 +2236,21 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "type": "Dignite.Site.Admin.Files.SiteFileDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.SiteFileDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "GetListAsync",
+                  "name": "CreateUploadTicketAsync",
                   "parametersOnMethod": [
                     {
                       "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                      "typeAsString": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput, Dignite.Site.Admin.Application.Contracts",
+                      "type": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput",
+                      "typeSimple": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput",
                       "isOptional": false,
                       "defaultValue": null,
                       "summary": null,
@@ -2225,38 +2259,15 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
-                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
+                    "type": "Dignite.Site.Admin.Files.SiteFileUploadTicketDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.SiteFileUploadTicketDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
                   }
                 },
                 {
-                  "name": "CreateAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "UpdateAsync",
+                  "name": "ConfirmAsync",
                   "parametersOnMethod": [
                     {
                       "name": "id",
@@ -2268,56 +2279,11 @@
                       "summary": null,
                       "description": null,
                       "displayName": null
-                    },
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
                     }
                   ],
                   "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "MoveAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                    "type": "Dignite.Site.Admin.Files.SiteFileDto",
+                    "typeSimple": "Dignite.Site.Admin.Files.SiteFileDto",
                     "summary": null,
                     "contentTypes": null,
                     "isRemoteStream": false
@@ -2350,47 +2316,17 @@
             }
           ],
           "actions": {
-            "GetAsyncById": {
-              "uniqueName": "GetAsyncById",
-              "name": "GetAsync",
+            "GetContainersAsync": {
+              "uniqueName": "GetContainersAsync",
+              "name": "GetContainersAsync",
               "httpMethod": "GET",
-              "url": "api/site-admin/files/directories/{id}",
+              "url": "api/site-admin/files/containers",
               "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
+              "parametersOnMethod": [],
+              "parameters": [],
               "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.SiteFileContainerDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.SiteFileContainerDto>",
                 "summary": null,
                 "contentTypes": [
                   "text/plain",
@@ -2399,9 +2335,14 @@
                 ],
                 "isRemoteStream": false
               },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": null,
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
@@ -2411,14 +2352,14 @@
               "uniqueName": "GetListAsyncByInput",
               "name": "GetListAsync",
               "httpMethod": "GET",
-              "url": "api/site-admin/files/directories",
+              "url": "api/site-admin/files",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
                   "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.GetDirectoriesInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.GetDirectoriesInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.GetDirectoriesInput",
+                  "typeAsString": "Dignite.Site.Admin.Files.GetSiteFilesInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.GetSiteFilesInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.GetSiteFilesInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -2441,575 +2382,10 @@
                   "summary": null,
                   "description": null,
                   "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
-                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<Dignite.Site.Admin.Files.DirectoryDescriptorInfoDto>",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "CreateAsyncByInput": {
-              "uniqueName": "CreateAsyncByInput",
-              "name": "CreateAsync",
-              "httpMethod": "POST",
-              "url": "api/site-admin/files/directories",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.CreateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.CreateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "UpdateAsyncByIdAndInput": {
-              "uniqueName": "UpdateAsyncByIdAndInput",
-              "name": "UpdateAsync",
-              "httpMethod": "PUT",
-              "url": "api/site-admin/files/directories/{id}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.UpdateDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
                 },
                 {
                   "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.UpdateDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "MoveAsyncByIdAndInput": {
-              "uniqueName": "MoveAsyncByIdAndInput",
-              "name": "MoveAsync",
-              "httpMethod": "PUT",
-              "url": "api/site-admin/files/directories/{id}/move",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.MoveDirectoryInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.MoveDirectoryInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.DirectoryDescriptorDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "DeleteAsyncById": {
-              "uniqueName": "DeleteAsyncById",
-              "name": "DeleteAsync",
-              "httpMethod": "DELETE",
-              "url": "api/site-admin/files/directories/{id}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "System.Void",
-                "typeSimple": "System.Void",
-                "summary": null,
-                "contentTypes": null,
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IDirectoryAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            }
-          }
-        },
-        "Dignite.Site.Admin.Files.FileAdminController": {
-          "controllerName": "FileAdmin",
-          "controllerGroupName": "FileAdmin",
-          "isRemoteService": true,
-          "isIntegrationService": false,
-          "apiVersion": null,
-          "type": "Dignite.Site.Admin.Files.FileAdminController",
-          "summary": null,
-          "remarks": null,
-          "description": null,
-          "displayName": null,
-          "interfaces": [
-            {
-              "type": "Dignite.Site.Admin.Files.IFileAdminAppService",
-              "name": "IFileAdminAppService",
-              "methods": [
-                {
-                  "name": "GetAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "GetListAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.GetFilesInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.GetFilesInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.GetFilesInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.FileDescriptorDto>",
-                    "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.FileDescriptorDto>",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "CreateAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.CreateFileInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.CreateFileInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.CreateFileInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "CreateUploadTicketAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.FileUploadTicketDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.FileUploadTicketDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "UpdateAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    },
-                    {
-                      "name": "input",
-                      "typeAsString": "Dignite.Site.Admin.Files.UpdateFileInput, Dignite.Site.Admin.Application.Contracts",
-                      "type": "Dignite.Site.Admin.Files.UpdateFileInput",
-                      "typeSimple": "Dignite.Site.Admin.Files.UpdateFileInput",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "DeleteAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "id",
-                      "typeAsString": "System.Guid, System.Private.CoreLib",
-                      "type": "System.Guid",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "System.Void",
-                    "typeSimple": "System.Void",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                },
-                {
-                  "name": "GetContainerConfigurationAsync",
-                  "parametersOnMethod": [
-                    {
-                      "name": "containerName",
-                      "typeAsString": "System.String, System.Private.CoreLib",
-                      "type": "System.String",
-                      "typeSimple": "string",
-                      "isOptional": false,
-                      "defaultValue": null,
-                      "summary": null,
-                      "description": null,
-                      "displayName": null
-                    }
-                  ],
-                  "returnValue": {
-                    "type": "Dignite.Site.Admin.Files.FileContainerConfigurationDto",
-                    "typeSimple": "Dignite.Site.Admin.Files.FileContainerConfigurationDto",
-                    "summary": null,
-                    "contentTypes": null,
-                    "isRemoteStream": false
-                  }
-                }
-              ]
-            }
-          ],
-          "actions": {
-            "GetAsyncById": {
-              "uniqueName": "GetAsyncById",
-              "name": "GetAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/files/{id}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "id",
-                  "typeAsString": "System.Guid, System.Private.CoreLib",
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "id",
-                  "name": "id",
-                  "jsonName": null,
-                  "type": "System.Guid",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "GetListAsyncByInput": {
-              "uniqueName": "GetListAsyncByInput",
-              "name": "GetListAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/files",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.GetFilesInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.GetFilesInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.GetFilesInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "ContainerName",
+                  "name": "Filter",
                   "jsonName": null,
                   "type": "System.String",
                   "typeSimple": "string",
@@ -3028,36 +2404,6 @@
                   "jsonName": null,
                   "type": "System.Guid?",
                   "typeSimple": "string?",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "CreatorId",
-                  "jsonName": null,
-                  "type": "System.Guid?",
-                  "typeSimple": "string?",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "Filter",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -3114,8 +2460,8 @@
                 }
               ],
               "returnValue": {
-                "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.FileDescriptorDto>",
-                "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.FileDescriptorDto>",
+                "type": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.SiteFileDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<Dignite.Site.Admin.Files.SiteFileDto>",
                 "summary": null,
                 "contentTypes": [
                   "text/plain",
@@ -3124,213 +2470,23 @@
                 ],
                 "isRemoteStream": false
               },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": null,
+                  "roles": null
+                }
+              ],
               "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
               "summary": null,
               "remarks": null,
               "description": null,
               "displayName": null
             },
-            "CreateAsyncByInput": {
-              "uniqueName": "CreateAsyncByInput",
-              "name": "CreateAsync",
-              "httpMethod": "POST",
-              "url": "api/site-admin/files",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.CreateFileInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.CreateFileInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.CreateFileInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "ContainerName",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "DirectoryId",
-                  "jsonName": null,
-                  "type": "System.Guid?",
-                  "typeSimple": "string?",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "nameOnMethod": "input",
-                  "name": "File",
-                  "jsonName": null,
-                  "type": "Volo.Abp.Content.IRemoteStreamContent",
-                  "typeSimple": "Volo.Abp.Content.IRemoteStreamContent",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "FormFile",
-                  "descriptorName": "input",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "CreateUploadTicketAsyncByInput": {
-              "uniqueName": "CreateUploadTicketAsyncByInput",
-              "name": "CreateUploadTicketAsync",
-              "httpMethod": "POST",
-              "url": "api/site-admin/files/upload-tickets",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "input",
-                  "name": "input",
-                  "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.CreateFileUploadTicketInput",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": null,
-                  "bindingSourceId": "Body",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.FileUploadTicketDto",
-                "typeSimple": "Dignite.Site.Admin.Files.FileUploadTicketDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "UploadByTicketAsyncByTicket": {
-              "uniqueName": "UploadByTicketAsyncByTicket",
-              "name": "UploadByTicketAsync",
-              "httpMethod": "PUT",
-              "url": "api/site-admin/files/upload/{ticket}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
-                {
-                  "name": "ticket",
-                  "typeAsString": "System.String, System.Private.CoreLib",
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "parameters": [
-                {
-                  "nameOnMethod": "ticket",
-                  "name": "ticket",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": true,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.FileAdminController",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "UpdateAsyncByIdAndInput": {
-              "uniqueName": "UpdateAsyncByIdAndInput",
-              "name": "UpdateAsync",
-              "httpMethod": "PUT",
+            "GetAsyncById": {
+              "uniqueName": "GetAsyncById",
+              "name": "GetAsync",
+              "httpMethod": "GET",
               "url": "api/site-admin/files/{id}",
               "supportedVersions": [],
               "parametersOnMethod": [
@@ -3339,17 +2495,6 @@
                   "typeAsString": "System.Guid, System.Private.CoreLib",
                   "type": "System.Guid",
                   "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                },
-                {
-                  "name": "input",
-                  "typeAsString": "Dignite.Site.Admin.Files.UpdateFileInput, Dignite.Site.Admin.Application.Contracts",
-                  "type": "Dignite.Site.Admin.Files.UpdateFileInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.UpdateFileInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "summary": null,
@@ -3366,21 +2511,64 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
+                  "constraintTypes": [],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
                   "description": null,
                   "displayName": null
-                },
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.SiteFileDto",
+                "typeSimple": "Dignite.Site.Admin.Files.SiteFileDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": null,
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "CreateUploadTicketAsyncByInput": {
+              "uniqueName": "CreateUploadTicketAsyncByInput",
+              "name": "CreateUploadTicketAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/files/upload-tickets",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput, Dignite.Site.Admin.Application.Contracts",
+                  "type": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
                 {
                   "nameOnMethod": "input",
                   "name": "input",
                   "jsonName": null,
-                  "type": "Dignite.Site.Admin.Files.UpdateFileInput",
-                  "typeSimple": "Dignite.Site.Admin.Files.UpdateFileInput",
+                  "type": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput",
+                  "typeSimple": "Dignite.Site.Admin.Files.CreateSiteFileUploadTicketInput",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -3392,8 +2580,8 @@
                 }
               ],
               "returnValue": {
-                "type": "Dignite.Site.Admin.Files.FileDescriptorDto",
-                "typeSimple": "Dignite.Site.Admin.Files.FileDescriptorDto",
+                "type": "Dignite.Site.Admin.Files.SiteFileUploadTicketDto",
+                "typeSimple": "Dignite.Site.Admin.Files.SiteFileUploadTicketDto",
                 "summary": null,
                 "contentTypes": [
                   "text/plain",
@@ -3402,8 +2590,73 @@
                 ],
                 "isRemoteStream": false
               },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": null,
+                  "roles": null
+                }
+              ],
+              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
+              "summary": null,
+              "remarks": null,
+              "description": null,
+              "displayName": null
+            },
+            "ConfirmAsyncById": {
+              "uniqueName": "ConfirmAsyncById",
+              "name": "ConfirmAsync",
+              "httpMethod": "POST",
+              "url": "api/site-admin/files/{id}/confirm",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": "",
+                  "summary": null,
+                  "description": null,
+                  "displayName": null
+                }
+              ],
+              "returnValue": {
+                "type": "Dignite.Site.Admin.Files.SiteFileDto",
+                "typeSimple": "Dignite.Site.Admin.Files.SiteFileDto",
+                "summary": null,
+                "contentTypes": [
+                  "text/plain",
+                  "application/json",
+                  "text/json"
+                ],
+                "isRemoteStream": false
+              },
+              "allowAnonymous": false,
+              "authorizeDatas": [
+                {
+                  "policy": null,
+                  "roles": null
+                }
+              ],
               "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
               "summary": null,
               "remarks": null,
@@ -3438,9 +2691,7 @@
                   "typeSimple": "string",
                   "isOptional": false,
                   "defaultValue": null,
-                  "constraintTypes": [
-                    "GuidRouteConstraint"
-                  ],
+                  "constraintTypes": [],
                   "bindingSourceId": "Path",
                   "descriptorName": "",
                   "summary": null,
@@ -3455,63 +2706,13 @@
                 "contentTypes": null,
                 "isRemoteStream": false
               },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
-              "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
-              "summary": null,
-              "remarks": null,
-              "description": null,
-              "displayName": null
-            },
-            "GetContainerConfigurationAsyncByContainerName": {
-              "uniqueName": "GetContainerConfigurationAsyncByContainerName",
-              "name": "GetContainerConfigurationAsync",
-              "httpMethod": "GET",
-              "url": "api/site-admin/files/containers/{containerName}",
-              "supportedVersions": [],
-              "parametersOnMethod": [
+              "allowAnonymous": false,
+              "authorizeDatas": [
                 {
-                  "name": "containerName",
-                  "typeAsString": "System.String, System.Private.CoreLib",
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
+                  "policy": null,
+                  "roles": null
                 }
               ],
-              "parameters": [
-                {
-                  "nameOnMethod": "containerName",
-                  "name": "containerName",
-                  "jsonName": null,
-                  "type": "System.String",
-                  "typeSimple": "string",
-                  "isOptional": false,
-                  "defaultValue": null,
-                  "constraintTypes": [],
-                  "bindingSourceId": "Path",
-                  "descriptorName": "",
-                  "summary": null,
-                  "description": null,
-                  "displayName": null
-                }
-              ],
-              "returnValue": {
-                "type": "Dignite.Site.Admin.Files.FileContainerConfigurationDto",
-                "typeSimple": "Dignite.Site.Admin.Files.FileContainerConfigurationDto",
-                "summary": null,
-                "contentTypes": [
-                  "text/plain",
-                  "application/json",
-                  "text/json"
-                ],
-                "isRemoteStream": false
-              },
-              "allowAnonymous": null,
-              "authorizeDatas": [],
               "implementFrom": "Dignite.Site.Admin.Files.IFileAdminAppService",
               "summary": null,
               "remarks": null,

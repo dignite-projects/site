@@ -1,137 +1,142 @@
 # Site files: internals
 
-How the file library is built. What it does - containers, upload rules, permissions, addresses, the public
-read endpoint, CKEditor upload and the MCP options - is documented for users in
-[docs/en/files.md](../docs/en/files.md); this page only covers what a contributor needs on top of that.
+How Site uses Blob Management for its files. What it does - the containers, the permissions, the upload, the addresses,
+serving, the admin UI and MCP - is documented for users in [docs/en/files.md](../docs/en/files.md); this
+page covers what a contributor needs on top of that. The decisions behind it are in abp-modules'
+`blob-management/dev-docs/` (`positioning-decision.md`, `business-system-integration-decision.md`,
+`peer-comparison.md`, `upload-checksum-decision.md`) and, for how Site arrived here, in
+[drive-integration-plan.md](drive-integration-plan.md) (superseded).
 
-The library used to be a separate module in abp-modules (File Explorer); since 0.1.0-preview.25 it is part of
-Site, under Site's namespaces, tables, permissions and routes. From abp-modules it uses only the upload
-rules: the BLOB pipeline contributors of `Dignite.Abp.BlobStoring.Pipeline` and `Dignite.Abp.BlobStoring.Imaging`
-(until abp-modules `10.0.0-rc.27` the `Dignite.Abp.FileStoring` packages and their `IFileStorer`).
+Until 3.0 Site kept its own file library (File Explorer before 0.1.0-preview.25, then Site's `Files/`): descriptors,
+directories, an admin API, a picker, nine MCP tools, and a read endpoint that resized and converted pictures. Since 3.0
+the files are Blob Management's, a browser reads them from Blob Management, and Site keeps only what has a rule of
+Site's: who may upload where, the file input, the MCP tools, and how its fields and templates use a file's address.
+How Site arrived at reading from Blob Management directly is [site-files-direct-read-plan.md](site-files-direct-read-plan.md).
 
 ## Where things live
 
 | Piece | Location |
 |---|---|
-| Descriptors and directories (`FileDescriptor`, `DirectoryDescriptor`, their managers and repositories) | `Dignite.Site.Domain` - `Files/` |
-| Tables | `SiteFileDescriptors`, `SiteDirectoryDescriptors` (EF Core); collections of the same names (MongoDB) |
-| Containers | `SiteFileContainerNames`; the allowed types are one table, `SiteFileTypes` (extension and MIME type). Their upload rules are BLOB pipeline contributors set in `SiteAdminApplicationModule.ConfigureFileContainers`; a host only picks the storage provider |
-| Admin API | `api/site-admin/files`, `api/site-admin/files/directories` (`IFileAdminAppService`, `IDirectoryAdminAppService`) |
-| Public read | `GET`/`HEAD` `api/site-public/files/{containerName}/{blobName}` (`IFilePublicAppService`) |
-| MCP tools | `site_list_file_containers`, `site_list_files`, `site_get_file`, `site_upload_file`, `site_update_file`, `site_delete_file`, `site_list_directories`, `site_create_directory` |
-| File field type | `FileFieldType` in `Dignite.FlexFields.Site` (registration key `FileExplorer`), its view in `Dignite.Site.Public.Web/Views/Shared/FlexFields/` |
-| Admin UI | `@dignite/ng.site`: the file picker, the browsing modal and the file field type (`src/lib/files`, `src/lib/field-types/file`) |
+| Container names Site's fields use by default | `SiteFileContainerNames` (Domain.Shared). Also the boundary of the admin API and of the MCP tools: only these three are reachable. |
+| The containers' rules | Blob Management's presets, declared by the host in code (`SiteHostModule.ConfigureBlobStoring`); Blob Management reads no configuration section for its containers. JPEG to WebP and the upright resize are `Dignite.Abp.BlobStoring.Imaging.SkiaSharp`'s, used by the `Images` preset. |
+| A file's address | Blob Management's `/blobs/{container}/{blob}[?__tenant=]`, the file's `url`, stored as it is. `SiteFileUrl` (Domain.Shared, over Blob Management's Domain.Shared): `Sized`, `Absolutize`, `IsSiteFile`; `SiteImageSizes` the sizes the host allows and `Sized` rounds to. The Angular mirror is `site-file-url.ts` and `SiteFileUrlService`. |
+| Public read | Blob Management's, read by the browser. `FilePublicController` (Public.HttpApi) only redirects the addresses Site served before 3.0. |
+| Who may upload where | `SiteFileAuthorization` (Admin.Application): the container to permissions table. |
+| The admin API | `IFileAdminAppService` / `FileAdminAppService` (Admin.Application.Contracts, Admin.Application) over `IBlobManagementFileService` and `IBlobManagementContainerAppService`; `FileAdminController` (Admin.HttpApi); the C# client proxy and its manifest entry in `site-admin-generate-proxy.json`. |
+| Admin UI | `@dignite/ng.site`: `SiteFileInputComponent`, `SiteFileUploadService`, `SiteUploadCleanup`, `SiteCKEditorUploadProvider`, the file field's control and the SEO image inputs; `SiteFilePickerModalComponent` and `SiteDirectoryTreeComponent` for the `Library` input mode, over `SiteBlobContainerService` and `SiteBlobDirectoryService` (Blob Management's container and directory endpoints, written by hand). The proxy `FileAdminService` is written by hand in the style of the generated ones. |
+| Management page | The dev host (`angular/`) installs `@dignite/ng.blob-management` - usage, containers, directories and files, read only - under Administration > Blob Management (`provideBlobManagementConfig()`, the `blob-management` route). The package is published with abp-modules' pre-releases only, to GitHub Packages as `@dignite-projects/ng.blob-management`, so `angular/package.json` depends on it under that name and the two imports use it too: an `npm:` alias under `@dignite` would download with no credential in Yarn Classic, which picks a tarball's credential by the name it installs the package under. Go back to `@dignite/ng.blob-management` from npmjs with Blob Management's first stable release. Installing it takes a `read:packages` token for `//npm.pkg.github.com/` in the user-level `.npmrc`. Seeing it takes `BlobManagement.Containers`, which the data seed grants the admin role. |
+| MCP | `FileTools` (Mcp) over `IFileAdminAppService`; `SiteMcpConsts.FileInstructions` tells a client how Site's fields use them. |
 
-`SiteFileTypes` is the single source of both lists the library reports: the containers' upload policy allows
-its **MIME types**, because the pipeline checks the type detected from the bytes, and the admin API reports
-its **extensions** (`FileContainerConfigurationDto.AllowedFileTypeNames`), because that is what a file input's
-`accept` and the MCP tools speak. Do not write a second list.
+Site's packages reference Blob Management's contracts only: `Dignite.Abp.BlobManagement.Application.Contracts`
+(Admin.Application) and `Dignite.Abp.BlobManagement.Domain.Shared` (Domain.Shared, for `BlobManagementPublicUrl`).
+Site keeps no file table of its own: the host's migration `Site_RemoveLegacyFileLibrary` dropped `SiteFileDescriptors` and
+`SiteDirectoryDescriptors`, and the migrator that moved their rows into Blob Management
+(`Dignite.Site.BlobManagement.Migration`) went with them; it is in the history before that commit.
 
-## The upload pipeline
+## The upload
 
-Bytes go into the container through ABP's `IBlobContainer`, whose BLOB pipeline runs the container's
-contributors inside `SaveAsync`, in this order: `MaxSize`, `AllowedContentTypes`, `ImageResize`,
-`ImageCompress`. The image contributors leave anything that is not an image untouched. The image provider
-is ABP's SkiaSharp one (`Volo.Abp.Imaging.SkiaSharp`), depended on by `Dignite.Site.Admin.Application` and
-`Dignite.Site.Public.Application`, so a host does not pick one.
+Blob Management has no API for a user to store a file: the business system asks for an upload ticket for its user, the
+browser posts the file to Blob Management with it, and the business system confirms the file (`positioning-decision.md`,
+`business-system-integration-decision.md`). Site does that in its own `IFileAdminAppService`:
 
-`FileDescriptorManager` is the caller around that pipeline. For an upload it:
+- `CreateUploadTicketAsync` checks `SiteFileAuthorization.CheckUploadAsync` for the container and asks
+  `IBlobManagementFileService.CreateUploadTicketAsync` for a ticket with `UploaderId = CurrentUser.Id`.
+- `ConfirmAsync` refuses a pending file whose `CreatorId` is not the caller - the ticket recorded the uploader, and the
+  file is not listed or readable until confirmed, so this is the only check that the file is the caller's - then
+  confirms it and marks it public (`SetPublicAsync`), because the visitors of the site read every file of Site's
+  containers. A file already confirmed and public is returned as it is, so confirming twice is harmless.
+- A pending file nobody confirms is deleted by Blob Management after `BlobManagementUploadOptions.PendingLifetime`, a day.
 
-1. copies it once into memory, capped at the container's size limit (`Dignite.Abp.BlobStoring:ContentTooLarge`);
-2. detects its type from the content, reconciled with the extension of the uploaded file name - a file whose
-   content contradicts its extension's kind is refused (`Dignite.Abp.BlobStoring:ContentTypeMismatch`), a
-   picture named with another picture's extension is recorded as what it is;
-3. hashes it (SHA-256);
-4. dedups by content: when the same bytes are already stored in that container (same tenant), the new
-   descriptor only refers to that blob and nothing is written;
-5. otherwise saves the blob under a new random name (32 hex digits plus the canonical extension of the
-   detected type, e.g. `.png` for a picture uploaded as `photo.jpg` - never the uploader's own extension;
-   blobs stored earlier have no extension) without overwriting - the contributors run here and may refuse it
-   (`ContentTypeNotAllowed`, the Imaging codes) - then writes the row, deleting the blob again if the row
-   cannot be written.
+The ticket's address is relative to the host that serves Blob Management. The admin UI posts to it through ABP's
+`RestService` under the `BlobManagement` API name (`BLOB_MANAGEMENT_API_NAME`), which ABP resolves to `apis.default`
+while the environment does not list it - right when Blob Management is in the host of the administration API. The post
+carries no permission check of Site's and needs none: the ticket is the credential, and Site issued it only after
+`SiteFileAuthorization`. The MCP tools put the ticket's address on `SiteMcpOptions.BaseUrl` (or the request's host), so
+the gateway in front of the MCP endpoint routes `/api/blob-management/` too.
 
-The extension on the blob name is what lets the contributors promote a compound file named `.doc` to
-`application/msword`, and give an empty file its extension's type.
+Not chosen: relaying the bytes through an endpoint of Site. It needs the body size limits, the form-binding bypass and the
+type checks Site's own file library had to carry, all of which Blob Management does on its own endpoint.
 
-The row records the detected MIME type, the hash of the **upload** (so the same original dedups even when
-the container shrank it) and the size of what is **stored**. Two simultaneous uploads of the same bytes can
-both miss the dedup lookup; a unique index on (tenant, container, hash) over live rows lets only one insert
-win, and the other upload fails and can be retried, when it becomes a reference.
+## The public read
 
-The file field's registration key `FileExplorer` and its configuration keys
-`FileExplorer.FileContainerName` / `FileExplorer.UploadFileMultiple` keep the names they had in
-abp-modules: they are stored in every field definition (Matrix block configurations included).
+A browser reads a file at Blob Management's public address, which is what Blob Management's design gives it for
+(`business-system-integration-decision.md`: an address a page embeds and a CDN caches). Site is not in between: an
+anonymous read of a public file has no rule of Site's to apply, and relaying it would need Blob Management's public read
+as a remote service - which it is deliberately not (`BlobManagementPublicController` is left out of the API definition) -
+and would put every visitor behind Site's one client address in Blob Management's rate limit.
 
-## The public read endpoint
+What that costs, against the read endpoint Site had: no WebP for a browser that takes it beyond what the `Images` preset
+stores, no JPEG for a client without WebP, and only the sizes the container allows. The first is mostly gone: the
+`Images` preset stores a PNG as lossless WebP on upload (`StorePngAsWebp`), unless it is small, 16-bit or animated - the
+size below which a PNG stays a PNG is Blob Management's to set. Blob Management converts on upload rather than on read,
+so the second stays. The sizes are `SiteImageSizes`.
 
-`?Width=&Height=` is provider-independent: `ImageDimensionReader` (Site's own, because the Imaging package's
-header reader is internal) guards the source dimensions before the provider decodes anything, and a provider
-that answers Unsupported (SkiaSharp does not resize GIF) gets the file served as stored rather than an error.
+**Sizes.** `SiteImageSizes.All` is Blob Management's default list with `og:image`'s 1200 and 630; the dev host sets it on
+Site's containers with `UseBlobManagementPublicSizes`, and a Blob Management that runs apart has to be given the same
+list. `SiteFileUrl.Sized` rounds a size given alone up to it, which keeps the picture's proportions, and writes a pair as
+given - rounding the two apart would change the box. The Angular `sizedFileUrl` rounds both, for the admin UI's square
+thumbnails.
 
-The `ETag` is the blob name plus the requested size: blob names are generated and never reused, so the bytes
-behind an address never change. The cache lifetime is a day rather than `immutable` because a file can be
-deleted.
+**Blob Management in another service.** `IBlobManagementFileService` and `IBlobManagementContainerAppService` are
+Contracts interfaces, and `Dignite.Abp.BlobManagement.HttpApi.Client` replaces the in-process implementation of the first
+with `RemoteBlobManagementFileService` and of the second with the generated client proxy; the host swaps the module and
+nothing in Site changes. Not tried end to end yet. What reading the code turned up:
 
-A public web app that calls Site through `Dignite.Site.Public.HttpApi.Client` depends on
-`SitePublicHttpApiModule` so that its `FilePublicController` replaces the generated proxy controller for the
-same interface (ABP removes a proxy controller whose interface a real controller implements), answers
-`If-None-Match` with `304` and sets `ETag`/`Cache-Control` itself, and fetches the bytes through the client
-proxy.
+- Site's back end then calls Blob Management with a client-credentials token, which carries no user. Up to
+  10.7.7-preview.2 Blob Management answered `GET api/blob-management/containers/{name}` for users only ("a client reads a
+  container's limits from its own configuration"), so `FileAdminAppService.GetContainersAsync` - `GET
+  api/site-admin/files/containers` and the MCP tool `site_list_file_containers` - failed there, and so it did in process
+  for an MCP client signed in with client credentials: the file input offered an upload with no size or type check of its
+  own, and the file field's configuration listed all three containers. Site has no configuration of its own to read the
+  limits from, and keeping a copy of the presets in Site's host would drift from Blob Management's. Appwrite's server SDK
+  reads a bucket's `maximumFileSize` and `allowedFileExtensions` with an API key (`getBucket`), and Supabase's `getBucket`
+  returns `file_size_limit` and `allowed_mime_types`. So the fix was Blob Management's: one container's limits for any
+  authenticated caller, a client's `access` being none (abp-modules#418, in 10.7.7-preview.3, which Site depends on).
+- The admin UI calls Blob Management's container and directory APIs itself, with the user's token (the file picker), so
+  its token has to be one Blob Management accepts: `oAuthConfig.scope` names Blob Management's scope beside Site's.
+- A site served by an application of its own (`Dignite.Site.Public.Web` with Site's data remote) answers neither
+  `/blobs/` nor `/api/site-public/files/`, whether Blob Management runs apart or in the host of the administration API: its
+  gateway routes both ([Reaching Blob Management from Every Site](../docs/en/files.md#reaching-blob-management-from-every-site)).
 
-## Relative addresses
+## The address of a file
 
-Since the release after 0.1.0-preview.25 a file address is relative: `SiteFileUrl.Build` composes
-`/api/site-public/files/{container}/{blob}` with no scheme, host or tenant, and the application service's
-mapper puts it on `FileDescriptorDto.Url` - so the admin API, the MCP tools and an in-process caller all hand
-out the same address, whichever host the request came in on. It is what CmsKit does with its media
-(`MediaDescriptorDto` carries no URL; the editor inserts `/api/cms-kit/media/{id}`, and pages render it
-relative).
+Blob Management names the physical BLOB of a file kept by id `{32 hex}{extension of the stored type}`, and its public
+read finds a file by that name. A file's `url` is `/blobs/{container}/{blob}`, with `?__tenant=` for a tenant's file;
+Site stores it as it is and never rewrites it. An address Site served before 3.0, `api/site-public/files/{container}/{blob}`,
+carries the same `{container}/{blob}`, so `FilePublicController` redirects it to `BlobManagementPublicUrl.Build` of the
+request's tenant, with the size rounded as `Sized` rounds it.
 
-- `og:image`: `HeadMetadataBuilder.ReadOgImage` absolutizes against `SiteUrlContext.BaseUrl`
-  (`SiteFileUrl.Absolutize`), the origin the canonical URL already uses; with no primary domain configured
-  the head metadata fails the same way canonical does (`PrimaryDomainNotConfiguredException`, unless the host
-  adds a request fallback).
-- The admin UI: `SiteFileUrlService` resolves against `environment.apis.SiteAdmin.url` and adds the signed-in
-  tenant (`?__tenant=`, from `SessionStateService`) to an address that names none: a preview is a plain `<img>`
-  request, which cannot carry the header the UI's API calls use. The CKEditor field's model holds that address
-  and its data downcast takes both off again (`relativeFileUrl`), so nothing saved names a host or tenant.
-- Feeds, `llms.txt` and the sitemap carry no file addresses (a feed item's summary is text), so nothing else
-  needs one made absolute.
+Not chosen: an option for a separate file origin (a CDN host put in front of the address on output). CKEditor's HTML and
+templates hold the relative address too, and Site does not rewrite HTML on render, so `/blobs/` has to answer on the
+site's origin anyway; the option would cover only `og:image`, JSON-LD and `file_url`.
 
-## The admin UI's CKEditor field
+## The file picker and the directories
 
-CKEditor would load the images in its markup from the admin UI's own origin, where a relative
-`/api/site-public/files/` address does not resolve. `provideSite()` registers `siteCKEditorConfigContributor`
-under `@dignite/ng.flex-fields-ckeditor`'s `CKEDITOR_CONFIG_CONTRIBUTORS` (from `10.0.0-rc.26`). Its plugin
-keeps the editor's **model** on the `SiteAdmin` API's host and only the editor's **data** relative, for the
-`src` of an `imageBlock`/`imageInline`:
+A file field's `FileExplorer.InputMode` (`FileInputMode`: `Upload` = 0, `Library` = 1; an enum key of the field type, stored as its number, as the date field's `DateTime.InputMode` is) decides what the button of `site-file-input` does. In `Library` mode it opens `site-file-picker-modal`: the files of one directory, a page at a time, searchable, selectable across pages, with an upload button that files into the directory shown, and - beside the list - `site-directory-tree` when the container has directories and the user may see them. The window is built new; the old library's picker, modal and tree (before `4dbc05d`) carried drag and drop, a "my files" root and rename and move of files, none of which this needs.
 
-- upcast (`setData()`, the initial value, a paste): a `src` starting with `/api/site-public/files/` gets the
-  API's host in front - a listener on `element:img` at `low` priority, after the image plugin's own converter
-  has created the model image;
-- data downcast (`getData()`: the form value that is saved, the Source view, a copy): a `src` on the API's
-  host loses it again - a listener on `attribute:src:imageBlock|imageInline` at `high` priority that consumes
-  the change, so the image plugin's converter skips it in the data pipeline only.
+Who answers what, and why:
 
-Everything else CKEditor does with the model's `src` then works unchanged: the editing view shows the image,
-and an uploaded image's `width`/`height` are read from it. The upload provider (`SiteCKEditorUploadProvider`,
-registered as `CKEDITOR_UPLOAD_PROVIDER`, since `@dignite/ng.flex-fields-ckeditor` `10.0.0-rc.25` ships no
-uploader) hands the editor the uploaded file's address on the API's host for the same reason
-(`SiteFileUrlService.toDisplay`). HTML and Markdown fields alike, since both load images into the same model;
-links (`<a href>`) are not converted.
+- **Files** come from `IFileAdminAppService.GetListAsync` (`directoryId` added), so Site's rule for the container applies, as for every other file call.
+- **Directories and the container's limits** come from Blob Management's own endpoints (`api/blob-management/directories`, `api/blob-management/containers/{name}`), called by the browser with the user's token. Blob Management authorizes the tree by grants on the container (`BlobManagement.Container.View`/`CreateDirectories`/`UpdateDirectories`/`DeleteDirectories`), and it deliberately has no trusted path for an application to write directories (`positioning-decision.md`, *Not chosen*), so a Site endpoint in front of it would add nothing. It would also fail in the one deployment where Blob Management is remote: the client-credentials token Site's back end calls with carries no user, which the directory API refuses.
+- **What the user may do** is the `access` of the container (`GET api/blob-management/containers/{name}`, any signed-in user): the tree is shown when `allowDirectories` and `access.view`, and each button needs its own flag. `view` is true for a holder of `BlobManagement.Containers`; the three that write are never implied by it, so a role has to be granted them. `SiteFileDirectoryPermissionsDataSeedContributor` does it for `admin` in the dev host.
+- **An upload's `directoryId`** is passed to Blob Management's ticket, which checks that the directory belongs to the container and that the container allows directories. Site does not ask whether the user may see that directory: the file service is a trusted caller and files are not hidden by their directory (`positioning-decision.md`).
 
-The read-only rich-text view (`ff-ckeditor-view`, e.g. a content list cell) has no editor, so it is handled
-separately: `siteCKEditorDisplayContributor`, registered by `provideSite()` under
-`CKEDITOR_DISPLAY_CONTRIBUTORS` (from `@dignite/ng.flex-fields-ckeditor` `10.0.0-rc.27`), receives the HTML the
-view is about to render (after Markdown has been turned into HTML, before the sanitizer) and puts the
-`SiteAdmin` API's host in front of every `src="/api/site-public/files/..."`, double- or single-quoted. Only
-`src` is touched, not `href`, and external addresses stay as they are. The result is shown, never saved or
-handed back, so nothing stored carries the host; when the UI shares its API's origin the HTML is returned
-unchanged.
+Not done: moving a directory (Blob Management's page does, by dragging), renaming or moving files, deleting files from the window, and filing the legacy library's `Site:DirectoryPath` into the directories (`DirectoryPathImporter`).
 
-## MCP
+## Deleting what a form no longer holds
 
-The default container list and its model-facing descriptions are set in `SiteMcpModule`.
-`SiteMcpFileOptions.GetMaxUploadSize` is the one rule both `site_upload_file` and `site_list_file_containers`
-use, so what is advertised is what is enforced; `SiteMcpFileServerOptionsSetup` raises the MCP endpoint's
-request-body limit, when it is lower, to just fit a base64-encoded file of `MaxUploadSize`.
+`site-file-input` only takes a removed file out of the value. `SiteUploadCleanup`, provided by the content editor and the
+SEO settings, records each file the input uploaded during the edit and, after a successful save, deletes those the saved
+value no longer names, by id or by BLOB name. A file that was in the form before is never deleted: another content or
+language may use it. Leaving without saving deletes nothing yet.
+
+## Tests
+
+- `FileAdminAppService_Tests` and `FileTools_Tests` run the whole upload - ticket, Blob Management's upload service,
+  confirmation - in process, with the principal `AsEditorAsync` sets: the test base has no current user.
+- `FileAdminAppService_Tests` also reads a confirmed file through Blob Management's public read in process, and a deleted
+  one as not found.
+- `FilePublicRedirectHttpTests` (Public.HttpApi.Client.Tests) runs the redirect of the earlier addresses over HTTP.
+  `SiteFileUrl_Tests` and the Angular `site-file-url.spec.ts` cover the address rules.
+- The EF Core test module installs Blob Management as the dev Host does; `common.test.props` reads
+  `DigniteAbpModulesVersion` from `common.props`.

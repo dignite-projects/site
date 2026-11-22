@@ -1,5 +1,5 @@
 import { CoreModule } from '@abp/ng.core';
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -7,13 +7,13 @@ import {
   UntypedFormGroup,
 } from '@angular/forms';
 import { FieldTypeControlBase } from '@dignite/ng.flex-fields';
-import { FileModalComponent } from '../../files/components/file-modal/file-modal.component';
+import { SiteFileInputComponent } from '../../files/components/site-file-input.component';
 import { FilePreviewComponent } from '../../files/previews/file-preview.component';
-import type { FileDescriptorDto } from '../../proxy/dignite/site/admin/files';
+import { SiteStoredFile } from '../../files/services/site-stored-file';
 import { seoTextColumns } from './seo-text-width';
 import { SeoConfiguration } from './seo-configuration';
 import type { SeoFieldValue } from './seo-field-value';
-import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-og-image';
+import { fileOfUrl, OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-og-image';
 
 /**
  * Edits the value of a `Seo` field.
@@ -28,23 +28,26 @@ import { OG_IMAGE_CONTAINER_NAME, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH } from './seo-
  * always produces an object, a required Seo field is satisfied by being rendered at all - adding
  * `Validators.required` to the parts would enforce something the server does not.
  *
- * **The share image is picked, not typed** (GitHub issue #72): the file library's modal, fixed to the
- * `images` container, uploads or selects one file and its `url` is what `ogImage` stores - still a
- * plain string, so a value an MCP client wrote (an external address included) shows and can be replaced
- * or removed the same way.
+ * **The share image is uploaded, not typed** (GitHub issue #72): `site-file-input`, fixed to the
+ * `images` container, uploads one file and its `url` is what `ogImage` stores - still a plain string, so a
+ * value an MCP client wrote (an external address included) shows and can be replaced or removed the same way.
  */
 @Component({
   selector: 'site-seo-control',
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './seo-control.component.html',
-  imports: [CoreModule, ReactiveFormsModule, FileModalComponent, FilePreviewComponent],
+  imports: [CoreModule, ReactiveFormsModule, SiteFileInputComponent, FilePreviewComponent],
 })
 export class SeoControlComponent extends FieldTypeControlBase {
   readonly ogImageContainerName = OG_IMAGE_CONTAINER_NAME;
   readonly ogImageWidth = OG_IMAGE_WIDTH;
   readonly ogImageHeight = OG_IMAGE_HEIGHT;
 
-  ogImagePickerOpen = false;
+  /**
+   * The share image as the file input's value: the uploaded file, or the stored address wrapped as one. A signal: the
+   * input's value must not be a new array on every change detection.
+   */
+  readonly ogImageFiles = signal<SiteStoredFile[]>([]);
 
   protected configurationDefaults(): object {
     return new SeoConfiguration();
@@ -58,6 +61,7 @@ export class SeoControlComponent extends FieldTypeControlBase {
    */
   protected createControl(): AbstractControl {
     const value = this.currentValue();
+    this.ogImageFiles.set(fileOfUrl(value.ogImage));
 
     return new UntypedFormGroup({
       metaTitle: new UntypedFormControl(value.metaTitle ?? ''),
@@ -77,15 +81,9 @@ export class SeoControlComponent extends FieldTypeControlBase {
     return String(this.seoGroup?.get('ogImage')?.value ?? '');
   }
 
-  onOgImagePicked(files: FileDescriptorDto[]): void {
-    const url = files[0]?.url;
-    if (url) {
-      this.setOgImage(url);
-    }
-  }
-
-  removeOgImage(): void {
-    this.setOgImage('');
+  onOgImageChange(files: SiteStoredFile[]): void {
+    this.ogImageFiles.set(files);
+    this.setOgImage(files[0]?.url ?? '');
   }
 
   /** In columns, as the limits are: a Chinese, Japanese or Korean character takes two (seoTextColumns). */

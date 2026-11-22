@@ -7,7 +7,7 @@
 
 # Tools
 
-Every tool of Site is named `site_*`, and its resources, `site://schema` and `site://theme-guide`, use the `site://` scheme, so they never collide with the tools of other modules on the same server. Pages, content types, fields and contents are addressed by their names, from the schema; files and directories by the ids the file tools return.
+Every tool of Site is named `site_*`, and its resources, `site://schema` and `site://theme-guide`, use the `site://` scheme, so they never collide with the tools of other modules on the same server. Pages, content types, fields and contents are addressed by their names, from the schema; files by the ids the file tools return.
 
 The descriptions below are summaries; a client reads the full description of each tool and parameter from `tools/list`. Parameters marked optional can be left out; for the update tools, a parameter left out keeps its current value.
 
@@ -31,7 +31,7 @@ A site serves only `en` until its languages are set, so a client that writes con
 
 | Tool | Permission | Description |
 |---|---|---|
-| `site_set_default_share_image` | `SiteAdmin.Seo.Update` | Sets the image shown when a page shared on a social network has no share image of its own, with `url`: the url of an image of the file library, or an absolute URL; an empty string removes it. See [Share Images](../seo/index.md#share-images). |
+| `site_set_default_share_image` | `SiteAdmin.Seo.Update` | Sets the image shown when a page shared on a social network has no share image of its own, with `url`: the url of an image uploaded to the site's files, or an absolute URL; an empty string removes it. See [Share Images](../seo/index.md#share-images). |
 
 Changing the languages moves addresses. The default language's pages have no prefix, so a new default takes the unprefixed addresses and the old one's pages move under `/{language}/`; and a language left out is no longer served, though its contents are kept and come back when the language is added again. The setting is stored through ABP's [Setting Management](https://abp.io/docs/latest/modules/setting-management), which `Dignite.Site.Domain` depends on.
 
@@ -155,19 +155,18 @@ The theme is not part of the schema: its files are addressed by path, and `site_
 
 ## Files
 
-| Tool | Description |
-|---|---|
-| `site_list_file_containers` | Lists the containers the client may use, with each one's purpose, largest upload and allowed file types. Call it before the other file tools. |
-| `site_list_files` | Lists the files of a container, newest first: the user's own, or everyone's with `SiteAdmin.Contents`. Takes `containerName` and the optional `directoryId`, `filter`, `skipCount` and `maxResultCount` (at most 100). |
-| `site_get_file` | Reads one file by `id`, with its `url`. |
-| `site_create_upload_url` | Returns a one-time link, good for ten minutes, and the commands that send a file to it (one for POSIX shells and cmd.exe, one for PowerShell), from `containerName`, `fileName` and an optional `directoryId`. The way to upload a large file: the bytes go from the machine the file is on to the site and never through the client. |
-| `site_upload_file` | Uploads a small file from `containerName`, `fileName` (with its extension), `contentBase64` (or a `data:` URL) and an optional `directoryId`, and returns it with its `url`, the value to put in a content field. |
-| `site_update_file` | Renames a file (`name`) or moves it (`directoryId`, or `moveToRoot`), by `id`. |
-| `site_delete_file` | Deletes a file by `id`. Anything that links to it stops working. Destructive. |
-| `site_list_directories` | Returns the user's directory tree in a container, by `containerName`. |
-| `site_create_directory` | Creates a directory in a container, by `containerName`, `name` and an optional `parentId`. |
+Files are kept in Dignite Blob Management; an upload goes straight from the machine the file is on to Blob Management, with the command a link comes with, and never through the client. Every tool works on one of the site's containers - `images`, `attachments` or `theme-assets` - and is authorized by the permission that uploading to that container needs ([Permissions](../files.md#permissions)).
 
-The file tools need no permission to be listed; each call checks the permissions of the container, the `SiteAdmin.Contents.*` permissions. Uploads are capped at the smaller of the container's limit and `SiteMcpFileOptions.MaxUploadSize`, 5 MB by default. See [Files](../files.md#mcp).
+| Tool | What it does |
+|---|---|
+| `site_list_file_containers` | Lists the containers the caller may upload to, with the largest file each takes, its allowed extensions and the size a picture is shrunk to. Call it before any other file tool. |
+| `site_create_upload_url` | Returns a one-use link, good for a few minutes, for one file, with the `fileId` it will have and the command that posts it: `command` for sh, bash, zsh and cmd.exe, `powerShellCommand` for PowerShell, with `FILE_PATH` to be replaced. |
+| `site_confirm_file` | Keeps an uploaded file, with the `fileId`, and makes it readable by the site's visitors; returns the file with its `url`. A file never confirmed is deleted after a day. |
+| `site_list_files` | Lists the files of a container, newest first, with an optional `filter` on the name, `skip` and `take` (up to 100). Pending files are not listed. |
+| `site_get_file` | Returns one file by its id. |
+| `site_delete_file` | Deletes a file by its id. Destructive. |
+
+Site's instructions tell the client which containers its fields use and what to store; see [Files](../files.md#mcp).
 
 ## See Also
 

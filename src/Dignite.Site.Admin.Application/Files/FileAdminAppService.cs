@@ -1,265 +1,197 @@
 using System;
-using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 using System.Threading.Tasks;
-using Dignite.Abp.BlobStoring.Imaging;
-using Dignite.Abp.BlobStoring.Pipeline;
-using Dignite.Site.Admin.Permissions;
+using Dignite.Abp.BlobManagement.Containers;
+using Dignite.Abp.BlobManagement.Files;
 using Dignite.Site.Files;
-using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
-using Volo.Abp.BlobStoring;
-using Volo.Abp.Security.Claims;
-using Volo.Abp.Threading;
-using Volo.Abp.Users;
+using Volo.Abp.Authorization;
+using Volo.Abp.Domain.Entities;
 
 namespace Dignite.Site.Admin.Files;
 
 /// <summary>
-/// Site's file library, for the admin UI and the MCP tools. Every call is authorized against the file (or,
-/// for an upload, a not-yet-stored stand-in) through <see cref="FileDescriptorAuthorizationHandler"/>, so the
-/// per-container permissions of <c>SiteAdminApplicationModule</c> apply the same way to every caller.
+/// Site's files are Blob Management's: this service is the rule in front of it (<see cref="SiteFileAuthorization"/>) and
+/// the shape Site's UI and MCP tools want - Site's address of a file, not Blob Management's. It stores nothing itself.
+/// <para>
+/// Only the three containers of <see cref="SiteFileContainerNames"/> are reachable from here, whatever else the host
+/// declares. A file is uploaded with Blob Management's upload ticket and filed with <see cref="ConfirmAsync"/>; a file
+/// nobody confirms is deleted by Blob Management after <c>BlobManagementUploadOptions.PendingLifetime</c>.
+/// </para>
 /// </summary>
-[Authorize]
 public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
 {
-    protected IFileDescriptorRepository FileDescriptorRepository { get; }
+    protected IBlobManagementFileService BlobManagementFileService { get; }
 
-    protected IDirectoryDescriptorRepository DirectoryDescriptorRepository { get; }
+    protected IBlobManagementContainerAppService BlobManagementContainerAppService { get; }
 
-    protected FileDescriptorManager FileDescriptorManager { get; }
-
-    protected IBlobContainerConfigurationProvider BlobContainerConfigurationProvider { get; }
+    protected SiteFileAuthorization Authorization { get; }
 
     public FileAdminAppService(
-        IFileDescriptorRepository fileDescriptorRepository,
-        IDirectoryDescriptorRepository directoryDescriptorRepository,
-        FileDescriptorManager fileDescriptorManager,
-        IBlobContainerConfigurationProvider blobContainerConfigurationProvider)
+        IBlobManagementFileService blobManagementFileService,
+        IBlobManagementContainerAppService blobManagementContainerAppService,
+        SiteFileAuthorization authorization)
     {
-        FileDescriptorRepository = fileDescriptorRepository;
-        DirectoryDescriptorRepository = directoryDescriptorRepository;
-        FileDescriptorManager = fileDescriptorManager;
-        BlobContainerConfigurationProvider = blobContainerConfigurationProvider;
+        BlobManagementFileService = blobManagementFileService;
+        BlobManagementContainerAppService = blobManagementContainerAppService;
+        Authorization = authorization;
     }
 
-    public virtual async Task<FileDescriptorDto> GetAsync(Guid id)
+    public virtual async Task<ListResultDto<SiteFileContainerDto>> GetContainersAsync()
     {
-        var file = await FileDescriptorRepository.GetAsync(id, cancellationToken: RequestCancellationToken);
-        await AuthorizationService.CheckAsync(file, FileOperations.Get);
-        return ObjectMapper.Map<FileDescriptor, FileDescriptorDto>(file);
-    }
+        var containers = new System.Collections.Generic.List<SiteFileContainerDto>();
 
-    /// <summary>
-    /// Without <see cref="SiteAdminPermissions.Contents.Default"/> a caller lists only their own files - and a
-    /// caller with no user at all (a client-credentials token) owns none, so gets none rather than an
-    /// unfiltered list.
-    /// </summary>
-    public virtual async Task<PagedResultDto<FileDescriptorDto>> GetListAsync(GetFilesInput input)
-    {
-        FileContainerNotAvailableException.ThrowIfNotSiteContainer(input.ContainerName);
-        var cancellationToken = RequestCancellationToken;
-
-        var creatorId = input.CreatorId;
-        if (!await AuthorizationService.IsGrantedAsync(SiteAdminPermissions.Contents.Default))
+        foreach (var name in SiteFileContainerNames.All)
         {
-            if (!CurrentUser.Id.HasValue)
+            if (!await Authorization.CanUploadAsync(name))
             {
-                return new PagedResultDto<FileDescriptorDto>(0, new List<FileDescriptorDto>());
+                continue;
             }
 
-            creatorId = CurrentUser.Id;
+            var container = await BlobManagementContainerAppService.GetAsync(name);
+            containers.Add(new SiteFileContainerDto
+            {
+                Name = container.Name,
+                MaxFileSize = container.MaxFileSize,
+                AllowedFileExtensions = container.AllowedFileExtensions,
+                ImageMaxWidth = container.ImageMaxWidth,
+                ImageMaxHeight = container.ImageMaxHeight
+            });
         }
 
-        var count = await FileDescriptorRepository.GetCountAsync(
-            input.ContainerName, creatorId, input.DirectoryId, input.Filter, cancellationToken);
-        var files = await FileDescriptorRepository.GetListAsync(
-            input.ContainerName,
-            creatorId,
-            input.DirectoryId,
-            input.Filter,
-            input.Sorting,
-            input.MaxResultCount,
-            input.SkipCount,
-            cancellationToken);
-
-        return new PagedResultDto<FileDescriptorDto>(
-            count,
-            ObjectMapper.Map<List<FileDescriptor>, List<FileDescriptorDto>>(files));
+        return new ListResultDto<SiteFileContainerDto>(containers);
     }
 
-    public virtual async Task<FileDescriptorDto> CreateAsync(CreateFileInput input)
+    public virtual async Task<PagedResultDto<SiteFileDto>> GetListAsync(GetSiteFilesInput input)
     {
-        var cancellationToken = RequestCancellationToken;
-        await AuthorizeCreateAsync(input.ContainerName, input.DirectoryId, cancellationToken);
+        await Authorization.CheckUploadAsync(input.ContainerName);
 
-        var fileName = input.File.FileName.IsNullOrWhiteSpace() ? "file" : input.File.FileName!;
-
-        // The content closes what it owns and leaves alone what it was only lent (disposeStream): the request's own body,
-        // for an upload that arrives by a link, is the server's to close.
-        using var content = input.File;
-        var file = await FileDescriptorManager.CreateAsync(
-            input.ContainerName,
-            fileName,
-            content.GetStream(),
-            input.DirectoryId,
-            cancellationToken);
-
-        return ObjectMapper.Map<FileDescriptor, FileDescriptorDto>(file);
-    }
-
-    /// <summary>
-    /// Whether the caller may upload to <paramref name="containerName"/> now: the container is one of the site's, the
-    /// container's permission is granted, and the directory is the caller's, in the current tenant. Checked before anything is
-    /// stored, against a stand-in that carries what the container's rules look at - the same check for the upload and for the
-    /// link that will make one later, so a link is never issued for an upload that would be refused.
-    /// </summary>
-    protected virtual async Task AuthorizeCreateAsync(string containerName, Guid? directoryId, CancellationToken cancellationToken)
-    {
-        FileContainerNotAvailableException.ThrowIfNotSiteContainer(containerName);
-
-        var pending = new FileDescriptor(
-            GuidGenerator.Create(), containerName, "pending", "pending", string.Empty, 0,
-            hash: null, referBlobName: null, directoryId, CurrentTenant.Id);
-        await AuthorizationService.CheckAsync(pending, FileOperations.Create);
-
-        // The new file is the caller's, in the current tenant: the directory must be theirs, there.
-        await EnsureDirectoryFitsAsync(directoryId, containerName, CurrentUser.Id, CurrentTenant.Id, cancellationToken);
-    }
-
-    /// <summary>
-    /// Authorized now exactly as the upload would be - the container, the permission, the directory - so a link is never
-    /// issued for an upload that would be refused; and authorized again when it is used, under the identity it carries.
-    /// </summary>
-    public virtual async Task<FileUploadTicketDto> CreateUploadTicketAsync(CreateFileUploadTicketInput input)
-    {
-        await AuthorizeCreateAsync(input.ContainerName, input.DirectoryId, RequestCancellationToken);
-
-        var expiresAt = Clock.Now.Add(FileUploadTicketProtector.Lifetime);
-        var maxBytes = BlobStreamBuffering.GetMaxBufferedBytes(BlobContainerConfigurationProvider.Get(input.ContainerName));
-
-        var ticket = new FileUploadTicket(
-            FileUploadTicket.CurrentVersion,
-            Guid.NewGuid().ToString("N"),
-            new DateTimeOffset(expiresAt),
-            CurrentTenant.Id,
-            CurrentUser.Id,
-            CurrentUser.UserName,
-            CurrentUser.Roles,
-            CurrentUser.FindClaimValue(AbpClaimTypes.ClientId),
-            input.ContainerName,
-            input.FileName.Trim(),
-            input.DirectoryId,
-            maxBytes);
-
-        var protectedTicket = LazyServiceProvider.LazyGetRequiredService<FileUploadTicketProtector>().Protect(ticket);
-
-        return new FileUploadTicketDto
+        var files = await BlobManagementFileService.GetListAsync(new GetBlobManagementFilesInput
         {
-            Path = FileUploadTicketPaths.Build(protectedTicket),
-            ExpiresAt = expiresAt,
-            MaxBytes = maxBytes,
-            ContainerName = ticket.ContainerName,
-            FileName = ticket.FileName
+            ContainerName = input.ContainerName,
+            Filter = input.Filter,
+            DirectoryId = input.DirectoryId,
+            Sorting = input.Sorting,
+            SkipCount = input.SkipCount,
+            MaxResultCount = input.MaxResultCount
+        });
+
+        return new PagedResultDto<SiteFileDto>(files.TotalCount, files.Items.Select(Map).ToList());
+    }
+
+    public virtual async Task<SiteFileDto> GetAsync(Guid id)
+    {
+        var file = await BlobManagementFileService.GetAsync(id);
+        await CheckReadableAsync(file);
+
+        return Map(file);
+    }
+
+    public virtual async Task<SiteFileUploadTicketDto> CreateUploadTicketAsync(CreateSiteFileUploadTicketInput input)
+    {
+        await Authorization.CheckUploadAsync(input.ContainerName);
+
+        var ticket = await BlobManagementFileService.CreateUploadTicketAsync(new CreateBlobManagementUploadTicketInput
+        {
+            ContainerName = input.ContainerName,
+            DirectoryId = input.DirectoryId,
+            UploaderId = CurrentUser.Id
+        });
+
+        return new SiteFileUploadTicketDto
+        {
+            FileId = ticket.FileId,
+            UploadUrl = ticket.UploadUrl,
+            ExpirationTime = ticket.ExpirationTime
         };
     }
 
-    public virtual async Task<FileDescriptorDto> UpdateAsync(Guid id, UpdateFileInput input)
+    public virtual async Task<SiteFileDto> ConfirmAsync(Guid id)
     {
-        var cancellationToken = RequestCancellationToken;
-        var file = await FileDescriptorRepository.GetAsync(id, cancellationToken: cancellationToken);
+        var file = await BlobManagementFileService.GetAsync(id);
+        await Authorization.CheckUploadAsync(RequireSiteContainer(file));
 
-        await AuthorizationService.CheckAsync(file, FileOperations.Update);
-
-        if (input.DirectoryIdSpecified)
+        // The file is the caller's own upload, which the ticket recorded: a pending file is nobody else's to file.
+        if (file.IsPending && file.CreatorId != CurrentUser.Id)
         {
-            // A moved file stays its uploader's, so the target directory must be the uploader's - whoever
-            // moves it.
-            await EnsureDirectoryFitsAsync(input.DirectoryId, file.ContainerName, file.CreatorId, file.TenantId, cancellationToken);
-            file.MoveToDirectory(input.DirectoryId);
+            throw new AbpAuthorizationException();
         }
 
-        if (input.Name != null)
+        if (file.IsPending)
         {
-            file.Rename(input.Name);
+            file = await BlobManagementFileService.ConfirmAsync(id);
         }
 
-        await FileDescriptorRepository.UpdateAsync(file, cancellationToken: cancellationToken);
-        return ObjectMapper.Map<FileDescriptor, FileDescriptorDto>(file);
+        if (!file.IsPublic)
+        {
+            file = await BlobManagementFileService.SetPublicAsync(id, new SetBlobManagementFilePublicInput { IsPublic = true });
+        }
+
+        return Map(file);
     }
 
     public virtual async Task DeleteAsync(Guid id)
     {
-        var cancellationToken = RequestCancellationToken;
-        var file = await FileDescriptorRepository.FindAsync(id, false, cancellationToken);
-        if (file == null)
+        BlobManagementFileDto file;
+        try
+        {
+            file = await BlobManagementFileService.GetAsync(id);
+        }
+        catch (EntityNotFoundException)
         {
             return;
         }
 
-        await AuthorizationService.CheckAsync(file, FileOperations.Delete);
-        await FileDescriptorManager.DeleteAsync(file, cancellationToken);
-    }
-
-    public virtual Task<FileContainerConfigurationDto> GetContainerConfigurationAsync(string containerName)
-    {
-        FileContainerNotAvailableException.ThrowIfNotSiteContainer(containerName);
-
-        var configuration = BlobContainerConfigurationProvider.Get(containerName);
-        var authorization = configuration.GetAuthorizationConfiguration();
-
-        // What the container does to an image, read from the contributors it was configured with, not restated.
-        var resize = configuration.PipelineContributors.Contains<ImageResizeContributor>()
-            ? configuration.GetImageResizeContributorConfiguration()
-            : null;
-
-        return Task.FromResult(new FileContainerConfigurationDto
+        if (!SiteFileContainerNames.Contains(file.ContainerName))
         {
-            // What the upload actually enforces: the container's MaxSize contributor, or the pipeline's
-            // default buffering cap without one (FileDescriptorManager buffers to the same bound).
-            MaxBlobSize = BlobStreamBuffering.GetMaxBufferedBytes(configuration),
-            // The container allows MIME types (checked against the detected content); a file input and the
-            // MCP tools want extensions, so they are mapped back through Site's own type table. Empty when the
-            // container restricts no type.
-            AllowedFileTypeNames = SiteFileTypes.GetExtensions(
-                configuration.GetAllowedContentTypesContributorConfiguration().AllowedContentTypes),
-            ImageMaxWidth = resize is { MaxWidth: > 0 } ? resize.MaxWidth : null,
-            ImageMaxHeight = resize is { MaxHeight: > 0 } ? resize.MaxHeight : null,
-            // Re-encoded either way: ABP's compressor in the picture's own format, or a JPEG stored as WebP.
-            CompressesImages = configuration.PipelineContributors.Contains<ImageCompressContributor>() ||
-                               configuration.PipelineContributors.Contains<JpegToWebpContributor>(),
-            CreateDirectoryPermissionName = authorization.CreateDirectoryPermissionName,
-            CreateFilePermissionName = authorization.CreateFilePermissionName,
-            UpdateFilePermissionName = authorization.UpdateFilePermissionName,
-            DeleteFilePermissionName = authorization.DeleteFilePermissionName,
-            GetFilePermissionName = authorization.GetFilePermissionName
-        });
+            return;
+        }
+
+        if (!await Authorization.CanDeleteAsync(file.ContainerName, file.CreatorId, CurrentUser.Id))
+        {
+            throw new AbpAuthorizationException();
+        }
+
+        await BlobManagementFileService.DeleteAsync(id);
     }
 
     /// <summary>
-    /// A file may only sit in a directory that exists and shares its container, owner and tenant - for a new
-    /// file as much as a moved one. Anything else is reported as a directory that does not exist, so the
-    /// check reveals nothing about other users' directories.
+    /// A file of one of Site's containers the caller may upload to; a pending one only its uploader sees. Anything else
+    /// is not Site's to show, and is not found.
     /// </summary>
-    protected virtual async Task EnsureDirectoryFitsAsync(
-        Guid? directoryId,
-        string containerName,
-        Guid? ownerId,
-        Guid? tenantId,
-        CancellationToken cancellationToken)
+    protected virtual async Task CheckReadableAsync(BlobManagementFileDto file)
     {
-        if (!directoryId.HasValue)
+        await Authorization.CheckUploadAsync(RequireSiteContainer(file));
+
+        if (file.IsPending && file.CreatorId != CurrentUser.Id)
         {
-            return;
+            throw new AbpAuthorizationException();
+        }
+    }
+
+    protected virtual string RequireSiteContainer(BlobManagementFileDto file)
+    {
+        if (!SiteFileContainerNames.Contains(file.ContainerName))
+        {
+            throw new EntityNotFoundException(typeof(BlobManagementFileDto), file.Id);
         }
 
-        var directory = await DirectoryDescriptorRepository.FindAsync(directoryId.Value, false, cancellationToken);
-        if (directory == null ||
-            !directory.ContainerName.Equals(containerName, StringComparison.Ordinal) ||
-            directory.CreatorId != ownerId ||
-            directory.TenantId != tenantId)
+        return file.ContainerName;
+    }
+
+    protected virtual SiteFileDto Map(BlobManagementFileDto file)
+    {
+        return new SiteFileDto
         {
-            throw new DirectoryNotFoundBusinessException();
-        }
+            Id = file.Id,
+            ContainerName = file.ContainerName,
+            Name = file.Name,
+            MimeType = file.MimeType,
+            Size = file.Size,
+            Url = file.Url,
+            IsPending = file.IsPending,
+            CreatorId = file.CreatorId,
+            CreationTime = file.CreationTime
+        };
     }
 }

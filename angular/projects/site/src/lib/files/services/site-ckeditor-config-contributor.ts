@@ -8,9 +8,9 @@ import { SiteFileUrlService } from './site-file-url.service';
 const IMAGE_TYPES = ['imageBlock', 'imageInline'] as const;
 
 /**
- * Lets a CKEditor field work with Site's images on the `SiteAdmin` API's host while storing them relative.
- * A stored address is relative (`<img src="/api/site-public/files/...">`, see `SITE_FILE_PATH`), and this
- * admin UI is served from another origin, where it does not resolve.
+ * Lets a CKEditor field work with Site's images on the host this admin UI reaches them at while storing them relative.
+ * A stored address is relative (`<img src="/blobs/...">`, see `BLOB_MANAGEMENT_PUBLIC_FILE_PATH`, or an earlier
+ * `/api/site-public/files/...`), and this admin UI is served from another origin, where it does not resolve.
  *
  * So the editor's **model** holds the absolute address (naming the signed-in tenant, as the previews do), and only the data the editor hands out is
  * relative: a plugin converts an image's `src` (`imageBlock`/`imageInline`) on the way in (upcast:
@@ -29,8 +29,8 @@ export function siteCKEditorConfigContributor(): CKEditorConfigContributor {
   const fileUrls = inject(SiteFileUrlService);
 
   return config => {
-    if (!fileUrls.apiBase && !fileUrls.tenantId) {
-      // The UI shares its API's origin and the host's: a relative address already loads.
+    if (fileUrls.loadsStoredAddresses) {
+      // The UI shares its APIs' origin, on the host: a relative address already loads.
       return;
     }
 

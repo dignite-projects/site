@@ -4,12 +4,7 @@
       {{ fieldValue.field.displayName }}
     </label>
     @if (isContainerConfigured) {
-      <site-file-picker
-        [selectFormFile]="fieldControl?.value"
-        [multiple]="multiple"
-        [fileContainerName]="containerName"
-        (selectedFileChange)="onSelectedFileChange($event)"
-      />
+      <site-file-input [formControl]="filesControl" [containerName]="containerName" [multiple]="multiple" [library]="library" />
     } @else {
       <div class="alert alert-warning py-2 px-3 mb-0">
         {{ 'FlexFieldsSite::File:ContainerNotConfigured' | abpLocalization }}

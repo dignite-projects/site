@@ -76,7 +76,7 @@ export const appConfig: ApplicationConfig = {
 };
 ````
 
-`@abp/ng.setting-management` is an optional peer dependency of `@dignite/ng.site`: install it when the application uses this tab. The tab is shown to a user with the `SiteAdmin.Languages` permission and can change the list with `SiteAdmin.Languages.Update`. It sets the whole ordered list; the first language is the default and its pages have no language prefix. The **SEO** tab, shown with `SiteAdmin.Seo` and changed with `SiteAdmin.Seo.Update`, picks the site's default share image from the file library: the image shown when a page shared on a social network has none of its own. See [Settings](settings.md).
+`@abp/ng.setting-management` is an optional peer dependency of `@dignite/ng.site`: install it when the application uses this tab. The tab is shown to a user with the `SiteAdmin.Languages` permission and can change the list with `SiteAdmin.Languages.Update`. It sets the whole ordered list; the first language is the default and its pages have no language prefix. The **SEO** tab, shown with `SiteAdmin.Seo` and changed with `SiteAdmin.Seo.Update`, uploads the site's default share image to the `images` container ([Files](files.md)): the image shown when a page shared on a social network has none of its own. See [Settings](settings.md).
 
 ## Screens
 
@@ -98,10 +98,10 @@ The menu is hidden while the `Site.Enable` [feature](settings.md#the-site-featur
 `provideSite()` registers a control, a configuration editor and a view for every [field type](field-types.md):
 
 * The FlexFields built-ins: `Text`, `Number`, `DateTime`, `Select`, `Boolean`, `Tree`, `Matrix` and `Table`.
-* `CKEditor`, whose images are uploaded into Site's file library.
-* Site's own `Content` (a content picker), `FileExplorer` (a file picker that browses and uploads into the file library) and `Seo` (meta title, description, share image and `noindex`).
+* `CKEditor`, whose images are uploaded to Site's file containers; see [Files](files.md).
+* Site's own `Content` (a content picker), `FileExplorer` (files uploaded to Site's file containers) and `Seo` (meta title, description, share image and `noindex`).
 
-The file picker and the SEO share image use the file library through the `SiteAdmin` API; there is no separate file package to install.
+The file field and the SEO share images use `site-file-input` from `@dignite/ng.site`, which uploads to Blob Management through Site's administration API: a ticket from `api/site-admin/files`, the file posted to `api/blob-management/uploads/{ticket}` on the same host, and a confirmation. Blob Management is installed in the host of the `SiteAdmin` API, so the UI needs no API entry of its own. See [Files](files.md).
 
 ## Global Styles
 
@@ -162,7 +162,7 @@ Deduplicating also merges a second copy of `@angular/cdk` or `ng-zorro-antd`, wh
 Besides `SITE_ROUTES`, `@dignite/ng.site` exports what its screens are built on:
 
 * The generated proxies of the administration API, such as the page, content and field services.
-* The file library's services, and `sizedFileUrl`, which builds the address of an image at a given size.
+* The file address helpers - `sizedFileUrl`, which builds the address of an image at a given size, and `normalizeFileUrl` - and `SiteUploadCleanup`, which deletes the uploads a saved form no longer holds.
 * The enums and the constants of the file containers.
 
 ## See Also

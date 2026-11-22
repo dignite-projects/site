@@ -48,12 +48,15 @@ jobs:
       packages: write # Required to push pre-release NuGet/npm packages to GitHub Packages
       id-token: write # NuGet.org and npm Trusted Publishing (OIDC) for stable releases
 
-    # No job-level package credential: every @dignite/* dependency resolves from public npmjs, so
-    # the install below authenticates against nothing. The steps that genuinely need a token supply
-    # their own - the publish steps use GITHUB_TOKEN for this repo's own packages.
-    # NuGet restore, including the packed-package check, uses public nuget.org.
-    # 10.0.0-rc.16 briefly required more than that, while it existed only on GitHub
-    # Packages; see CHANGELOG.md.
+    # No job-level package credential: the steps that need a token supply their own. Reading one,
+    # PACKAGES_READ_TOKEN (a PAT with read:packages - GITHUB_TOKEN reads only packages this repository
+    # published): Dignite Blob Management exists only as abp-modules pre-releases on GitHub Packages,
+    # NuGet (NuGet.Config) and npm (@dignite-projects/ng.blob-management) alike, so the restore, the
+    # Angular install and the packed-package check of a pre-release read it there, as ci.yml does.
+    # A stable release checks its packages against nuget.org alone, and fails while Site depends on
+    # a Blob Management that is not there. The publish steps use GITHUB_TOKEN for this repo's own
+    # packages. Drop the read credential with the GitHub Packages source once Blob Management is on
+    # NuGet.org and npmjs.
 
     steps:
       - name: Checkout site
@@ -103,6 +106,8 @@ jobs:
 
       - name: Restore
         run: dotnet restore Dignite.Site.slnx
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
       - name: Build
         run: dotnet build Dignite.Site.slnx --no-restore --configuration Release
@@ -144,10 +149,13 @@ jobs:
           if-no-files-found: error
 
       # Restores every packed .nupkg in an isolated scratch project against the same sources a
-      # real consumer sees (this artifacts/ folder + public nuget.org), so an unresolvable
-      # transitive dependency fails this workflow instead of a downstream consumer's restore.
-      # Runs for both channels without package registry credentials.
+      # real consumer sees (this artifacts/ folder + public nuget.org, and for a pre-release the
+      # GitHub Packages feed its consumers read it from), so an unresolvable transitive dependency
+      # fails this workflow instead of a downstream consumer's restore. A stable release gets no
+      # GitHub Packages credential: its dependencies have to be on nuget.org.
       - name: Verify packed NuGet packages restore cleanly
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ steps.channel.outputs.channel == 'preview' && secrets.PACKAGES_READ_TOKEN || '' }}
         run: |
           bash .github/scripts/verify-packed-nuget-restore.sh artifacts '${{ steps.channel.outputs.version }}'
 
@@ -180,14 +188,25 @@ jobs:
       # Yarn with the committed lockfile, matching ci.yml and every developer machine. This step
       # used to be `npm install --no-package-lock` because Yarn Classic fetches a dependency whose
       # lockfile entry carries a GitHub Packages "resolved" URL through a code path that never
-      # attaches registry auth. No such entry remains - every @dignite/* package resolves from public
-      # npmjs - so the release can be built from the tree the lockfile actually describes rather than
-      # from a fresh resolution that ignores it. --legacy-peer-deps is gone with npm: Yarn Classic
+      # attaches registry auth. The one such entry now, @dignite-projects/ng.blob-management, is a
+      # direct dependency under its own name, for which Yarn Classic does attach the credential below
+      # - an npm: alias under @dignite would download with none - so the release can be built from the
+      # tree the lockfile actually describes rather than from a fresh resolution that ignores it.
+      # --legacy-peer-deps is gone with npm: Yarn Classic
       # does not enforce peer ranges, which is what that flag was working around
       # (@swimlane/ngx-datatable@22 wants @angular/common 18-20.x, workspace is on 22.2.x).
       #
       # It also matters for the duplicate check below: npm dedupes graphs that Yarn Classic splits
       # into nested copies, so that check after an npm install would pass vacuously.
+      #
+      # The token goes in the user-level .npmrc, as in ci.yml: a ${VAR} placeholder in angular/.npmrc
+      # makes every yarn command fail when the variable is unset. The publish steps further down write
+      # their own credential into $NPM_CONFIG_USERCONFIG, which setup-node points npm at from then on.
+      - name: Authenticate to GitHub Packages (npm)
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
+        run: echo "//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}" >> ~/.npmrc
+
       - name: Install Angular dependencies
         working-directory: site/angular
         run: yarn install --frozen-lockfile --non-interactive

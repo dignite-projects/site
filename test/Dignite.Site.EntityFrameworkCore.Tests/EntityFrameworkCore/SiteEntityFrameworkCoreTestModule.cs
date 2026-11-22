@@ -1,4 +1,7 @@
-﻿using Dignite.Site.Files;
+﻿using Dignite.Abp.BlobManagement;
+using Dignite.Abp.BlobManagement.EntityFrameworkCore;
+using Dignite.Abp.BlobManagement.Presets;
+using Dignite.Site.Files;
 using Dignite.Site.Mcp;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +32,10 @@ namespace Dignite.Site.EntityFrameworkCore;
     typeof(SiteMcpModule),
     // The BLOB storage provider backing ConfigureBlobStoring below (GitHub issue #41) - same provider as
     // the dev Host, so this proves the same code path, not a test-only substitute.
-    typeof(AbpBlobStoringFileSystemModule)
+    typeof(AbpBlobStoringFileSystemModule),
+    // Blob Management, where Site's files are kept, installed in this process as the dev Host installs it.
+    typeof(BlobManagementApplicationModule),
+    typeof(BlobManagementEntityFrameworkCoreModule)
 )]
 public class SiteEntityFrameworkCoreTestModule : AbpModule
 {
@@ -59,10 +65,9 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
     }
 
     /// <summary>
-    /// The same provider kind as the dev Host (GitHub issue #41), pointed at a temp directory instead of
-    /// App_Data so tests never touch a real deployment's files. Provider only, like the Host - each
-    /// container's policy comes from SiteAdminApplicationModule, so what the tests see is the module's real
-    /// policy rather than a hand-synced copy.
+    /// Site's containers as the dev Host declares them: Blob Management containers with its presets (the Host does it in
+    /// the BlobManagement section of appsettings.json), on the same provider kind (GitHub issue #41), pointed at a temp
+    /// directory instead of App_Data so tests never touch a real deployment's files.
     /// </summary>
     private void ConfigureBlobStoring()
     {
@@ -75,8 +80,13 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
                 options.Containers.Configure(containerName, container =>
                 {
                     container.UseFileSystem(fileSystem => fileSystem.BasePath = basePath);
+                    container.UseBlobManagementContainer();
                 });
             }
+
+            options.Containers.Configure(SiteFileContainerNames.Images, container => container.UseImagesPreset());
+            options.Containers.Configure(SiteFileContainerNames.Attachments, container => container.UseDocumentsPreset());
+            options.Containers.Configure(SiteFileContainerNames.ThemeAssets, container => container.UseBinaryAssetsPreset());
         });
     }
 
@@ -108,10 +118,14 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
-        // SiteDbContext.OnModelCreating -> ConfigureSite() configures the file library's entities too, so
-        // this one call creates their tables as well.
+        // Site's own tables: SiteDbContext.OnModelCreating -> ConfigureSite().
         new SiteDbContext(
             new DbContextOptionsBuilder<SiteDbContext>().UseSqlite(connection).Options
+        ).GetService<IRelationalDatabaseCreator>().CreateTables();
+
+        // Blob Management's own context, on the same connection: BlobFileDescriptors and BlobDirectoryDescriptors.
+        new BlobManagementDbContext(
+            new DbContextOptionsBuilder<BlobManagementDbContext>().UseSqlite(connection).Options
         ).GetService<IRelationalDatabaseCreator>().CreateTables();
 
         return connection;

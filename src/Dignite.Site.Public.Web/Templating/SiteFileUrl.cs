@@ -1,8 +1,8 @@
 namespace Dignite.Site.Public.Templating;
 
 /// <summary>
-/// Addresses of the site's images at the size a template lays them out. The public read endpoint resizes
-/// an image on request (<c>?Width=&amp;Height=</c>), so a field stores the plain address and each template
+/// Addresses of the site's images at the size a template lays them out. Blob Management resizes a
+/// picture on request (<c>?width=&amp;height=</c>), so a field stores the plain address and each template
 /// asks for the size it needs.
 /// <para>
 /// The templates' entry point, kept where <c>_ViewImports</c> already brings it into scope; the
