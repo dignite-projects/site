@@ -46,6 +46,30 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         containers.Items.ShouldAllBe(container => container.MaxFileSize > 0);
     }
 
+    /// <summary>
+    /// A caller with no user - an MCP client signed in with client credentials, or Site's own back end calling a Blob
+    /// Management that runs apart - lists the containers with their limits too: Blob Management answers a client for a
+    /// container's limits (from 10.7.7-preview.3).
+    /// </summary>
+    [Fact]
+    public async Task Should_List_Site_Containers_With_Their_Limits_For_A_Client_Without_A_User()
+    {
+        var principalAccessor = GetRequiredService<ICurrentPrincipalAccessor>();
+        var client = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(AbpClaimTypes.ClientId, "Site_Mcp_Service")
+        }));
+
+        using (principalAccessor.Change(client))
+        {
+            var containers = await WithUnitOfWorkAsync(() => _files.GetContainersAsync());
+
+            containers.Items.Select(container => container.Name)
+                .ShouldBe(SiteFileContainerNames.All, ignoreOrder: true);
+            containers.Items.ShouldAllBe(container => container.MaxFileSize > 0);
+        }
+    }
+
     [Fact]
     public async Task An_Upload_Is_Pending_Until_It_Is_Confirmed_And_Then_Public_At_Sites_Address()
     {

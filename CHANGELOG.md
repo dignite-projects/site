@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   attachments of contents, the share images and the files a theme links are stored in Blob Management, which the host
   installs (Application, HttpApi and Entity Framework Core), with `images`, `attachments` and `theme-assets` declared in
   code with their presets and every file Site keeps marked public. Uploads are checked by Blob
-  Management's presets (the `images` preset stores a JPEG as WebP, turned upright, as Site did, and a PNG of 16 KB or more
+  Management's presets (the `images` preset stores a JPEG as WebP, turned upright, as Site did, and a PNG of 64 KB or more
   as lossless WebP). Blob Management
   authorizes no user, so Site does: `IFileAdminAppService` (`api/site-admin/files`) asks for an upload ticket, confirms
   the uploaded file and deletes it, and lists the containers and files, by the permission of the container - the
@@ -112,9 +112,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Blob Management may run as a service of its own**: the host swaps its three modules for
   `BlobManagementHttpApiClientModule` and configures Site as an OAuth client that Blob Management grants
   `BlobManagement.Container.Files` on the three containers. The Angular admin UI points `apis.BlobManagement` at it and
-  asks for its scope in `oAuthConfig.scope`. Listing the containers with their limits (`GET api/site-admin/files/containers`,
-  `site_list_file_containers`) needs a Blob Management that answers a client for a container's limits, which
-  10.7.7-preview.2 does not. See
+  asks for its scope in `oAuthConfig.scope`. Site reads the containers' limits as that client, which Blob Management
+  answers from 10.7.7-preview.3, the version Site depends on. See
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
 - **A host that configured `SiteImageRenderingOptions`** removes it: Site renders no pictures.
 - **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of

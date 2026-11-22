@@ -82,17 +82,16 @@ Contracts interfaces, and `Dignite.Abp.BlobManagement.HttpApi.Client` replaces t
 with `RemoteBlobManagementFileService` and of the second with the generated client proxy; the host swaps the module and
 nothing in Site changes. Not tried end to end yet. What reading the code turned up:
 
-- Site's back end then calls Blob Management with a client-credentials token, which carries no user. Blob Management
-  10.7.7-preview.2 answers `GET api/blob-management/containers/{name}` for users only ("a client reads a container's limits
-  from its own configuration"), so `FileAdminAppService.GetContainersAsync` - `GET api/site-admin/files/containers` and the
-  MCP tool `site_list_file_containers` - fails there, and so it does in process for an MCP client signed in with client
-  credentials. The file input then offers an upload with no size or type check of its own (Blob Management still checks
-  on upload), and the file field's configuration lists all three containers. Site has no configuration of its own to read
-  the limits from, and keeping a copy of the presets in Site's host would drift from Blob Management's. Appwrite's server
-  SDK reads a bucket's `maximumFileSize` and `allowedFileExtensions` with an API key (`getBucket`), and Supabase's
-  `getBucket` returns `file_size_limit` and `allowed_mime_types`. So the fix is Blob Management's: one container's limits
-  for any authenticated caller, a client's `access` being none - on the branch
-  `fix/blob-management-container-limits-for-clients` of abp-modules, not released yet.
+- Site's back end then calls Blob Management with a client-credentials token, which carries no user. Up to
+  10.7.7-preview.2 Blob Management answered `GET api/blob-management/containers/{name}` for users only ("a client reads a
+  container's limits from its own configuration"), so `FileAdminAppService.GetContainersAsync` - `GET
+  api/site-admin/files/containers` and the MCP tool `site_list_file_containers` - failed there, and so it did in process
+  for an MCP client signed in with client credentials: the file input offered an upload with no size or type check of its
+  own, and the file field's configuration listed all three containers. Site has no configuration of its own to read the
+  limits from, and keeping a copy of the presets in Site's host would drift from Blob Management's. Appwrite's server SDK
+  reads a bucket's `maximumFileSize` and `allowedFileExtensions` with an API key (`getBucket`), and Supabase's `getBucket`
+  returns `file_size_limit` and `allowed_mime_types`. So the fix was Blob Management's: one container's limits for any
+  authenticated caller, a client's `access` being none (abp-modules#418, in 10.7.7-preview.3, which Site depends on).
 - The admin UI calls Blob Management's container and directory APIs itself, with the user's token (the file picker), so
   its token has to be one Blob Management accepts: `oAuthConfig.scope` names Blob Management's scope beside Site's.
 - A site served by an application of its own (`Dignite.Site.Public.Web` with Site's data remote) answers neither
