@@ -2,13 +2,13 @@ import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/cor
 import { CoreModule } from '@abp/ng.core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { FieldTypeConfigBase } from '@dignite/ng.flex-fields';
-import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import { SITE_FILE_CONTAINER_NAMES } from '../../files/services/site-file-containers';
+import { SiteFileContainersService } from '../../files/services/site-file-containers.service';
 import { FILE_FIELD_CONFIGURATION_NAMES, FileFieldConfiguration, FileInputMode } from './file-configuration';
 
 /**
  * Designer-side editor for a file field's configuration: which of Site's file containers the files are uploaded to, one
- * file or many. The containers are those the signed-in user may upload to (`FileAdminService.getContainers`); until they
+ * file or many. The containers are those the signed-in user may upload to (`SiteFileContainersService`); until they
  * are loaded, or when they cannot be, Site's usual ones.
  */
 @Component({
@@ -24,11 +24,11 @@ export class FileConfigComponent extends FieldTypeConfigBase {
 
   constructor() {
     super();
-    inject(FileAdminService)
-      .getContainers({ skipHandleError: true })
+    inject(SiteFileContainersService)
+      .list()
       .subscribe({
-        next: result => {
-          const names = (result.items ?? []).map(container => container.name ?? '').filter(Boolean);
+        next: containers => {
+          const names = containers.map(container => container.name ?? '').filter(Boolean);
           if (names.length) {
             this.containerNames.set(names);
           }

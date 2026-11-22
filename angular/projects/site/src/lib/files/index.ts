@@ -12,6 +12,7 @@ export * from './services/site-ckeditor-display-contributor';
 export * from './services/site-ckeditor-upload-provider';
 export * from './services/site-blob-management.service';
 export * from './services/site-file-containers';
+export * from './services/site-file-containers.service';
 export * from './services/site-file-limits';
 export * from './services/site-file-upload.service';
 export * from './services/site-file-url';

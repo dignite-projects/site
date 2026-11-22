@@ -3,9 +3,9 @@ import { ToasterService } from '@abp/ng.theme.shared';
 import { ChangeDetectionStrategy, Component, computed, effect, forwardRef, inject, input, model, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { catchError, concatMap, EMPTY, finalize, from, tap } from 'rxjs';
-import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import type { SiteFileContainerDto } from '../../proxy/dignite/site/admin/files/models';
 import { FormatFileSizePipe } from '../pipes/format-file-size.pipe';
+import { SiteFileContainersService } from '../services/site-file-containers.service';
 import { refuseFile } from '../services/site-file-limits';
 import { SiteFileUploadService } from '../services/site-file-upload.service';
 import { SiteFileUrlService } from '../services/site-file-url.service';
@@ -95,7 +95,7 @@ import { SiteFilePickerModalComponent } from './site-file-picker-modal.component
   `,
 })
 export class SiteFileInputComponent implements ControlValueAccessor {
-  private readonly files = inject(FileAdminService);
+  private readonly containers = inject(SiteFileContainersService);
   private readonly uploads = inject(SiteFileUploadService);
   private readonly toaster = inject(ToasterService);
   private readonly cleanup = inject(SiteUploadCleanup, { optional: true });
@@ -139,11 +139,12 @@ export class SiteFileInputComponent implements ControlValueAccessor {
         return;
       }
 
-      // Without the limits Blob Management's own checks on upload still apply, so a failure here is not shown.
-      const subscription = this.files
-        .getContainers({ skipHandleError: true })
+      // Asked once for every input of the form. Without the limits Blob Management's own checks on upload still apply,
+      // so a failure here is not shown.
+      const subscription = this.containers
+        .list()
         .pipe(catchError(() => EMPTY))
-        .subscribe(result => this.container.set((result.items ?? []).find(container => container.name === name) ?? null));
+        .subscribe(containers => this.container.set(containers.find(container => container.name === name) ?? null));
       onCleanup(() => subscription.unsubscribe());
     });
   }

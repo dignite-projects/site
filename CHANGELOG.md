@@ -48,8 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   field's configuration lists the containers the user may upload to. Removed from `@dignite/ng.site`: the file picker,
   the browsing modal, the directory tree, the upload component, `ValidatorsService` and `ObjectUrlService`; the admin
   directory proxies went with them, and so did the texts of the file library's screens in the `Site` resource
-  (`Files:MyFiles`, `Files:Move` and twenty others no screen uses any more). Added: `SiteFileInputComponent`, `SiteFileUploadService`, `FileAdminService`, `SiteUploadCleanup`,
-  `fileOfUrl`. The admin UI posts an upload to, and shows files from, the `BlobManagement` API
+  (`Files:MyFiles`, `Files:Move` and twenty others no screen uses any more). Added: `SiteFileInputComponent`,
+  `SiteFileUploadService`, `FileAdminService`, `SiteUploadCleanup`, `fileOfUrl`, and `SiteFileContainersService`, which
+  asks once for the containers the user may upload to and shares the answer among the file inputs of a form and the file
+  field's configuration. The admin UI posts an upload to, and shows files from, the `BlobManagement` API
   (`environment.apis.BlobManagement`, else `apis.default`); `absoluteFileUrl` and `relativeFileUrl` take both API hosts.
   See [Admin UI](docs/en/admin-ui.md).
 - **A file field can pick from the files already uploaded, directories included.** The new setting `FileExplorer.InputMode`
