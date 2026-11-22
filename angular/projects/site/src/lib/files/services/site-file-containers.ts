@@ -5,5 +5,5 @@
  */
 export const SITE_FILE_CONTAINER_NAMES = ['images', 'attachments', 'theme-assets'] as const;
 
-/** Pictures only (raster formats, no SVG) - what a share image or an image field uses. */
+/** Pictures only (raster formats, no SVG) - what a share image (`OG_IMAGE_CONTAINER_NAME`) or an image field uses. */
 export const SITE_IMAGES_CONTAINER_NAME = 'images';

@@ -118,8 +118,7 @@ public class SiteEntityFrameworkCoreTestModule : AbpModule
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
-        // SiteDbContext.OnModelCreating -> ConfigureSite() configures the legacy file library's entities too, so
-        // this one call creates their tables as well.
+        // Site's own tables: SiteDbContext.OnModelCreating -> ConfigureSite().
         new SiteDbContext(
             new DbContextOptionsBuilder<SiteDbContext>().UseSqlite(connection).Options
         ).GetService<IRelationalDatabaseCreator>().CreateTables();
