@@ -7,8 +7,6 @@ import {
 } from '@abp/ng.theme.shared';
 import {
   Component,
-  ElementRef,
-  ViewChild,
   inject,
   signal,
   ChangeDetectionStrategy,
@@ -76,8 +74,6 @@ export class ContentTypesComponent {
    * array comes back reset to its default.
    */
   arrangement: ContentTypeFieldDto[] = [];
-
-  @ViewChild('submitButton') submitButton?: ElementRef<HTMLButtonElement>;
 
   constructor() {
     this.pageService.get(this.pageId).subscribe(page => this.page.set(page));

@@ -7,8 +7,6 @@ import {
 } from '@abp/ng.theme.shared';
 import {
   Component,
-  ElementRef,
-  ViewChild,
   computed,
   inject,
   signal,
@@ -162,10 +160,6 @@ export class FieldsComponent {
   readonly isGroupModalBusy = signal(false);
   renamingGroupName?: string;
   groupForm?: FormGroup;
-
-  @ViewChild('submitButton') submitButton?: ElementRef<HTMLButtonElement>;
-  @ViewChild('renameSubmitButton') renameSubmitButton?: ElementRef<HTMLButtonElement>;
-  @ViewChild('groupSubmitButton') groupSubmitButton?: ElementRef<HTMLButtonElement>;
 
   constructor() {
     this.search();

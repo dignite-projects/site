@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The page form picks the parent page from the same page tree as the content list's filter**, in place of a searchable
+  ng-zorro tree select; the page being edited and the pages beneath it are left out of it, as before.
 - **Breaking: `RouteMatchKindDto` and `SiteThemeUsageKindDto` are `RouteMatchKind` and `SiteThemeUsageKind`.** Each was
   a copy of the domain's enum, with the same values; the enums moved to `Dignite.Site.Domain.Shared`
   (`Dignite.Site.Routing`, `Dignite.Site.Themes`) and the contracts use them. The values sent are unchanged; in
