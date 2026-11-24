@@ -22,7 +22,7 @@ public class PagePublicAppService : SitePublicAppService, IPagePublicAppService
     {
         var page = await PageRepository.GetAsync(id);
         EnsureActive(page);
-        return MapToDto(page);
+        return page.ToDtoWithContentTypes(ObjectMapper);
     }
 
     public virtual async Task<PageDto> GetByRouteAsync(string route)
@@ -34,13 +34,13 @@ public class PagePublicAppService : SitePublicAppService, IPagePublicAppService
             throw new EntityNotFoundException(typeof(Page));
         }
 
-        return MapToDto(page);
+        return page.ToDtoWithContentTypes(ObjectMapper);
     }
 
     public virtual async Task<PageDto?> FindByNameAsync(string name)
     {
         var page = await PageRepository.FindByNameAsync(name, includeDetails: true);
-        return page == null || !page.IsActive ? null : MapToDto(page);
+        return page == null || !page.IsActive ? null : page.ToDtoWithContentTypes(ObjectMapper);
     }
 
     public virtual async Task<ListResultDto<PageDto>> GetListAsync(GetPageListInput input)
@@ -62,23 +62,5 @@ public class PagePublicAppService : SitePublicAppService, IPagePublicAppService
         {
             throw new EntityNotFoundException(typeof(Page), page.Id);
         }
-    }
-
-    /// <summary>
-    /// Maps a page fetched with <c>includeDetails: true</c>, so <see cref="Page.ContentTypes"/> is already
-    /// loaded and nesting it costs no extra query (总体设计 §2.3).
-    /// </summary>
-    protected virtual PageDto MapToDto(Page page)
-    {
-        var dto = ObjectMapper.Map<Page, PageDto>(page);
-        dto.ContentTypes = page.ContentTypes.Select(MapContentType).ToList();
-        return dto;
-    }
-
-    protected virtual ContentTypeDto MapContentType(ContentType contentType)
-    {
-        var dto = ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
-        dto.Fields = contentType.Fields.ToDtoList();
-        return dto;
     }
 }

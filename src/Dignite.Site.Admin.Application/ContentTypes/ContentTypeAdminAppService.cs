@@ -33,25 +33,25 @@ public class ContentTypeAdminAppService : SiteAdminAppService, IContentTypeAdmin
     public virtual async Task<ContentTypeDto> GetAsync(Guid id)
     {
         var contentType = await ContentTypeRepository.GetAsync(id);
-        return MapToDto(contentType);
+        return ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
     }
 
     public virtual async Task<ContentTypeDto?> FindByNameAsync(Guid pageId, string name)
     {
         var contentType = await ContentTypeRepository.FindByNameAsync(pageId, name);
-        return contentType == null ? null : MapToDto(contentType);
+        return contentType == null ? null : ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
     }
 
     public virtual async Task<ListResultDto<ContentTypeDto>> GetListByPageAsync(Guid pageId)
     {
         var contentTypes = await ContentTypeRepository.GetListByPageAsync(pageId);
-        return new ListResultDto<ContentTypeDto>(contentTypes.Select(MapToDto).ToList());
+        return new ListResultDto<ContentTypeDto>(contentTypes.Select(ObjectMapper.Map<ContentType, ContentTypeDto>).ToList());
     }
 
     public virtual async Task<ListResultDto<ContentTypeDto>> GetListAsync()
     {
         var contentTypes = await ContentTypeRepository.GetListAsync();
-        return new ListResultDto<ContentTypeDto>(contentTypes.Select(MapToDto).ToList());
+        return new ListResultDto<ContentTypeDto>(contentTypes.Select(ObjectMapper.Map<ContentType, ContentTypeDto>).ToList());
     }
 
     [Authorize(SiteAdminPermissions.ContentTypes.Create)]
@@ -60,7 +60,7 @@ public class ContentTypeAdminAppService : SiteAdminAppService, IContentTypeAdmin
         var contentType = await ContentTypeManager.CreateAsync(
             input.PageId, input.Name, input.DisplayName, input.Description, input.Fields?.ToEntityList());
 
-        return MapToDto(contentType);
+        return ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
     }
 
     [Authorize(SiteAdminPermissions.ContentTypes.Update)]
@@ -71,7 +71,7 @@ public class ContentTypeAdminAppService : SiteAdminAppService, IContentTypeAdmin
         contentType = await ContentTypeManager.UpdateAsync(
             contentType, input.Name, input.DisplayName, input.Description, input.Fields?.ToEntityList());
 
-        return MapToDto(contentType);
+        return ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
     }
 
     [Authorize(SiteAdminPermissions.ContentTypes.Delete)]
@@ -90,12 +90,5 @@ public class ContentTypeAdminAppService : SiteAdminAppService, IContentTypeAdmin
         }
 
         await ContentTypeRepository.DeleteAsync(id);
-    }
-
-    protected virtual ContentTypeDto MapToDto(ContentType contentType)
-    {
-        var dto = ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
-        dto.Fields = contentType.Fields.ToDtoList();
-        return dto;
     }
 }

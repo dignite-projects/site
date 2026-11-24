@@ -45,14 +45,7 @@ public class SiteThemePreviewSource : ISiteThemePreviewSource, ITransientDepende
 
         if (releaseId == null)
         {
-            var files = await FileRepository.GetListAsync(theme.Id, cancellationToken);
-            return new SiteThemeSnapshotDto
-            {
-                DefaultLayout = theme.DefaultLayout,
-                Files = files
-                    .Select(file => new SiteThemeSnapshotFileDto { Path = file.Path, ContentHash = file.ContentHash, Body = file.Body })
-                    .ToList()
-            };
+            return theme.ToSnapshotDto(await FileRepository.GetListAsync(theme.Id, cancellationToken));
         }
 
         var release = await FindReleaseAsync(theme, releaseId.Value, cancellationToken);
@@ -61,27 +54,12 @@ public class SiteThemePreviewSource : ISiteThemePreviewSource, ITransientDepende
             return null;
         }
 
-        var contents = await ReleaseRepository.GetContentsAsync(release.Id, cancellationToken: cancellationToken);
-        return new SiteThemeSnapshotDto
-        {
-            ReleaseId = release.Id,
-            ReleaseNumber = release.Number,
-            DefaultLayout = release.DefaultLayout,
-            Files = contents
-                .Select(content => new SiteThemeSnapshotFileDto
-                {
-                    Path = content.Path,
-                    ContentHash = content.ContentHash,
-                    Body = content.Body ?? string.Empty
-                })
-                .ToList()
-        };
+        return release.ToSnapshotDto(await ReleaseRepository.GetContentsAsync(release.Id, cancellationToken: cancellationToken));
     }
 
     public virtual async Task<SiteThemeAssetDto?> FindAssetAsync(Guid? releaseId, string path, CancellationToken cancellationToken = default)
     {
-        var normalized = SiteThemePaths.Normalize(path ?? string.Empty);
-        if (!SiteThemePaths.IsValid(normalized) || !SiteThemePaths.IsAsset(normalized))
+        if (SiteThemeAssets.NormalizePath(path) is not { } normalized)
         {
             return null;
         }
@@ -95,9 +73,7 @@ public class SiteThemePreviewSource : ISiteThemePreviewSource, ITransientDepende
         if (releaseId == null)
         {
             var file = await FileRepository.FindByPathAsync(theme.Id, normalized, cancellationToken);
-            return file == null
-                ? null
-                : new SiteThemeAssetDto { Path = file.Path, ContentHash = file.ContentHash, Body = file.Body };
+            return file?.ToAssetDto();
         }
 
         var release = await FindReleaseAsync(theme, releaseId.Value, cancellationToken);
@@ -107,9 +83,7 @@ public class SiteThemePreviewSource : ISiteThemePreviewSource, ITransientDepende
         }
 
         var content = await ReleaseRepository.FindContentAsync(release.Id, normalized, cancellationToken);
-        return content == null
-            ? null
-            : new SiteThemeAssetDto { Path = content.Path, ContentHash = content.ContentHash, Body = content.Body ?? string.Empty };
+        return content?.ToAssetDto();
     }
 
     /// <summary>The release, when it is one of <paramref name="theme"/>'s; the repository already filters by tenant.</summary>

@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Dignite.Site.Common;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Contents;
 using Dignite.Site.Pages;
 using Dignite.Site.Routing;
 using Dignite.Site.Seo;
@@ -32,7 +33,7 @@ public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppSe
         // which nothing here does.
         var match = await RouteResolver.ResolveAsync(remainingPath, cultureName, includeUnpublished: false);
 
-        var contentDto = match.Content?.ToDto(ObjectMapper);
+        var contentDto = match.Content == null ? null : ObjectMapper.Map<Content, ContentDto>(match.Content);
         if (contentDto != null && match.Page != null)
         {
             contentDto.Url = UrlBuilder.BuildContentPath(urlContext, match.Page, match.Content!);
@@ -47,7 +48,7 @@ public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppSe
             EnabledCultureNames = new List<string>(urlContext.EnabledCultureNames),
             Page = match.Page == null ? null : ObjectMapper.Map<Page, PageDto>(match.Page),
             Content = contentDto,
-            ContentType = match.ContentType?.ToDto(ObjectMapper),
+            ContentType = match.ContentType == null ? null : ObjectMapper.Map<ContentType, ContentTypeDto>(match.ContentType),
             FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase)
         };
     }

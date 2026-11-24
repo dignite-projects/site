@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: the entity-to-DTO mappers produce the whole DTO.** `ObjectMapper.Map` now fills
+  `ContentDto.FieldValues`, `ContentTypeDto.Fields` and `FieldDto.Configuration`, which every application service
+  filled by hand. Gone with that: `Dignite.Site.Common.RouteMatchEntityDtoExtensions` and the protected `MapToDto`
+  and `MapContentType` of the page, content type and field application services. A page with its content types is
+  `page.ToDtoWithContentTypes(ObjectMapper)`; `PageDto.ContentTypes` stays null otherwise. A theme snapshot is
+  `SiteTheme.ToSnapshotDto` or `SiteRelease.ToSnapshotDto`, replacing `SiteThemeAdminAppService.ToWorkingCopySnapshot`.
 - **Breaking: `Page.NormalizeRoute` and `PageRoute.SupportedPlaceholders` are gone.** `Page.NormalizeRoute` only called
   `PageRoute.Normalize`, which every caller now uses, and nothing read `SupportedPlaceholders`. The key a route capture
   is stored under in `RouteMatchDto.FilterValues`, `name` or `name:FORMAT`, is read back with the new

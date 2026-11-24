@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Themes;
 
@@ -32,30 +31,12 @@ public class SiteThemePublicAppService : SitePublicAppService, ISiteThemePublicA
         var release = await ReleaseRepository.GetAsync(liveReleaseId.Value, includeDetails: false);
         var contents = await ReleaseRepository.GetContentsAsync(release.Id);
 
-        return new SiteLiveThemeDto
-        {
-            ReleaseId = release.Id,
-            Snapshot = new SiteThemeSnapshotDto
-            {
-                ReleaseId = release.Id,
-                ReleaseNumber = release.Number,
-                DefaultLayout = release.DefaultLayout,
-                Files = contents
-                    .Select(content => new SiteThemeSnapshotFileDto
-                    {
-                        Path = content.Path,
-                        ContentHash = content.ContentHash,
-                        Body = content.Body ?? string.Empty
-                    })
-                    .ToList()
-            }
-        };
+        return new SiteLiveThemeDto { ReleaseId = release.Id, Snapshot = release.ToSnapshotDto(contents) };
     }
 
     public virtual async Task<SiteThemeAssetDto?> FindLiveAssetAsync(string path)
     {
-        var normalized = SiteThemePaths.Normalize(path ?? string.Empty);
-        if (!SiteThemePaths.IsValid(normalized) || !SiteThemePaths.IsAsset(normalized))
+        if (SiteThemeAssets.NormalizePath(path) is not { } normalized)
         {
             return null;
         }
@@ -68,8 +49,6 @@ public class SiteThemePublicAppService : SitePublicAppService, ISiteThemePublicA
 
         var content = await ReleaseRepository.FindContentAsync(liveReleaseId.Value, normalized);
 
-        return content == null
-            ? null
-            : new SiteThemeAssetDto { Path = content.Path, ContentHash = content.ContentHash, Body = content.Body ?? string.Empty };
+        return content?.ToAssetDto();
     }
 }

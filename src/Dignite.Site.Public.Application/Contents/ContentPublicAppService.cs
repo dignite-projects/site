@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
-using Dignite.Site.Common;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
@@ -194,7 +193,6 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
     protected virtual ContentDto MapToDto(Content content, Page? page, SiteUrlContext urlContext)
     {
         var dto = ObjectMapper.Map<Content, ContentDto>(content);
-        dto.FieldValues = content.FlexFields.ToValueDictionary();
         dto.Url = page != null ? UrlBuilder.BuildContentPath(urlContext, page, content) : string.Empty;
         return dto;
     }

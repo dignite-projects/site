@@ -39,13 +39,13 @@ public class PageAdminAppService : SiteAdminAppService, IPageAdminAppService
     public virtual async Task<PageDto> GetAsync(Guid id)
     {
         var page = await PageRepository.GetAsync(id);
-        return MapToDto(page);
+        return page.ToDtoWithContentTypes(ObjectMapper);
     }
 
     public virtual async Task<PageDto?> FindByNameAsync(string name)
     {
         var page = await PageRepository.FindByNameAsync(name, includeDetails: true);
-        return page == null ? null : MapToDto(page);
+        return page?.ToDtoWithContentTypes(ObjectMapper);
     }
 
     public virtual async Task<ListResultDto<PageDto>> GetListAsync(GetPageListInput input)
@@ -70,7 +70,7 @@ public class PageAdminAppService : SiteAdminAppService, IPageAdminAppService
 
         await CreateDefaultContentTypeAsync(page);
 
-        return MapToDto(page);
+        return page.ToDtoWithContentTypes(ObjectMapper);
     }
 
     /// <summary>
@@ -117,7 +117,7 @@ public class PageAdminAppService : SiteAdminAppService, IPageAdminAppService
             isActive: input.IsActive,
             parentId: input.ParentId);
 
-        return MapToDto(page);
+        return page.ToDtoWithContentTypes(ObjectMapper);
     }
 
     [Authorize(SiteAdminPermissions.Pages.Delete)]
@@ -131,23 +131,5 @@ public class PageAdminAppService : SiteAdminAppService, IPageAdminAppService
         var page = await PageRepository.GetAsync(id, includeDetails: false);
 
         await PageManager.DeleteAsync(page);
-    }
-
-    /// <summary>
-    /// Maps a page fetched with <c>includeDetails: true</c>, so <see cref="Page.ContentTypes"/> is already
-    /// loaded and nesting it costs no extra query (总体设计 §2.3).
-    /// </summary>
-    protected virtual PageDto MapToDto(Page page)
-    {
-        var dto = ObjectMapper.Map<Page, PageDto>(page);
-        dto.ContentTypes = page.ContentTypes.Select(MapContentType).ToList();
-        return dto;
-    }
-
-    protected virtual ContentTypeDto MapContentType(ContentType contentType)
-    {
-        var dto = ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
-        dto.Fields = contentType.Fields.ToDtoList();
-        return dto;
     }
 }

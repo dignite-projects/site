@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Permissions;
-using Dignite.Site.Common;
 using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Pages;
@@ -143,7 +142,6 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
             .Select(content =>
             {
                 var dto = ObjectMapper.Map<Content, ContentDto>(content);
-                dto.FieldValues = content.FlexFields.ToValueDictionary();
                 dto.PageName = pageNames.GetValueOrDefault(content.PageId) ?? string.Empty;
                 dto.ContentTypeName = contentTypeNames.GetValueOrDefault(content.ContentTypeId) ?? string.Empty;
                 return dto;
