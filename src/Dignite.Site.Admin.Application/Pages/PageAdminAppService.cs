@@ -88,19 +88,10 @@ public class PageAdminAppService : SiteAdminAppService, IPageAdminAppService
     /// </summary>
     protected virtual async Task CreateDefaultContentTypeAsync(Page page)
     {
-        // ContentTypeManager.CreateAsync re-validates the page exists through its own repository read,
-        // which would not see this page yet - nothing reaches the database until the ambient unit of
-        // work completes at the end of this call - without flushing what PageManager.CreateAsync just
-        // tracked.
-        if (UnitOfWorkManager.Current != null)
-        {
-            await UnitOfWorkManager.Current.SaveChangesAsync();
-        }
-
         var seoField = await FieldRepository.FindByNameAsync(SeoFieldNames.FieldName);
         var fields = seoField == null ? null : new[] { new ContentTypeField(seoField.Id) };
 
-        await ContentTypeManager.CreateAsync(page.Id, page.Name, page.DisplayName, fields: fields);
+        await ContentTypeManager.CreateAsync(page, page.Name, page.DisplayName, fields: fields);
     }
 
     [Authorize(SiteAdminPermissions.Pages.Update)]

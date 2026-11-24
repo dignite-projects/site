@@ -70,7 +70,7 @@ Each entry of a content type's arrangement refers to one field of the library an
 
 The same field can be required and searchable in one type and optional and unindexed in another.
 
-Removing a field from a type's arrangement stops its values being read for contents of that type, but does not delete them. A content type that any content still uses cannot be deleted; move or delete those contents first.
+Removing a field from a type's arrangement stops its values being read for contents of that type, but does not delete them. A content type that any content still uses cannot be deleted (`Site:020003`); move or delete those contents first.
 
 ## Composite Fields
 

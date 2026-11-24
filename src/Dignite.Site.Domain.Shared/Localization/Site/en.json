@@ -11,6 +11,7 @@
 
     "Site:020001": "A content type named '{Name}' already exists on this page.",
     "Site:020002": "The field '{FieldId}' is referenced more than once by this content type.",
+    "Site:020003": "The content type '{Name}' still has contents; delete or move them first.",
 
     "Site:030001": "A field named '{Name}' already exists.",
     "Site:030002": "The field '{Name}' is a platform preset and cannot be deleted. Remove it from a content type's arrangement instead of deleting the definition.",
@@ -146,7 +147,6 @@
     "Permission:Update": "Update",
     "Permission:Delete": "Delete",
 
-    "ContentTypeStillHasContents": "This content type still has contents; delete or move them first.",
 
     "Menu:Site": "Site",
     "Menu:Contents": "Contents",

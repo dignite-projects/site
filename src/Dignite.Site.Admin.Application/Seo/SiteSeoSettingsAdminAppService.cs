@@ -25,7 +25,7 @@ public class SiteSeoSettingsAdminAppService : SiteAdminAppService, ISiteSeoSetti
     }
 
     /// <summary>
-    /// Stores it for the current tenant, or globally on the host's own site, which is every site's default. An empty value
+    /// Stores it for the current site (<see cref="SiteSettingManagerExtensions.SetForCurrentSiteAsync"/>). An empty value
     /// removes the setting rather than storing an empty one, so a tenant falls back to the host's default again.
     /// </summary>
     [Authorize(SiteAdminPermissions.Seo.Update)]
@@ -33,14 +33,7 @@ public class SiteSeoSettingsAdminAppService : SiteAdminAppService, ISiteSeoSetti
     {
         var value = NullIfBlank(input.DefaultShareImage);
 
-        if (CurrentTenant.Id is { } tenantId)
-        {
-            await SettingManager.SetForTenantAsync(tenantId, SiteSettings.Seo.DefaultShareImage, value, forceToSet: true);
-        }
-        else
-        {
-            await SettingManager.SetGlobalAsync(SiteSettings.Seo.DefaultShareImage, value);
-        }
+        await SettingManager.SetForCurrentSiteAsync(CurrentTenant.Id, SiteSettings.Seo.DefaultShareImage, value);
 
         return new SiteSeoSettingsDto { DefaultShareImage = value };
     }

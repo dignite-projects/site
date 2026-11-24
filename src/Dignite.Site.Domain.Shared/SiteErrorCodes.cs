@@ -16,6 +16,7 @@ public static class SiteErrorCodes
 
     public const string ContentTypeNameAlreadyExists = "Site:020001";
     public const string ContentTypeFieldDuplicated = "Site:020002";
+    public const string ContentTypeHasContents = "Site:020003";
 
     public const string FieldNameAlreadyExists = "Site:030001";
     public const string FieldIsPlatformPresetCannotBeDeleted = "Site:030002";

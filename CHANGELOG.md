@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: deleting a content type that contents still use answers `Site:020003`.** The refusal moved from
+  `ContentTypeAdminAppService` into the new `ContentTypeManager.DeleteAsync`, and is a `ContentTypeHasContentsException`
+  rather than a `UserFriendlyException` with the `ContentTypeStillHasContents` text, which is gone. `ContentTypeManager`
+  takes an `IContentRepository`, and `CreateAsync` also takes the `Page` itself, which creating a page uses for its
+  default content type instead of saving the page halfway.
 - **Breaking: the entity-to-DTO mappers produce the whole DTO.** `ObjectMapper.Map` now fills
   `ContentDto.FieldValues`, `ContentTypeDto.Fields` and `FieldDto.Configuration`, which every application service
   filled by hand. Gone with that: `Dignite.Site.Common.RouteMatchEntityDtoExtensions` and the protected `MapToDto`

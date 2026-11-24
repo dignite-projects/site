@@ -191,7 +191,7 @@ export class ContentTypesComponent {
       })
       .subscribe((status: Confirmation.Status) => {
         if (status === Confirmation.Status.confirm) {
-          // Answers ContentTypeStillHasContents when contents remain; the server's message says so.
+          // Answers Site:020003 when contents remain; the server's message says so.
           this.contentTypeService.delete(contentType.id!).subscribe(() => {
             this.load();
             this.referenceData.invalidateContentTypes();

@@ -20,15 +20,19 @@ public class ContentTypeManager : DomainService
 
     protected IPageRepository PageRepository { get; }
 
+    protected IContentRepository ContentRepository { get; }
+
     protected IFlexFieldIndexManager<Content> IndexManager { get; }
 
     public ContentTypeManager(
         IContentTypeRepository contentTypeRepository,
         IPageRepository pageRepository,
+        IContentRepository contentRepository,
         IFlexFieldIndexManager<Content> indexManager)
     {
         ContentTypeRepository = contentTypeRepository;
         PageRepository = pageRepository;
+        ContentRepository = contentRepository;
         IndexManager = indexManager;
     }
 
@@ -40,17 +44,30 @@ public class ContentTypeManager : DomainService
         IEnumerable<ContentTypeField>? fields = null,
         CancellationToken cancellationToken = default)
     {
-        // Resolves the page as a side effect of validating it exists - a content type with a dangling
-        // PageId would be invisible to every route, since resolution starts from the page. The result
-        // itself is discarded, so no need for the content types GetAsync would otherwise Include by
-        // default.
-        await PageRepository.GetAsync(pageId, includeDetails: false, cancellationToken: cancellationToken);
+        // The page must exist: a content type with a dangling PageId would be invisible to every route, since
+        // resolution starts from the page.
+        var page = await PageRepository.GetAsync(pageId, includeDetails: false, cancellationToken: cancellationToken);
 
-        await CheckNameAsync(pageId, name, null, cancellationToken);
+        return await CreateAsync(page, name, displayName, description, fields, cancellationToken);
+    }
+
+    /// <summary>
+    /// A content type of <paramref name="page"/>, which the caller already holds - one created in the same unit of
+    /// work, which a repository read would not find before it is saved.
+    /// </summary>
+    public virtual async Task<ContentType> CreateAsync(
+        Page page,
+        string name,
+        string displayName,
+        string? description = null,
+        IEnumerable<ContentTypeField>? fields = null,
+        CancellationToken cancellationToken = default)
+    {
+        await CheckNameAsync(page.Id, name, null, cancellationToken);
 
         var contentType = new ContentType(
             GuidGenerator.Create(),
-            pageId,
+            page.Id,
             name,
             displayName,
             description,
@@ -93,6 +110,26 @@ public class ContentTypeManager : DomainService
         }
 
         return contentType;
+    }
+
+    /// <summary>
+    /// Deletes a content type that no content uses.
+    /// <para>
+    /// This check is the only guard. The FK from Content to ContentType is declared Restrict, but ContentType is
+    /// soft-deleted - its "delete" is an UPDATE, and a declared FK behavior fires only on an actual DELETE statement
+    /// (the same reason <c>PageManager.DeleteAsync</c>'s cascade runs explicitly). Without it, the contents would point
+    /// at a type no name-addressed surface can reach any more.
+    /// </para>
+    /// </summary>
+    /// <exception cref="ContentTypeHasContentsException">A content still uses the type.</exception>
+    public virtual async Task DeleteAsync(ContentType contentType, CancellationToken cancellationToken = default)
+    {
+        if (await ContentRepository.AnyByContentTypeAsync(contentType.Id, cancellationToken))
+        {
+            throw new ContentTypeHasContentsException(contentType.Name);
+        }
+
+        await ContentTypeRepository.DeleteAsync(contentType, cancellationToken: cancellationToken);
     }
 
     /// <summary>
