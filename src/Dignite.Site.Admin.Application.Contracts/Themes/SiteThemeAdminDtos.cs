@@ -140,23 +140,13 @@ public class SiteThemeFileUsagesDto
 
 public class SiteThemeFileUsageDto
 {
-    public SiteThemeUsageKindDto Kind { get; set; }
+    public SiteThemeUsageKind Kind { get; set; }
 
     /// <summary>The file that refers to it, for an include, an asset_url or a layout.</summary>
     public string? SourcePath { get; set; }
 
     /// <summary>The page whose Template names it.</summary>
     public string? PageName { get; set; }
-}
-
-/// <summary>Mirrors the domain's usage kinds, so the contract does not depend on the domain layer.</summary>
-public enum SiteThemeUsageKindDto
-{
-    Page = 0,
-    Include = 1,
-    AssetUrl = 2,
-    Layout = 3,
-    DefaultLayout = 4
 }
 
 /// <summary>The result of checking the working copy: what is wrong, what would change, and the fingerprint a publish must bring back.</summary>

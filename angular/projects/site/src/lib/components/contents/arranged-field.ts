@@ -1,4 +1,6 @@
 import type { FlexFieldData, FlexFieldValue } from '@dignite/ng.flex-fields';
+import type { ContentTypeDto } from '../../proxy/dignite/site/content-types/models';
+import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 
 /**
  * One field as a content type actually uses it: the library definition joined with that content type's
@@ -19,6 +21,45 @@ export interface ArrangedField {
   order: number;
   /** What the `ff-flex-field-*` components take. */
   fieldData: FlexFieldData;
+}
+
+/** What the `ff-flex-field-*` components take for a field of the library, under the name a content type gives it, if any. */
+export function toFlexFieldData(field: FieldDto, displayName?: string | null): FlexFieldData {
+  return {
+    id: field.id!,
+    name: field.name!,
+    displayName: displayName || field.displayName!,
+    description: field.description ?? undefined,
+    fieldTypeName: field.fieldTypeName!,
+    configuration: (field.configuration ?? {}) as Record<string, unknown>,
+  };
+}
+
+/** The fields `contentType` uses, in its order; a usage whose field is no longer in the library is left out. */
+export function arrangeFields(contentType: ContentTypeDto, fieldsById: ReadonlyMap<string, FieldDto>): ArrangedField[] {
+  return (contentType.fields ?? [])
+    .flatMap(usage => {
+      const field = usage.fieldId ? fieldsById.get(usage.fieldId) : undefined;
+      if (!field) {
+        return [];
+      }
+
+      const fieldData = toFlexFieldData(field, usage.displayName);
+      return [
+        {
+          fieldId: field.id!,
+          name: field.name!,
+          displayName: fieldData.displayName,
+          fieldTypeName: field.fieldTypeName!,
+          required: !!usage.required,
+          searchable: !!usage.searchable,
+          showInList: !!usage.showInList,
+          order: usage.order ?? 0,
+          fieldData,
+        },
+      ];
+    })
+    .sort((a, b) => a.order - b.order);
 }
 
 /**

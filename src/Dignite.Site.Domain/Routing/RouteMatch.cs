@@ -105,17 +105,3 @@ public class RouteMatch
     /// <summary>Nothing matched. The caller's next step is the redirect table, then a real 404.</summary>
     public static RouteMatch None { get; } = new(RouteMatchKind.None);
 }
-
-public enum RouteMatchKind : byte
-{
-    None = 0,
-
-    /// <summary>A page's own route, with no content beneath it at that path.</summary>
-    Page = 1,
-
-    /// <summary>A page's own route, resolving to its single empty-slug content.</summary>
-    ContentOfPage = 2,
-
-    /// <summary>A content beneath a page, identified by slug.</summary>
-    Content = 3
-}

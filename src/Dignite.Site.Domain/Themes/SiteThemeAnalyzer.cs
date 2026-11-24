@@ -19,25 +19,6 @@ public sealed record SiteThemeIssue(
     int? Column,
     IReadOnlyDictionary<string, string> Data);
 
-/// <summary>How a file is used. See <see cref="SiteThemeAnalysis.GetUsages"/>.</summary>
-public enum SiteThemeUsageKind
-{
-    /// <summary>A page's <c>Template</c> names it.</summary>
-    Page = 0,
-
-    /// <summary>A template <c>include</c>s it.</summary>
-    Include = 1,
-
-    /// <summary>A template writes its address with <c>asset_url</c>.</summary>
-    AssetUrl = 2,
-
-    /// <summary>A page template's front matter chooses it as its layout.</summary>
-    Layout = 3,
-
-    /// <summary>The theme's default layout setting names it.</summary>
-    DefaultLayout = 4
-}
-
 /// <summary>One use of a file: by a page (<see cref="PageName"/>), by another file (<see cref="SourcePath"/>), or by the setting.</summary>
 public sealed record SiteThemeUsage(SiteThemeUsageKind Kind, string? SourcePath, string? PageName);
 

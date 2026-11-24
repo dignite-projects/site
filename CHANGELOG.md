@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: `RouteMatchKindDto` and `SiteThemeUsageKindDto` are `RouteMatchKind` and `SiteThemeUsageKind`.** Each was
+  a copy of the domain's enum, with the same values; the enums moved to `Dignite.Site.Domain.Shared`
+  (`Dignite.Site.Routing`, `Dignite.Site.Themes`) and the contracts use them. The values sent are unchanged; in
+  `@dignite/ng.site` the proxy is `SiteThemeUsageKind`.
 - **Breaking: leftovers of the module template and guards for cases that cannot happen are gone.**
   - Unused types: `SiteAppService`, `SiteCommonAppService`, `SiteController`, `SiteCommonController`, the empty
     permission groups `SitePermissions`, `SiteCommonPermissions` and `SitePublicPermissions` with their providers and

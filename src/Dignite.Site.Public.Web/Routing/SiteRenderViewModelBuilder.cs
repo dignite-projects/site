@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dignite.Site.Fields;
 using Dignite.Site.Public.Fields;
 using Dignite.Site.Public.Seo;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Routing;
 
@@ -18,8 +19,8 @@ public static class SiteRenderViewModelBuilder
 {
     /// <summary>
     /// The model for any match <see cref="SiteRenderController"/> renders: <see cref="BuildPage"/> for a
-    /// <see cref="RouteMatchKindDto.Page"/>, <see cref="BuildContentAsync(RouteMatchDto, HeadMetadataDto?, IFieldPublicAppService, int)"/>
-    /// for a <see cref="RouteMatchKindDto.ContentOfPage"/> or <see cref="RouteMatchKindDto.Content"/>; null for
+    /// <see cref="RouteMatchKind.Page"/>, <see cref="BuildContentAsync(RouteMatchDto, HeadMetadataDto?, IFieldPublicAppService, int)"/>
+    /// for a <see cref="RouteMatchKind.ContentOfPage"/> or <see cref="RouteMatchKind.Content"/>; null for
     /// any other kind, or for a content match that has nothing to render.
     /// </summary>
     /// <param name="currentPage">The request's page number - <see cref="SiteRenderViewModel.CurrentPage"/>.</param>
@@ -31,8 +32,8 @@ public static class SiteRenderViewModelBuilder
     {
         return match.Kind switch
         {
-            RouteMatchKindDto.Page => BuildPage(match, headMetadata, currentPage),
-            RouteMatchKindDto.ContentOfPage or RouteMatchKindDto.Content
+            RouteMatchKind.Page => BuildPage(match, headMetadata, currentPage),
+            RouteMatchKind.ContentOfPage or RouteMatchKind.Content
                 => await BuildContentAsync(match, headMetadata, fieldAppService, currentPage),
             _ => null
         };

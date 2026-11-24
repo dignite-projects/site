@@ -3,6 +3,7 @@ using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Settings;
 using Shouldly;
 using Xunit;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Routing;
 
@@ -26,7 +27,7 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var match = await ResolveAsync("/blog");
 
         match.Matched.ShouldBeTrue();
-        match.Kind.ShouldBe(RouteMatchKindDto.Page);
+        match.Kind.ShouldBe(RouteMatchKind.Page);
         match.Page!.Id.ShouldBe(SiteTestData.BlogPageId);
         match.Content.ShouldBeNull();
     }
@@ -37,7 +38,7 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var match = await ResolveAsync("/about");
 
         match.Matched.ShouldBeTrue();
-        match.Kind.ShouldBe(RouteMatchKindDto.ContentOfPage);
+        match.Kind.ShouldBe(RouteMatchKind.ContentOfPage);
         match.Page!.Id.ShouldBe(SiteTestData.AboutPageId);
         match.Content!.Slug.ShouldBe("");
         match.ContentType!.Id.ShouldBe(SiteTestData.AboutTypeId);
@@ -49,7 +50,7 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var match = await ResolveAsync("/blog/" + SiteTestData.TripSlug);
 
         match.Matched.ShouldBeTrue();
-        match.Kind.ShouldBe(RouteMatchKindDto.Content);
+        match.Kind.ShouldBe(RouteMatchKind.Content);
         match.Page!.Id.ShouldBe(SiteTestData.BlogPageId);
         match.Content!.Slug.ShouldBe(SiteTestData.TripSlug);
         match.ContentType!.Id.ShouldBe(SiteTestData.PostArticleTypeId);
@@ -66,7 +67,7 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var match = await ResolveAsync("/blog/" + SiteTestData.DraftSlug);
 
         match.Matched.ShouldBeFalse();
-        match.Kind.ShouldBe(RouteMatchKindDto.None);
+        match.Kind.ShouldBe(RouteMatchKind.None);
         match.Page.ShouldBeNull();
     }
 
@@ -76,7 +77,7 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var match = await ResolveAsync("/this-path-does-not-exist");
 
         match.Matched.ShouldBeFalse();
-        match.Kind.ShouldBe(RouteMatchKindDto.None);
+        match.Kind.ShouldBe(RouteMatchKind.None);
     }
 
     /// <summary>A partial match's FilterValues has to survive the domain-to-DTO mapping, not just Kind/Page.</summary>
@@ -86,7 +87,7 @@ public class RoutingPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         var match = await ResolveAsync("/news/2026-07");
 
         match.Matched.ShouldBeTrue();
-        match.Kind.ShouldBe(RouteMatchKindDto.Page);
+        match.Kind.ShouldBe(RouteMatchKind.Page);
         match.Page!.Id.ShouldBe(SiteTestData.NewsPageId);
         match.Content.ShouldBeNull();
         match.FilterValues["publishTime:yyyy-MM"].ShouldBe("2026-07");

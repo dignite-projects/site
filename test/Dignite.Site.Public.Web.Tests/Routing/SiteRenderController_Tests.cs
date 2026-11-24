@@ -22,6 +22,7 @@ using Shouldly;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.DependencyInjection;
 using Xunit;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Routing;
 
@@ -41,7 +42,7 @@ public class SiteRenderController_Tests
     private static RouteMatchDto PageMatch(params string[] enabledCultureNames) => new()
     {
         Matched = true,
-        Kind = RouteMatchKindDto.Page,
+        Kind = RouteMatchKind.Page,
         CultureName = "ja",
         DefaultCultureName = "en",
         EnabledCultureNames = new List<string>(enabledCultureNames),
@@ -111,7 +112,7 @@ public class SiteRenderController_Tests
     {
         var host = new SiteLanguageTestHost("en,ja", "/ja/about/my-trip");
         var match = PageMatch("en", "ja");
-        match.Kind = RouteMatchKindDto.Content;
+        match.Kind = RouteMatchKind.Content;
 
         var result = await RenderAsync(host, match);
 

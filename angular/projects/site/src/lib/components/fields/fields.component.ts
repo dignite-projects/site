@@ -23,6 +23,7 @@ import {
   FlexFieldConfigComponent,
 } from '@dignite/ng.flex-fields';
 import type { FlexFieldData } from '@dignite/ng.flex-fields';
+import { toFlexFieldData } from '../contents/arranged-field';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import type { GetFieldListInput } from '../../proxy/dignite/site/admin/fields/models';
 import type { FieldDto } from '../../proxy/dignite/site/fields/models';
@@ -439,16 +440,7 @@ export class FieldsComponent {
   }
 
   private buildForm(field?: FieldDto): FormGroup {
-    this.selectedFieldData = field
-      ? {
-          id: field.id!,
-          name: field.name!,
-          displayName: field.displayName!,
-          description: field.description ?? undefined,
-          fieldTypeName: field.fieldTypeName!,
-          configuration: (field.configuration ?? {}) as Record<string, unknown>,
-        }
-      : undefined;
+    this.selectedFieldData = field ? toFlexFieldData(field) : undefined;
 
     return this.fb.group({
       // Fixed after creation - renaming goes through `openRename`. Kept in the form (disabled) so the

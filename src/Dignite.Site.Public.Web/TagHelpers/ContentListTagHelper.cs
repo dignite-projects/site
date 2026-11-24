@@ -5,12 +5,13 @@ using Dignite.Abp.FlexFields.Web;
 using Dignite.Site.Pages;
 using Dignite.Site.Public.Routing;
 using Microsoft.AspNetCore.Razor.TagHelpers;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.TagHelpers;
 
 /// <summary>
 /// Queries and renders a content list for one page - the Tier-0 counterpart to Dignite.Cms's own
-/// <c>CmsEntryListTagHelper</c>. A <c>RouteMatchKindDto.Page</c> match carries no pre-fetched list
+/// <c>CmsEntryListTagHelper</c>. A <c>RouteMatchKind.Page</c> match carries no pre-fetched list
 /// (总体设计 §7.4 "rendering is handed to the front end") - this <i>is</i> that front end, querying for
 /// itself from inside a <c>Page.Template</c> view, e.g.
 /// <c>&lt;content-list page="@Model.Page" culture-name="@Model.CultureName" partial-name="..." /&gt;</c>.

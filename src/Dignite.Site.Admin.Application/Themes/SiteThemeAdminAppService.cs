@@ -136,7 +136,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             Usages = check.Analysis.GetUsages(file.Path)
                 .Select(usage => new SiteThemeFileUsageDto
                 {
-                    Kind = (SiteThemeUsageKindDto)usage.Kind,
+                    Kind = usage.Kind,
                     SourcePath = usage.SourcePath,
                     PageName = usage.PageName
                 })

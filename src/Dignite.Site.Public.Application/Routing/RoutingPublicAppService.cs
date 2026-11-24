@@ -43,7 +43,7 @@ public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppSe
         return new RouteMatchDto
         {
             Matched = match.IsMatch,
-            Kind = MapKind(match.Kind),
+            Kind = match.Kind,
             CultureName = cultureName,
             DefaultCultureName = urlContext.DefaultCultureName,
             EnabledCultureNames = new List<string>(urlContext.EnabledCultureNames),
@@ -51,18 +51,6 @@ public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppSe
             Content = contentDto,
             ContentType = match.ContentType == null ? null : ObjectMapper.Map<ContentType, ContentTypeDto>(match.ContentType),
             FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase)
-        };
-    }
-
-    protected static RouteMatchKindDto MapKind(RouteMatchKind kind)
-    {
-        return kind switch
-        {
-            RouteMatchKind.None => RouteMatchKindDto.None,
-            RouteMatchKind.Page => RouteMatchKindDto.Page,
-            RouteMatchKind.ContentOfPage => RouteMatchKindDto.ContentOfPage,
-            RouteMatchKind.Content => RouteMatchKindDto.Content,
-            _ => RouteMatchKindDto.None
         };
     }
 }

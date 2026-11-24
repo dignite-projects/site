@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Pages;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Routing;
 
@@ -14,7 +15,7 @@ public class RouteMatchDto
 {
     public bool Matched { get; set; }
 
-    public RouteMatchKindDto Kind { get; set; }
+    public RouteMatchKind Kind { get; set; }
 
     /// <summary>
     /// The culture this match was resolved in - the path's own prefix if it named a served, non-default
@@ -48,27 +49,7 @@ public class RouteMatchDto
     /// The values a request path named for <see cref="Page"/>'s placeholders short of a slug - e.g.
     /// <c>{"publishTime:yyyy-MM": "2026-08"}</c> for <c>/blog/2026-08</c> against
     /// <c>/blog/{publishTime:yyyy-MM}/{slug}</c> (总体设计 §3.4). Empty - never null - whenever
-    /// <see cref="Kind"/> is <see cref="RouteMatchKindDto.Page"/> from a bare address instead.
+    /// <see cref="Kind"/> is <see cref="RouteMatchKind.Page"/> from a bare address instead.
     /// </summary>
     public IDictionary<string, string> FilterValues { get; set; } = new Dictionary<string, string>();
-}
-
-/// <summary>
-/// Mirrors the domain's <c>RouteMatchKind</c> one-for-one. Kept as a local copy rather than referenced
-/// directly - <c>Public.Application.Contracts</c> depends on <c>Domain.Shared</c> only, and this enum
-/// lives in the <c>Domain</c> project alongside <c>RouteMatch</c>.
-/// </summary>
-public enum RouteMatchKindDto : byte
-{
-    /// <summary>Nothing matched. The caller's next step is the redirect table, then a real 404.</summary>
-    None = 0,
-
-    /// <summary>The path named a page and no content: <c>/blog</c>, or <c>/</c>.</summary>
-    Page = 1,
-
-    /// <summary>The path named a page whose single content has an empty slug - a home or "about" page.</summary>
-    ContentOfPage = 2,
-
-    /// <summary>The path named a content beneath a page: <c>/blog/my-trip</c>.</summary>
-    Content = 3
 }

@@ -16,7 +16,7 @@ import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/cor
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FlexFieldSearchComponent, FlexFieldViewComponent } from '@dignite/ng.flex-fields';
-import type { FlexFieldData, FlexFieldValue } from '@dignite/ng.flex-fields';
+import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
 import { ContentTypeAdminService } from '../../proxy/dignite/site/admin/content-types/content-type-admin.service';
@@ -34,7 +34,7 @@ import { eSitePolicyNames } from '../../enums/policy-names';
 import { ContentListStateService } from '../../services/content-list-state.service';
 import { ContentQueryService } from '../../services/content-query.service';
 import { SiteReferenceDataService } from '../../services/site-reference-data.service';
-import type { ArrangedField, FieldColumn, RowFieldValues } from './arranged-field';
+import { arrangeFields, type ArrangedField, type FieldColumn, type RowFieldValues } from './arranged-field';
 import { PageTreeSelectComponent } from './page-tree-select.component';
 
 @Component({
@@ -259,48 +259,13 @@ export class ContentsComponent {
     this.arrangementByContentType = new Map(
       this.contentTypes().map(contentType => [
         contentType.id!,
-        (contentType.fields ?? [])
-          .map(entry => this.toArrangedField(entry.fieldId, entry))
-          .filter((field): field is ArrangedField => !!field)
-          .sort((a, b) => a.order - b.order),
+        arrangeFields(contentType, this.fieldsById),
       ]),
     );
 
     this.rebuildColumns();
     this.rebuildSearchFields();
     this.rebuildRowValues();
-  }
-
-  private toArrangedField(
-    fieldId: string | undefined,
-    usage: { required?: boolean; searchable?: boolean; showInList?: boolean; displayName?: string | null; order?: number },
-  ): ArrangedField | undefined {
-    const definition = fieldId ? this.fieldsById.get(fieldId) : undefined;
-
-    if (!definition) {
-      return undefined;
-    }
-
-    const fieldData: FlexFieldData = {
-      id: definition.id!,
-      name: definition.name!,
-      displayName: usage.displayName || definition.displayName!,
-      description: definition.description ?? undefined,
-      fieldTypeName: definition.fieldTypeName!,
-      configuration: (definition.configuration ?? {}) as Record<string, unknown>,
-    };
-
-    return {
-      fieldId: definition.id!,
-      name: definition.name!,
-      displayName: fieldData.displayName,
-      fieldTypeName: definition.fieldTypeName!,
-      required: !!usage.required,
-      searchable: !!usage.searchable,
-      showInList: !!usage.showInList,
-      order: usage.order ?? 0,
-      fieldData,
-    };
   }
 
   /**

@@ -4,7 +4,7 @@ import { Component, HostListener, inject, signal, ChangeDetectionStrategy, OnDes
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FlexFieldControlComponent } from '@dignite/ng.flex-fields';
-import type { FlexFieldData, FlexFieldValue } from '@dignite/ng.flex-fields';
+import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { CKEDITOR_UPLOAD_PROVIDER } from '@dignite/ng.flex-fields-ckeditor';
 import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
@@ -19,7 +19,7 @@ import { SiteReferenceDataService } from '../../services/site-reference-data.ser
 import { flexFieldErrorMessage } from '../../field-types/flex-field-error-message';
 import { SiteCKEditorUploadProvider } from '../../files/services/site-ckeditor-upload-provider';
 import { SiteUploadCleanup } from '../../files/services/site-upload-cleanup';
-import type { ArrangedField } from './arranged-field';
+import { arrangeFields, type ArrangedField } from './arranged-field';
 
 const MAX_SLUG_LENGTH = 256;
 const OPTIONAL_SLUG_TOKEN = '{slug?}';
@@ -238,36 +238,7 @@ export class ContentEditorComponent implements OnDestroy {
     this.arrangementByContentType = new Map(
       this.contentTypes().map(contentType => [
         contentType.id!,
-        (contentType.fields ?? [])
-          .map(entry => {
-            const definition = entry.fieldId ? this.fieldsById.get(entry.fieldId) : undefined;
-            if (!definition) {
-              return undefined;
-            }
-
-            const fieldData: FlexFieldData = {
-              id: definition.id!,
-              name: definition.name!,
-              displayName: entry.displayName || definition.displayName!,
-              description: definition.description ?? undefined,
-              fieldTypeName: definition.fieldTypeName!,
-              configuration: (definition.configuration ?? {}) as Record<string, unknown>,
-            };
-
-            return {
-              fieldId: definition.id!,
-              name: definition.name!,
-              displayName: fieldData.displayName,
-              fieldTypeName: definition.fieldTypeName!,
-              required: !!entry.required,
-              searchable: !!entry.searchable,
-              showInList: !!entry.showInList,
-              order: entry.order ?? 0,
-              fieldData,
-            } satisfies ArrangedField;
-          })
-          .filter((field): field is ArrangedField => !!field)
-          .sort((a, b) => a.order - b.order),
+        arrangeFields(contentType, this.fieldsById),
       ]),
     );
   }

@@ -6,6 +6,7 @@ using Dignite.Site.Public.Routing;
 using Dignite.Site.Settings;
 using Shouldly;
 using Xunit;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Mcp;
 
@@ -45,7 +46,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
         var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.TripSlug);
 
         match.Matched.ShouldBeTrue();
-        match.Kind.ShouldBe(RouteMatchKindDto.Content);
+        match.Kind.ShouldBe(RouteMatchKind.Content);
         match.Page.ShouldBe("blog");
         match.ContentType.ShouldBe("post-article");
         match.Slug.ShouldBe(SiteTestData.TripSlug);
@@ -59,7 +60,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
         var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.DraftSlug);
 
         match.Matched.ShouldBeFalse();
-        match.Kind.ShouldBe(RouteMatchKindDto.None);
+        match.Kind.ShouldBe(RouteMatchKind.None);
         match.Page.ShouldBeNull();
         match.Slug.ShouldBeNull();
     }
@@ -76,7 +77,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
         var match = await _routingTools.ResolvePathAsync("/about");
 
         match.Matched.ShouldBeFalse();
-        match.Kind.ShouldBe(RouteMatchKindDto.None);
+        match.Kind.ShouldBe(RouteMatchKind.None);
     }
 
     /// <summary>
@@ -91,7 +92,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
         var match = await _routingTools.ResolvePathAsync("/blog/" + SiteTestData.TripSlug);
 
         match.Matched.ShouldBeFalse();
-        match.Kind.ShouldBe(RouteMatchKindDto.None);
+        match.Kind.ShouldBe(RouteMatchKind.None);
     }
 
     /// <summary>A partial match names the page and the values its placeholders were given, and no content.</summary>
@@ -101,7 +102,7 @@ public class RoutingTools_Tests : SiteEntityFrameworkCoreTestBase
         var match = await _routingTools.ResolvePathAsync("/news/2026-07");
 
         match.Matched.ShouldBeTrue();
-        match.Kind.ShouldBe(RouteMatchKindDto.Page);
+        match.Kind.ShouldBe(RouteMatchKind.Page);
         match.Slug.ShouldBeNull();
         match.FilterValues!["publishTime:yyyy-MM"].ShouldBe("2026-07");
     }

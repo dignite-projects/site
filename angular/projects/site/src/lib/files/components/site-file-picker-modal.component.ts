@@ -1,5 +1,5 @@
 import { CoreModule } from '@abp/ng.core';
-import { ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
+import { ThemeSharedModule } from '@abp/ng.theme.shared';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,12 +12,12 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { catchError, concatMap, EMPTY, finalize, from, tap } from 'rxjs';
+import { catchError, EMPTY, finalize } from 'rxjs';
 import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import type { SiteFileDto } from '../../proxy/dignite/site/admin/files/models';
 import { FormatFileSizePipe } from '../pipes/format-file-size.pipe';
 import { SiteBlobAccess, SiteBlobContainer, SiteBlobContainerService } from '../services/site-blob-management.service';
-import { refuseFile } from '../services/site-file-limits';
+import { acceptOf } from '../services/site-file-limits';
 import { SiteFileUploadService } from '../services/site-file-upload.service';
 import { sizedFileUrl } from '../services/site-file-url';
 import { SiteFileUrlService } from '../services/site-file-url.service';
@@ -157,7 +157,6 @@ export class SiteFilePickerModalComponent {
   private readonly files = inject(FileAdminService);
   private readonly containers = inject(SiteBlobContainerService);
   private readonly uploads = inject(SiteFileUploadService);
-  private readonly toaster = inject(ToasterService);
   private readonly cleanup = inject(SiteUploadCleanup, { optional: true });
   private readonly urls = inject(SiteFileUrlService);
 
@@ -188,11 +187,8 @@ export class SiteFilePickerModalComponent {
   protected readonly access = computed(() => this.container()?.access ?? NO_ACCESS);
   protected readonly showTree = computed(() => !!this.container()?.allowDirectories && this.access().view);
 
-  /** The file input's `accept`: the container's allowed extensions; `null` - no attribute - for any. */
-  protected readonly accept = computed(() => {
-    const extensions = this.container()?.allowedFileExtensions ?? [];
-    return extensions.length > 0 ? extensions.join(',') : null;
-  });
+  /** The file input's `accept`. */
+  protected readonly accept = computed(() => acceptOf(this.container()));
 
   protected readonly rangeText = computed(() => {
     const total = this.total();
@@ -270,46 +266,22 @@ export class SiteFilePickerModalComponent {
     const chosen = Array.from(input.files ?? []);
     input.value = '';
 
-    const files = chosen.filter(file => {
-      const refusal = refuseFile(file, this.container());
-      if (refusal) {
-        this.toaster.error(refusal.key, '', { messageLocalizationParams: refusal.params });
-      }
-      return !refusal;
-    });
-    if (files.length === 0) {
-      return;
-    }
-
-    // ABP's error handler has shown each failure already; the batch goes on and one toast counts them at the end.
-    let failed = 0;
     this.uploading.set(true);
-    from(files)
+    this.uploads
+      .uploadAll(chosen, this.containerName(), this.container(), this.directoryId())
       .pipe(
-        concatMap(file =>
-          this.uploads.upload(file, this.containerName(), this.directoryId()).pipe(
-            tap(uploaded => {
-              this.cleanup?.uploaded(uploaded);
-              const next = new Map(this.multiple() ? this.selection() : []);
-              next.set(uploaded.id, uploaded);
-              this.selection.set(next);
-            }),
-            catchError(() => {
-              failed++;
-              return EMPTY;
-            }),
-          ),
-        ),
         finalize(() => {
           this.uploading.set(false);
-          if (failed > 0) {
-            this.toaster.error('Site::Files:UploadFailed', '', { messageLocalizationParams: [String(failed), String(files.length)] });
-          }
           this.skip.set(0);
           this.loadFiles();
         }),
       )
-      .subscribe();
+      .subscribe(uploaded => {
+        this.cleanup?.uploaded(uploaded);
+        const next = new Map(this.multiple() ? this.selection() : []);
+        next.set(uploaded.id, uploaded);
+        this.selection.set(next);
+      });
   }
 
   private open(): void {

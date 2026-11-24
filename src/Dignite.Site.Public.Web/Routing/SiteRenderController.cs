@@ -16,6 +16,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Volo.Abp.AspNetCore.Mvc;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Routing;
 
@@ -100,8 +101,8 @@ public class SiteRenderController : AbpController
 
         SiteRenderViewModel? viewModel = match.Kind switch
         {
-            RouteMatchKindDto.Page => BuildPageViewModel(match, headMetadata, currentPage),
-            RouteMatchKindDto.ContentOfPage or RouteMatchKindDto.Content
+            RouteMatchKind.Page => BuildPageViewModel(match, headMetadata, currentPage),
+            RouteMatchKind.ContentOfPage or RouteMatchKind.Content
                 => await BuildContentViewModelAsync(match, headMetadata, currentPage),
             _ => null
         };
@@ -125,7 +126,7 @@ public class SiteRenderController : AbpController
 
         languageContext.HeadMetadata = headMetadata;
 
-        // One required template for every RouteMatchKindDto - the template itself branches on whether
+        // One required template for every RouteMatchKind - the template itself branches on whether
         // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). A template
         // at that path in the live release wins; without one, a missing or misconfigured Page.Template throws
         // (standard ASP.NET Core view-not-found) rather than silently degrading - issue #53. Looked up last,

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { RestService } from '@abp/ng.core';
-import { firstValueFrom, of, throwError } from 'rxjs';
+import { ToasterService } from '@abp/ng.theme.shared';
+import { firstValueFrom, lastValueFrom, of, throwError, toArray } from 'rxjs';
 import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import { SiteFileUploadService } from './site-file-upload.service';
 
@@ -17,13 +18,15 @@ describe('SiteFileUploadService', () => {
       ...overrides,
     };
     const request = vi.fn().mockReturnValue(of({ id: 'f1', isPending: true }));
+    const toaster = { error: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         { provide: FileAdminService, useValue: files },
         { provide: RestService, useValue: { request } },
+        { provide: ToasterService, useValue: toaster },
       ],
     });
-    return { files, request, service: TestBed.inject(SiteFileUploadService) };
+    return { files, request, toaster, service: TestBed.inject(SiteFileUploadService) };
   }
 
   it('asks for a ticket, posts the file to its address, confirms it and returns the stored file', async () => {
@@ -64,5 +67,32 @@ describe('SiteFileUploadService', () => {
     await expect(firstValueFrom(service.upload(new File(['x'], 'photo.jpg'), 'images'))).rejects.toThrow('too large');
 
     expect(files.confirm).not.toHaveBeenCalled();
+  });
+
+  describe('uploadAll', () => {
+    it('leaves out a file the container refuses, and says why', async () => {
+      const { files, toaster, service } = setUp();
+
+      const stored = await lastValueFrom(
+        service.uploadAll([new File(['x'], 'notes.exe'), new File(['x'], 'photo.jpg')], 'images', { allowedFileExtensions: ['.jpg'] }).pipe(toArray()),
+      );
+
+      expect(stored.map(file => file.id)).toEqual(['f1']);
+      expect(files.createUploadTicket).toHaveBeenCalledTimes(1);
+      expect(toaster.error).toHaveBeenCalledWith('Site::Files:FileTypeNotAllowed', '', expect.anything());
+    });
+
+    it('goes on past a file that fails, and counts the failures once at the end', async () => {
+      const { request, toaster, service } = setUp();
+      request.mockReturnValueOnce(throwError(() => new Error('too large'))).mockReturnValue(of({}));
+
+      const stored = await lastValueFrom(
+        service.uploadAll([new File(['x'], 'a.jpg'), new File(['x'], 'b.jpg')], 'images', null).pipe(toArray()),
+      );
+
+      expect(stored).toHaveLength(1);
+      expect(toaster.error).toHaveBeenCalledTimes(1);
+      expect(toaster.error).toHaveBeenCalledWith('Site::Files:UploadFailed', '', { messageLocalizationParams: ['1', '2'] });
+    });
   });
 });

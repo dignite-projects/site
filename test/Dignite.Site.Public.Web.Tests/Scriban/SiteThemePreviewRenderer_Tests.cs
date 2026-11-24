@@ -13,6 +13,7 @@ using Shouldly;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Xunit;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Scriban;
 
@@ -29,7 +30,7 @@ public class SiteThemePreviewRenderer_Tests
     private static RouteMatchDto PageMatch(string template = "Default") => new()
     {
         Matched = true,
-        Kind = RouteMatchKindDto.Page,
+        Kind = RouteMatchKind.Page,
         CultureName = "ja",
         DefaultCultureName = "en",
         EnabledCultureNames = new List<string> { "en", "ja" },

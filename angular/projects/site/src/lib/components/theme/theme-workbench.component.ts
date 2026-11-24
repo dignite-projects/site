@@ -32,7 +32,7 @@ import type {
   SiteThemeSyntaxErrorDto,
 } from '../../proxy/dignite/site/admin/themes/models';
 import { SiteThemeRenderScope } from '../../proxy/dignite/site/admin/themes/site-theme-render-scope.enum';
-import { SiteThemeUsageKindDto } from '../../proxy/dignite/site/admin/themes/site-theme-usage-kind-dto.enum';
+import { SiteThemeUsageKind } from '../../proxy/dignite/site/themes/site-theme-usage-kind.enum';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { SiteThemeIssueSeverity } from '../../proxy/dignite/site/themes/site-theme-issue-severity.enum';
 import { eSitePolicyNames } from '../../enums/policy-names';
@@ -837,7 +837,7 @@ export class ThemeWorkbenchComponent implements OnInit {
 
   deleteFile(path: string): void {
     this.themeService.getFileUsages(path).subscribe(usages => {
-      const users = describeUsages(usages, kind => this.localization.instant('Site::ThemeUsage:' + SiteThemeUsageKindDto[kind]));
+      const users = describeUsages(usages, kind => this.localization.instant('Site::ThemeUsage:' + SiteThemeUsageKind[kind]));
       const confirm$ = users
         ? this.confirmation.warn('Site::DeleteThemeFileUsedConfirm', 'AbpUi::AreYouSure', {
             messageLocalizationParams: [path, users],
@@ -1146,7 +1146,7 @@ function toOpenFile(file: SiteThemeFileDto): ThemeOpenFile {
 /** Who uses a file, in words: `Events (include), about (page)`; empty when nothing does. */
 export function describeUsages(
   usages: SiteThemeFileUsagesDto,
-  kindName: (kind: SiteThemeUsageKindDto) => string,
+  kindName: (kind: SiteThemeUsageKind) => string,
 ): string {
   return (usages.usages ?? [])
     .map(usage => `${usage.pageName ?? usage.sourcePath ?? ''} (${kindName(usage.kind)})`.trim())

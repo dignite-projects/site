@@ -1,6 +1,6 @@
 import { mapEnumToOptions } from '@abp/ng.core';
 
-export enum SiteThemeUsageKindDto {
+export enum SiteThemeUsageKind {
   Page = 0,
   Include = 1,
   AssetUrl = 2,
@@ -8,4 +8,4 @@ export enum SiteThemeUsageKindDto {
   DefaultLayout = 4,
 }
 
-export const siteThemeUsageKindDtoOptions = mapEnumToOptions(SiteThemeUsageKindDto);
+export const siteThemeUsageKindOptions = mapEnumToOptions(SiteThemeUsageKind);

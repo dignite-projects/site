@@ -1,7 +1,9 @@
 import { RestService } from '@abp/ng.core';
+import { ToasterService } from '@abp/ng.theme.shared';
 import { Injectable, inject } from '@angular/core';
-import { map, Observable, switchMap } from 'rxjs';
+import { catchError, concatMap, EMPTY, finalize, from, map, Observable, switchMap } from 'rxjs';
 import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
+import { refuseFile, SiteFileLimits } from './site-file-limits';
 import { SiteStoredFile, toStoredFile } from './site-stored-file';
 
 /** The ABP API name of Blob Management in the environment's `apis`, as Blob Management's own UI uses it. */
@@ -20,6 +22,7 @@ export const BLOB_MANAGEMENT_API_NAME = 'BlobManagement';
 export class SiteFileUploadService {
   private readonly files = inject(FileAdminService);
   private readonly rest = inject(RestService);
+  private readonly toaster = inject(ToasterService);
 
   /**
    * The stored form of the file once it is kept: its id, its name and type as stored, and Site's address of it. It is
@@ -41,6 +44,45 @@ export class SiteFileUploadService {
       }),
       switchMap(id => this.files.confirm(id)),
       map(toStoredFile),
+    );
+  }
+
+  /**
+   * Uploads `files` one after another, leaving out - each with a toast saying why - those a container with `limits` would
+   * refuse. A file that fails does not stop the others: ABP's error handler has shown each failure, and one toast counts
+   * them at the end. Emits each file as soon as it is kept.
+   */
+  uploadAll(
+    files: readonly File[],
+    containerName: string,
+    limits: SiteFileLimits | null | undefined,
+    directoryId?: string | null,
+  ): Observable<SiteStoredFile> {
+    const accepted = files.filter(file => {
+      const refusal = refuseFile(file, limits);
+      if (refusal) {
+        this.toaster.error(refusal.key, '', { messageLocalizationParams: refusal.params });
+      }
+      return !refusal;
+    });
+
+    let failed = 0;
+    return from(accepted).pipe(
+      concatMap(file =>
+        this.upload(file, containerName, directoryId).pipe(
+          catchError(() => {
+            failed++;
+            return EMPTY;
+          }),
+        ),
+      ),
+      finalize(() => {
+        if (failed > 0) {
+          this.toaster.error('Site::Files:UploadFailed', '', {
+            messageLocalizationParams: [String(failed), String(accepted.length)],
+          });
+        }
+      }),
     );
   }
 }
