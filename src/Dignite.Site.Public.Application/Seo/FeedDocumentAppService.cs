@@ -77,7 +77,7 @@ public class FeedDocumentAppService : SitePublicAppService, IFeedDocumentAppServ
         // includeDetails: true - FeedSource resolves title/summary through ContentSummaryResolver, which
         // needs this page's content types and would otherwise have to re-query them itself.
         var page = await PageRepository.FindByPathAsync(Page.NormalizeRoute(pagePath), includeDetails: true);
-        if (page is not { IsActive: true })
+        if (page == null)
         {
             return null;
         }

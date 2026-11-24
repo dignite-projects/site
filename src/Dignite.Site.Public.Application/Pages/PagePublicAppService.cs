@@ -29,7 +29,7 @@ public class PagePublicAppService : SitePublicAppService, IPagePublicAppService
     {
         var page = await PageRepository.FindByPathAsync(route, includeDetails: true);
 
-        if (page == null || !page.IsActive)
+        if (page == null)
         {
             throw new EntityNotFoundException(typeof(Page));
         }

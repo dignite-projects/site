@@ -59,13 +59,11 @@ public class LlmsTxtBuilder : DomainService
             .OrderBy(p => p.Route, StringComparer.Ordinal)
             .ToList();
 
-        // "/" is a literal prefix of every other possible home route ("/{slug?}", "/{category}/{slug?}",
-        // ...), so it always sorts first in this already Route-ordinal-sorted list - the same "literal
-        // beats template" winner FindHomePageAsync computes explicitly falls out here for free.
-        // Deliberately not FindHomePageAsync itself: it also considers an inactive page, and pages here is
-        // already active-only (GetRoutableListAsync) - an inactive home page should fall back to the
-        // tenant name below, not lend this document its own DisplayName.
-        var homePage = pages.FirstOrDefault(p => p.IsHomeRoute());
+        // The page FindHomePageAsync would return, picked from the list already in hand.
+        var homePage = pages
+            .Where(p => p.IsHomeRoute())
+            .OrderBy(p => p.Route, PageRoute.AddressPrecedence)
+            .FirstOrDefault();
 
         var builder = new StringBuilder();
         builder.AppendLine($"# {homePage?.DisplayName ?? CurrentTenant.Name ?? "Site"}");

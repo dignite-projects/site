@@ -744,6 +744,23 @@ public static class PageRoute
     public static bool IsTemplate(string route) => route.IndexOf('{') >= 0;
 
     /// <summary>
+    /// Orders routes that share one address (<see cref="GetPath"/>) by which of them owns it: a literal route
+    /// first (<see cref="IsTemplate"/>), then a template with no slug, which has nothing deeper to go to and so
+    /// is already a complete address, then the route text, ordinally, so the order is stable. Every place that
+    /// picks one page for an address sorts by this, so they all pick the same one.
+    /// </summary>
+    public static IComparer<string> AddressPrecedence { get; } = Comparer<string>.Create((x, y) =>
+    {
+        var order = IsTemplate(x).CompareTo(IsTemplate(y));
+        if (order == 0)
+        {
+            order = HasSlug(x).CompareTo(HasSlug(y));
+        }
+
+        return order != 0 ? order : string.CompareOrdinal(x, y);
+    });
+
+    /// <summary>
     /// Whether <paramref name="route"/> carries a <c>{slug}</c>, <c>{slug?}</c> or <c>{slug:REGEX}</c> -
     /// whether the page has content beneath it.
     /// </summary>

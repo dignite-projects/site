@@ -11,10 +11,11 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
     Task<Page?> FindByNameAsync(string name, bool includeDetails = false, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Finds the page whose own address (<see cref="Page.GetPath"/>) is exactly <paramref name="path"/> -
+    /// Finds the active page whose own address (<see cref="Page.GetPath"/>) is exactly <paramref name="path"/> -
     /// step 1 of route resolution (总体设计 §3.4). Not a literal match against <see cref="Page.Route"/>:
     /// that may be a template (<c>/blog/{slug}</c>), whose own address (<c>/blog</c>) is a derived,
-    /// shorter string.
+    /// shorter string. When several share the address, <see cref="PageRoute.AddressPrecedence"/> picks the
+    /// one route resolution serves there.
     /// </summary>
     Task<Page?> FindByPathAsync(string path, bool includeDetails = false, CancellationToken cancellationToken = default);
 
@@ -29,10 +30,10 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
     Task<bool> NameExistsAsync(string name, Guid? excludedId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Finds the site's home page - the one with a home route (<see cref="PageRoute.IsHomeRoute"/>), not a
-    /// stored flag. More than one page can derive that
+    /// Finds the site's home page - the active page with a home route (<see cref="PageRoute.IsHomeRoute"/>),
+    /// not a stored flag. More than one page can derive that
     /// address at once - a literal <c>/</c> and a template like <c>/{slug?}</c> both can - and that is not
-    /// a conflict any more than it is for <see cref="FindByPathAsync"/>'s address: the same tie-break
+    /// a conflict any more than it is for <see cref="FindByPathAsync"/>'s address: the same precedence
     /// applies here too, so this always returns at most one page.
     /// </summary>
     Task<Page?> FindHomePageAsync(bool includeDetails = false, CancellationToken cancellationToken = default);

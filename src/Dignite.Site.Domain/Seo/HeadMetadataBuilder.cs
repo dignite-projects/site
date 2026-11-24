@@ -285,7 +285,7 @@ public class HeadMetadataBuilder : DomainService
         if (!chain[0].IsHomeRoute())
         {
             var home = await PageRepository.FindHomePageAsync(includeDetails: false, cancellationToken);
-            if (home != null && home.IsActive && !seen.Contains(home.Id))
+            if (home != null && !seen.Contains(home.Id))
             {
                 chain.Insert(0, home);
             }

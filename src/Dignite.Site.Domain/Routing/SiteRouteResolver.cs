@@ -173,9 +173,7 @@ public class SiteRouteResolver : DomainService
 
             var candidates = routablePages
                 .Where(p => PageRoute.GetPath(p.Route) == prefix)
-                .OrderBy(p => PageRoute.IsTemplate(p.Route) ? 1 : 0)
-                .ThenBy(p => PageRoute.HasSlug(p.Route) ? 1 : 0)
-                .ThenBy(p => p.Route, StringComparer.Ordinal)
+                .OrderBy(p => p.Route, PageRoute.AddressPrecedence)
                 .ToList();
 
             // Tier 3 (ResolveAgainstPageAsync's own truncated-match attempt) is only ever offered to a

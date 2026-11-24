@@ -107,6 +107,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only in the repository's own development host, so another host failed with `Site:050001` until every site had a primary
   domain. `Dignite.Site.Public.Web` now supplies it through `ISiteRequestBaseUrlAccessor`, which
   `SettingSiteBaseUrlResolver` reads when the setting is empty or malformed.
+- **The page API and the feeds pick the page that an address renders.** When several pages share an address, finding a
+  page by its address (`IPageRepository.FindByPathAsync`, `FindHomePageAsync`) preferred a different one from route
+  resolution, which also prefers a template without a slug, and could return an inactive page that hid an active one.
+  Both now look at active pages only and order them by `PageRoute.AddressPrecedence`, as route resolution does.
 - **Images uploaded into a CKEditor field, and files uploaded in an edit that is never saved, are no longer left behind.**
   The content editor deleted an upload that the saved form no longer holds only for the file inputs, and only after a
   save: an image inserted into a CKEditor field was never tracked, and nothing ran when the editor was left without
