@@ -43,6 +43,16 @@ public class ContentPublicAppService_Tests : SiteEntityFrameworkCoreTestBase
         content.Url.ShouldBe($"/blog/{SiteTestData.TripSlug}");
     }
 
+    /// <summary>A culture is matched however the caller spells it, as the administration lookup does.</summary>
+    [Fact]
+    public async Task Should_Resolve_A_Content_By_Slug_Whatever_The_Cultures_Casing()
+    {
+        var content = await _contentPublicAppService.GetBySlugAsync(
+            SiteTestData.BlogPageId, SiteTestData.EnglishCulture.ToUpperInvariant(), SiteTestData.TripSlug);
+
+        content.Slug.ShouldBe(SiteTestData.TripSlug);
+    }
+
     [Fact]
     public async Task Should_Not_Expose_A_Draft_Content_By_Id_Or_Slug()
     {

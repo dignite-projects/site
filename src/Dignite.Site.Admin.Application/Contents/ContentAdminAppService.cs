@@ -61,18 +61,7 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
                 });
         }
 
-        // TryNormalize, not Normalize: the strict form throws on anything CultureInfo does not recognize,
-        // and this is a "find or null" lookup - a culture this site could never have stored is a miss, not
-        // a server error. The normalizer itself is the same one the write path runs
-        // (ContentManager.CreateAsync), applied to the address rather than to the value being stored, so
-        // the address matches what was actually persisted. That is not the "second normalization point"
-        // 总体设计 §2.4 warns about: that is about two places deciding what to *store*.
-        if (!CultureNameNormalizer.TryNormalize(cultureName, out var normalizedCulture))
-        {
-            return null;
-        }
-
-        var content = await ContentRepository.FindBySlugAsync(pageId, normalizedCulture, slug);
+        var content = await ContentRepository.FindBySlugAsync(pageId, cultureName, slug);
 
         return content == null ? null : await MapToDtoAsync(content);
     }

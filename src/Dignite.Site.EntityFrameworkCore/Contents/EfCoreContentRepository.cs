@@ -32,9 +32,16 @@ public class EfCoreContentRepository : EfCoreRepository<ISiteDbContext, Content,
         string slug,
         CancellationToken cancellationToken = default)
     {
+        // Normalized here, as the list queries below are: an address may spell the culture as "zh-hans",
+        // the row stores "zh-Hans", and a culture no CultureInfo recognizes is a miss, not an error.
+        if (!CultureNameNormalizer.TryNormalize(cultureName, out var normalizedCulture))
+        {
+            return null;
+        }
+
         return await (await GetDbSetAsync())
             .FirstOrDefaultAsync(
-                c => c.PageId == pageId && c.CultureName == cultureName && c.Slug == slug,
+                c => c.PageId == pageId && c.CultureName == normalizedCulture && c.Slug == slug,
                 GetCancellationToken(cancellationToken));
     }
 
