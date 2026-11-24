@@ -91,7 +91,22 @@ nothing in Site changes. Not tried end to end yet. What reading the code turned 
   limits from, and keeping a copy of the presets in Site's host would drift from Blob Management's. Appwrite's server SDK
   reads a bucket's `maximumFileSize` and `allowedFileExtensions` with an API key (`getBucket`), and Supabase's `getBucket`
   returns `file_size_limit` and `allowed_mime_types`. So the fix was Blob Management's: one container's limits for any
-  authenticated caller, a client's `access` being none (abp-modules#418, in 10.7.7-preview.3, which Site depends on).
+  authenticated caller, a client's `access` being none (abp-modules#418, in 10.7.7-preview.3; Site depends on 10.7.7-preview.6).
+- Since 10.7.7-preview.4 the BLOB and file APIs a back end calls are ABP integration services
+  (`IBlobManagementBlobIntegrationService`, `IBlobManagementFileIntegrationService`, at `integration-api/blob-management/`),
+  hidden unless the service sets `ExposeIntegrationServices`; `IBlobManagementFileService` and `IBlobManagementBlobService`
+  are the contracts that code injects, and the in-process or remote implementation behind them is the host's choice. The
+  user's own reads (`IBlobManagementFileAppService`, `api/blob-management/files`) are not what Site calls. Site in process
+  uses neither API.
+- Since 10.7.7-preview.6 `IBlobManagementFileService.DeleteAsync(id)` soft-deletes a file kept by id and keeps its bytes,
+  so that a business system can restore the record that refers to the file (`RestoreAsync`); `permanently: true` deletes it
+  for good. `FileAdminAppService.DeleteAsync` passes it: Site has no restore, and it is reached only by `DELETE
+  api/site-admin/files/{id}` - which the admin UI calls from `SiteUploadCleanup` alone, there is no delete button - and by
+  the MCP tool `site_delete_file`, which says it deletes for good. A soft-deleted file would keep counting against the
+  allocation with nobody able to delete it for good, since `GetAsync` no longer finds it. Deleting a content or a page
+  deletes none of its files. A Site that restores deleted files, or deletes a content's files with the content, would
+  pass `false` there and add a restore. A ticket stores one file also
+  while that file is soft-deleted; after a delete for good the ticket can store another within its lifetime.
 - The admin UI calls Blob Management's container and directory APIs itself, with the user's token (the file picker), so
   its token has to be one Blob Management accepts: `oAuthConfig.scope` names Blob Management's scope beside Site's.
 - A site served by an application of its own (`Dignite.Site.Public.Web` with Site's data remote) answers neither

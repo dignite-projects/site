@@ -152,7 +152,10 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
             throw new AbpAuthorizationException();
         }
 
-        await BlobManagementFileService.DeleteAsync(id);
+        // Blob Management soft-deletes by default and keeps the bytes, for a business system that restores the record
+        // referring to the file. Site has no restore and every delete here is the user's (or the cleanup of an upload
+        // no saved form holds), so the file goes for good and its bytes stop counting against the allocation.
+        await BlobManagementFileService.DeleteAsync(id, permanently: true);
     }
 
     /// <summary>

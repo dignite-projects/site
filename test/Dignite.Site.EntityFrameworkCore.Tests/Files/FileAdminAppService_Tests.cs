@@ -3,13 +3,16 @@ using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Dignite.Abp.BlobManagement;
 using Dignite.Abp.BlobManagement.Files;
 using Dignite.Abp.BlobManagement.Uploads;
 using Dignite.Site.Admin.Files;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Abp.BlobManagement.Public;
 using Shouldly;
+using Volo.Abp;
 using Volo.Abp.Content;
+using Volo.Abp.Data;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Security.Claims;
 using Xunit;
@@ -134,6 +137,24 @@ public class FileAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         await Should.ThrowAsync<EntityNotFoundException>(() => _publicFiles.ReadAsync(
             SiteFileContainerNames.Attachments, BlobNameOf(file.Url!), new BlobManagementPublicReadInput(), new BlobManagementPublicReadRequest()));
+    }
+
+    [Fact]
+    public async Task A_Deleted_File_Is_Deleted_For_Good_Not_Soft_Deleted()
+    {
+        var file = await UploadAndConfirmAsync(SiteFileContainerNames.Attachments, "for-good.pdf", TestFiles.Pdf("for good"));
+
+        await AsEditorAsync(() => _files.DeleteAsync(file.Id));
+
+        // Blob Management's default keeps a soft-deleted file's row and bytes; Site has no restore, so none is left.
+        var remaining = await WithUnitOfWorkAsync(async () =>
+        {
+            using (GetRequiredService<IDataFilter<ISoftDelete>>().Disable())
+            {
+                return await GetRequiredService<IFileDescriptorRepository>().FindAsync(file.Id);
+            }
+        });
+        remaining.ShouldBeNull();
     }
 
     [Fact]

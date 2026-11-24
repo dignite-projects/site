@@ -51,7 +51,7 @@ public class FileField_Tests : SiteEntityFrameworkCoreTestBase
 
             using var stream = new MemoryStream(TestFiles.Pdf("issue #42 attachment"));
             var file = await _files.SetPublicAsync(
-                await _files.UploadAsync(SiteFileContainerNames.Attachments, "notes.pdf", stream), true);
+                await _files.CreateFileAsync(SiteFileContainerNames.Attachments, "notes.pdf", stream), true);
 
             var value = new List<FileReference> { FileReference.From(file) };
 

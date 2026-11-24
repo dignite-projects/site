@@ -77,10 +77,6 @@ namespace Dignite.Site.Host.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("NameKey")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 
@@ -97,9 +93,6 @@ namespace Dignite.Site.Host.Migrations
                         .HasColumnName("TenantId");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("NameKey")
-                        .IsUnique();
 
                     b.HasIndex("ParentId");
 
@@ -161,8 +154,7 @@ namespace Dignite.Site.Host.Migrations
                         .HasColumnName("ExtraProperties");
 
                     b.Property<string>("Hash")
-                        .IsRequired()
-                        .HasMaxLength(64)
+                        .HasMaxLength(44)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsDeleted")
@@ -215,9 +207,9 @@ namespace Dignite.Site.Host.Migrations
 
                     b.HasIndex("TenantId", "ContainerName", "BlobName");
 
-                    b.HasIndex("TenantId", "ContainerName", "DirectoryId");
+                    b.HasIndex("TenantId", "IsPending", "CreationTime");
 
-                    b.HasIndex("TenantId", "ContainerName", "Name");
+                    b.HasIndex("TenantId", "ContainerName", "DirectoryId", "Name");
 
                     b.ToTable("BlobFileDescriptors", (string)null);
                 });
