@@ -250,6 +250,7 @@
     "ThemeFileSaved": "Saved. The site changes when you publish.",
     "ThemeFileReloaded": "Loaded the saved version of '{0}'.",
     "CloseUnsavedConfirm": "'{0}' has unsaved changes. Close it anyway?",
+    "LeaveThemeConfirm": "Some theme files have changes that are not saved, and they are lost if you leave. Leave anyway?",
     "SaveConflictConfirm": "Someone else saved '{0}' after you opened it. Overwrite their version with yours, or load theirs?",
     "Overwrite": "Overwrite",
     "ReloadFile": "Load theirs",

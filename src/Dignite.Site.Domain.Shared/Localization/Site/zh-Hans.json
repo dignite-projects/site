@@ -250,6 +250,7 @@
     "ThemeFileSaved": "已保存。发布后站点才会变化。",
     "ThemeFileReloaded": "已载入“{0}”已保存的版本。",
     "CloseUnsavedConfirm": "“{0}”有未保存的改动，仍要关闭吗？",
+    "LeaveThemeConfirm": "有主题文件的改动尚未保存，离开后这些改动会丢失。仍要离开吗？",
     "SaveConflictConfirm": "你打开“{0}”之后，别人保存过它。用你的版本覆盖，还是载入对方的版本？",
     "Overwrite": "覆盖",
     "ReloadFile": "载入对方的",

@@ -13,7 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, Observable } from 'rxjs';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
@@ -452,7 +452,18 @@ export class ThemeWorkbenchComponent implements OnInit {
     }
   }
 
-  /** Asks before leaving the page while a file has unsaved changes. */
+  /** Whether the page may be left now, for the route's `canDeactivate`: at once unless a file has unsaved changes, which leaving loses. */
+  canLeave(): boolean | Observable<boolean> {
+    if (!this.hasUnsavedFiles()) {
+      return true;
+    }
+
+    return this.confirmation
+      .warn('Site::LeaveThemeConfirm', 'AbpUi::AreYouSure')
+      .pipe(map(status => status === Confirmation.Status.confirm));
+  }
+
+  /** The browser's own confirmation when the tab is closed or the page reloaded. */
   @HostListener('window:beforeunload', ['$event'])
   onBeforeUnload(event: BeforeUnloadEvent): void {
     if (this.hasUnsavedFiles()) {

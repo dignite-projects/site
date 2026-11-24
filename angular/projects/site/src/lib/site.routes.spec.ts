@@ -5,7 +5,9 @@ import { SITE_ROUTES } from './site.routes';
 describe('SITE_ROUTES', () => {
   const children: Route[] = SITE_ROUTES[0].children ?? [];
 
-  it.each(['contents/create', 'contents/:id/edit'])('asks the content editor before %s is left', path => {
+  const confirming = ['contents/create', 'contents/:id/edit', 'theme'];
+
+  it.each(confirming)('asks the page before %s is left', path => {
     const guards = children.find(route => route.path === path)?.canDeactivate ?? [];
     expect(guards).toHaveLength(1);
 
@@ -25,7 +27,7 @@ describe('SITE_ROUTES', () => {
   });
 
   it('puts no such guard on the other pages', () => {
-    const others = children.filter(route => route.path !== 'contents/create' && route.path !== 'contents/:id/edit');
+    const others = children.filter(route => !confirming.includes(route.path ?? ''));
 
     expect(others.some(route => route.canDeactivate?.length)).toBe(false);
   });

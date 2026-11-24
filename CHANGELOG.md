@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The theme workbench asks before it is left with a file that is not saved.** Going to another page of the admin UI
+  opens a confirmation, `LeaveThemeConfirm` of the `Site` resource; closing the tab or reloading asked already.
 - **The content editor asks before it is left with something unsaved.** Leaving with changes to the form, or with files
   the edit uploaded, opens a confirmation that has to be answered, and says that the uploaded files are deleted when there
   are any; the browser asks too when the tab is closed or the page reloaded. Saving, or leaving an untouched editor,
