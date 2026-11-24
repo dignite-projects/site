@@ -32,7 +32,7 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
         bool includeDetails = false,
         CancellationToken cancellationToken = default)
     {
-        var normalized = Page.NormalizeRoute(path);
+        var normalized = PageRoute.Normalize(path);
 
         // A page's route may be a template (/blog/{slug}) whose own address (/blog) is a shorter, derived
         // string - so a literal Route match alone would miss it. The SQL side is a coarse net (anything
@@ -61,7 +61,7 @@ public class EfCorePageRepository : EfCoreRepository<ISiteDbContext, Page, Guid>
         Guid? excludedId = null,
         CancellationToken cancellationToken = default)
     {
-        var normalized = Page.NormalizeRoute(route);
+        var normalized = PageRoute.Normalize(route);
 
         // A literal string duplicate, nothing more - /blog and /blog/{slug} are different strings that
         // may both derive the same own address (see FindByPathAsync), and that is not a conflict: only

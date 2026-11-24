@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: `Page.NormalizeRoute` and `PageRoute.SupportedPlaceholders` are gone.** `Page.NormalizeRoute` only called
+  `PageRoute.Normalize`, which every caller now uses, and nothing read `SupportedPlaceholders`. The key a route capture
+  is stored under in `RouteMatchDto.FilterValues`, `name` or `name:FORMAT`, is read back with the new
+  `PageRoute.ParseCaptureKey`.
 - **Breaking: Site's files are kept in Dignite Blob Management; Site's own file library is gone.** The images and
   attachments of contents, the share images and the files a theme links are stored in Blob Management, which the host
   installs (Application, HttpApi and Entity Framework Core), with `images`, `attachments` and `theme-assets` declared in

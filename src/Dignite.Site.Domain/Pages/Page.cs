@@ -123,7 +123,7 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// </summary>
     public virtual void SetRoute(string route)
     {
-        var normalized = NormalizeRoute(route);
+        var normalized = PageRoute.Normalize(route);
 
         if (!Regex.IsMatch(normalized, PageConsts.RoutePattern))
         {
@@ -170,15 +170,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public virtual void SetIsActive(bool isActive)
     {
         IsActive = isActive;
-    }
-
-    /// <summary>
-    /// The canonical stored form of a route: exactly one leading slash, no trailing slash, except for
-    /// the site root which stays <c>/</c> - see <see cref="PageRoute.Normalize"/>.
-    /// </summary>
-    public static string NormalizeRoute(string route)
-    {
-        return PageRoute.Normalize(route);
     }
 
     /// <summary>

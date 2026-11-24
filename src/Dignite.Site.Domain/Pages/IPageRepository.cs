@@ -20,10 +20,9 @@ public interface IPageRepository : IBasicRepository<Page, Guid>
     Task<Page?> FindByPathAsync(string path, bool includeDetails = false, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Whether any page's own address (<see cref="Page.GetPath"/>) would collide with
-    /// <paramref name="route"/>'s. Not a literal <see cref="Page.Route"/> comparison: <c>/blog</c> and
-    /// <c>/blog/{slug}</c> are different strings that both claim the address <c>/blog</c>, and only one
-    /// page may.
+    /// Whether another page already has exactly this route. Routes that only share an address
+    /// (<c>/blog</c> and <c>/blog/{slug}</c>) do not collide: <see cref="PageRoute.AddressPrecedence"/>
+    /// decides which of them owns it.
     /// </summary>
     Task<bool> RouteExistsAsync(string route, Guid? excludedId = null, CancellationToken cancellationToken = default);
 

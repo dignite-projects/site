@@ -114,7 +114,7 @@ public class PageTools_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// Page.NormalizeRoute prepends the leading slash a model might omit, and PageManager checks
+    /// PageRoute.Normalize prepends the leading slash a model might omit, and PageManager checks
     /// uniqueness against that normalized form - so "about" (no leading slash) has to collide with the
     /// already-seeded "/about" exactly as if it had been spelled the same way, not slip through as a
     /// distinct route. Deliberately picked over "blog": the seeded blog page's route is the template

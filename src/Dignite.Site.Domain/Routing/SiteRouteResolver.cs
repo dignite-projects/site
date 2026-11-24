@@ -138,11 +138,11 @@ public class SiteRouteResolver : DomainService
             return RouteMatch.None;
         }
 
-        var normalizedPath = Page.NormalizeRoute(path ?? "/");
+        var normalizedPath = PageRoute.Normalize(path ?? "/");
         var segments = SplitSegments(normalizedPath);
 
         // An internal empty segment only comes from a doubled "/" ("/blog//2026-08"). Left alone, a
-        // prefix built from it (e.g. "/blog/") would round-trip through Page.NormalizeRoute's own
+        // prefix built from it (e.g. "/blog/") would round-trip through PageRoute.Normalize's own
         // Trim('/') back down to a shorter, clean-looking address ("/blog") that silently matches - the
         // malformed path would then resolve identically to a genuinely clean one. Rejecting it outright
         // here is simpler than trying to make every downstream comparison tolerate it.

@@ -50,7 +50,7 @@ public class FeedDocumentAppService : SitePublicAppService, IFeedDocumentAppServ
 
         // What remains is the page's address as a visitor sees it - language prefix included - so it is
         // taken apart by the same context that assembles it in BuildFeedUrl.
-        var remainder = visitorPath.Length == 0 ? "/" : Page.NormalizeRoute(visitorPath);
+        var remainder = visitorPath.Length == 0 ? "/" : PageRoute.Normalize(visitorPath);
 
         // Both out values are meaningful either way: no prefix means the default language and the path
         // unchanged, which is exactly what an unprefixed URL asks for.
@@ -76,7 +76,7 @@ public class FeedDocumentAppService : SitePublicAppService, IFeedDocumentAppServ
 
         // includeDetails: true - FeedSource resolves title/summary through ContentSummaryResolver, which
         // needs this page's content types and would otherwise have to re-query them itself.
-        var page = await PageRepository.FindByPathAsync(Page.NormalizeRoute(pagePath), includeDetails: true);
+        var page = await PageRepository.FindByPathAsync(pagePath, includeDetails: true);
         if (page == null)
         {
             return null;

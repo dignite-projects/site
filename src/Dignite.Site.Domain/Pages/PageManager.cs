@@ -85,15 +85,8 @@ public class PageManager : DomainService
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
     {
-        var normalizedRoute = Page.NormalizeRoute(route);
+        var normalizedRoute = PageRoute.Normalize(route);
         var effectiveParentId = NormalizeParent(normalizedRoute, parentId);
-
-        // Checked before the database round trips below - a malformed route is cheap to catch and does
-        // not need a uniqueness query to have already run first.
-        if (!PageRoute.IsValid(normalizedRoute))
-        {
-            throw new InvalidPageRouteException(normalizedRoute);
-        }
 
         await CheckNameAsync(name, null, cancellationToken);
         await CheckRouteAsync(normalizedRoute, null, cancellationToken);
@@ -122,7 +115,7 @@ public class PageManager : DomainService
         Guid? parentId = null,
         CancellationToken cancellationToken = default)
     {
-        var normalizedRoute = Page.NormalizeRoute(route);
+        var normalizedRoute = PageRoute.Normalize(route);
         // Computed from the new, incoming route - not page.Route - so CheckParentAsync never walks an
         // ancestor chain that is about to be discarded anyway when the page is becoming the home page.
         var effectiveParentId = NormalizeParent(normalizedRoute, parentId);
@@ -135,12 +128,6 @@ public class PageManager : DomainService
 
         if (!string.Equals(page.Route, normalizedRoute, StringComparison.Ordinal))
         {
-            // Checked before the database round trip below, same reasoning as CreateAsync.
-            if (!PageRoute.IsValid(normalizedRoute))
-            {
-                throw new InvalidPageRouteException(normalizedRoute);
-            }
-
             await CheckRouteAsync(normalizedRoute, page.Id, cancellationToken);
             page.SetRoute(normalizedRoute);
         }
