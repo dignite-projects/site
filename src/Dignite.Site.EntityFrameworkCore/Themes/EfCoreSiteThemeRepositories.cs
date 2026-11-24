@@ -134,7 +134,7 @@ public class EfCoreSiteReleaseRepository
             .Select(row => new SiteReleaseFileContent(
                 row.Path,
                 row.ContentHash,
-                includeAssetBodies || SiteThemePaths.IsTemplate(row.Path) || SiteThemeTextFiles.IsTextFile(row.Path) ? row.Body : null))
+                includeAssetBodies || SiteThemePaths.IsTemplate(row.Path) || SiteThemeTextFiles.IsTextFile(row.Path) ? row.Body : string.Empty))
             .OrderBy(row => row.Path, StringComparer.Ordinal)
             .ToList();
     }

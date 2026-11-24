@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { catchError, defer, forkJoin, map, Observable, of } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import { FileAdminService } from '../../proxy/dignite/site/admin/files/file-admin.service';
 import { SiteStoredFile } from './site-stored-file';
 
@@ -57,11 +57,8 @@ export class SiteUploadCleanup {
       return of(undefined);
     }
 
-    // `defer`: a call that throws before it returns an observable fails like one that errors, and is let go the same way.
     return forkJoin(
-      files.map(file =>
-        defer(() => this.fileService.delete(file.id, { skipHandleError: true })).pipe(catchError(() => of(undefined))),
-      ),
+      files.map(file => this.fileService.delete(file.id, { skipHandleError: true }).pipe(catchError(() => of(undefined)))),
     ).pipe(map(() => undefined));
   }
 

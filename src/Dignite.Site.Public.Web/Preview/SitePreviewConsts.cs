@@ -9,12 +9,9 @@ namespace Dignite.Site.Public.Preview;
 public static class SitePreviewConsts
 {
     /// <summary>
-    /// The query parameter of a preview link (<c>/about?site-preview=&lt;token&gt;</c>). The site exchanges it for the
-    /// <see cref="CookieName"/> cookie and redirects to the same address without it.
+    /// The HttpOnly cookie that holds the preview ticket for the rest of the visit, for which the site exchanges a preview
+    /// link's <see cref="SiteThemePreviewConsts.QueryKey"/>.
     /// </summary>
-    public const string QueryKey = SiteThemePreviewConsts.QueryKey;
-
-    /// <summary>The HttpOnly cookie that holds the preview ticket for the rest of the visit.</summary>
     public const string CookieName = "Dignite.Site.Preview";
 
     /// <summary>

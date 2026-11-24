@@ -425,6 +425,8 @@ public static class SiteThemeAnalyzer
                 }
             }
 
+            // The layout a page template, or a language version of one, is rendered in: what its front matter says, else
+            // the default. Only a page template's front matter matters - an included file's or a layout's is ignored.
             foreach (var pageTemplate in _pageTemplates)
             {
                 if (GetEffectiveLayout(pageTemplate) is { } layout && IsTemplate(layout))
@@ -463,9 +465,7 @@ public static class SiteThemeAnalyzer
 
         private void ReadPages(List<SiteThemePageTemplate> pages)
         {
-            foreach (var group in pages
-                         .Where(page => !string.IsNullOrWhiteSpace(page.Template))
-                         .GroupBy(page => SiteThemePaths.Normalize(page.Template), StringComparer.Ordinal))
+            foreach (var group in pages.GroupBy(page => page.Template, StringComparer.Ordinal))
             {
                 var template = group.Key;
                 var pageNames = group.Select(page => page.PageName).OrderBy(name => name, StringComparer.Ordinal).ToList();
@@ -515,16 +515,6 @@ public static class SiteThemeAnalyzer
                 if (file.FrontMatter.Layout is { } layout && layout.Path != SiteThemeConsts.NoLayout)
                 {
                     ReadReference(file, layout);
-                }
-            }
-
-            // The layout a page template is rendered in: what its front matter says, else the default. Only a page
-            // template's front matter matters - an included file's or a layout's is ignored when rendering.
-            foreach (var pageTemplate in _pageTemplates)
-            {
-                if (GetEffectiveLayout(pageTemplate) is { } layout && IsTemplate(layout))
-                {
-                    _layouts.Add(layout);
                 }
             }
         }

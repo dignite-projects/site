@@ -40,14 +40,14 @@ public class ContentTools : ITransientDependency
 
     protected IClock Clock { get; }
 
-    /// <summary>Reads the SEO field's width limits for <see cref="CheckSeoWidthAsync"/>; null uses the defaults.</summary>
-    protected IFieldAdminAppService? FieldAppService { get; }
+    /// <summary>Reads the SEO field's width limits for <see cref="CheckSeoWidthAsync"/>.</summary>
+    protected IFieldAdminAppService FieldAppService { get; }
 
     public ContentTools(
         IContentAdminAppService contentAppService,
         SiteMcpNameResolver nameResolver,
         IClock clock,
-        IFieldAdminAppService? fieldAppService = null)
+        IFieldAdminAppService fieldAppService)
     {
         ContentAppService = contentAppService;
         NameResolver = nameResolver;
@@ -274,10 +274,6 @@ public class ContentTools : ITransientDependency
     {
         var title = SeoTextWidth.DefaultMetaTitleLimit;
         var description = SeoTextWidth.DefaultMetaDescriptionLimit;
-        if (FieldAppService == null)
-        {
-            return (title, description);
-        }
 
         try
         {

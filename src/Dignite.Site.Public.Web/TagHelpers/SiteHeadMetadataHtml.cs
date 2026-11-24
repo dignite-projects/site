@@ -22,37 +22,17 @@ namespace Dignite.Site.Public.TagHelpers;
 public static class SiteHeadMetadataHtml
 {
     /// <summary>
-    /// The tags as HTML, each followed by <see cref="Environment.NewLine"/>.
+    /// The tags as HTML, each followed by <see cref="Environment.NewLine"/>, with what the template adds in
+    /// <paramref name="options"/>.
     /// </summary>
-    /// <param name="metadata">The route's head metadata. Null - no route matched - writes only <paramref name="fallbackDescription"/>.</param>
-    /// <param name="title">The page's own title for <c>og:title</c>; falls back to <see cref="HeadMetadataDto.MetaTitle"/>.</param>
-    /// <param name="fallbackDescription">A template's description, used only when the content has none.</param>
+    /// <param name="metadata">The route's head metadata. Null - no route matched - writes only the options' fallback description.</param>
+    /// <param name="options">What the template adds: the page's own title, a fallback description, and the like.</param>
     /// <param name="currentPage">The 1-based page of a paged list; beyond 1, every address carries <paramref name="pageQueryKey"/>.</param>
     /// <param name="pageQueryKey">The query parameter the host's pager writes the page number to.</param>
     /// <param name="encoder">
     /// Encodes the attribute values - the host's own <see cref="HtmlEncoder"/>, as Razor would use, when the
     /// caller has it; <see cref="HtmlEncoder.Default"/> otherwise.
     /// </param>
-    public static string Build(
-        HeadMetadataDto? metadata,
-        string? title,
-        string? fallbackDescription,
-        int currentPage,
-        string pageQueryKey,
-        HtmlEncoder? encoder = null)
-    {
-        return Build(
-            metadata,
-            new SiteHeadOptions { Title = title, FallbackDescription = fallbackDescription },
-            currentPage,
-            pageQueryKey,
-            encoder);
-    }
-
-    /// <summary>
-    /// The tags as HTML, each followed by <see cref="Environment.NewLine"/>, with what the template adds in
-    /// <paramref name="options"/>.
-    /// </summary>
     public static string Build(
         HeadMetadataDto? metadata,
         SiteHeadOptions options,
@@ -70,20 +50,6 @@ public static class SiteHeadMetadataHtml
         }
 
         return writer.ToString();
-    }
-
-    /// <summary>
-    /// The tags themselves, with the paging of every address left to <paramref name="paged"/> - the form
-    /// <see cref="SiteHeadMetadataTagHelper"/> uses, so its tags are still encoded by the view's own encoder and
-    /// its overridable <c>Paged</c> keeps working.
-    /// </summary>
-    public static IReadOnlyList<TagBuilder> BuildTags(
-        HeadMetadataDto? metadata,
-        string? title,
-        string? fallbackDescription,
-        Func<string, string> paged)
-    {
-        return BuildTags(metadata, new SiteHeadOptions { Title = title, FallbackDescription = fallbackDescription }, paged);
     }
 
     /// <summary>

@@ -43,7 +43,6 @@ public class SitePreviewState_Tests
         var state = host.Preview.CreateState();
 
         state.Ticket.ShouldBeNull();
-        state.IsAvailable.ShouldBeFalse();
         (await state.GetRenderSetAsync()).ShouldBeNull();
         (await state.FindAssetAsync("assets/site.css")).ShouldBeNull();
         state.GetBannerHtml(ActionContext(host)).ShouldBeNull();
@@ -87,19 +86,6 @@ public class SitePreviewState_Tests
             state.Ticket.ShouldNotBeNull();
             (await state.GetRenderSetAsync()).ShouldNotBeNull();
         }
-    }
-
-    [Fact]
-    public async Task Without_A_Source_The_Preview_Should_Be_Off()
-    {
-        var host = new SiteLanguageTestHost("en", "/about");
-        host.Preview.HasSource = false;
-        host.Preview.SetCookie();
-        var state = host.Preview.CreateState();
-
-        state.Ticket.ShouldNotBeNull();
-        state.IsAvailable.ShouldBeFalse();
-        (await state.GetRenderSetAsync()).ShouldBeNull();
     }
 
     [Fact]

@@ -33,10 +33,11 @@ public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppSe
         // which nothing here does.
         var match = await RouteResolver.ResolveAsync(remainingPath, cultureName, includeUnpublished: false);
 
+        // A match with a content always has its page (RouteMatch.ForContent, ForContentOfPage).
         var contentDto = match.Content == null ? null : ObjectMapper.Map<Content, ContentDto>(match.Content);
-        if (contentDto != null && match.Page != null)
+        if (contentDto != null)
         {
-            contentDto.Url = UrlBuilder.BuildContentPath(urlContext, match.Page, match.Content!);
+            contentDto.Url = UrlBuilder.BuildContentPath(urlContext, match.Page!, match.Content!);
         }
 
         return new RouteMatchDto

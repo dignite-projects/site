@@ -17,9 +17,6 @@ public static class SiteThemeSnapshotExtensions
         };
     }
 
-    /// <param name="contents">
-    /// The release's files; an asset read without its body (<c>includeAssetBodies: false</c>) has an empty one.
-    /// </param>
     public static SiteThemeSnapshotDto ToSnapshotDto(this SiteRelease release, IEnumerable<SiteReleaseFileContent> contents)
     {
         return new SiteThemeSnapshotDto
@@ -32,7 +29,7 @@ public static class SiteThemeSnapshotExtensions
                 {
                     Path = content.Path,
                     ContentHash = content.ContentHash,
-                    Body = content.Body ?? string.Empty
+                    Body = content.Body
                 })
                 .ToList()
         };

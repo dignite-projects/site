@@ -16,5 +16,5 @@ internal static class SiteThemeAssets
         new() { Path = file.Path, ContentHash = file.ContentHash, Body = file.Body };
 
     public static SiteThemeAssetDto ToAssetDto(this SiteReleaseFileContent content) =>
-        new() { Path = content.Path, ContentHash = content.ContentHash, Body = content.Body! };
+        new() { Path = content.Path, ContentHash = content.ContentHash, Body = content.Body };
 }

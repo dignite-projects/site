@@ -114,7 +114,7 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
         viewModel.Query = SiteRenderQuery.Parse(queryString);
 
         var renderSet = new SiteThemeRenderSet(request.Snapshot);
-        var templatePath = SiteThemePaths.Normalize(SiteRenderViewModelBuilder.ResolveTemplateName(match.Page.Template));
+        var templatePath = match.Page.Template;
         if (renderSet.FindTemplate(templatePath) == null)
         {
             throw new BusinessException(SiteErrorCodes.SiteThemePreviewPageNotScriban)
@@ -187,7 +187,7 @@ public class SiteThemePreviewRenderer : ISiteThemePreviewRenderer, ITransientDep
             Path = path,
             PageName = match.Page.Name,
             CultureName = match.CultureName,
-            PageTemplate = render.TemplatePath ?? templatePath,
+            PageTemplate = render.TemplatePath,
             Layout = render.LayoutPath
         };
     }

@@ -20,6 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: leftovers of the module template and guards for cases that cannot happen are gone.**
+  - Unused types: `SiteAppService`, `SiteCommonAppService`, `SiteController`, `SiteCommonController`, the empty
+    permission groups `SitePermissions`, `SiteCommonPermissions` and `SitePublicPermissions` with their providers and
+    texts, and `eSitePolicyNames.FieldGroups*` in `@dignite/ng.site`, which no permission backs.
+  - `Dignite.Site.Public.Web` no longer depends on Mapperly, which it never used.
+  - `SitePreviewState` takes the `ISiteThemePreviewSource` that both kinds of host register; `IsAvailable` is gone,
+    and a preview is `Ticket != null`. `SitePreviewConsts.QueryKey` is `SiteThemePreviewConsts.QueryKey`.
+  - A page's `Template` cannot end in `.cshtml` (`PageConsts.TemplatePattern`), so
+    `SiteRenderViewModelBuilder.ResolveTemplateName` and the controller's `ResolveTemplateName` are gone.
+  - `SiteReleaseFileContent.Body` is never null: a static file read without its body has an empty one.
+  - `SeoClock` moved to `Dignite.Site.Domain.Shared`, and `Dignite.Site.Public.Application.Contracts.Seo.ClockExtensions`
+    is gone.
+  - `SiteHeadMetadataHtml.Build` and `BuildTags` take `SiteHeadOptions` only.
+  - The MCP `FileTools` and `SiteThemeTransferTools` take `SiteMcpLinks`, which makes their links absolute, and
+    `SiteMcpNameResolver.GetReleaseAsync` finds a release by number for every theme tool.
 - **Breaking: deleting a content type that contents still use answers `Site:020003`.** The refusal moved from
   `ContentTypeAdminAppService` into the new `ContentTypeManager.DeleteAsync`, and is a `ContentTypeHasContentsException`
   rather than a `UserFriendlyException` with the `ContentTypeStillHasContents` text, which is gone. `ContentTypeManager`

@@ -24,11 +24,6 @@ export enum eSitePolicyNames {
   /** Separate from update on purpose: renaming a field migrates every stored value. */
   FieldsRename = 'SiteAdmin.Fields.Rename',
 
-  FieldGroups = 'SiteAdmin.FieldGroups',
-  FieldGroupsCreate = 'SiteAdmin.FieldGroups.Create',
-  FieldGroupsUpdate = 'SiteAdmin.FieldGroups.Update',
-  FieldGroupsDelete = 'SiteAdmin.FieldGroups.Delete',
-
   Contents = 'SiteAdmin.Contents',
   ContentsCreate = 'SiteAdmin.Contents.Create',
   ContentsUpdate = 'SiteAdmin.Contents.Update',

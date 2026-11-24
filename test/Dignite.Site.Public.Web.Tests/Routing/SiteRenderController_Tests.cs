@@ -45,7 +45,7 @@ public class SiteRenderController_Tests
         CultureName = "ja",
         DefaultCultureName = "en",
         EnabledCultureNames = new List<string>(enabledCultureNames),
-        Page = new PageDto { Name = "about", Template = "Default" }
+        Page = new PageDto { Name = "about", Route = "/about", Template = "Default" }
     };
 
     private static Task<IActionResult> RenderAsync(
@@ -162,7 +162,7 @@ public class SiteRenderController_Tests
             new Dictionary<string, string> { ["layouts/default"] = "{{ site_head }}{{ body }}" },
             "layouts/default"));
         var match = PageMatch("en", "ja");
-        match.Page!.Template = "Default.cshtml";
+        match.Page!.Template = "Default";
 
         var result = await RenderAsync(host, match, themes);
 

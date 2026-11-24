@@ -5,4 +5,4 @@ namespace Dignite.Site.Public.Scriban;
 /// and the page template that was used - which is the language version of the page's template, when it has one for the
 /// page's language.
 /// </summary>
-public sealed record ScribanPageRender(string Html, string? LayoutPath, string? TemplatePath = null);
+public sealed record ScribanPageRender(string Html, string? LayoutPath, string TemplatePath);

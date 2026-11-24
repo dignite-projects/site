@@ -17,20 +17,6 @@ namespace Dignite.Site.Public.Routing;
 public static class SiteRenderViewModelBuilder
 {
     /// <summary>
-    /// <c>View()</c> resolves either form, but <c>Page.Template</c> is meant to hold a bare view name -
-    /// stripping a ".cshtml" suffix here keeps that ergonomic without pretending to validate the value.
-    /// Unlike before issue #53, a name that does not resolve to a real view is not this method's problem
-    /// to catch - it throws the standard ASP.NET Core view-not-found error when <c>View()</c> renders it,
-    /// same as a misconfigured Template always should have.
-    /// </summary>
-    public static string ResolveTemplateName(string template)
-    {
-        return template.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase)
-            ? template[..^".cshtml".Length]
-            : template;
-    }
-
-    /// <summary>
     /// The model for any match <see cref="SiteRenderController"/> renders: <see cref="BuildPage"/> for a
     /// <see cref="RouteMatchKindDto.Page"/>, <see cref="BuildContentAsync(RouteMatchDto, HeadMetadataDto?, IFieldPublicAppService, int)"/>
     /// for a <see cref="RouteMatchKindDto.ContentOfPage"/> or <see cref="RouteMatchKindDto.Content"/>; null for

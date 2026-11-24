@@ -481,7 +481,7 @@ public class SiteThemeManager : DomainService
 
         foreach (var content in contents)
         {
-            var body = content.Body ?? string.Empty;
+            var body = content.Body;
             if (working.Remove(content.Path, out var existing))
             {
                 if (existing.ContentHash != content.ContentHash)
@@ -606,7 +606,7 @@ public class SiteThemeManager : DomainService
 
         var release = await GetReleaseAsync(theme, releaseId.Value, cancellationToken);
         var contents = await ReleaseRepository.GetContentsAsync(release.Id, includeAssetBodies: true, cancellationToken);
-        return (contents.ToDictionary(content => content.Path, content => content.Body ?? string.Empty, StringComparer.Ordinal),
+        return (contents.ToDictionary(content => content.Path, content => content.Body, StringComparer.Ordinal),
             release.DefaultLayout);
     }
 

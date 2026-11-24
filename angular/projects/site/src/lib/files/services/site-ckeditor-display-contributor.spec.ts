@@ -15,10 +15,9 @@ describe('siteCKEditorDisplayContributor', () => {
     TestBed.configureTestingModule({ providers: [{ provide: SessionStateService, useValue: { getTenant: () => tenant } }] });
   });
 
+  /** Without `withApis`, the UI shares its API origin: every API's address is relative. */
   function display(html: string, withApis = true): string {
-    if (withApis) {
-      TestBed.inject(EnvironmentService).setState({ apis } as never);
-    }
+    TestBed.inject(EnvironmentService).setState({ apis: withApis ? apis : { default: { url: '' } } } as never);
 
     const contributor = TestBed.runInInjectionContext(() => siteCKEditorDisplayContributor());
     return contributor(html, {} as CKEditorDisplayContext);

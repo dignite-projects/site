@@ -117,16 +117,5 @@ describe('SiteUploadCleanup', () => {
 
       await expect(firstValueFrom(cleanup.discard())).resolves.toBeUndefined();
     });
-
-    it('does not let a delete that throws before it returns fail it either', async () => {
-      const cleanup = setUp();
-      remove.mockImplementation(() => {
-        throw new Error('no API configured');
-      });
-
-      cleanup.uploaded(file('a'));
-
-      await expect(firstValueFrom(cleanup.discard())).resolves.toBeUndefined();
-    });
   });
 });

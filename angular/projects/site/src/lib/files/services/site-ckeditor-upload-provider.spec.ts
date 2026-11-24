@@ -37,6 +37,7 @@ describe('SiteCKEditorUploadProvider', () => {
         { provide: SiteUploadCleanup, useValue: { uploaded } },
       ],
     });
+    TestBed.inject(EnvironmentService).setState({ apis: { default: { url: '' } } } as never);
 
     await firstValueFrom(TestBed.inject(SiteCKEditorUploadProvider).upload(new File(['x'], 'photo.png'), 'images'));
 

@@ -130,8 +130,7 @@ public class SiteRenderController : AbpController
         // at that path in the live release wins; without one, a missing or misconfigured Page.Template throws
         // (standard ASP.NET Core view-not-found) rather than silently degrading - issue #53. Looked up last,
         // after the other reads, for the same one-DbContext reason as above.
-        var templateName = ResolveTemplateName(match.Page.Template);
-        var templatePath = SiteThemePaths.Normalize(templateName);
+        var templatePath = match.Page.Template;
         // A visitor holding a valid preview cookie sees the theme it names instead; everyone else, the live release.
         var preview = LazyServiceProvider.LazyGetRequiredService<SitePreviewState>();
         var previewing = preview.Ticket != null;
@@ -150,7 +149,7 @@ public class SiteRenderController : AbpController
         {
             // A page still rendered by Razor gets the preview headers but no banner: the view's output is not this
             // controller's to rewrite.
-            result = View(templateName, viewModel);
+            result = View(templatePath, viewModel);
         }
 
         if (previewing)
@@ -208,12 +207,6 @@ public class SiteRenderController : AbpController
 
             await _inner.ExecuteResultAsync(context);
         }
-    }
-
-    /// <summary>See <see cref="SiteRenderViewModelBuilder.ResolveTemplateName"/>.</summary>
-    protected virtual string ResolveTemplateName(string template)
-    {
-        return SiteRenderViewModelBuilder.ResolveTemplateName(template);
     }
 
     /// <param name="match">The resolved route.</param>

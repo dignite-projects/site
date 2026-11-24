@@ -48,7 +48,6 @@ import {
   isAssetPath,
   languageOf,
   normalizeThemePath,
-  pageTemplatePath,
   skeletonFor,
   themePathProblem,
   withEarlierRenderFindings,
@@ -317,7 +316,7 @@ export class ThemeWorkbenchComponent implements OnInit {
     }
 
     return this.pages()
-      .filter(page => page.isActive && pageTemplatePath(page.template) === path)
+      .filter(page => page.isActive && page.template === path)
       .map(page => ({ id: page.id ?? '', name: page.displayName || page.name }));
   });
 

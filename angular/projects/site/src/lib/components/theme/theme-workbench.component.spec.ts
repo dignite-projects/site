@@ -478,7 +478,7 @@ describe('ThemeWorkbenchComponent', () => {
     it('finds the active pages the template in front renders', () => {
       const { component } = create({}, {}, [
         { id: 'p-events', name: 'events', displayName: 'Events', route: '/events/{slug?}', template: 'Events', isActive: true },
-        { id: 'p-news', name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events.cshtml', isActive: true },
+        { id: 'p-news', name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events', isActive: true },
         { name: 'old', displayName: 'Old', route: '/old', template: 'Events', isActive: false },
         { name: 'about', displayName: 'About', route: '/about', template: 'Default', isActive: true },
       ]);

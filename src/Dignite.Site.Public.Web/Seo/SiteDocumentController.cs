@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
-using Dignite.Site.Public.Application.Contracts.Seo;
+using Dignite.Site.Seo;
 using Microsoft.Net.Http.Headers;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Caching;

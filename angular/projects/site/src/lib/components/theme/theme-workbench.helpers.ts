@@ -4,6 +4,7 @@ import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { SiteThemeRenderScope } from '../../proxy/dignite/site/admin/themes/site-theme-render-scope.enum';
 import { SiteThemeIssueSeverity } from '../../proxy/dignite/site/themes/site-theme-issue-severity.enum';
+import { SEO_FIELD_TYPE_NAME } from '../../field-types/seo/seo-field-type';
 
 /** Mirrors `SiteThemeConsts.PathPattern` (`src/Dignite.Site.Domain.Shared/Themes/SiteThemeConsts.cs`). */
 export const THEME_PATH_PATTERN =
@@ -278,14 +279,6 @@ export function errorMessageOf(response: ApiErrorResponse | undefined): string {
   return [error?.message ?? response?.message, ...details].filter(Boolean).join('\n');
 }
 
-/** The theme path a page's `Template` renders through - the site's resolution: a trailing `.cshtml` is dropped. */
-export function pageTemplatePath(template: string): string {
-  const name = (template ?? '').trim();
-  return normalizeThemePath(name.toLowerCase().endsWith('.cshtml') ? name.slice(0, -'.cshtml'.length) : name);
-}
-
-/** The field type of a page's SEO block: edited in its own panel and written by `site_head`, never by hand. */
-const SEO_FIELD_TYPE = 'Seo';
 
 /** A field name Scriban can read as a member (`content.fields.title`); anything else needs the indexer form. */
 const SCRIBAN_MEMBER_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -348,7 +341,7 @@ export function fieldGroupsFor(page: PageDto | undefined, library: FieldDto[] | 
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .flatMap(arranged => {
           const field = fieldsById.get(arranged.fieldId ?? '');
-          if (!field?.name || field.fieldTypeName === SEO_FIELD_TYPE) {
+          if (!field?.name || field.fieldTypeName === SEO_FIELD_TYPE_NAME) {
             return [];
           }
 

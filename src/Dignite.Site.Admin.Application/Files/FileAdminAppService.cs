@@ -108,14 +108,9 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
 
     public virtual async Task<SiteFileDto> ConfirmAsync(Guid id)
     {
-        var file = await BlobManagementFileService.GetAsync(id);
-        await Authorization.CheckUploadAsync(RequireSiteContainer(file));
-
         // The file is the caller's own upload, which the ticket recorded: a pending file is nobody else's to file.
-        if (file.IsPending && file.CreatorId != CurrentUser.Id)
-        {
-            throw new AbpAuthorizationException();
-        }
+        var file = await BlobManagementFileService.GetAsync(id);
+        await CheckReadableAsync(file);
 
         if (file.IsPending)
         {

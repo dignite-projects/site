@@ -25,23 +25,9 @@ import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { eSitePolicyNames } from '../../enums/policy-names';
+import { SITE_CONSTS } from '../../site-consts';
 
-/** Max lengths mirror `PageConsts` (`src/Dignite.Site.Domain.Shared/Pages/PageConsts.cs`). */
-const PAGE_CONSTS = {
-  maxNameLength: 64,
-  maxDisplayNameLength: 128,
-  maxRouteLength: 512,
-  maxTemplateLength: 256,
-} as const;
-
-/** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
-const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
-
-/** Mirrors `PageConsts.RoutePattern`. */
-const ROUTE_PATTERN = /^\S+$/;
-
-/** Mirrors `PageConsts.TemplatePattern`. Required - at least one character - since `template` is required. */
-const TEMPLATE_PATTERN = /^\/?[A-Za-z0-9_][A-Za-z0-9_/-]*$/;
+const PAGE_CONSTS = SITE_CONSTS.page;
 
 /** A page, plus the expand/collapse state `ngx-datatable`'s tree mode keeps on each row. */
 type PageRow = PageDto & { treeStatus?: TreeStatus };
@@ -387,7 +373,7 @@ export class PagesComponent {
     return this.fb.group({
       name: [
         page?.name ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxNameLength), Validators.pattern(NAME_PATTERN)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxNameLength), Validators.pattern(SITE_CONSTS.namePattern)],
       ],
       displayName: [
         page?.displayName ?? '',
@@ -395,11 +381,11 @@ export class PagesComponent {
       ],
       route: [
         page?.route ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxRouteLength), Validators.pattern(ROUTE_PATTERN)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxRouteLength), Validators.pattern(PAGE_CONSTS.routePattern)],
       ],
       template: [
         page?.template ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(PAGE_CONSTS.templatePattern)],
       ],
       parentId: [page?.parentId ?? null],
       isActive: [page?.isActive ?? true],

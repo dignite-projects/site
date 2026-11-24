@@ -1,6 +1,8 @@
 import { Component, Input, OnChanges, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IMAGE_TYPE_OPTIONS } from './models';
+
+const DEFAULT_ICON = 'fa fa-file-o';
 import { sizedFileUrl } from '../services/site-file-url';
 import { SiteFileUrlService } from '../services/site-file-url.service';
 
@@ -34,6 +36,8 @@ export class FilePreviewComponent implements OnChanges {
   isAudio = false;
   isVideo = false;
   displaySrc = '';
+  /** The icon of a file that is not shown itself, by its type. */
+  iconClass = DEFAULT_ICON;
   /** {@link src} where this UI can reach it - the download link. */
   linkHref = '';
 
@@ -44,18 +48,13 @@ export class FilePreviewComponent implements OnChanges {
   }
 
   private updateFileType() {
-    const fileName = this.name || '';
     const fileType = this.type || '';
-    if (!this.type) {
-      this.type = fileName.includes('.7z') ? '7z' : '';
-    }
     this.isImage = fileType.includes('image/');
     this.isAudio = fileType.includes('audio/');
     this.isVideo = fileType.includes('video/');
-  }
 
-  /** Falls back to a generic file icon when the type has no dedicated one. */
-  getFileIconClass(): string {
-    return IMAGE_TYPE_OPTIONS.find(item => item.type === this.type)?.icon || 'fa fa-file-o';
+    // A 7z archive has no MIME type of its own; its name tells it.
+    const iconType = fileType || ((this.name || '').includes('.7z') ? '7z' : '');
+    this.iconClass = IMAGE_TYPE_OPTIONS.find(item => item.type === iconType)?.icon ?? DEFAULT_ICON;
   }
 }

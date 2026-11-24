@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using Dignite.Abp.FlexFields;
 
 // Deliberately its own namespace, not Dignite.Site.Public.Routing (which Dignite.Site.Public.Application's
-// own Routing/ files - e.g. RoutingPublicAppService - already occupy): see the matching comment on
-// ClockExtensions for why sharing a namespace with a concrete-Application file is dangerous specifically for
-// extension methods, not just inconvenient.
+// own Routing/ files - e.g. RoutingPublicAppService - already occupy): C# resolves an extension method against
+// the caller's own namespace before any using directive, so a same-name namespace here would silently take the
+// calls written against Common.Application's ToFieldConfiguration.
 namespace Dignite.Site.Public.Application.Contracts.Routing;
 
 public static class FieldConfigurationExtensions

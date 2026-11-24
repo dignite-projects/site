@@ -110,7 +110,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             UpdatedPaths = rename.UpdatedPaths.ToList(),
             DefaultLayoutUpdated = rename.DefaultLayoutUpdated,
             PagesStillUsingOldPath = pages
-                .Where(page => SiteThemePaths.Normalize(page.Template) == oldPath)
+                .Where(page => page.Template == oldPath)
                 .Select(page => page.PageName)
                 .OrderBy(name => name, StringComparer.Ordinal)
                 .ToList()
@@ -270,7 +270,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             Path = content.Path,
             IsAsset = SiteThemePaths.IsAsset(content.Path),
             ContentHash = content.ContentHash,
-            Body = content.Body ?? string.Empty
+            Body = content.Body
         };
     }
 

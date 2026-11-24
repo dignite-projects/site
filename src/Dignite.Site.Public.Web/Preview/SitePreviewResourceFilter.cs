@@ -15,7 +15,7 @@ namespace Dignite.Site.Public.Preview;
 /// <summary>
 /// Exchanges the token of a preview link for the preview cookie - on <see cref="Routing.SiteRenderController"/>, which
 /// every link the administration side issues opens. A <c>GET</c> or <c>HEAD</c> carrying a non-empty
-/// <see cref="SitePreviewConsts.QueryKey"/> is always answered with a redirect to the same address without it, so the
+/// <see cref="SiteThemePreviewConsts.QueryKey"/> is always answered with a redirect to the same address without it, so the
 /// token never lingers in the address bar, the history or a <c>Referer</c>:
 /// <list type="bullet">
 /// <item>a token that verifies and was issued for the current tenant first sets the cookie, holding a fresh ticket that
@@ -48,7 +48,7 @@ public class SitePreviewResourceFilter : IAsyncResourceFilter, ITransientDepende
         var request = context.HttpContext.Request;
 
         if (!(HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method))
-            || !request.Query.TryGetValue(SitePreviewConsts.QueryKey, out var token)
+            || !request.Query.TryGetValue(SiteThemePreviewConsts.QueryKey, out var token)
             || string.IsNullOrEmpty(token.ToString()))
         {
             await next();
@@ -72,7 +72,7 @@ public class SitePreviewResourceFilter : IAsyncResourceFilter, ITransientDepende
     }
 
     /// <summary>
-    /// The request's own address - base path, path and query - without <see cref="SitePreviewConsts.QueryKey"/>.
+    /// The request's own address - base path, path and query - without <see cref="SiteThemePreviewConsts.QueryKey"/>.
     /// Relative, so the redirect stays on this origin; a path that starts with more than one slash or a backslash is
     /// reduced to one slash, since <c>//evil.example</c> would be read as another host.
     /// </summary>
@@ -90,7 +90,7 @@ public class SitePreviewResourceFilter : IAsyncResourceFilter, ITransientDepende
 
         // Query keys compare ignoring case, as IQueryCollection looked the token up.
         var query = new QueryBuilder(request.Query
-            .Where(pair => !string.Equals(pair.Key, SitePreviewConsts.QueryKey, StringComparison.OrdinalIgnoreCase)));
+            .Where(pair => !string.Equals(pair.Key, SiteThemePreviewConsts.QueryKey, StringComparison.OrdinalIgnoreCase)));
 
         return path + query.ToQueryString().ToUriComponent();
     }

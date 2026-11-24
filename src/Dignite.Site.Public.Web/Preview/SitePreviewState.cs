@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -22,11 +21,10 @@ namespace Dignite.Site.Public.Preview;
 /// site - <see cref="Routing.SiteRenderController"/> and <see cref="Assets.SiteAssetController"/> - asks here, so the
 /// working copy is never rendered without a valid ticket.
 /// <para>
-/// The theme is read through <see cref="ISiteThemePreviewSource"/>, resolved only when a ticket is there and optional:
-/// an application without one serves the live site even with a valid cookie. A site rendered against a remote Public
-/// API has one through <c>Dignite.Site.Public.HttpApi.Client</c>, which reads the theme over the Public integration
-/// service. Read at most once per request, and again on the next one: a preview of the working copy shows each
-/// save on the next page view.
+/// The theme is read through <see cref="ISiteThemePreviewSource"/>: in process from <c>Dignite.Site.Public.Application</c>,
+/// or, for a site rendered against a remote Public API, over its integration service through
+/// <c>Dignite.Site.Public.HttpApi.Client</c>. Read at most once per request, and again on the next one: a preview of the
+/// working copy shows each save on the next page view.
 /// </para>
 /// </summary>
 public class SitePreviewState : IScopedDependency
@@ -41,7 +39,7 @@ public class SitePreviewState : IScopedDependency
     protected IHttpContextAccessor HttpContextAccessor { get; }
     protected IStringLocalizer<SiteResource> Localizer { get; }
     protected IUrlHelperFactory UrlHelperFactory { get; }
-    protected IServiceProvider ServiceProvider { get; }
+    protected ISiteThemePreviewSource Source { get; }
 
     public SitePreviewState(
         SitePreviewTokenProtector protector,
@@ -49,14 +47,14 @@ public class SitePreviewState : IScopedDependency
         IHttpContextAccessor httpContextAccessor,
         IStringLocalizer<SiteResource> localizer,
         IUrlHelperFactory urlHelperFactory,
-        IServiceProvider serviceProvider)
+        ISiteThemePreviewSource source)
     {
         Protector = protector;
         CurrentTenant = currentTenant;
         HttpContextAccessor = httpContextAccessor;
         Localizer = localizer;
         UrlHelperFactory = urlHelperFactory;
-        ServiceProvider = serviceProvider;
+        Source = source;
     }
 
     /// <summary>
@@ -74,15 +72,8 @@ public class SitePreviewState : IScopedDependency
     }
 
     /// <summary>
-    /// Whether this request previews and can: a <see cref="Ticket"/>, and an <see cref="ISiteThemePreviewSource"/> to read
-    /// the theme from. Without a source the site is served live, static files included.
-    /// </summary>
-    public virtual bool IsAvailable => Ticket != null && ServiceProvider.GetService<ISiteThemePreviewSource>() != null;
-
-    /// <summary>
-    /// The theme <see cref="Ticket"/> names, ready to render: null without a ticket, without an
-    /// <see cref="ISiteThemePreviewSource"/>, or when the tenant has no theme or no longer such a release - the page then
-    /// renders with the live release.
+    /// The theme <see cref="Ticket"/> names, ready to render: null without a ticket, or when the tenant has no theme or no
+    /// longer such a release - the page then renders with the live release.
     /// </summary>
     public virtual async Task<SiteThemeRenderSet?> GetRenderSetAsync(CancellationToken cancellationToken = default)
     {
@@ -94,8 +85,7 @@ public class SitePreviewState : IScopedDependency
 
         if (!_renderSetRead)
         {
-            var source = ServiceProvider.GetService<ISiteThemePreviewSource>();
-            var snapshot = source == null ? null : await source.FindSnapshotAsync(ticket.ReleaseId, cancellationToken);
+            var snapshot = await Source.FindSnapshotAsync(ticket.ReleaseId, cancellationToken);
             _renderSet = snapshot == null ? null : new SiteThemeRenderSet(snapshot);
             _renderSetRead = true;
         }
@@ -104,8 +94,8 @@ public class SitePreviewState : IScopedDependency
     }
 
     /// <summary>
-    /// A static file of the theme <see cref="Ticket"/> names, or null without a ticket, without an
-    /// <see cref="ISiteThemePreviewSource"/>, or when that theme has no static file at <paramref name="path"/>.
+    /// A static file of the theme <see cref="Ticket"/> names, or null without a ticket, or when that theme has no static
+    /// file at <paramref name="path"/>.
     /// </summary>
     public virtual async Task<SiteThemeAssetDto?> FindAssetAsync(string path, CancellationToken cancellationToken = default)
     {
@@ -115,8 +105,7 @@ public class SitePreviewState : IScopedDependency
             return null;
         }
 
-        var source = ServiceProvider.GetService<ISiteThemePreviewSource>();
-        return source == null ? null : await source.FindAssetAsync(ticket.ReleaseId, path, cancellationToken);
+        return await Source.FindAssetAsync(ticket.ReleaseId, path, cancellationToken);
     }
 
     /// <summary>See <see cref="SitePreviewHttp.ApplyHeaders"/>.</summary>

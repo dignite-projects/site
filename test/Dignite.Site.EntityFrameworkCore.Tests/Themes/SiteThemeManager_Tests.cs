@@ -178,7 +178,7 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
 
         // Without asset bodies, a static file comes with its hash only.
         var forRender = await WithUnitOfWorkAsync(() => _releaseRepository.GetContentsAsync(release.Id));
-        forRender.Single(c => c.Path == "css/site.css").Body.ShouldBeNull();
+        forRender.Single(c => c.Path == "css/site.css").Body.ShouldBeEmpty();
         forRender.Single(c => c.Path == "Events").Body.ShouldNotBeNull();
     }
 
@@ -278,7 +278,7 @@ public class SiteThemeManager_Tests : SiteEntityFrameworkCoreTestBase
 
         var forRender = await WithUnitOfWorkAsync(() => _releaseRepository.GetContentsAsync(release.Id));
         forRender.Single(c => c.Path == "locales/ja.json").Body.ShouldBe(ja);
-        forRender.Single(c => c.Path == "css/site.css").Body.ShouldBeNull();
+        forRender.Single(c => c.Path == "css/site.css").Body.ShouldBeEmpty();
     }
 
     [Fact]

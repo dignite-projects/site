@@ -53,7 +53,7 @@ public class SiteThemeRenderSet
     public string? DefaultLayout => Snapshot.DefaultLayout;
 
     /// <summary>The total length of the bodies it holds - what a cache weighs it by.</summary>
-    public long Size => Snapshot.Files.Sum(file => (long)(file.Body?.Length ?? 0) + file.Path.Length);
+    public long Size => Snapshot.Files.Sum(file => (long)file.Body.Length + file.Path.Length);
 
     /// <summary>The file at the (normalized) <paramref name="path"/>, template or static file, or null.</summary>
     public SiteThemeSnapshotFileDto? FindFile(string path)

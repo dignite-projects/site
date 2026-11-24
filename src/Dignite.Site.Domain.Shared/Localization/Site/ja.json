@@ -128,10 +128,7 @@
     "Feature:Site.Enable": "Site を有効にする",
     "Feature:Site.Enable:Description": "このテナントが Site の管理機能（管理 UI、管理 API、MCP ツール）を使用できるかどうか。公開済みのサイトは、この設定にかかわらず引き続き配信されます。",
 
-    "Permission:Site": "Site",
     "Permission:SiteAdmin": "管理",
-    "Permission:SitePublic": "公開",
-    "Permission:SiteCommon": "共通",
 
     "Permission:Pages": "ページ",
     "Permission:ContentTypes": "コンテンツタイプ",

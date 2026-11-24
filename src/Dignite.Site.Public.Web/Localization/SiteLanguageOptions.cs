@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dignite.Site.Public.Assets;
 
 namespace Dignite.Site.Public.Localization;
 
@@ -20,7 +21,7 @@ public class SiteLanguageOptions
     /// </summary>
     public List<string> ExcludedPathPrefixes { get; } = new()
     {
-        "/Account", "/Abp", "/api", "/connect", "/swagger", "/Error", "/.well-known", "/site-assets"
+        "/Account", "/Abp", "/api", "/connect", "/swagger", "/Error", "/.well-known", "/" + SiteAssetUrl.RoutePrefix
     };
 
     /// <summary>
