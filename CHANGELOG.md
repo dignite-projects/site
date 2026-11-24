@@ -113,6 +113,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Both now look at active pages only and order them by `PageRoute.AddressPrecedence`, as route resolution does.
 - **`IContentPublicAppService.GetBySlugAsync` matches the culture however it is spelled**, as the administration lookup
   does: `IContentRepository.FindBySlugAsync` normalizes it.
+- **The SEO field's limits are described as advised widths in columns** to MCP clients, as
+  [Field Types](docs/en/field-types.md) documents them, rather than as character maxima.
 - **Images uploaded into a CKEditor field, and files uploaded in an edit that is never saved, are no longer left behind.**
   The content editor deleted an upload that the saved form no longer holds only for the file inputs, and only after a
   save: an image inserted into a CKEditor field was never tracked, and nothing ran when the editor was left without
