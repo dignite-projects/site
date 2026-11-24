@@ -20,4 +20,11 @@ public interface IContentAdminAppService :
     /// </para>
     /// </summary>
     Task<ContentDto?> FindBySlugAsync(Guid pageId, string cultureName, string slug);
+
+    /// <summary>
+    /// The site-relative address a content will have once saved, built from <paramref name="input"/> the way the site
+    /// builds a saved content's (<c>Page.BuildContentPath</c>), with its language's prefix. A placeholder of the page's
+    /// route that nothing is entered for yet is written as its token, <c>{name}</c>.
+    /// </summary>
+    Task<string> GetPathAsync(GetContentPathInput input);
 }

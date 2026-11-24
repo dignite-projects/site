@@ -36,6 +36,14 @@ public partial class ContentAdminClientProxy : ClientProxyBase<IContentAdminAppS
         });
     }
 
+    public virtual async Task<string> GetPathAsync(GetContentPathInput input)
+    {
+        return await RequestAsync<string>(nameof(GetPathAsync), new ClientProxyRequestTypeValue
+        {
+            { typeof(GetContentPathInput), input }
+        });
+    }
+
     public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
     {
         return await RequestAsync<PagedResultDto<ContentDto>>(nameof(GetListAsync), new ClientProxyRequestTypeValue

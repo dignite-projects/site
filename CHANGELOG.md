@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The administration API answers the address of a content being edited.** `IContentAdminAppService.GetPathAsync`
+  (`POST api/site-admin/contents/path`) builds it from a page, a language, a slug, a publish time and field values, as
+  the site builds a saved content's (`Page.PreviewContentPath`), with the language's prefix; a placeholder with no
+  value yet shows as its token. `PageDto.HasSlug` and `IsSlugOptional` tell what a page's route asks of a slug.
 - **The theme workbench asks before it is left with a file that is not saved.** Going to another page of the admin UI
   opens a confirmation, `LeaveThemeConfirm` of the `Site` resource; closing the tab or reloading asked already.
 - **The content editor asks before it is left with something unsaved.** Leaving with changes to the form, or with files
@@ -20,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The content editor shows the address the site will serve, from the server.** It used to build the address itself,
+  with its own copy of the route parsing and of .NET's date, number and Guid formats, which could differ from the
+  site's; it asks `GetPathAsync` a moment after each change, and reads what the route asks of a slug from `PageDto`.
 - **The page form picks the parent page from the same page tree as the content list's filter**, in place of a searchable
   ng-zorro tree select; the page being edited and the pages beneath it are left out of it, as before.
 - **Breaking: `RouteMatchKindDto` and `SiteThemeUsageKindDto` are `RouteMatchKind` and `SiteThemeUsageKind`.** Each was

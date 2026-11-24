@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { DefaultQueueManager, EnvironmentService, QUEUE_MANAGER } from '@abp/ng.core';
 import { CoreTestingModule } from '@abp/ng.core/testing';
@@ -79,6 +79,42 @@ describe('ContentEditorComponent under an OnPush ancestor', () => {
         (option: HTMLOptionElement) => option.value,
       ),
     ).toEqual(['en', 'ja']);
+  });
+
+  describe('the address preview', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('shows the address the server builds from the form, a moment after it changes', () => {
+      vi.useFakeTimers();
+      const getPath = vi.fn((input: { slug: string }) => of(`/news/${input.slug}`));
+      TestBed.overrideProvider(ContentAdminService, { useValue: { getPath } });
+      TestBed.overrideProvider(PageAdminService, {
+        useValue: { get: () => of({ id: 'p1', route: '/news/{slug}', hasSlug: true, isSlugOptional: false }) },
+      });
+      TestBed.overrideProvider(ContentTypeAdminService, { useValue: { getListByPage: () => of({ items: [] }) } });
+      TestBed.overrideProvider(ActivatedRoute, {
+        useValue: { snapshot: { paramMap: convertToParamMap({}), queryParamMap: convertToParamMap({ pageId: 'p1' }) } },
+      });
+
+      const fixture = TestBed.createComponent(RootComponent);
+      fixture.detectChanges();
+      schema$.next({ enabledLanguages: ['en'], defaultLanguage: 'en' });
+      schema$.complete();
+      fixture.detectChanges();
+      const editor = fixture.debugElement.query(By.directive(ContentEditorComponent)).componentInstance as ContentEditorComponent;
+
+      editor.form!.get('slug')!.setValue('launch');
+      expect(getPath).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(300);
+
+      expect(getPath).toHaveBeenCalledTimes(1);
+      expect(getPath).toHaveBeenCalledWith(
+        expect.objectContaining({ pageId: 'p1', cultureName: 'en', slug: 'launch' }),
+        { skipHandleError: true },
+      );
+      expect(editor.slugPreview()).toBe('/news/launch');
+    });
   });
 
   describe('the files an edit uploads', () => {

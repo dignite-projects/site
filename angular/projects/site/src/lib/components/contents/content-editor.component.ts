@@ -1,13 +1,15 @@
 import { CoreModule, LocalizationService } from '@abp/ng.core';
 import { Confirmation, ConfirmationService, ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
-import { Component, HostListener, inject, signal, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, HostListener, inject, signal, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FlexFieldControlComponent } from '@dignite/ng.flex-fields';
 import type { FlexFieldValue } from '@dignite/ng.flex-fields';
 import { CKEDITOR_UPLOAD_PROVIDER } from '@dignite/ng.flex-fields-ckeditor';
-import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, forkJoin, map, Observable, of, startWith, switchMap } from 'rxjs';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
+import type { GetContentPathInput } from '../../proxy/dignite/site/admin/contents/models';
 import { ContentTypeAdminService } from '../../proxy/dignite/site/admin/content-types/content-type-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import type { ContentTypeDto } from '../../proxy/dignite/site/content-types/models';
@@ -22,13 +24,11 @@ import { SiteUploadCleanup } from '../../files/services/site-upload-cleanup';
 import { arrangeFields, type ArrangedField } from './arranged-field';
 
 const MAX_SLUG_LENGTH = 256;
-const OPTIONAL_SLUG_TOKEN = '{slug?}';
-const REQUIRED_SLUG_TOKEN = '{slug}';
 
 /** Mirrors `SlugNormalizer.AllowedCharactersPattern` (`src/Dignite.Site.Domain.Shared/SlugNormalizer.cs`). */
 const SLUG_PATTERN = /^[\p{L}\p{Nd}_-]*$/u;
 
-/** Mirrors `PageRoute.HasSlug`/`PageRoute.IsSlugOptional` (总体设计 §3.3) - see {@link ContentEditorComponent.slugState}. */
+/** What the page's route (总体设计 §3.3) says about a content's slug - see {@link ContentEditorComponent.slugState}. */
 type SlugState = 'forbidden' | 'required' | 'optional';
 
 /**
@@ -78,6 +78,7 @@ export class ContentEditorComponent implements OnDestroy {
   private readonly confirmation = inject(ConfirmationService);
   private readonly localization = inject(LocalizationService);
   private readonly uploadCleanup = inject(SiteUploadCleanup);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly ContentStatus = ContentStatus;
   readonly statuses = [ContentStatus.Draft, ContentStatus.Published, ContentStatus.Archived];
@@ -92,7 +93,6 @@ export class ContentEditorComponent implements OnDestroy {
   readonly page = signal<PageDto | undefined>(undefined);
   readonly contentTypes = signal<ContentTypeDto[]>([]);
   readonly languages = signal<string[]>([]);
-  defaultLanguage = '';
   content?: ContentDto;
 
   /**
@@ -133,7 +133,6 @@ export class ContentEditorComponent implements OnDestroy {
         switchMap(loaded => {
           const languages = loaded.schema.enabledLanguages ?? [];
           this.languages.set(languages);
-          this.defaultLanguage = loaded.schema.defaultLanguage ?? languages[0] ?? '';
           this.fieldsById = loaded.fieldsById;
           this.content = loaded.content;
 
@@ -163,36 +162,14 @@ export class ContentEditorComponent implements OnDestroy {
   }
 
   /**
-   * What this page's route (总体设计 §3.3) says about the slug beneath it - the front-end mirror of
-   * `PageRoute.HasSlug`/`PageRoute.IsSlugOptional`. `'forbidden'`: no `{slug}`/`{slug?}` at all, so this
-   * page has nothing beneath it but its own address. `'required'`: `{slug}` or `{slug:REGEX}`, so every
-   * content needs one. `'optional'`: `{slug?}`, so an empty slug is also allowed, subject to
+   * What this page's route (总体设计 §3.3) says about the slug beneath it, as the server reads it (`PageDto.hasSlug`,
+   * `isSlugOptional`). `'forbidden'`: no `{slug}`/`{slug?}` at all, so this page has nothing beneath it but its own
+   * address. `'required'`: every content needs one. `'optional'`: an empty slug is also allowed, subject to
    * {@link emptySlotTaken}.
    */
   get slugState(): SlugState {
-    const route = this.page()?.route ?? '';
-    if (route.includes(OPTIONAL_SLUG_TOKEN)) {
-      return 'optional';
-    }
-    return route.includes(REQUIRED_SLUG_TOKEN) || this.hasSlugWithRegex(route) ? 'required' : 'forbidden';
-  }
-
-  /**
-   * Whether `route` carries `{slug:REGEX}` - a slug placeholder with a regex and no format, the one
-   * decorated form `PageRoute.HasSlug` recognizes. Whether a given slug matches that regex is left to the
-   * server (`PageRoute.IsSlugAllowed`): a .NET pattern does not always mean the same thing in JavaScript.
-   */
-  private hasSlugWithRegex(route: string): boolean {
-    for (let i = route.indexOf('{'); i >= 0; i = route.indexOf('{', i + 1)) {
-      const placeholder = this.readPlaceholder(route, i);
-      if (placeholder && placeholder.name.toLowerCase() === 'slug' && placeholder.format === null) {
-        return true;
-      }
-      if (placeholder) {
-        i = placeholder.end - 1;
-      }
-    }
-    return false;
+    const page = this.page();
+    return !page?.hasSlug ? 'forbidden' : page.isSlugOptional ? 'optional' : 'required';
   }
 
   get usePageOwnAddress(): boolean {
@@ -200,27 +177,12 @@ export class ContentEditorComponent implements OnDestroy {
   }
 
   /**
-   * The address this content will actually be served at, recomputed on every read so the template can
-   * bind it directly and have it track the slug field as the user types. An approximation, not the
-   * source of truth: {@link resolvePlaceholder} resolves every placeholder generically off the form and
-   * the loaded content, falling back to the raw token when it cannot - `Page.BuildContentPath` on the
-   * server is what actually decides the URL.
-   *
-   * The empty-slug branch mirrors `Page.BuildContentPath` itself, not a naming convention: an empty
-   * slug is short-circuited to the page's own path there regardless of what the rest of the route
-   * contains, so the preview has to do the same rather than run it through the placeholder replacement
-   * below.
+   * The address this content will be served at, as the server builds it (`IContentAdminAppService.GetPathAsync`) from
+   * the form as it is: a placeholder of the route that nothing is entered for yet shows as its token. Asked again a
+   * moment after each change; empty while the form holds what the server refuses, such as a slug with a character a
+   * slug cannot have.
    */
-  get slugPreview(): string {
-    const route = this.page()?.route;
-    if (!route) {
-      return '';
-    }
-
-    const slug = (this.form?.get('slug')?.value ?? '').trim();
-    const path = slug ? this.buildPreviewPath(route) : this.pageOwnPath(route);
-    return this.applyCulturePrefix(path);
-  }
+  readonly slugPreview = signal('');
 
   get isDraft(): boolean {
     return this.form?.getRawValue().status === ContentStatus.Draft;
@@ -398,6 +360,7 @@ export class ContentEditorComponent implements OnDestroy {
     this.form = form;
     this.applySlugAvailability();
     this.applyPublishTimeAvailability();
+    this.watchPath(form);
 
     return form;
   }
@@ -503,395 +466,37 @@ export class ContentEditorComponent implements OnDestroy {
     return new Date(date.getTime() - offset).toISOString().slice(0, 16);
   }
 
-  /**
-   * Mirrors `SiteUrlContext.ApplyCulturePrefix` (总体设计 §5.5): every enabled language carries a
-   * `/cultureName` prefix except the default one, which is served unprefixed. `cultureName` here is
-   * already one of `languages` (or the loaded content's own, already-normalized value), so - unlike the
-   * server, which normalizes through `CultureNameNormalizer` first - a plain equality check against
-   * {@link defaultLanguage} is enough to tell the two apart.
-   */
-  private applyCulturePrefix(path: string): string {
-    const cultureName = this.form?.get('cultureName')?.value;
-    if (!cultureName || cultureName === this.defaultLanguage) {
-      return path;
-    }
-
-    return path === '/' ? `/${cultureName}` : `/${cultureName}${path}`;
+  /** Keeps {@link slugPreview} up to date with the form. */
+  private watchPath(form: FormGroup): void {
+    form.valueChanges
+      .pipe(
+        startWith(null),
+        debounceTime(300),
+        map(() => this.pathInput(form)),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+        switchMap(input =>
+          input
+            ? this.contentService.getPath(input, { skipHandleError: true }).pipe(catchError(() => of('')))
+            : of(''),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(path => this.slugPreview.set(path));
   }
 
-  /** Mirrors `PageRoute.GetPath`: everything up to the segment that first carries a placeholder. */
-  private pageOwnPath(route: string): string {
-    const index = route.indexOf('{');
-    if (index < 0) {
-      return route;
-    }
-
-    const boundary = route.lastIndexOf('/', index);
-    return boundary <= 0 ? '/' : route.slice(0, boundary);
-  }
-
-  /**
-   * A rough, client-side mirror of `PageRoute.Build` - see {@link slugPreview}'s remarks. Every
-   * placeholder, `{slug}` included, goes through the same generic {@link resolvePlaceholder} - no
-   * per-name branch here, deliberately: the server does not have one either, it reflects over `Content`
-   * (`Page.ResolveFieldValue`), and a name-by-name `if` ladder here would just be that same mistake
-   * moved to TypeScript instead of removed.
-   * <p>
-   * Placeholders are located with {@link readPlaceholder}'s brace-depth-aware scan, not a single regex -
-   * a `/\{...\}/` pattern cannot tell a placeholder's own closing brace apart from a balanced one inside
-   * its `:REGEX` segment (a quantifier like `\d{4}`, e.g. in `{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}`),
-   * the same reason `PageRoute.TryParseTemplate` on the server had to stop using ABP's own tokenizer.
-   */
-  private buildPreviewPath(route: string): string {
-    const canonical = route.replace(OPTIONAL_SLUG_TOKEN, REQUIRED_SLUG_TOKEN);
-
-    let result = '';
-    let i = 0;
-
-    while (i < canonical.length) {
-      if (canonical[i] !== '{') {
-        result += canonical[i];
-        i++;
-        continue;
-      }
-
-      const placeholder = this.readPlaceholder(canonical, i);
-      if (!placeholder) {
-        // Not a well-formed placeholder start - a route that reaches this component was already
-        // validated by `PageRoute.IsValid` when it was saved, so this is only ever a defensive fallback:
-        // treat '{' as a literal character rather than throwing out of what is meant to be a best-effort
-        // preview.
-        result += canonical[i];
-        i++;
-        continue;
-      }
-
-      result += this.resolvePlaceholder(placeholder.name, placeholder.format) ?? placeholder.token;
-      i = placeholder.end;
-    }
-
-    return result;
-  }
-
-  /**
-   * Reads one `{name}` / `{name:FORMAT}` / `{name:REGEX}` / `{name:FORMAT:REGEX}` placeholder starting at
-   * `route[start]` (must be `'{'`), mirroring `PageRoute.TryParseTemplate`'s single-placeholder case
-   * (`src/Dignite.Site.Domain.Shared/Pages/PageRoute.cs`): brace depth is tracked once inside the
-   * `:`-segment so an embedded, balanced `{`/`}` does not get mistaken for the placeholder's own closing
-   * brace, and a backslash escapes the next character so an explicitly-escaped `\{`/`\}` never perturbs
-   * the count either. Returns `null` for anything that does not parse as a well-formed placeholder -
-   * {@link buildPreviewPath} treats that as a literal `{` rather than failing the whole preview.
-   * <p>
-   * Only `name` and `format` are extracted, never the regex itself - a placeholder's regex constrains
-   * what may be read back out of a request path, and has nothing to say about a value being written into
-   * one, the same reason `PageRoute.Build` on the server discards it too (see that method's remarks).
-   */
-  private readPlaceholder(
-    route: string,
-    start: number,
-  ): { token: string; end: number; name: string; format: string | null } | null {
-    let i = start + 1; // consume '{'
-    const nameStart = i;
-
-    // Mirrors `PageRoute.IsNameStartChar`/`IsNameChar`: every `IdentifierName` a field can have, plus
-    // uppercase for `Content`'s camel-cased system properties (`publishTime`).
-    if (i >= route.length || !/[a-zA-Z0-9]/.test(route[i])) {
-      return null;
-    }
-    i++;
-    while (i < route.length && /[a-zA-Z0-9_-]/.test(route[i])) {
-      i++;
-    }
-    const name = route.slice(nameStart, i);
-
-    if (i >= route.length) {
+  private pathInput(form: FormGroup): GetContentPathInput | null {
+    const pageId = this.page()?.id;
+    const value = form.getRawValue();
+    if (!pageId || !value.cultureName) {
       return null;
     }
 
-    if (route[i] === '}') {
-      return { token: route.slice(start, i + 1), end: i + 1, name, format: null };
-    }
-
-    if (route[i] !== ':') {
-      return null;
-    }
-
-    i++; // consume ':'
-    const innerStart = i;
-    let depth = 0;
-    let closed = false;
-
-    while (i < route.length) {
-      const c = route[i];
-      if (c === '\\' && i + 1 < route.length) {
-        i += 2;
-        continue;
-      }
-      if (c === '{') {
-        depth++;
-      } else if (c === '}') {
-        if (depth === 0) {
-          closed = true;
-          break;
-        }
-        depth--;
-      }
-      i++;
-    }
-
-    if (!closed) {
-      return null;
-    }
-
-    const inner = route.slice(innerStart, i);
-    const end = i + 1; // consume the closing '}'
-    return { token: route.slice(start, end), end, name, format: this.disambiguateFormat(inner) };
-  }
-
-  /**
-   * Mirrors `PageRoute.TryDisambiguate`, reduced to the half a preview needs: a placeholder's already
-   * brace-depth-isolated inner text (everything after the first `:`) splits into a `:FORMAT` prefix plus a
-   * regex remainder when the prefix is format-shaped (letters/digits/`.`/`_`/`-` only - a real format
-   * string, by construction, can never also look like a regex worth compiling, which is what keeps every
-   * `{name:FORMAT}` route classified exactly as it always was); otherwise the inner text is a bare format
-   * on its own if it matches that shape whole, or else it is a regex with no format at all.
-   */
-  private disambiguateFormat(inner: string): string | null {
-    const formatCharacters = /^[a-zA-Z0-9_.-]+$/;
-    const colon = inner.indexOf(':');
-
-    if (colon >= 0) {
-      const candidate = inner.slice(0, colon);
-      if (candidate && formatCharacters.test(candidate)) {
-        return candidate;
-      }
-    }
-
-    return formatCharacters.test(inner) ? inner : null;
-  }
-
-  /**
-   * Resolves one placeholder's preview text purely from *where* `name` is actually found, never from
-   * what it is called. Angular forms have no runtime type to reflect over the way `Content` does server
-   * side - `ContentDto` is a TypeScript interface, erased at compile time - so the nearest equivalent is
-   * a generic, case-insensitive walk of what is actually on the form and the loaded content, checked in
-   * the same order the server would find them: a real property first, `FlexFields` second.
-   * 1. A top-level form control - every system field the editor can change lives here (`cultureName`,
-   *    `status`, `publishTime`, `contentTypeId`, `slug`...), whatever it happens to be named.
-   * 2. A control inside `flexFields` - a content type's own business fields.
-   * 3. A property already on the loaded `this.content` DTO - covers the read-only audit trail
-   *    (`id`, `creationTime`, ...) `FullAuditedEntityDto` carries but no form control exists for.
-   *    Naturally empty until this content has actually been saved once - which is honest, since the
-   *    server has nothing to reflect there yet either.
-   *
-   * One deliberate, named exception to "no name-based branching": {@link usePageOwnAddress} is a UI-only
-   * control with no server-side counterpart, and step 1 cannot tell that apart from a real field by
-   * shape alone - a route that actually referenced `{usePageOwnAddress}` would resolve to "true"/"false"
-   * here. Excluding it by name would be exactly the kind of branch this method exists to avoid, and the
-   * failure mode is harmless: `Page.BuildContentPath` has no such property either, so a route that made
-   * this mistake for real still fails loudly server-side the first time a URL is actually built from it.
-   */
-  private resolvePlaceholder(name: string, format: string | null): string | null {
-    const raw = this.findValue(name);
-    if (raw === null || raw === undefined || raw === '') {
-      return null;
-    }
-
-    if (format) {
-      const formatted = this.tryFormatByShape(raw, format);
-      if (formatted !== null) {
-        return formatted;
-      }
-    }
-
-    return String(raw);
-  }
-
-  /**
-   * Applies `format` to `raw` purely from what `raw` looks like, never from which placeholder produced
-   * it - the same dispatch-by-shape rule {@link resolvePlaceholder} follows, extended to every shape
-   * this preview knows how to format. Mirrors `Page.FormatFieldValue`'s `value is IFormattable` check,
-   * just done by sniffing a form value's shape with a regex instead of asking the CLR for its runtime
-   * type - there is no such type to ask here, `raw` is already unwrapped to a plain JS value by the time
-   * it reaches this method.
-   * <p>
-   * Each shape is tried in turn; the first one whose regex matches `raw` owns the answer from there,
-   * whether or not it actually recognizes `format` - a date-shaped value with a nonsense format is a
-   * date that failed to format, not a number or a Guid that happened to also look like one. Recognizing
-   * the shape but not the specific `format` asked of it (a Guid's `X`, a numeric format outside
-   * {@link formatNumber}'s subset) returns null, same as a shape nothing here recognizes at all - both
-   * fall back to the unformatted value in {@link resolvePlaceholder}, deliberately: this is a preview,
-   * and a plausible but possibly-wrong guess at an unimplemented format would be worse than showing the
-   * plain value.
-   */
-  private tryFormatByShape(raw: unknown, format: string): string | null {
-    const date = this.tryParseDate(raw);
-    if (date) {
-      return this.formatDate(date, format);
-    }
-
-    const guid = this.tryParseGuid(raw);
-    if (guid) {
-      return this.formatGuid(guid, format);
-    }
-
-    const number = this.tryParseNumber(raw);
-    if (number !== null) {
-      return this.formatNumber(number, format);
-    }
-
-    return null;
-  }
-
-  private findValue(name: string): unknown {
-    const lowerName = name.toLowerCase();
-
-    const topLevelControls = this.form?.controls;
-    const topLevelKey = topLevelControls && Object.keys(topLevelControls).find(key => key.toLowerCase() === lowerName);
-    if (topLevelKey) {
-      return this.form!.get(topLevelKey)!.value;
-    }
-
-    const flexFields = this.form?.get('flexFields');
-    if (flexFields instanceof FormGroup) {
-      const flexKey = Object.keys(flexFields.controls).find(key => key.toLowerCase() === lowerName);
-      if (flexKey) {
-        return flexFields.get(flexKey)!.value;
-      }
-    }
-
-    if (this.content) {
-      const contentRecord = this.content as unknown as Record<string, unknown>;
-      const contentKey = Object.keys(contentRecord).find(key => key.toLowerCase() === lowerName);
-      if (contentKey !== undefined) {
-        return contentRecord[contentKey];
-      }
-    }
-
-    return undefined;
-  }
-
-  /** Whether `value` is shaped like a `datetime-local` input's own output (`yyyy-MM-ddTHH:mm`). */
-  private tryParseDate(value: unknown): Date | null {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
-      return null;
-    }
-
-    const date = new Date(value);
-    return isNaN(date.getTime()) ? null : date;
-  }
-
-  /** Only the three specifiers a `:FORMAT` suffix may actually contain (总体设计 §3.3) - no '/' among them. */
-  private formatDate(date: Date, format: string): string {
-    return format
-      .replace(/yyyy/g, String(date.getFullYear()))
-      .replace(/yy/g, String(date.getFullYear()).slice(-2))
-      .replace(/MM/g, String(date.getMonth() + 1).padStart(2, '0'))
-      .replace(/dd/g, String(date.getDate()).padStart(2, '0'));
-  }
-
-  /** Whether `value` is shaped like the canonical, hyphenated form of a Guid. */
-  private tryParseGuid(value: unknown): string | null {
-    return typeof value === 'string' &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
-      ? value
-      : null;
-  }
-
-  /**
-   * `Guid.ToString(format)`'s four straightforward specifiers - N (no separators), D (hyphenated, the
-   * shape already checked by {@link tryParseGuid}), B (braced) and P (parenthesized). `X` deliberately
-   * not implemented: it renders as a C#-syntax initializer list, not a URL-shaped string, and nothing
-   * about a route makes that a plausible thing to have ever asked for.
-   */
-  private formatGuid(guid: string, format: string): string | null {
-    const digits = guid.replace(/-/g, '').toLowerCase();
-    const dashed = `${digits.slice(0, 8)}-${digits.slice(8, 12)}-${digits.slice(12, 16)}-${digits.slice(16, 20)}-${digits.slice(20)}`;
-
-    switch (format.toUpperCase()) {
-      case 'N':
-        return digits;
-      case 'D':
-        return dashed;
-      case 'B':
-        return `{${dashed}}`;
-      case 'P':
-        return `(${dashed})`;
-      default:
-        return null;
-    }
-  }
-
-  /** Whether `value` is shaped like a plain, optionally negative, optionally decimal number. */
-  private tryParseNumber(value: unknown): number | null {
-    if (typeof value === 'number' && isFinite(value)) {
-      return value;
-    }
-
-    return typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value) ? Number(value) : null;
-  }
-
-  /**
-   * A representative slice of .NET's numeric format strings - the ones a URL path segment plausibly
-   * asks for. Custom zero-padding (`"0000"`, unchanged from before) plus four standard specifiers, each
-   * with an optional 1-2 digit precision: `D` (zero-padded, integers only - the standard-format spelling
-   * of the same thing `"0000"` does), `X`/`x` (hexadecimal, integers only, letter case controls digit
-   * case, negative not attempted - see {@link formatHex}'s remarks), `F` (fixed-point) and `N`
-   * (fixed-point with thousands grouping). Deliberately not `C`/`P` (currency/percent): both put a
-   * character that means something else in a URL - a locale-dependent currency symbol, or `%`, the URL
-   * escape character itself - into the path, which nothing about routing would ever actually want. Not
-   * `E`/`G`/`R` either: those are about round-trip print fidelity for an arbitrary number, not a shape
-   * any real route has a reason to ask for.
-   */
-  private formatNumber(value: number, format: string): string | null {
-    if (/^0+$/.test(format)) {
-      return Number.isInteger(value) ? this.padInteger(value, format.length) : null;
-    }
-
-    const standard = /^([DdXxFfNn])(\d{0,2})$/.exec(format);
-    if (!standard) {
-      return null;
-    }
-
-    const [, specifier, precisionText] = standard;
-    const precision = precisionText === '' ? null : Number(precisionText);
-
-    switch (specifier.toUpperCase()) {
-      case 'D':
-        return Number.isInteger(value) ? this.padInteger(value, precision ?? 0) : null;
-      case 'X':
-        return Number.isInteger(value) && value >= 0 ? this.formatHex(value, precision ?? 0, specifier === 'X') : null;
-      case 'F':
-        return value.toFixed(precision ?? 2);
-      case 'N':
-        return this.groupThousands(value.toFixed(precision ?? 2));
-      default:
-        return null;
-    }
-  }
-
-  private padInteger(value: number, width: number): string {
-    const negative = value < 0;
-    const padded = Math.abs(value).toString().padStart(width, '0');
-    return negative ? `-${padded}` : padded;
-  }
-
-  /**
-   * Negative values are rejected before this is ever called - .NET's `X` renders a negative signed
-   * integer as its two's-complement bit pattern, which depends on the source type's own width (`int` vs
-   * `long` vs `byte` produce different digits for the same value), information a form control's plain
-   * number does not carry. Guessing a width would risk a preview that looks plausible and is wrong;
-   * not attempting it is the same call already made for a Guid's `X` and for `C`/`P`/`E`/`G`/`R`.
-   */
-  private formatHex(value: number, width: number, uppercase: boolean): string {
-    const hex = value.toString(16).padStart(width, '0');
-    return uppercase ? hex.toUpperCase() : hex;
-  }
-
-  private groupThousands(fixedValue: string): string {
-    const negative = fixedValue.startsWith('-');
-    const [integerPart, fractionPart] = (negative ? fixedValue.slice(1) : fixedValue).split('.');
-    const grouped = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return `${negative ? '-' : ''}${grouped}${fractionPart ? '.' + fractionPart : ''}`;
+    return {
+      pageId,
+      cultureName: value.cultureName,
+      slug: value.slug ?? '',
+      publishTime: value.publishTime,
+      fieldValues: form.get('flexFields')?.getRawValue() ?? {},
+    };
   }
 }

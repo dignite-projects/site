@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -5,6 +6,8 @@ using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
 using Dignite.Site.Contents;
 using Dignite.Site.EntityFrameworkCore;
+using Dignite.Site.Pages;
+using Dignite.Site.Settings;
 using Shouldly;
 using Volo.Abp.Validation;
 using Xunit;
@@ -20,6 +23,66 @@ public class ContentAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     {
         _contentAppService = GetRequiredService<IContentAdminAppService>();
         _contentRepository = GetRequiredService<IContentRepository>();
+    }
+
+    /// <summary>The editor's address preview is the site's own building of it, formats included.</summary>
+    [Fact]
+    public async Task The_Path_Of_A_Content_Being_Edited_Should_Be_The_One_It_Will_Have()
+    {
+        var path = await _contentAppService.GetPathAsync(new GetContentPathInput
+        {
+            PageId = SiteTestData.NewsPageId,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = "launch",
+            PublishTime = new DateTime(2026, 8, 15)
+        });
+
+        path.ShouldBe("/news/2026-08/launch");
+    }
+
+    [Fact]
+    public async Task The_Path_Of_A_Content_Without_A_Slug_Should_Be_The_Pages_Own()
+    {
+        (await _contentAppService.GetPathAsync(new GetContentPathInput
+        {
+            PageId = SiteTestData.BlogPageId,
+            CultureName = SiteTestData.EnglishCulture,
+            PublishTime = new DateTime(2026, 8, 15)
+        })).ShouldBe("/blog");
+    }
+
+    [Fact]
+    public async Task The_Path_Should_Carry_The_Prefix_Of_A_Language_That_Is_Not_The_Default()
+    {
+        GetRequiredService<TestSettingValueProvider>().Set(SiteSettings.EnabledLanguages, "en,zh-Hans");
+
+        (await _contentAppService.GetPathAsync(new GetContentPathInput
+        {
+            PageId = SiteTestData.NewsPageId,
+            CultureName = SiteTestData.ChineseCulture,
+            Slug = "launch",
+            PublishTime = new DateTime(2026, 8, 15)
+        })).ShouldBe("/zh-Hans/news/2026-08/launch");
+    }
+
+    /// <summary>A field the route names and the editor has no value for yet shows as its placeholder, not as an error.</summary>
+    [Fact]
+    public async Task A_Placeholder_With_No_Value_Yet_Should_Show_As_Its_Token()
+    {
+        var page = await WithUnitOfWorkAsync(() => GetRequiredService<PageManager>()
+            .CreateAsync("path-preview", "Path preview", "/path-preview/{category}/{slug}"));
+
+        var input = new GetContentPathInput
+        {
+            PageId = page.Id,
+            CultureName = SiteTestData.EnglishCulture,
+            Slug = "launch",
+            PublishTime = new DateTime(2026, 8, 15)
+        };
+        (await _contentAppService.GetPathAsync(input)).ShouldBe("/path-preview/{category}/launch");
+
+        input.FieldValues = new Dictionary<string, object?> { ["category"] = JsonSerializer.SerializeToElement("tutorials") };
+        (await _contentAppService.GetPathAsync(input)).ShouldBe("/path-preview/tutorials/launch");
     }
 
     [Fact]

@@ -11,6 +11,14 @@ export interface CreateContentDto {
   fieldValues?: Record<string, object> | null;
 }
 
+export interface GetContentPathInput {
+  pageId: string;
+  cultureName: string;
+  slug?: string;
+  publishTime?: string;
+  fieldValues?: Record<string, object> | null;
+}
+
 export interface GetContentListInput extends PagedAndSortedResultRequestDto {
   pageId?: string | null;
   cultureName?: string | null;
