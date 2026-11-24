@@ -2574,10 +2574,10 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-4.2.0.tgz#ba5d0b917303c0b3d3c14c4865cdc6ded25ac05f"
   integrity sha512-kzyuwOAQnXJNLS9PSyrk0CWk35nWJW/zl/6KvnTBMFK65gm7U1/Z5BqjxeapjZCIhQcM/DsrEmcbRwDyXyXK4A==
 
-"@dignite-projects/ng.blob-management@10.7.7-preview.6":
-  version "10.7.7-preview.6"
-  resolved "https://npm.pkg.github.com/download/@dignite-projects/ng.blob-management/10.7.7-preview.6/15e07d6daf785ae90f8e8aea8e47faa5959c96fd#15e07d6daf785ae90f8e8aea8e47faa5959c96fd"
-  integrity sha512-uRTv4hnfp72r5endddo/7PQsln3ZITHTf55wlddoHrbKifS54DpS9BvwcZyoP5kWEZaSlGReQLK5anfAhChFRA==
+"@dignite-projects/ng.blob-management@10.7.7-preview.7":
+  version "10.7.7-preview.7"
+  resolved "https://npm.pkg.github.com/download/@dignite-projects/ng.blob-management/10.7.7-preview.7/07c5f114017fe72d5d6e67e704ca3e5f027ba794#07c5f114017fe72d5d6e67e704ca3e5f027ba794"
+  integrity sha512-G2MTM7dyCYPv5RLz6cx/x4r/CAK8XCei7LpPexGuDh59Ue4pWyJav1qvXhdicBcmzQCLHb8yEjGey+oaXWvwxw==
   dependencies:
     tslib "^2.3.0"
 

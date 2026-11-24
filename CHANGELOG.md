@@ -134,15 +134,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behaves as before, but code built against an earlier version needs a rebuild; in `@dignite/ng.site`,
   `SiteThemeAdminService.check` takes a `SiteThemeCheckInput`. See
   [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
-- **Dignite ABP Modules 10.7.7-preview.6.** Blob Management's BLOB and file APIs are ABP integration services at
+- **Dignite ABP Modules 10.7.7-preview.7.** Blob Management's BLOB and file APIs are ABP integration services at
   `integration-api/blob-management/`, hidden unless the host exposes them - which a host that installs Blob Management in
   its own process, as Site's does, has no reason to do. A file it deletes is soft-deleted and keeps its bytes, for a
   business system that restores the record referring to it; Site has no restore, so deleting a file in Site - the
   administration API, the MCP tool and the cleanup of an upload no saved form holds - still deletes it for good, bytes
   included. The host has a new migration, `BlobManagement_AlignedWithPreview6`: it deletes the files already marked
   deleted, whose bytes were deleted with them, then drops `BlobDirectoryDescriptors.NameKey` and its index, makes
-  `BlobFileDescriptors.Hash` optional and replaces the file indexes. A host that ran an earlier pre-release adds the same
-  migration, with that `DELETE` first. Blob Management run as a service of its own sets `ExposeIntegrationServices`; see
+  `BlobFileDescriptors.Hash` optional and replaces the file indexes; 10.7.7-preview.7 changes no table. A host that ran an
+  earlier pre-release adds the same migration, with that `DELETE` first. Blob Management run as a service of its own sets `ExposeIntegrationServices`; see
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
 
 ### Fixed
@@ -200,7 +200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlobManagementHttpApiClientModule` and configures Site as an OAuth client that Blob Management grants
   `BlobManagement.Container.Files` on the three containers. The Angular admin UI points `apis.BlobManagement` at it and
   asks for its scope in `oAuthConfig.scope`. Site reads the containers' limits as that client, which Blob Management
-  answers from 10.7.7-preview.3; Site depends on 10.7.7-preview.6. See
+  answers from 10.7.7-preview.3; Site depends on 10.7.7-preview.7. See
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
 - **A host that configured `SiteImageRenderingOptions`** removes it: Site renders no pictures.
 - **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of
