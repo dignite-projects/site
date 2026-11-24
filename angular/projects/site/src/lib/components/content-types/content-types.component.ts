@@ -7,8 +7,6 @@ import {
 } from '@abp/ng.theme.shared';
 import {
   Component,
-  ElementRef,
-  ViewChild,
   inject,
   signal,
   ChangeDetectionStrategy,
@@ -25,15 +23,9 @@ import type {
 import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { eSitePolicyNames } from '../../enums/policy-names';
+import { SITE_CONSTS } from '../../site-consts';
 import { SiteReferenceDataService } from '../../services/site-reference-data.service';
 import { FieldArrangementComponent } from './field-arrangement.component';
-
-const MAX_NAME_LENGTH = 64;
-const MAX_DISPLAY_NAME_LENGTH = 128;
-const MAX_DESCRIPTION_LENGTH = 512;
-
-/** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
-const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
 /** The content types of one page. Reached from the Pages list; there is no menu entry. */
 @Component({
@@ -82,8 +74,6 @@ export class ContentTypesComponent {
    * array comes back reset to its default.
    */
   arrangement: ContentTypeFieldDto[] = [];
-
-  @ViewChild('submitButton') submitButton?: ElementRef<HTMLButtonElement>;
 
   constructor() {
     this.pageService.get(this.pageId).subscribe(page => this.page.set(page));
@@ -191,7 +181,7 @@ export class ContentTypesComponent {
       })
       .subscribe((status: Confirmation.Status) => {
         if (status === Confirmation.Status.confirm) {
-          // Answers ContentTypeStillHasContents when contents remain; the server's message says so.
+          // Answers Site:020003 when contents remain; the server's message says so.
           this.contentTypeService.delete(contentType.id!).subscribe(() => {
             this.load();
             this.referenceData.invalidateContentTypes();
@@ -205,15 +195,15 @@ export class ContentTypesComponent {
     return this.fb.group({
       displayName: [
         contentType?.displayName ?? '',
-        [Validators.required, Validators.maxLength(MAX_DISPLAY_NAME_LENGTH)],
+        [Validators.required, Validators.maxLength(SITE_CONSTS.contentType.maxDisplayNameLength)],
       ],
       name: [
         contentType?.name ?? '',
-        [Validators.required, Validators.maxLength(MAX_NAME_LENGTH), Validators.pattern(NAME_PATTERN)],
+        [Validators.required, Validators.maxLength(SITE_CONSTS.contentType.maxNameLength), Validators.pattern(SITE_CONSTS.namePattern)],
       ],
       description: [
         contentType?.description ?? '',
-        [Validators.maxLength(MAX_DESCRIPTION_LENGTH)],
+        [Validators.maxLength(SITE_CONSTS.contentType.maxDescriptionLength)],
       ],
     });
   }

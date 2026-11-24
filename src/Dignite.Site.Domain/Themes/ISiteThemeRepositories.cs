@@ -44,7 +44,7 @@ public interface ISiteReleaseRepository : IBasicRepository<SiteRelease, Guid>
 
     /// <summary>
     /// The files of <paramref name="releaseId"/> with their bodies, in one query, ordered by path. A static file's
-    /// body is left null unless <paramref name="includeAssetBodies"/>: a page render only needs its hash. The theme's
+    /// body is left empty unless <paramref name="includeAssetBodies"/>: a page render only needs its hash. The theme's
     /// texts (<see cref="SiteThemeTextFiles"/>) are the exception, since a render reads them.
     /// </summary>
     Task<List<SiteReleaseFileContent>> GetContentsAsync(
@@ -71,4 +71,4 @@ public sealed record SiteThemeFileSummary(
     DateTime? LastModificationTime);
 
 /// <summary>A release file with its body - see <see cref="ISiteReleaseRepository.GetContentsAsync"/>.</summary>
-public sealed record SiteReleaseFileContent(string Path, string ContentHash, string? Body);
+public sealed record SiteReleaseFileContent(string Path, string ContentHash, string Body);

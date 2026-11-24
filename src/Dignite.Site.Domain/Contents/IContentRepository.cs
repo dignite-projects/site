@@ -12,7 +12,8 @@ public interface IContentRepository : IBasicRepository<Content, Guid>
     /// <summary>
     /// The unique-constraint lookup: at most one content per <c>(PageId, CultureName, Slug)</c>
     /// (总体设计 §2.5). This is step 2 of route resolution, and the whole reason a slug has to be
-    /// unique within its page and language.
+    /// unique within its page and language. <paramref name="cultureName"/> is normalized
+    /// (<see cref="CultureNameNormalizer"/>) before it is compared.
     /// </summary>
     Task<Content?> FindBySlugAsync(
         Guid pageId,

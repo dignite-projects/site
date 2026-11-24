@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using Dignite.Site.Pages;
 using Shouldly;
 using Xunit;
@@ -953,6 +954,16 @@ public class PageRoute_Tests
         PageRoute.TryMatchExact(CategoryYearMonthRoute, path, out var values).ShouldBeTrue();
 
         PageRoute.BuildFromCapturedValues(CategoryYearMonthRoute, values).ShouldBe(path);
+    }
+
+    [Fact]
+    public void Should_Read_A_Capture_Key_Back_Into_Its_Name_And_Format()
+    {
+        PageRoute.TryMatchExact("/blog/{category}/{publishTime:yyyy-MM}", "/blog/travel/2026-07", out var values)
+            .ShouldBeTrue();
+
+        values.Keys.Select(PageRoute.ParseCaptureKey).ShouldBe(
+            new (string, string?)[] { ("category", null), ("publishTime", "yyyy-MM") }, ignoreOrder: true);
     }
 
     [Fact]

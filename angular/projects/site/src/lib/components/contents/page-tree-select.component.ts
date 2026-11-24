@@ -6,8 +6,10 @@ import {
   ElementRef,
   EventEmitter,
   HostListener,
+  Injector,
   Input,
   Output,
+  afterNextRender,
   inject,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -142,6 +144,7 @@ type PageNode = PageDto & BaseNode;
 })
 export class PageTreeSelectComponent {
   private readonly elementRef = inject(ElementRef);
+  private readonly injector = inject(Injector);
 
   /** Every page, flat - the hierarchy is rebuilt from `parentId`. */
   @Input() set pages(pages: PageDto[]) {
@@ -160,7 +163,7 @@ export class PageTreeSelectComponent {
     this.nodes = new TreeAdapter(list).getTree();
     this.nodesByKey = new Map();
     this.index(this.nodes);
-    // Opens fully expanded, the same as the page form's parent picker (`nzDefaultExpandAll`).
+    // Opens fully expanded: the hierarchy is what the picker is for.
     this.expandedKeys = [...this.nodesByKey.values()].filter(node => !node.isLeaf).map(node => node.key);
   }
 
@@ -187,6 +190,18 @@ export class PageTreeSelectComponent {
 
   toggle(): void {
     this.isOpen = !this.isOpen;
+
+    if (this.isOpen) {
+      // The panel opens below the toggle, inside whatever scrolls around it - a dialog's body, where the parent page is
+      // the last field - so it is brought into view.
+      afterNextRender(
+        () =>
+          (this.elementRef.nativeElement as HTMLElement)
+            .querySelector('.page-tree-select-menu')
+            ?.scrollIntoView({ block: 'nearest' }),
+        { injector: this.injector },
+      );
+    }
   }
 
   /** `abp-tree` emits the clicked node's entity, i.e. the page. */

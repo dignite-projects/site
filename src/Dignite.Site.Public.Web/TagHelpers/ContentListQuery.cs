@@ -141,7 +141,7 @@ public class ContentListQuery : ITransientDependency
         int maxResultCount = GetContentCountByFieldInput.DefaultMaxResultCount)
     {
         var routeFilters = request.FieldFilters?
-            .Where(filter => !string.Equals(FilterFieldName(filter.Key), fieldName, StringComparison.Ordinal))
+            .Where(filter => !string.Equals(PageRoute.ParseCaptureKey(filter.Key).Name, fieldName, StringComparison.Ordinal))
             .ToDictionary(filter => filter.Key, filter => filter.Value);
 
         var prepared = await PrepareAsync(request with { FieldFilters = routeFilters });
@@ -230,13 +230,6 @@ public class ContentListQuery : ITransientDependency
         return new PreparedContentQuery(input, contentTypesById, fieldsById);
     }
 
-    /// <summary>The field a route filter key names: <c>name</c>, or <c>name:FORMAT</c> for a date part.</summary>
-    private static string FilterFieldName(string key)
-    {
-        var colonIndex = key.IndexOf(':');
-        return colonIndex < 0 ? key : key[..colonIndex];
-    }
-
     /// <summary>The page's content types.</summary>
     protected virtual async Task<IReadOnlyList<ContentTypeDto>> GetContentTypesAsync(PageDto page)
     {
@@ -317,12 +310,7 @@ public class ContentListQuery : ITransientDependency
 
         foreach (var (key, capturedValue) in fieldFilters)
         {
-            // A placeholder's key is its name alone, or name:FORMAT when a format is present - never its
-            // regex (PageRoute.cs's own Accept/IsValid remarks) - so splitting on the first ':' always
-            // recovers (name, format) correctly.
-            var colonIndex = key.IndexOf(':');
-            var name = colonIndex < 0 ? key : key[..colonIndex];
-            var format = colonIndex < 0 ? null : key[(colonIndex + 1)..];
+            var (name, format) = PageRoute.ParseCaptureKey(key);
 
             if (!searchableNames.Contains(name) || !fieldsByName.TryGetValue(name, out var field))
             {

@@ -63,12 +63,12 @@ public class SeoFieldType : FieldTypeBase, INormalizesValue, IHasValueShape
         new(SeoConfigurationNames.MetaTitleCharLimit, FieldConfigurationValueKind.Integer)
         {
             DefaultValue = new SeoConfiguration().MetaTitleCharLimit,
-            Description = "The most characters the meta title may have."
+            Description = "The advised width of the meta title, in columns: a Chinese, Japanese or Korean character takes two. A wider value is not refused."
         },
         new(SeoConfigurationNames.MetaDescriptionCharLimit, FieldConfigurationValueKind.Integer)
         {
             DefaultValue = new SeoConfiguration().MetaDescriptionCharLimit,
-            Description = "The most characters the meta description may have."
+            Description = "The advised width of the meta description, in columns. A wider value is not refused."
         }
     };
 

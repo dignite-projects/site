@@ -1,6 +1,14 @@
 import { authGuard, permissionGuard, RouterOutletComponent } from '@abp/ng.core';
-import { Routes } from '@angular/router';
+import { CanDeactivateFn, Routes } from '@angular/router';
+import type { Observable } from 'rxjs';
 import { eSitePolicyNames } from './enums/policy-names';
+
+/** A page that asks before it is left with work that is not saved, such as `ContentEditorComponent`. */
+interface LeaveConfirming {
+  canLeave(): boolean | Observable<boolean>;
+}
+
+const confirmLeave: CanDeactivateFn<LeaveConfirming> = page => page.canLeave();
 
 /**
  * No `admin` path segment (unlike Dignite.Cms's `/cms/admin/...`): the public tier has no Angular UI,
@@ -32,12 +40,14 @@ export const SITE_ROUTES: Routes = [
         path: 'contents/create',
         loadComponent: () =>
           import('./components/contents/content-editor.component').then(c => c.ContentEditorComponent),
+        canDeactivate: [confirmLeave],
         data: { requiredPolicy: eSitePolicyNames.ContentsCreate },
       },
       {
         path: 'contents/:id/edit',
         loadComponent: () =>
           import('./components/contents/content-editor.component').then(c => c.ContentEditorComponent),
+        canDeactivate: [confirmLeave],
         data: { requiredPolicy: eSitePolicyNames.ContentsUpdate },
       },
       {
@@ -64,6 +74,7 @@ export const SITE_ROUTES: Routes = [
         path: 'theme',
         loadComponent: () =>
           import('./components/theme/theme-workbench.component').then(c => c.ThemeWorkbenchComponent),
+        canDeactivate: [confirmLeave],
         data: { requiredPolicy: eSitePolicyNames.Themes },
       },
     ],

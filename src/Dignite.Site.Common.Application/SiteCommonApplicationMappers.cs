@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Dignite.Abp.FlexFields;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
@@ -23,10 +25,11 @@ namespace Dignite.Site.Common;
 /// copy declared here reaches both without either needing its own.
 /// </para>
 /// <para>
-/// Anything that needs a dictionary conversion (<c>FieldDto.Configuration</c>, <c>ContentDto.FieldValues</c>),
-/// a value-object list conversion (<c>ContentTypeDto.Fields</c>), or has no source on the entity at all
-/// (<c>ContentDto.Url</c>) is ignored here and set by hand in the owning app service instead - see
-/// <c>FlexFieldValueDictionaryExtensions</c> and <c>ContentTypeFieldDtoExtensions</c> in this project.
+/// Each mapper produces the whole DTO, the FlexFields dictionaries and a content type's fields included
+/// (through <c>FlexFieldValueDictionaryExtensions</c> and <c>ContentTypeFieldDtoExtensions</c>), so no
+/// service finishes one by hand. Left out are what the entity does not hold: <c>ContentDto.Url</c>,
+/// <c>PageName</c> and <c>ContentTypeName</c>, and <c>PageDto.ContentTypes</c>, which only a page read with
+/// its details has (<c>PageDtoExtensions.ToDtoWithContentTypes</c>).
 /// </para>
 /// </summary>
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
@@ -42,21 +45,22 @@ public partial class PageToPageDtoMapper : MapperBase<Page, PageDto>
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class ContentTypeToContentTypeDtoMapper : MapperBase<ContentType, ContentTypeDto>
 {
-    [MapperIgnoreTarget(nameof(ContentTypeDto.Fields))]
     public override partial ContentTypeDto Map(ContentType source);
 
-    [MapperIgnoreTarget(nameof(ContentTypeDto.Fields))]
     public override partial void Map(ContentType source, ContentTypeDto destination);
+
+    private static List<ContentTypeFieldDto> MapFields(IReadOnlyList<ContentTypeField> fields) => fields.ToDtoList();
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class FieldToFieldDtoMapper : MapperBase<Field, FieldDto>
 {
-    [MapperIgnoreTarget(nameof(FieldDto.Configuration))]
     public override partial FieldDto Map(Field source);
 
-    [MapperIgnoreTarget(nameof(FieldDto.Configuration))]
     public override partial void Map(Field source, FieldDto destination);
+
+    private static IDictionary<string, object?> MapConfiguration(FieldConfigurationDictionary configuration) =>
+        configuration.ToValueDictionary();
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
@@ -66,15 +70,17 @@ public partial class ContentToContentDtoMapper : MapperBase<Content, ContentDto>
     // alongside it sets Url by hand afterward; every other producer (Admin included) leaves it at
     // ContentDto.Url's own string.Empty default. PageName and ContentTypeName are the same: names live on the
     // page and the content type, and the Admin service that reads those sets them by hand.
-    [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
+    [MapProperty(nameof(Content.FlexFields), nameof(ContentDto.FieldValues))]
     [MapperIgnoreTarget(nameof(ContentDto.Url))]
     [MapperIgnoreTarget(nameof(ContentDto.PageName))]
     [MapperIgnoreTarget(nameof(ContentDto.ContentTypeName))]
     public override partial ContentDto Map(Content source);
 
-    [MapperIgnoreTarget(nameof(ContentDto.FieldValues))]
+    [MapProperty(nameof(Content.FlexFields), nameof(ContentDto.FieldValues))]
     [MapperIgnoreTarget(nameof(ContentDto.Url))]
     [MapperIgnoreTarget(nameof(ContentDto.PageName))]
     [MapperIgnoreTarget(nameof(ContentDto.ContentTypeName))]
     public override partial void Map(Content source, ContentDto destination);
+
+    private static IDictionary<string, object?> MapFieldValues(FlexFieldDictionary values) => values.ToValueDictionary();
 }

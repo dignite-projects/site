@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using Dignite.Abp.FlexFields;
 using Dignite.Site.Admin.Permissions;
-using Dignite.Site.Common;
 using Dignite.Site.Contents;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Pages;
+using Dignite.Site.Seo;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Validation;
@@ -25,16 +26,20 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
 
     protected IContentTypeRepository ContentTypeRepository { get; }
 
+    protected SiteLanguageProvider LanguageProvider { get; }
+
     public ContentAdminAppService(
         IContentRepository contentRepository,
         ContentManager contentManager,
         IPageRepository pageRepository,
-        IContentTypeRepository contentTypeRepository)
+        IContentTypeRepository contentTypeRepository,
+        SiteLanguageProvider languageProvider)
     {
         ContentRepository = contentRepository;
         ContentManager = contentManager;
         PageRepository = pageRepository;
         ContentTypeRepository = contentTypeRepository;
+        LanguageProvider = languageProvider;
     }
 
     public virtual async Task<ContentDto> GetAsync(Guid id)
@@ -61,20 +66,27 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
                 });
         }
 
-        // TryNormalize, not Normalize: the strict form throws on anything CultureInfo does not recognize,
-        // and this is a "find or null" lookup - a culture this site could never have stored is a miss, not
-        // a server error. The normalizer itself is the same one the write path runs
-        // (ContentManager.CreateAsync), applied to the address rather than to the value being stored, so
-        // the address matches what was actually persisted. That is not the "second normalization point"
-        // 总体设计 §2.4 warns about: that is about two places deciding what to *store*.
-        if (!CultureNameNormalizer.TryNormalize(cultureName, out var normalizedCulture))
-        {
-            return null;
-        }
-
-        var content = await ContentRepository.FindBySlugAsync(pageId, normalizedCulture, slug);
+        var content = await ContentRepository.FindBySlugAsync(pageId, cultureName, slug);
 
         return content == null ? null : await MapToDtoAsync(content);
+    }
+
+    public virtual async Task<string> GetPathAsync(GetContentPathInput input)
+    {
+        var page = await PageRepository.GetAsync(input.PageId, includeDetails: false);
+
+        // Never saved: the content as the editor has it, for the page to build the address from as it builds a saved one's.
+        var content = new Content(Guid.Empty, page.Id, Guid.Empty, input.CultureName, input.Slug, input.PublishTime);
+        foreach (var (name, value) in input.FieldValues ?? new Dictionary<string, object?>())
+        {
+            if (value != null)
+            {
+                content.SetField(name, value);
+            }
+        }
+
+        var languages = await LanguageProvider.GetEnabledLanguagesAsync();
+        return new SiteLanguages(languages[0], languages).ApplyCulturePrefix(page.PreviewContentPath(content), content.CultureName);
     }
 
     public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
@@ -154,7 +166,6 @@ public class ContentAdminAppService : SiteAdminAppService, IContentAdminAppServi
             .Select(content =>
             {
                 var dto = ObjectMapper.Map<Content, ContentDto>(content);
-                dto.FieldValues = content.FlexFields.ToValueDictionary();
                 dto.PageName = pageNames.GetValueOrDefault(content.PageId) ?? string.Empty;
                 dto.ContentTypeName = contentTypeNames.GetValueOrDefault(content.ContentTypeId) ?? string.Empty;
                 return dto;

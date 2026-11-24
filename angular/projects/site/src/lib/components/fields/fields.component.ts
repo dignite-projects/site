@@ -7,8 +7,6 @@ import {
 } from '@abp/ng.theme.shared';
 import {
   Component,
-  ElementRef,
-  ViewChild,
   computed,
   inject,
   signal,
@@ -23,18 +21,13 @@ import {
   FlexFieldConfigComponent,
 } from '@dignite/ng.flex-fields';
 import type { FlexFieldData } from '@dignite/ng.flex-fields';
+import { toFlexFieldData } from '../contents/arranged-field';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import type { GetFieldListInput } from '../../proxy/dignite/site/admin/fields/models';
 import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import { eSitePolicyNames } from '../../enums/policy-names';
+import { SITE_CONSTS } from '../../site-consts';
 import { SiteReferenceDataService } from '../../services/site-reference-data.service';
-
-const MAX_FIELD_NAME_LENGTH = 64;
-const MAX_FIELD_DISPLAY_NAME_LENGTH = 128;
-const MAX_GROUP_NAME_LENGTH = 64;
-
-/** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
-const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
 /**
  * localStorage key for per-group collapse state the user has explicitly chosen, keyed by group name
@@ -167,10 +160,6 @@ export class FieldsComponent {
   readonly isGroupModalBusy = signal(false);
   renamingGroupName?: string;
   groupForm?: FormGroup;
-
-  @ViewChild('submitButton') submitButton?: ElementRef<HTMLButtonElement>;
-  @ViewChild('renameSubmitButton') renameSubmitButton?: ElementRef<HTMLButtonElement>;
-  @ViewChild('groupSubmitButton') groupSubmitButton?: ElementRef<HTMLButtonElement>;
 
   constructor() {
     this.search();
@@ -327,7 +316,7 @@ export class FieldsComponent {
     this.renameForm = this.fb.group({
       newName: [
         field.name ?? '',
-        [Validators.required, Validators.maxLength(MAX_FIELD_NAME_LENGTH), Validators.pattern(NAME_PATTERN)],
+        [Validators.required, Validators.maxLength(SITE_CONSTS.field.maxNameLength), Validators.pattern(SITE_CONSTS.namePattern)],
       ],
     });
     this.isRenameModalOpen.set(true);
@@ -366,7 +355,7 @@ export class FieldsComponent {
   openEditGroup(groupName: string): void {
     this.renamingGroupName = groupName;
     this.groupForm = this.fb.group({
-      groupName: [groupName, [Validators.required, Validators.maxLength(MAX_GROUP_NAME_LENGTH)]],
+      groupName: [groupName, [Validators.required, Validators.maxLength(SITE_CONSTS.field.maxGroupNameLength)]],
     });
     this.isGroupModalOpen.set(true);
   }
@@ -445,32 +434,23 @@ export class FieldsComponent {
   }
 
   private buildForm(field?: FieldDto): FormGroup {
-    this.selectedFieldData = field
-      ? {
-          id: field.id!,
-          name: field.name!,
-          displayName: field.displayName!,
-          description: field.description ?? undefined,
-          fieldTypeName: field.fieldTypeName!,
-          configuration: (field.configuration ?? {}) as Record<string, unknown>,
-        }
-      : undefined;
+    this.selectedFieldData = field ? toFlexFieldData(field) : undefined;
 
     return this.fb.group({
       // Fixed after creation - renaming goes through `openRename`. Kept in the form (disabled) so the
       // modal can show what it is.
       name: [
         { value: field?.name ?? '', disabled: !!field },
-        [Validators.required, Validators.maxLength(MAX_FIELD_NAME_LENGTH), Validators.pattern(NAME_PATTERN)],
+        [Validators.required, Validators.maxLength(SITE_CONSTS.field.maxNameLength), Validators.pattern(SITE_CONSTS.namePattern)],
       ],
       displayName: [
         field?.displayName ?? '',
-        [Validators.required, Validators.maxLength(MAX_FIELD_DISPLAY_NAME_LENGTH)],
+        [Validators.required, Validators.maxLength(SITE_CONSTS.field.maxDisplayNameLength)],
       ],
       description: [field?.description ?? ''],
       // Free text with a suggestion list rather than a closed dropdown: filing a field under a new
       // group is just typing its name.
-      groupName: [field?.groupName ?? '', [Validators.maxLength(MAX_GROUP_NAME_LENGTH)]],
+      groupName: [field?.groupName ?? '', [Validators.maxLength(SITE_CONSTS.field.maxGroupNameLength)]],
       // Also fixed after creation: changing the type would orphan every stored value. Still bound so
       // `ff-flex-field-config` can pick which configuration editor to render.
       fieldTypeName: [

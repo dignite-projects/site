@@ -176,7 +176,6 @@ public class ScribanRenderModelBuilder : ITransientDependency
     protected virtual ScriptObject BuildPage(PageDto page)
     {
         var result = FromDto(page);
-        result.SetValue("is_home_page", !string.IsNullOrEmpty(page.Route) && PageRoute.IsHomeRoute(page.Route), false);
         SetAuditTimes(result, page);
         return result;
     }
@@ -328,9 +327,8 @@ public class ScribanRenderModelBuilder : ITransientDependency
 
     /// <summary>
     /// Members a template gets in another shape, or not at all: a content's <c>FieldValues</c> (re-added as
-    /// <c>fields</c>, serialized with <see cref="FieldValueJsonOptions"/>), a page's <c>ContentTypes</c>, which
-    /// route resolution leaves unloaded anyway, and a page's computed <c>IsHomePage</c>, whose getter throws on a
-    /// page without a route (re-added null-safely by <see cref="BuildPage"/>).
+    /// <c>fields</c>, serialized with <see cref="FieldValueJsonOptions"/>), and a page's <c>ContentTypes</c>, which
+    /// route resolution leaves unloaded anyway.
     /// </summary>
     private static void ExcludeReshapedMembers(JsonTypeInfo typeInfo)
     {
@@ -346,7 +344,7 @@ public class ScribanRenderModelBuilder : ITransientDependency
         }
         else if (typeof(PageDto).IsAssignableFrom(typeInfo.Type))
         {
-            excluded = new[] { nameof(PageDto.ContentTypes), nameof(PageDto.IsHomePage) };
+            excluded = new[] { nameof(PageDto.ContentTypes) };
         }
 
         if (excluded == null)

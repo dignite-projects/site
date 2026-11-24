@@ -285,7 +285,7 @@ public class HeadMetadataBuilder : DomainService
         if (!chain[0].IsHomeRoute())
         {
             var home = await PageRepository.FindHomePageAsync(includeDetails: false, cancellationToken);
-            if (home != null && home.IsActive && !seen.Contains(home.Id))
+            if (home != null && !seen.Contains(home.Id))
             {
                 chain.Insert(0, home);
             }
@@ -425,14 +425,13 @@ public class HeadMetadataBuilder : DomainService
     protected virtual bool HasUnusableDateFilter(IReadOnlyDictionary<string, string> filterValues)
     {
         var dateGroups = filterValues
-            .Select(entry => (Key: entry.Key, Value: entry.Value, Colon: entry.Key.IndexOf(':')))
-            .Where(entry => entry.Colon > 0)
-            .Select(entry => (Name: entry.Key[..entry.Colon], Format: entry.Key[(entry.Colon + 1)..], entry.Value))
-            .GroupBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
-            .Where(group => group.Any(entry => RoutePlaceholderDateFormat.IsDateFormat(entry.Format)));
+            .Select(entry => (Key: PageRoute.ParseCaptureKey(entry.Key), entry.Value))
+            .Where(entry => entry.Key.Format != null)
+            .GroupBy(entry => entry.Key.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Any(entry => RoutePlaceholderDateFormat.IsDateFormat(entry.Key.Format!)));
 
         return dateGroups.Any(group =>
-            !RoutePlaceholderDateFormat.TryGetRange(group.Select(entry => (entry.Format, entry.Value)), out _, out _));
+            !RoutePlaceholderDateFormat.TryGetRange(group.Select(entry => (entry.Key.Format!, entry.Value)), out _, out _));
     }
 
     /// <summary>

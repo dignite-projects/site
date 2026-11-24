@@ -28,7 +28,7 @@
     "@abp/ng.feature-management": "~10.7.0",
     "@abp/ng.theme.lepton-x": "~5.7.0",
     "@volo/abp.commercial.ng.ui": "~10.7.0",
-    "@dignite-projects/ng.blob-management": "10.7.7-preview.3",
+    "@dignite-projects/ng.blob-management": "10.7.7-preview.6",
     "@abp/ng.permission-management": "~10.7.0",
     "@dignite/ng.flex-fields": "^10.7.1",
     "@dignite/ng.flex-fields-ckeditor": "^10.7.1",

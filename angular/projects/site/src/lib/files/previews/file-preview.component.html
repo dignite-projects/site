@@ -12,7 +12,7 @@
       <i class="file-type-icon fa fa-file-video-o fs-4" aria-hidden="true"></i>
     }
     @if (!(isImage||isAudio||isVideo)) {
-      <i class="file-type-icon fs-4" [ngClass]="getFileIconClass()" aria-hidden="true"></i>
+      <i class="file-type-icon fs-4" [ngClass]="iconClass" aria-hidden="true"></i>
     }
   </a>
 </div>

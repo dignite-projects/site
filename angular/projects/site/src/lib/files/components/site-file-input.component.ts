@@ -1,12 +1,11 @@
 import { CoreModule } from '@abp/ng.core';
-import { ToasterService } from '@abp/ng.theme.shared';
 import { ChangeDetectionStrategy, Component, computed, effect, forwardRef, inject, input, model, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { catchError, concatMap, EMPTY, finalize, from, tap } from 'rxjs';
+import { catchError, EMPTY, finalize } from 'rxjs';
 import type { SiteFileContainerDto } from '../../proxy/dignite/site/admin/files/models';
 import { FormatFileSizePipe } from '../pipes/format-file-size.pipe';
 import { SiteFileContainersService } from '../services/site-file-containers.service';
-import { refuseFile } from '../services/site-file-limits';
+import { acceptOf } from '../services/site-file-limits';
 import { SiteFileUploadService } from '../services/site-file-upload.service';
 import { SiteFileUrlService } from '../services/site-file-url.service';
 import { SiteStoredFile } from '../services/site-stored-file';
@@ -97,7 +96,6 @@ import { SiteFilePickerModalComponent } from './site-file-picker-modal.component
 export class SiteFileInputComponent implements ControlValueAccessor {
   private readonly containers = inject(SiteFileContainersService);
   private readonly uploads = inject(SiteFileUploadService);
-  private readonly toaster = inject(ToasterService);
   private readonly cleanup = inject(SiteUploadCleanup, { optional: true });
   protected readonly urls = inject(SiteFileUrlService);
 
@@ -122,11 +120,8 @@ export class SiteFileInputComponent implements ControlValueAccessor {
   /** The container's limits, for checking a file before it is sent; Blob Management checks again on upload. */
   private readonly container = signal<SiteFileContainerDto | null>(null);
 
-  /** The file input's `accept`: the container's allowed extensions; `null` - no attribute - for any. */
-  protected readonly accept = computed(() => {
-    const extensions = this.container()?.allowedFileExtensions ?? [];
-    return extensions.length > 0 ? extensions.join(',') : null;
-  });
+  /** The file input's `accept`. */
+  protected readonly accept = computed(() => acceptOf(this.container()));
 
   private onChange: (value: SiteStoredFile[]) => void = () => undefined;
   private onTouched: () => void = () => undefined;
@@ -162,38 +157,14 @@ export class SiteFileInputComponent implements ControlValueAccessor {
       return;
     }
 
-    const files = chosen.filter(file => this.accepts(file));
-    if (files.length === 0) {
-      return;
-    }
-
-    // ABP's error handler has shown each failure already; the batch goes on and one toast counts them at the end.
-    let failed = 0;
     this.uploading.set(true);
-    from(files)
-      .pipe(
-        concatMap(file =>
-          this.uploads.upload(file, containerName).pipe(
-            tap(uploaded => {
-              this.cleanup?.uploaded(uploaded);
-              this.setValue(this.multiple() ? [...this.value(), uploaded] : [uploaded]);
-            }),
-            catchError(() => {
-              failed++;
-              return EMPTY;
-            }),
-          ),
-        ),
-        finalize(() => {
-          this.uploading.set(false);
-          if (failed > 0) {
-            this.toaster.error('Site::Files:UploadFailed', '', {
-              messageLocalizationParams: [String(failed), String(files.length)],
-            });
-          }
-        }),
-      )
-      .subscribe();
+    this.uploads
+      .uploadAll(chosen, containerName, this.container())
+      .pipe(finalize(() => this.uploading.set(false)))
+      .subscribe(uploaded => {
+        this.cleanup?.uploaded(uploaded);
+        this.setValue(this.multiple() ? [...this.value(), uploaded] : [uploaded]);
+      });
   }
 
   /**
@@ -236,14 +207,5 @@ export class SiteFileInputComponent implements ControlValueAccessor {
     this.value.set(files);
     this.onChange(files);
     this.onTouched();
-  }
-
-  private accepts(file: File): boolean {
-    const refusal = refuseFile(file, this.container());
-    if (refusal) {
-      this.toaster.error(refusal.key, '', { messageLocalizationParams: refusal.params });
-    }
-
-    return !refusal;
   }
 }

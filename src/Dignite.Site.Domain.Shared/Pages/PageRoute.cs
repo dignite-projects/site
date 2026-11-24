@@ -648,12 +648,6 @@ public static class PageRoute
             return false;
         }
 
-        if (route.Contains(SlugToken, StringComparison.OrdinalIgnoreCase) &&
-            route.Contains(OptionalSlugToken, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
         if (!TryParseRoute(route, out var tokens))
         {
             return false;
@@ -671,8 +665,8 @@ public static class PageRoute
         var seenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var placeholder in placeholders)
         {
-            var key = placeholder.Format != null ? $"{placeholder.Name}:{placeholder.Format}" : placeholder.Name!;
-            if (!seenKeys.Add(key))
+            // {slug} and {slug?} both parse as "slug", so a route holding the two is refused here too.
+            if (!seenKeys.Add(GetCaptureKey(placeholder.Name!, placeholder.Format)))
             {
                 return false;
             }
@@ -683,9 +677,9 @@ public static class PageRoute
 
     /// <summary>
     /// The canonical stored form of a route: exactly one leading slash, no trailing slash, except for
-    /// the site root which stays <c>/</c>. <c>Page.NormalizeRoute</c> forwards here; it lives in this
-    /// project so the culture-prefix rules (<see cref="SiteLanguages"/>) can normalize a request path
-    /// exactly the way routing does, outside the Domain layer too.
+    /// the site root which stays <c>/</c>. Here rather than on <c>Page</c> so the culture-prefix rules
+    /// (<see cref="SiteLanguages"/>) can normalize a request path exactly the way routing does, outside the
+    /// Domain layer too.
     /// </summary>
     public static string Normalize(string route)
     {
@@ -742,6 +736,23 @@ public static class PageRoute
     /// derived one, so it is always the more specific match.
     /// </summary>
     public static bool IsTemplate(string route) => route.IndexOf('{') >= 0;
+
+    /// <summary>
+    /// Orders routes that share one address (<see cref="GetPath"/>) by which of them owns it: a literal route
+    /// first (<see cref="IsTemplate"/>), then a template with no slug, which has nothing deeper to go to and so
+    /// is already a complete address, then the route text, ordinally, so the order is stable. Every place that
+    /// picks one page for an address sorts by this, so they all pick the same one.
+    /// </summary>
+    public static IComparer<string> AddressPrecedence { get; } = Comparer<string>.Create((x, y) =>
+    {
+        var order = IsTemplate(x).CompareTo(IsTemplate(y));
+        if (order == 0)
+        {
+            order = HasSlug(x).CompareTo(HasSlug(y));
+        }
+
+        return order != 0 ? order : string.CompareOrdinal(x, y);
+    });
 
     /// <summary>
     /// Whether <paramref name="route"/> carries a <c>{slug}</c>, <c>{slug?}</c> or <c>{slug:REGEX}</c> -
@@ -886,6 +897,16 @@ public static class PageRoute
     /// a format is present, never its regex (see <see cref="Accept"/> and <see cref="IsValid"/>).
     /// </summary>
     private static string GetCaptureKey(string name, string? format) => format != null ? $"{name}:{format}" : name;
+
+    /// <summary>
+    /// The reverse of the key a captured value is stored under (<c>RouteMatch.FilterValues</c>): the field's
+    /// name, and the FORMAT when the key has one. The first <c>:</c> splits them, since a name has none.
+    /// </summary>
+    public static (string Name, string? Format) ParseCaptureKey(string key)
+    {
+        var colonIndex = key.IndexOf(':');
+        return colonIndex < 0 ? (key, null) : (key[..colonIndex], key[(colonIndex + 1)..]);
+    }
 
     /// <summary>
     /// The reverse of <see cref="Build"/>: reads the slug back out of a full request path, matched
@@ -1215,21 +1236,4 @@ public static class PageRoute
     }
 
     private static readonly IReadOnlyDictionary<string, string> EmptyValues = new Dictionary<string, string>();
-
-    /// <summary>
-    /// A few placeholders every route can use without anything else being configured first - surfaced so
-    /// an admin UI or an MCP tool description can show examples instead of hard-coding its own copy. Not
-    /// exhaustive: <see cref="IsValid"/> accepts <c>{name}</c>/<c>{name:FORMAT}</c>/<c>{name:REGEX}</c>/
-    /// <c>{name:FORMAT:REGEX}</c> - each optionally marked <c>{name?...}</c> - for any field name a content
-    /// has, system property or <c>FlexFields</c> business field alike.
-    /// </summary>
-    public static IReadOnlyList<string> SupportedPlaceholders { get; } = new[]
-    {
-        SlugToken,
-        OptionalSlugToken,
-        "{slug:^(privacy-policy|terms-of-service)$}",
-        "{publishTime:yyyy-MM}",
-        "{publishTime:yyyy-MM:^\\d{4}-(0[1-9]|1[0-2])$}",
-        "{publishTime?:MM:^(0[1-9]|1[0-2])$}"
-    };
 }

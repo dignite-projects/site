@@ -85,18 +85,11 @@ public class SiteLanguageSwitcher : ITransientDependency
     /// </summary>
     protected virtual string GetNativeName(string cultureName)
     {
-        try
-        {
-            var culture = CultureInfo.GetCultureInfo(cultureName);
-            var name = culture.NativeName;
-            return string.IsNullOrEmpty(name) || culture.Equals(CultureInfo.InvariantCulture)
-                ? cultureName
-                : culture.TextInfo.ToUpper(name[0]) + name[1..];
-        }
-        catch (CultureNotFoundException)
-        {
-            return cultureName;
-        }
+        var culture = CultureInfo.GetCultureInfo(cultureName);
+        var name = culture.NativeName;
+        return string.IsNullOrEmpty(name) || culture.Equals(CultureInfo.InvariantCulture)
+            ? cultureName
+            : culture.TextInfo.ToUpper(name[0]) + name[1..];
     }
 }
 

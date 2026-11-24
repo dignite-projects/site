@@ -51,7 +51,7 @@ public class AppFileUrlFunction : SiteScriptFunction
         var pathBase = httpContext.Request.PathBase;
         var resolved = pathBase.Add(new PathString(path.Split('?', 2)[0])).Value + (path.Contains('?') ? path[path.IndexOf('?')..] : string.Empty);
 
-        var versions = httpContext.RequestServices?.GetService<IFileVersionProvider>();
-        return new ValueTask<object?>(versions == null ? resolved : versions.AddFileVersionToPath(pathBase, resolved));
+        var versions = httpContext.RequestServices.GetRequiredService<IFileVersionProvider>();
+        return new ValueTask<object?>(versions.AddFileVersionToPath(pathBase, resolved));
     }
 }

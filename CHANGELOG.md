@@ -7,8 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The administration API answers the address of a content being edited.** `IContentAdminAppService.GetPathAsync`
+  (`POST api/site-admin/contents/path`) builds it from a page, a language, a slug, a publish time and field values, as
+  the site builds a saved content's (`Page.PreviewContentPath`), with the language's prefix; a placeholder with no
+  value yet shows as its token. `PageDto.HasSlug` and `IsSlugOptional` tell what a page's route asks of a slug.
+- **The theme workbench asks before it is left with a file that is not saved.** Going to another page of the admin UI
+  opens a confirmation, `LeaveThemeConfirm` of the `Site` resource; closing the tab or reloading asked already.
+- **The content editor asks before it is left with something unsaved.** Leaving with changes to the form, or with files
+  the edit uploaded, opens a confirmation that has to be answered, and says that the uploaded files are deleted when there
+  are any; the browser asks too when the tab is closed or the page reloaded. Saving, or leaving an untouched editor,
+  asks nothing. The texts are `LeaveEditorConfirm` and `LeaveEditorWithUploadsConfirm` of the `Site` resource (English,
+  Japanese and Simplified Chinese; the other languages show the English). See
+  [Admin UI](docs/en/admin-ui.md).
+
 ### Changed
 
+- **The content editor shows the address the site will serve, from the server.** It used to build the address itself,
+  with its own copy of the route parsing and of .NET's date, number and Guid formats, which could differ from the
+  site's; it asks `GetPathAsync` a moment after each change, and reads what the route asks of a slug from `PageDto`.
+- **The page form picks the parent page from the same page tree as the content list's filter**, in place of a searchable
+  ng-zorro tree select; the page being edited and the pages beneath it are left out of it, as before.
+- **Breaking: `RouteMatchKindDto` and `SiteThemeUsageKindDto` are `RouteMatchKind` and `SiteThemeUsageKind`.** Each was
+  a copy of the domain's enum, with the same values; the enums moved to `Dignite.Site.Domain.Shared`
+  (`Dignite.Site.Routing`, `Dignite.Site.Themes`) and the contracts use them. The values sent are unchanged; in
+  `@dignite/ng.site` the proxy is `SiteThemeUsageKind`.
+- **Breaking: leftovers of the module template and guards for cases that cannot happen are gone.**
+  - Unused types: `SiteAppService`, `SiteCommonAppService`, `SiteController`, `SiteCommonController`, the empty
+    permission groups `SitePermissions`, `SiteCommonPermissions` and `SitePublicPermissions` with their providers and
+    texts, and `eSitePolicyNames.FieldGroups*` in `@dignite/ng.site`, which no permission backs.
+  - `Dignite.Site.Public.Web` no longer depends on Mapperly, which it never used.
+  - `SitePreviewState` takes the `ISiteThemePreviewSource` that both kinds of host register; `IsAvailable` is gone,
+    and a preview is `Ticket != null`. `SitePreviewConsts.QueryKey` is `SiteThemePreviewConsts.QueryKey`.
+  - A page's `Template` cannot end in `.cshtml` (`PageConsts.TemplatePattern`), so
+    `SiteRenderViewModelBuilder.ResolveTemplateName` and the controller's `ResolveTemplateName` are gone.
+  - `SiteReleaseFileContent.Body` is never null: a static file read without its body has an empty one.
+  - `SeoClock` moved to `Dignite.Site.Domain.Shared`, and `Dignite.Site.Public.Application.Contracts.Seo.ClockExtensions`
+    is gone.
+  - `SiteHeadMetadataHtml.Build` and `BuildTags` take `SiteHeadOptions` only.
+  - The MCP `FileTools` and `SiteThemeTransferTools` take `SiteMcpLinks`, which makes their links absolute, and
+    `SiteMcpNameResolver.GetReleaseAsync` finds a release by number for every theme tool.
+- **Breaking: deleting a content type that contents still use answers `Site:020003`.** The refusal moved from
+  `ContentTypeAdminAppService` into the new `ContentTypeManager.DeleteAsync`, and is a `ContentTypeHasContentsException`
+  rather than a `UserFriendlyException` with the `ContentTypeStillHasContents` text, which is gone. `ContentTypeManager`
+  takes an `IContentRepository`, and `CreateAsync` also takes the `Page` itself, which creating a page uses for its
+  default content type instead of saving the page halfway.
+- **Breaking: the entity-to-DTO mappers produce the whole DTO.** `ObjectMapper.Map` now fills
+  `ContentDto.FieldValues`, `ContentTypeDto.Fields` and `FieldDto.Configuration`, which every application service
+  filled by hand. Gone with that: `Dignite.Site.Common.RouteMatchEntityDtoExtensions` and the protected `MapToDto`
+  and `MapContentType` of the page, content type and field application services. A page with its content types is
+  `page.ToDtoWithContentTypes(ObjectMapper)`; `PageDto.ContentTypes` stays null otherwise. A theme snapshot is
+  `SiteTheme.ToSnapshotDto` or `SiteRelease.ToSnapshotDto`, replacing `SiteThemeAdminAppService.ToWorkingCopySnapshot`.
+- **Breaking: `Page.NormalizeRoute` and `PageRoute.SupportedPlaceholders` are gone.** `Page.NormalizeRoute` only called
+  `PageRoute.Normalize`, which every caller now uses, and nothing read `SupportedPlaceholders`. The key a route capture
+  is stored under in `RouteMatchDto.FilterValues`, `name` or `name:FORMAT`, is read back with the new
+  `PageRoute.ParseCaptureKey`.
 - **Breaking: Site's files are kept in Dignite Blob Management; Site's own file library is gone.** The images and
   attachments of contents, the share images and the files a theme links are stored in Blob Management, which the host
   installs (Application, HttpApi and Entity Framework Core), with `images`, `attachments` and `theme-assets` declared in
@@ -80,6 +134,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behaves as before, but code built against an earlier version needs a rebuild; in `@dignite/ng.site`,
   `SiteThemeAdminService.check` takes a `SiteThemeCheckInput`. See
   [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
+- **Dignite ABP Modules 10.7.7-preview.6.** Blob Management's BLOB and file APIs are ABP integration services at
+  `integration-api/blob-management/`, hidden unless the host exposes them - which a host that installs Blob Management in
+  its own process, as Site's does, has no reason to do. A file it deletes is soft-deleted and keeps its bytes, for a
+  business system that restores the record referring to it; Site has no restore, so deleting a file in Site - the
+  administration API, the MCP tool and the cleanup of an upload no saved form holds - still deletes it for good, bytes
+  included. The host has a new migration, `BlobManagement_AlignedWithPreview6`: it deletes the files already marked
+  deleted, whose bytes were deleted with them, then drops `BlobDirectoryDescriptors.NameKey` and its index, makes
+  `BlobFileDescriptors.Hash` optional and replaces the file indexes. A host that ran an earlier pre-release adds the same
+  migration, with that `DELETE` first. Blob Management run as a service of its own sets `ExposeIntegrationServices`; see
+  [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
+
+### Fixed
+
+- **Without `Site.PrimaryDomain`, absolute URLs follow the request in any application with `Dignite.Site.Public.Web`.**
+  The fallback to the request's scheme and host that [Primary Domain](docs/en/settings.md#primary-domain) describes was
+  only in the repository's own development host, so another host failed with `Site:050001` until every site had a primary
+  domain. `Dignite.Site.Public.Web` now supplies it through `ISiteRequestBaseUrlAccessor`, which
+  `SettingSiteBaseUrlResolver` reads when the setting is empty or malformed.
+- **The page API and the feeds pick the page that an address renders.** When several pages share an address, finding a
+  page by its address (`IPageRepository.FindByPathAsync`, `FindHomePageAsync`) preferred a different one from route
+  resolution, which also prefers a template without a slug, and could return an inactive page that hid an active one.
+  Both now look at active pages only and order them by `PageRoute.AddressPrecedence`, as route resolution does.
+- **`IContentPublicAppService.GetBySlugAsync` matches the culture however it is spelled**, as the administration lookup
+  does: `IContentRepository.FindBySlugAsync` normalizes it.
+- **The SEO field's limits are described as advised widths in columns** to MCP clients, as
+  [Field Types](docs/en/field-types.md) documents them, rather than as character maxima.
+- **Images uploaded into a CKEditor field, and files uploaded in an edit that is never saved, are no longer left behind.**
+  The content editor deleted an upload that the saved form no longer holds only for the file inputs, and only after a
+  save: an image inserted into a CKEditor field was never tracked, and nothing ran when the editor was left without
+  saving, so those files stayed in Blob Management, public and counted against the allocation. A CKEditor image the
+  saved text does not hold is now deleted when the content is saved, and what an edit uploaded without ever saving is
+  deleted when the editor is left, after the confirmation below. A file stays when the browser is closed or the page
+  reloaded in the middle of an edit. See [Attaching Files in the Admin UI](docs/en/files.md#attaching-files-in-the-admin-ui).
 
 ### Migrate
 
@@ -113,7 +200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlobManagementHttpApiClientModule` and configures Site as an OAuth client that Blob Management grants
   `BlobManagement.Container.Files` on the three containers. The Angular admin UI points `apis.BlobManagement` at it and
   asks for its scope in `oAuthConfig.scope`. Site reads the containers' limits as that client, which Blob Management
-  answers from 10.7.7-preview.3, the version Site depends on. See
+  answers from 10.7.7-preview.3; Site depends on 10.7.7-preview.6. See
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
 - **A host that configured `SiteImageRenderingOptions`** removes it: Site renders no pictures.
 - **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of

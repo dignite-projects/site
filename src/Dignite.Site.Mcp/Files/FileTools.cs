@@ -5,8 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.Files;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using Volo.Abp.DependencyInjection;
 
@@ -24,18 +22,12 @@ public class FileTools : ITransientDependency
 {
     protected IFileAdminAppService FileAppService { get; }
 
-    protected SiteMcpOptions Options { get; }
+    protected SiteMcpLinks Links { get; }
 
-    protected IHttpContextAccessor? HttpContextAccessor { get; }
-
-    public FileTools(
-        IFileAdminAppService fileAppService,
-        IOptions<SiteMcpOptions> options,
-        IHttpContextAccessor? httpContextAccessor = null)
+    public FileTools(IFileAdminAppService fileAppService, SiteMcpLinks links)
     {
         FileAppService = fileAppService;
-        Options = options.Value;
-        HttpContextAccessor = httpContextAccessor;
+        Links = links;
     }
 
     [McpServerTool(Name = "site_list_file_containers", Title = "List file containers", ReadOnly = true)]
@@ -68,7 +60,7 @@ public class FileTools : ITransientDependency
             ContainerName = containerName
         });
 
-        var url = GetBaseUrl().TrimEnd('/') + "/" + ticket.UploadUrl.TrimStart('/');
+        var url = Links.ToAbsolute(ticket.UploadUrl);
         return new McpUploadUrl
         {
             FileId = ticket.FileId,
@@ -140,20 +132,6 @@ public class FileTools : ITransientDependency
         Guid fileId)
     {
         return FileAppService.DeleteAsync(fileId);
-    }
-
-    /// <summary>Where the links point: <see cref="SiteMcpOptions.BaseUrl"/>, else the scheme and host this MCP request came in on.</summary>
-    protected virtual string GetBaseUrl()
-    {
-        if (!string.IsNullOrWhiteSpace(Options.BaseUrl))
-        {
-            return Options.BaseUrl!;
-        }
-
-        var request = HttpContextAccessor?.HttpContext?.Request
-                      ?? throw new InvalidOperationException(
-                          $"The address of an upload link is unknown: {nameof(SiteMcpOptions)}.{nameof(SiteMcpOptions.BaseUrl)} is not set and there is no request to take it from.");
-        return $"{request.Scheme}://{request.Host}{request.PathBase}";
     }
 }
 

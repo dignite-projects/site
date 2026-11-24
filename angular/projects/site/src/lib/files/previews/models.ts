@@ -5,13 +5,6 @@ export interface FileTypeIcon {
 
 /** Fallback icon by MIME type (or file extension, for the few types MIME can't distinguish). */
 export const IMAGE_TYPE_OPTIONS: readonly FileTypeIcon[] = [
-  { type: 'image/jpeg', icon: '' },
-  { type: 'image/webp', icon: '' },
-  { type: 'image/gif', icon: '' },
-  { type: 'image/png', icon: '' },
-  { type: 'image/bmp', icon: '' },
-  { type: 'audio/ogg', icon: '' },
-  { type: 'video/mp4', icon: '' },
   { type: 'application/pdf', icon: 'fa fa-file-pdf-o' },
   { type: 'application/msword', icon: 'fa fa-file-word-o' },
   {
@@ -31,5 +24,4 @@ export const IMAGE_TYPE_OPTIONS: readonly FileTypeIcon[] = [
   { type: 'application/x-zip-compressed', icon: 'fa fa-file-archive-o' },
   { type: '7z', icon: 'fa fa-file-archive-o' },
   { type: 'text/plain', icon: 'fa fa-file-text-o' },
-  { type: '', icon: 'fa fa-file-o' },
 ];

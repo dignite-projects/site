@@ -7,6 +7,7 @@ using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Contents;
 using Dignite.Site.Admin.Fields;
 using Dignite.Site.Admin.Pages;
+using Dignite.Site.Admin.Themes;
 using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
@@ -41,16 +42,32 @@ public class SiteMcpNameResolver : ITransientDependency
 
     protected IContentAdminAppService ContentAppService { get; }
 
+    protected ISiteThemeAdminAppService ThemeAppService { get; }
+
     public SiteMcpNameResolver(
         IPageAdminAppService pageAppService,
         IContentTypeAdminAppService contentTypeAppService,
         IFieldAdminAppService fieldAppService,
-        IContentAdminAppService contentAppService)
+        IContentAdminAppService contentAppService,
+        ISiteThemeAdminAppService themeAppService)
     {
         PageAppService = pageAppService;
         ContentTypeAppService = contentTypeAppService;
         FieldAppService = fieldAppService;
         ContentAppService = contentAppService;
+        ThemeAppService = themeAppService;
+    }
+
+    /// <summary>The release with this number, as <c>site_list_releases</c> numbers them.</summary>
+    public virtual async Task<SiteReleaseDto> GetReleaseAsync(int number)
+    {
+        var releases = await ThemeAppService.GetReleasesAsync();
+
+        return releases.Items.FirstOrDefault(release => release.Number == number)
+               ?? throw new McpEntityNotFoundException(
+                   "release",
+                   number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                   hint: "Call site_list_releases for the releases this site has.");
     }
 
     public virtual async Task<PageDto> GetPageAsync(string page)

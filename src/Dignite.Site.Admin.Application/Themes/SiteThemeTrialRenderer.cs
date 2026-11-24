@@ -313,7 +313,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
                 continue;
             }
 
-            var template = GetTemplatePath(page);
+            var template = page.Template;
 
             var contents = await ContentRepository.GetListAsync(
                 pageId: page.Id,
@@ -368,16 +368,6 @@ public class SiteThemeTrialRenderer : ITransientDependency
         }
     }
 
-    /// <summary>The theme path of the page's template, the same reading the renderer makes of <c>Template</c>.</summary>
-    protected virtual string GetTemplatePath(Page page)
-    {
-        var template = page.Template!.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase)
-            ? page.Template[..^".cshtml".Length]
-            : page.Template;
-
-        return SiteThemePaths.Normalize(template);
-    }
-
     /// <summary>
     /// The file a page in <paramref name="cultureName"/> renders through: the template's version for that language or
     /// the nearest parent language that has one (<c>Default.zh-Hant</c>, <c>Default.zh</c>), else the template itself -
@@ -385,17 +375,7 @@ public class SiteThemeTrialRenderer : ITransientDependency
     /// </summary>
     protected virtual string GetTemplateVersion(string template, string cultureName, SiteThemeAnalysis analysis)
     {
-        CultureInfo culture;
-        try
-        {
-            culture = CultureInfo.GetCultureInfo(cultureName);
-        }
-        catch (CultureNotFoundException)
-        {
-            return template;
-        }
-
-        for (; !string.IsNullOrEmpty(culture.Name); culture = culture.Parent)
+        for (var culture = CultureInfo.GetCultureInfo(cultureName); !string.IsNullOrEmpty(culture.Name); culture = culture.Parent)
         {
             var version = SiteThemePaths.GetLanguageVersionPath(template, culture.Name);
             if (analysis.Files.ContainsKey(version))
@@ -407,15 +387,10 @@ public class SiteThemeTrialRenderer : ITransientDependency
         return template;
     }
 
-    /// <summary>Whether the page's template is a template of the theme - the same reading the renderer makes of <c>Template</c>.</summary>
+    /// <summary>Whether the page's template is a template of the theme, which then renders it instead of a Razor view.</summary>
     protected virtual bool IsRenderedByTheme(Page page, SiteThemeAnalysis analysis)
     {
-        if (string.IsNullOrWhiteSpace(page.Template))
-        {
-            return false;
-        }
-
-        return analysis.Files.TryGetValue(GetTemplatePath(page), out var file) && !file.IsAsset;
+        return analysis.Files.TryGetValue(page.Template, out var file) && !file.IsAsset;
     }
 
     /// <summary>

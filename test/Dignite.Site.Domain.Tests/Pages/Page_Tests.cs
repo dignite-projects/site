@@ -26,11 +26,11 @@ public class Page_Tests
     {
         if (expected == null)
         {
-            Should.Throw<ArgumentException>(() => Page.NormalizeRoute(input));
+            Should.Throw<ArgumentException>(() => PageRoute.Normalize(input));
             return;
         }
 
-        Page.NormalizeRoute(input).ShouldBe(expected);
+        PageRoute.Normalize(input).ShouldBe(expected);
     }
 
     [Fact]

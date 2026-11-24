@@ -87,8 +87,10 @@ public class ContentTypeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task Should_Reject_Deleting_A_Content_Type_That_Still_Has_Contents()
     {
-        await Should.ThrowAsync<UserFriendlyException>(
+        var exception = await Should.ThrowAsync<ContentTypeHasContentsException>(
             () => _contentTypeAppService.DeleteAsync(SiteTestData.PostArticleTypeId));
+
+        exception.Code.ShouldBe(SiteErrorCodes.ContentTypeHasContents);
     }
 
     [Fact]

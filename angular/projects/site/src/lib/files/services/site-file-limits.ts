@@ -14,6 +14,12 @@ export interface SiteFileRefusal {
 
 const fileSize = new FormatFileSizePipe();
 
+/** A file input's `accept` for a container with `limits`: its allowed extensions, or `null` - no attribute - for any. */
+export function acceptOf(limits: SiteFileLimits | null | undefined): string | null {
+  const extensions = limits?.allowedFileExtensions ?? [];
+  return extensions.length > 0 ? extensions.join(',') : null;
+}
+
 /**
  * Why `file` would be refused by a container with `limits` - too large, or a type it does not take - or `null` when it
  * would not. Checked before a file is sent; Blob Management checks again when it arrives, so a container whose limits

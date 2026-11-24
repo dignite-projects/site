@@ -291,12 +291,12 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         var usages = await _themeAppService.GetFileUsagesAsync("_card");
         usages.Usages.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
-            u => u.Kind.ShouldBe(SiteThemeUsageKindDto.Include),
+            u => u.Kind.ShouldBe(SiteThemeUsageKind.Include),
             u => u.SourcePath.ShouldBe("Default"));
 
         var pages = await _themeAppService.GetFileUsagesAsync("Default");
         pages.Usages.Select(u => u.PageName).ShouldBe(new[] { "about", "blog", "home", "news" }, ignoreOrder: true);
-        pages.Usages.ShouldAllBe(u => u.Kind == SiteThemeUsageKindDto.Page);
+        pages.Usages.ShouldAllBe(u => u.Kind == SiteThemeUsageKind.Page);
     }
 
     /// <summary>

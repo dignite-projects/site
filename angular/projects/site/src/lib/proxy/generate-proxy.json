@@ -13504,7 +13504,7 @@
         {
           "name": "Kind",
           "jsonName": null,
-          "type": "Dignite.Site.Public.Routing.RouteMatchKindDto",
+          "type": "Dignite.Site.Routing.RouteMatchKind",
           "typeSimple": "enum",
           "isRequired": false,
           "minLength": null,
@@ -13635,7 +13635,7 @@
       "description": null,
       "displayName": null
     },
-    "Dignite.Site.Public.Routing.RouteMatchKindDto": {
+    "Dignite.Site.Routing.RouteMatchKind": {
       "baseType": "System.Enum",
       "isEnum": true,
       "enumNames": [

@@ -11,6 +11,7 @@
 
     "Site:020001": "このページには '{Name}' という名前のコンテンツタイプがすでに存在します。",
     "Site:020002": "このコンテンツタイプでフィールド '{FieldId}' が複数回参照されています。",
+    "Site:020003": "コンテンツタイプ「{Name}」にはまだコンテンツがあります。先に削除または移動してください。",
 
     "Site:030001": "'{Name}' という名前のフィールドはすでに存在します。",
     "Site:030002": "フィールド '{Name}' はプラットフォームのプリセットであるため削除できません。定義を削除する代わりに、コンテンツタイプの配置から外してください。",
@@ -127,10 +128,7 @@
     "Feature:Site.Enable": "Site を有効にする",
     "Feature:Site.Enable:Description": "このテナントが Site の管理機能（管理 UI、管理 API、MCP ツール）を使用できるかどうか。公開済みのサイトは、この設定にかかわらず引き続き配信されます。",
 
-    "Permission:Site": "Site",
     "Permission:SiteAdmin": "管理",
-    "Permission:SitePublic": "公開",
-    "Permission:SiteCommon": "共通",
 
     "Permission:Pages": "ページ",
     "Permission:ContentTypes": "コンテンツタイプ",
@@ -146,7 +144,6 @@
     "Permission:Update": "更新",
     "Permission:Delete": "削除",
 
-    "ContentTypeStillHasContents": "このコンテンツタイプにはまだコンテンツがあります。先に削除または移動してください。",
 
     "Menu:Site": "サイト",
     "Menu:Contents": "コンテンツ",
@@ -250,6 +247,7 @@
     "ThemeFileSaved": "保存しました。サイトは公開したときに変わります。",
     "ThemeFileReloaded": "「{0}」の保存済みの内容を読み込みました。",
     "CloseUnsavedConfirm": "「{0}」には未保存の変更があります。閉じてもよろしいですか？",
+    "LeaveThemeConfirm": "保存されていない変更があるテーマファイルがあります。このまま離れると変更は失われます。離れますか？",
     "SaveConflictConfirm": "「{0}」を開いた後に、ほかの人が保存しました。自分の内容で上書きしますか、それとも相手の内容を読み込みますか？",
     "Overwrite": "上書き",
     "ReloadFile": "相手の内容を読み込む",
@@ -360,6 +358,8 @@
     "Contents": "コンテンツ",
     "NewContent": "新規コンテンツ",
     "EditContent": "コンテンツを編集",
+    "LeaveEditorConfirm": "このコンテンツには保存されていない変更があります。このまま離れると変更は失われます。離れますか？",
+    "LeaveEditorWithUploadsConfirm": "このコンテンツには保存されていない変更があります。このまま離れると、変更は失われ、編集中にアップロードしたファイルも削除されます。離れますか？",
     "DisplayName:Content.CultureName": "言語",
     "DisplayName:Content.Slug": "スラッグ",
     "Description:Content.Slug": "ページ内でのルーティングキー（例: \"my-post\"）。空にすることも有効で、ページ自身のアドレスに解決される単一のコンテンツを表します。Unicode の文字、数字、ハイフン、アンダースコアのみ使用でき、スペースや \"/\" は使用できません。",

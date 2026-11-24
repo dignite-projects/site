@@ -25,6 +25,15 @@ public class PageDto : FullAuditedEntityDto<Guid>
     /// </summary>
     public bool IsHomePage => PageRoute.IsHomeRoute(Route);
 
+    /// <summary>Whether a content beneath this page has a slug of its own - see <see cref="PageRoute.HasSlug"/>.</summary>
+    public bool HasSlug => PageRoute.HasSlug(Route);
+
+    /// <summary>
+    /// Whether a content beneath this page may also have an empty slug, the page's own address - see
+    /// <see cref="PageRoute.IsSlugOptional"/>.
+    /// </summary>
+    public bool IsSlugOptional => PageRoute.IsSlugOptional(Route);
+
     /// <summary>
     /// The page this one is organized under in the Admin UI, or null for a top-level page. Purely
     /// organizational - see <see cref="Dignite.Site.Pages.Page.ParentId"/>.

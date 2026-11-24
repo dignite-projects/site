@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Dignite.Site.Common;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Contents;
 using Dignite.Site.Pages;
 using Dignite.Site.Routing;
 using Dignite.Site.Seo;
@@ -32,35 +33,24 @@ public class RoutingPublicAppService : SitePublicAppService, IRoutingPublicAppSe
         // which nothing here does.
         var match = await RouteResolver.ResolveAsync(remainingPath, cultureName, includeUnpublished: false);
 
-        var contentDto = match.Content?.ToDto(ObjectMapper);
-        if (contentDto != null && match.Page != null)
+        // A match with a content always has its page (RouteMatch.ForContent, ForContentOfPage).
+        var contentDto = match.Content == null ? null : ObjectMapper.Map<Content, ContentDto>(match.Content);
+        if (contentDto != null)
         {
-            contentDto.Url = UrlBuilder.BuildContentPath(urlContext, match.Page, match.Content!);
+            contentDto.Url = UrlBuilder.BuildContentPath(urlContext, match.Page!, match.Content!);
         }
 
         return new RouteMatchDto
         {
             Matched = match.IsMatch,
-            Kind = MapKind(match.Kind),
+            Kind = match.Kind,
             CultureName = cultureName,
             DefaultCultureName = urlContext.DefaultCultureName,
             EnabledCultureNames = new List<string>(urlContext.EnabledCultureNames),
             Page = match.Page == null ? null : ObjectMapper.Map<Page, PageDto>(match.Page),
             Content = contentDto,
-            ContentType = match.ContentType?.ToDto(ObjectMapper),
+            ContentType = match.ContentType == null ? null : ObjectMapper.Map<ContentType, ContentTypeDto>(match.ContentType),
             FilterValues = new Dictionary<string, string>(match.FilterValues, StringComparer.OrdinalIgnoreCase)
-        };
-    }
-
-    protected static RouteMatchKindDto MapKind(RouteMatchKind kind)
-    {
-        return kind switch
-        {
-            RouteMatchKind.None => RouteMatchKindDto.None,
-            RouteMatchKind.Page => RouteMatchKindDto.Page,
-            RouteMatchKind.ContentOfPage => RouteMatchKindDto.ContentOfPage,
-            RouteMatchKind.Content => RouteMatchKindDto.Content,
-            _ => RouteMatchKindDto.None
         };
     }
 }

@@ -55,7 +55,7 @@ public class TextFunction : SiteScriptFunction
     {
         Texts = texts;
         CultureChain = SiteTemplateCultureChain.Create(cultureName, defaultCultureName);
-        Culture = GetCulture(cultureName);
+        Culture = CultureInfo.GetCultureInfo(cultureName);
     }
 
     protected override ValueTask<object?> InvokeAsync(TemplateContext context, SourceSpan span, ScriptArray arguments)
@@ -82,18 +82,6 @@ public class TextFunction : SiteScriptFunction
         {
             throw new ScriptRuntimeException(span,
                 $"The text '{key}' could not take {formatArguments.Length} argument(s): {exception.Message} The text is \"{text}\".");
-        }
-    }
-
-    private static CultureInfo GetCulture(string cultureName)
-    {
-        try
-        {
-            return CultureInfo.GetCultureInfo(cultureName);
-        }
-        catch (CultureNotFoundException)
-        {
-            return CultureInfo.InvariantCulture;
         }
     }
 }

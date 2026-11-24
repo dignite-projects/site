@@ -11,6 +11,7 @@
 
     "Site:020001": "该页面下已存在名为 '{Name}' 的内容类型。",
     "Site:020002": "该内容类型重复引用了字段 '{FieldId}'。",
+    "Site:020003": "内容类型“{Name}”下仍有内容，请先删除或迁移这些内容。",
 
     "Site:030001": "已存在名为 '{Name}' 的字段。",
     "Site:030002": "字段 '{Name}' 是平台预设字段，不能删除。请改为在内容类型中把它移除，而不是删除字段定义。",
@@ -127,10 +128,7 @@
     "Feature:Site.Enable": "启用 Site",
     "Feature:Site.Enable:Description": "该租户是否可以使用 Site 的管理功能：管理后台、管理 API 和 MCP 工具。已发布的站点无论开关都照常对外访问。",
 
-    "Permission:Site": "Site",
     "Permission:SiteAdmin": "网站管理",
-    "Permission:SitePublic": "公开端",
-    "Permission:SiteCommon": "公共",
 
     "Permission:Pages": "页面",
     "Permission:ContentTypes": "内容类型",
@@ -146,7 +144,6 @@
     "Permission:Update": "编辑",
     "Permission:Delete": "删除",
 
-    "ContentTypeStillHasContents": "该内容类型下仍有内容，请先删除或迁移这些内容。",
 
     "Menu:Site": "站点",
     "Menu:Contents": "内容",
@@ -250,6 +247,7 @@
     "ThemeFileSaved": "已保存。发布后站点才会变化。",
     "ThemeFileReloaded": "已载入“{0}”已保存的版本。",
     "CloseUnsavedConfirm": "“{0}”有未保存的改动，仍要关闭吗？",
+    "LeaveThemeConfirm": "有主题文件的改动尚未保存，离开后这些改动会丢失。仍要离开吗？",
     "SaveConflictConfirm": "你打开“{0}”之后，别人保存过它。用你的版本覆盖，还是载入对方的版本？",
     "Overwrite": "覆盖",
     "ReloadFile": "载入对方的",
@@ -360,6 +358,8 @@
     "Contents": "内容",
     "NewContent": "新建内容",
     "EditContent": "编辑内容",
+    "LeaveEditorConfirm": "此内容有未保存的修改，离开后这些修改会丢失。仍要离开吗？",
+    "LeaveEditorWithUploadsConfirm": "此内容有未保存的修改。离开后，这些修改会丢失，编辑时上传的文件也会被删除。仍要离开吗？",
     "DisplayName:Content.CultureName": "语言",
     "DisplayName:Content.Slug": "别名",
     "Description:Content.Slug": "页面下的路由键，例如 \"my-post\"。留空是合法值，表示页面自身地址对应的那条内容。仅限 Unicode 字母、数字、连字符或下划线——不能有空格或 \"/\"。",

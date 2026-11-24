@@ -2,7 +2,7 @@ import type { IRemoteStreamContent } from '../../../../volo/abp/content/models';
 import type { SiteThemeFileStatus } from '../../themes/site-theme-file-status.enum';
 import type { SiteThemeIssueSeverity } from '../../themes/site-theme-issue-severity.enum';
 import type { SiteThemeRenderScope } from './site-theme-render-scope.enum';
-import type { SiteThemeUsageKindDto } from './site-theme-usage-kind-dto.enum';
+import type { SiteThemeUsageKind } from '../../themes/site-theme-usage-kind.enum';
 
 export interface PublishSiteThemeDto {
   fingerprint: string;
@@ -96,7 +96,7 @@ export interface SiteThemeFileSummaryDto {
 }
 
 export interface SiteThemeFileUsageDto {
-  kind: SiteThemeUsageKindDto;
+  kind: SiteThemeUsageKind;
   sourcePath?: string;
   pageName?: string;
 }

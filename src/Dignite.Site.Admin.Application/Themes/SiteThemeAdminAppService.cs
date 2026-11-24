@@ -110,7 +110,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             UpdatedPaths = rename.UpdatedPaths.ToList(),
             DefaultLayoutUpdated = rename.DefaultLayoutUpdated,
             PagesStillUsingOldPath = pages
-                .Where(page => SiteThemePaths.Normalize(page.Template) == oldPath)
+                .Where(page => page.Template == oldPath)
                 .Select(page => page.PageName)
                 .OrderBy(name => name, StringComparer.Ordinal)
                 .ToList()
@@ -136,7 +136,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             Usages = check.Analysis.GetUsages(file.Path)
                 .Select(usage => new SiteThemeFileUsageDto
                 {
-                    Kind = (SiteThemeUsageKindDto)usage.Kind,
+                    Kind = usage.Kind,
                     SourcePath = usage.SourcePath,
                     PageName = usage.PageName
                 })
@@ -220,7 +220,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
         string? changedPath = null)
     {
         return await TrialRenderer.RenderAsync(
-            ToWorkingCopySnapshot(theme, files),
+            theme.ToSnapshotDto(files),
             check.Analysis,
             changedPath,
             RequestCancellationToken);
@@ -270,7 +270,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             Path = content.Path,
             IsAsset = SiteThemePaths.IsAsset(content.Path),
             ContentHash = content.ContentHash,
-            Body = content.Body ?? string.Empty
+            Body = content.Body
         };
     }
 
@@ -327,39 +327,13 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
 
     protected virtual async Task<SiteThemeSnapshotDto> GetWorkingCopySnapshotAsync(SiteTheme theme)
     {
-        return ToWorkingCopySnapshot(theme, await FileRepository.GetListAsync(theme.Id));
-    }
-
-    protected virtual SiteThemeSnapshotDto ToWorkingCopySnapshot(SiteTheme theme, IEnumerable<SiteThemeFile> files)
-    {
-        return new SiteThemeSnapshotDto
-        {
-            DefaultLayout = theme.DefaultLayout,
-            Files = files
-                .Select(file => new SiteThemeSnapshotFileDto { Path = file.Path, ContentHash = file.ContentHash, Body = file.Body })
-                .ToList()
-        };
+        return theme.ToSnapshotDto(await FileRepository.GetListAsync(theme.Id));
     }
 
     protected virtual async Task<SiteThemeSnapshotDto> GetReleaseSnapshotAsync(SiteTheme theme, Guid releaseId)
     {
         var release = await ThemeManager.GetReleaseAsync(theme, releaseId);
-        var contents = await ReleaseRepository.GetContentsAsync(release.Id);
-
-        return new SiteThemeSnapshotDto
-        {
-            ReleaseId = release.Id,
-            ReleaseNumber = release.Number,
-            DefaultLayout = release.DefaultLayout,
-            Files = contents
-                .Select(content => new SiteThemeSnapshotFileDto
-                {
-                    Path = content.Path,
-                    ContentHash = content.ContentHash,
-                    Body = content.Body ?? string.Empty
-                })
-                .ToList()
-        };
+        return release.ToSnapshotDto(await ReleaseRepository.GetContentsAsync(release.Id));
     }
 
     protected virtual async Task<SiteThemeDto> MapToDtoAsync(SiteTheme theme)
@@ -389,11 +363,7 @@ public class SiteThemeAdminAppService : SiteAdminAppService, ISiteThemeAdminAppS
             ContentHash = file.ContentHash,
             ConcurrencyStamp = file.ConcurrencyStamp,
             LastModificationTime = file.LastModificationTime ?? file.CreationTime,
-            SyntaxErrors = file.IsAsset
-                ? new List<SiteThemeSyntaxErrorDto>()
-                : ScribanTemplateSyntax.GetErrors(file.Body)
-                    .Select(error => new SiteThemeSyntaxErrorDto { Line = error.Line, Column = error.Column, Message = error.Message })
-                    .ToList()
+            SyntaxErrors = file.IsAsset ? new List<SiteThemeSyntaxErrorDto>() : SiteThemeSyntaxErrors.Of(file.Body)
         };
     }
 

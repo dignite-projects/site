@@ -11,6 +11,7 @@ import {
   FILE_FIELD_TYPE,
   SEO_FIELD_TYPE,
   SiteCKEditorUploadProvider,
+  eSitePolicyNames,
   siteCKEditorConfigContributor,
   siteCKEditorDisplayContributor,
 } from '@dignite/ng.site';
@@ -38,8 +39,13 @@ export function configureRoutes() {
       iconClass: 'fas fa-globe',
       layout: eLayoutType.application,
       order: 3,
-      requiredPolicy:
-        'SiteAdmin.Pages || SiteAdmin.ContentTypes || SiteAdmin.Fields || SiteAdmin.Contents || SiteAdmin.Themes',
+      requiredPolicy: [
+        eSitePolicyNames.Pages,
+        eSitePolicyNames.ContentTypes,
+        eSitePolicyNames.Fields,
+        eSitePolicyNames.Contents,
+        eSitePolicyNames.Themes,
+      ].join(' || '),
     },
     {
       path: '/site/contents',
@@ -48,7 +54,7 @@ export function configureRoutes() {
       iconClass: 'fas fa-file-lines',
       layout: eLayoutType.application,
       order: 1,
-      requiredPolicy: 'SiteAdmin.Contents',
+      requiredPolicy: eSitePolicyNames.Contents,
     },
     {
       path: '/site/pages',
@@ -57,7 +63,7 @@ export function configureRoutes() {
       iconClass: 'fas fa-file-code',
       layout: eLayoutType.application,
       order: 2,
-      requiredPolicy: 'SiteAdmin.Pages',
+      requiredPolicy: eSitePolicyNames.Pages,
     },
     {
       path: '/site/fields',
@@ -66,7 +72,7 @@ export function configureRoutes() {
       iconClass: 'fas fa-list-check',
       layout: eLayoutType.application,
       order: 3,
-      requiredPolicy: 'SiteAdmin.Fields',
+      requiredPolicy: eSitePolicyNames.Fields,
     },
     {
       path: '/site/theme',
@@ -75,7 +81,7 @@ export function configureRoutes() {
       iconClass: 'fas fa-code',
       layout: eLayoutType.application,
       order: 4,
-      requiredPolicy: 'SiteAdmin.Themes',
+      requiredPolicy: eSitePolicyNames.Themes,
     },
   ]);
 

@@ -108,14 +108,9 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
 
     public virtual async Task<SiteFileDto> ConfirmAsync(Guid id)
     {
-        var file = await BlobManagementFileService.GetAsync(id);
-        await Authorization.CheckUploadAsync(RequireSiteContainer(file));
-
         // The file is the caller's own upload, which the ticket recorded: a pending file is nobody else's to file.
-        if (file.IsPending && file.CreatorId != CurrentUser.Id)
-        {
-            throw new AbpAuthorizationException();
-        }
+        var file = await BlobManagementFileService.GetAsync(id);
+        await CheckReadableAsync(file);
 
         if (file.IsPending)
         {
@@ -152,7 +147,10 @@ public class FileAdminAppService : SiteAdminAppService, IFileAdminAppService
             throw new AbpAuthorizationException();
         }
 
-        await BlobManagementFileService.DeleteAsync(id);
+        // Blob Management soft-deletes by default and keeps the bytes, for a business system that restores the record
+        // referring to the file. Site has no restore and every delete here is the user's (or the cleanup of an upload
+        // no saved form holds), so the file goes for good and its bytes stop counting against the allocation.
+        await BlobManagementFileService.DeleteAsync(id, permanently: true);
     }
 
     /// <summary>

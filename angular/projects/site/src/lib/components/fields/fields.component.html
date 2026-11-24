@@ -144,8 +144,7 @@
   </ng-template>
   <ng-template #abpBody>
     @if (form) {
-      <form [formGroup]="form" (submit)="save()">
-        <button type="submit" #submitButton style="display: none"></button>
+      <form id="site-field-form" [formGroup]="form" (submit)="save()">
 
         <div class="mb-3">
           <label class="form-label">{{ 'Site::DisplayName:Field.DisplayName' | abpLocalization }}</label>
@@ -220,7 +219,8 @@
       iconClass="fa fa-check"
       [disabled]="!form?.valid"
       [loading]="isModalBusy()"
-      (click)="submitButton?.nativeElement?.click()"
+      buttonType="submit"
+      formName="site-field-form"
     >
       {{ 'AbpUi::Save' | abpLocalization }}
     </abp-button>
@@ -237,8 +237,7 @@
   </ng-template>
   <ng-template #abpBody>
     @if (renameForm) {
-      <form [formGroup]="renameForm" (submit)="saveRename()">
-        <button type="submit" #renameSubmitButton style="display: none"></button>
+      <form id="site-field-rename-form" [formGroup]="renameForm" (submit)="saveRename()">
 
         <div class="alert alert-warning">
           {{ 'Site::RenameFieldWarning' | abpLocalization }}
@@ -262,7 +261,8 @@
       iconClass="fa fa-check"
       [disabled]="!renameForm?.valid"
       [loading]="isRenameModalBusy()"
-      (click)="renameSubmitButton?.nativeElement?.click()"
+      buttonType="submit"
+      formName="site-field-rename-form"
     >
       {{ 'AbpUi::Save' | abpLocalization }}
     </abp-button>
@@ -279,8 +279,7 @@
   </ng-template>
   <ng-template #abpBody>
     @if (groupForm) {
-      <form [formGroup]="groupForm" (submit)="saveGroupRename()">
-        <button type="submit" #groupSubmitButton style="display: none"></button>
+      <form id="site-field-group-form" [formGroup]="groupForm" (submit)="saveGroupRename()">
 
         <div class="mb-3">
           <label class="form-label">{{ 'Site::DisplayName:Group.NewName' | abpLocalization }}</label>
@@ -297,7 +296,8 @@
       iconClass="fa fa-check"
       [disabled]="!groupForm?.valid"
       [loading]="isGroupModalBusy()"
-      (click)="groupSubmitButton?.nativeElement?.click()"
+      buttonType="submit"
+      formName="site-field-group-form"
     >
       {{ 'AbpUi::Save' | abpLocalization }}
     </abp-button>

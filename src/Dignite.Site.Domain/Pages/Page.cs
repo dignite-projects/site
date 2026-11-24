@@ -123,7 +123,7 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// </summary>
     public virtual void SetRoute(string route)
     {
-        var normalized = NormalizeRoute(route);
+        var normalized = PageRoute.Normalize(route);
 
         if (!Regex.IsMatch(normalized, PageConsts.RoutePattern))
         {
@@ -173,15 +173,6 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     }
 
     /// <summary>
-    /// The canonical stored form of a route: exactly one leading slash, no trailing slash, except for
-    /// the site root which stays <c>/</c> - see <see cref="PageRoute.Normalize"/>.
-    /// </summary>
-    public static string NormalizeRoute(string route)
-    {
-        return PageRoute.Normalize(route);
-    }
-
-    /// <summary>
     /// The page's own address, independent of anything beneath it - see <see cref="PageRoute.GetPath"/>.
     /// What sitemap, canonical, hreflang and feed URLs are built from; never <see cref="Route"/> directly,
     /// since that may be a template carrying a placeholder.
@@ -226,9 +217,24 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// </summary>
     public virtual string BuildContentPath(Content content)
     {
+        return BuildContentPath(content, isEditing: false);
+    }
+
+    /// <summary>
+    /// <see cref="BuildContentPath(Content)"/> for a content still being edited, which may not have a value yet for every
+    /// placeholder of <see cref="Route"/>: such a placeholder is written as its token, <c>{name}</c>, where a saved
+    /// content's missing value is a mistake in the route.
+    /// </summary>
+    public virtual string PreviewContentPath(Content content)
+    {
+        return BuildContentPath(content, isEditing: true);
+    }
+
+    private string BuildContentPath(Content content, bool isEditing)
+    {
         return string.IsNullOrEmpty(content.Slug)
             ? GetPath()
-            : PageRoute.Build(Route, (name, format, isOptional) => ResolveFieldValue(content, name, format, isOptional));
+            : PageRoute.Build(Route, (name, format, isOptional) => ResolveFieldValue(content, name, format, isOptional, isEditing));
     }
 
     /// <summary>
@@ -243,7 +249,7 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
     /// optionally names is ordinary, and resolves to null, which <see cref="PageRoute.Build(string, Func{string, string, bool, string})"/>
     /// leaves out of the URL.
     /// </summary>
-    private static string? ResolveFieldValue(Content content, string name, string? format, bool isOptional)
+    private static string? ResolveFieldValue(Content content, string name, string? format, bool isOptional, bool isEditing)
     {
         var property = typeof(Content).GetProperty(
             name, BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance);
@@ -261,6 +267,11 @@ public class Page : FullAuditedAggregateRoot<Guid>, IMultiTenant
         if (isOptional)
         {
             return null;
+        }
+
+        if (isEditing)
+        {
+            return "{" + name + "}";
         }
 
         throw new AbpException(

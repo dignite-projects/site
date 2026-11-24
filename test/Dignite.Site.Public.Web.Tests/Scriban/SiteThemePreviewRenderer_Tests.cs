@@ -13,6 +13,7 @@ using Shouldly;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Xunit;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Scriban;
 
@@ -29,11 +30,11 @@ public class SiteThemePreviewRenderer_Tests
     private static RouteMatchDto PageMatch(string template = "Default") => new()
     {
         Matched = true,
-        Kind = RouteMatchKindDto.Page,
+        Kind = RouteMatchKind.Page,
         CultureName = "ja",
         DefaultCultureName = "en",
         EnabledCultureNames = new List<string> { "en", "ja" },
-        Page = new PageDto { Name = "about", Template = template }
+        Page = new PageDto { Name = "about", Route = "/about", Template = template }
     };
 
     /// <summary>A theme with <paramref name="page"/> at Default and the standard layout as its default layout.</summary>
@@ -109,7 +110,7 @@ public class SiteThemePreviewRenderer_Tests
     [Fact]
     public async Task A_Page_Rendered_By_Razor_Should_Throw_Not_Scriban()
     {
-        var fixture = new Fixture(PageMatch("Default.cshtml"));
+        var fixture = new Fixture(PageMatch("Default"));
 
         var exception = await Should.ThrowAsync<BusinessException>(
             () => fixture.RenderAsync(ScribanTestRenderer.Snapshot(new Dictionary<string, string> { ["layouts/default"] = Layout }, "layouts/default")));
@@ -181,7 +182,7 @@ public class SiteThemePreviewRenderer_Tests
     [Fact]
     public async Task The_Preview_Should_Describe_The_Page_It_Rendered()
     {
-        var fixture = new Fixture(PageMatch("Default.cshtml"));
+        var fixture = new Fixture(PageMatch("Default"));
 
         var preview = await fixture.RenderAsync(Theme("<p>{{ page.name }}</p>"));
 

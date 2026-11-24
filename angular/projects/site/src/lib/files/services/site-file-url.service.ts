@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { EnvironmentService, SessionStateService } from '@abp/ng.core';
 import { absoluteFileUrl, relativeFileUrl, SiteFileBases } from './site-file-url';
+import { BLOB_MANAGEMENT_API_NAME } from './site-file-upload.service';
 
 /**
  * Where this admin UI shows Site's files from. A stored address is relative - Blob Management's `/blobs/...`, or an
@@ -18,11 +19,8 @@ export class SiteFileUrlService {
 
   /** The base URLs of the two APIs, with no trailing slash; empty when the UI shares their origin. */
   get bases(): SiteFileBases {
-    // getApiUrl itself, guarded: it dereferences `apis` unchecked, and an environment without them (a test bed, say)
-    // means there is no other origin to show files from.
-    const apis = this.environment.getEnvironment()?.apis;
-    const url = (name: string) => (apis ? (this.environment.getApiUrl(name) ?? '').replace(/\/+$/, '') : '');
-    return { blobManagement: url('BlobManagement'), site: url('SiteAdmin') };
+    const url = (name: string) => (this.environment.getApiUrl(name) ?? '').replace(/\/+$/, '');
+    return { blobManagement: url(BLOB_MANAGEMENT_API_NAME), site: url('SiteAdmin') };
   }
 
   /** The signed-in tenant's id; `null` on the host. */

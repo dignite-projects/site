@@ -45,7 +45,7 @@ public class ScribanTemplateCache : ISingletonDependency, IDisposable
             return cached;
         }
 
-        var body = file.Body ?? string.Empty;
+        var body = file.Body;
         var template = ScribanTemplateSyntax.Parse(body, file.Path);
         if (template.HasErrors)
         {

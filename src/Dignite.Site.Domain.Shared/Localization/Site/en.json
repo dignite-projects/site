@@ -11,6 +11,7 @@
 
     "Site:020001": "A content type named '{Name}' already exists on this page.",
     "Site:020002": "The field '{FieldId}' is referenced more than once by this content type.",
+    "Site:020003": "The content type '{Name}' still has contents; delete or move them first.",
 
     "Site:030001": "A field named '{Name}' already exists.",
     "Site:030002": "The field '{Name}' is a platform preset and cannot be deleted. Remove it from a content type's arrangement instead of deleting the definition.",
@@ -127,10 +128,7 @@
     "Feature:Site.Enable": "Enable Site",
     "Feature:Site.Enable:Description": "Whether this tenant may use Site's management features: the admin UI, the admin API and the MCP tools. A published site is still served either way.",
 
-    "Permission:Site": "Site",
     "Permission:SiteAdmin": "Admin",
-    "Permission:SitePublic": "Public",
-    "Permission:SiteCommon": "Common",
 
     "Permission:Pages": "Pages",
     "Permission:ContentTypes": "Content Types",
@@ -146,7 +144,6 @@
     "Permission:Update": "Update",
     "Permission:Delete": "Delete",
 
-    "ContentTypeStillHasContents": "This content type still has contents; delete or move them first.",
 
     "Menu:Site": "Site",
     "Menu:Contents": "Contents",
@@ -250,6 +247,7 @@
     "ThemeFileSaved": "Saved. The site changes when you publish.",
     "ThemeFileReloaded": "Loaded the saved version of '{0}'.",
     "CloseUnsavedConfirm": "'{0}' has unsaved changes. Close it anyway?",
+    "LeaveThemeConfirm": "Some theme files have changes that are not saved, and they are lost if you leave. Leave anyway?",
     "SaveConflictConfirm": "Someone else saved '{0}' after you opened it. Overwrite their version with yours, or load theirs?",
     "Overwrite": "Overwrite",
     "ReloadFile": "Load theirs",
@@ -360,6 +358,8 @@
     "Contents": "Contents",
     "NewContent": "New content",
     "EditContent": "Edit content",
+    "LeaveEditorConfirm": "This content has changes that are not saved, and they are lost if you leave. Leave anyway?",
+    "LeaveEditorWithUploadsConfirm": "This content has changes that are not saved. If you leave, they are lost and the files you uploaded while editing are deleted. Leave anyway?",
     "DisplayName:Content.CultureName": "Language",
     "DisplayName:Content.Slug": "Slug",
     "Description:Content.Slug": "The routing key within the page, e.g. \"my-post\". Empty is legitimate: the single content the page's own address resolves to. Unicode letters, digits, hyphen or underscore only - no spaces or \"/\".",

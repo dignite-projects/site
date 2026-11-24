@@ -4,11 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Dignite.Site.Host.Data;
 using Dignite.Site.Host.Localization;
 using Dignite.Site.Host.Menus;
-using Dignite.Site.Host.Permissions;
 using Dignite.Site.Host.HealthChecks;
 using OpenIddict.Validation.AspNetCore;
 using System;
@@ -268,10 +266,6 @@ public class SiteHostModule : AbpModule
         ConfigureEfCore(context);
         ConfigureBlobStoring(hostingEnvironment);
         ConfigureMcp();
-
-        Configure<RazorPagesOptions>(options =>
-        {
-        });
     }
 
     /// <summary>

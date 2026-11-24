@@ -81,9 +81,7 @@ public class SiteThemeTransferAdminAppService : SiteAdminAppService, ISiteThemeT
 
         foreach (var path in import.Added.Concat(import.Modified).Where(SiteThemePaths.IsTemplate))
         {
-            var errors = ScribanTemplateSyntax.GetErrors(package.Files[path])
-                .Select(error => new SiteThemeSyntaxErrorDto { Line = error.Line, Column = error.Column, Message = error.Message })
-                .ToList();
+            var errors = SiteThemeSyntaxErrors.Of(package.Files[path]);
             if (errors.Count > 0)
             {
                 result.SyntaxErrors[path] = errors;

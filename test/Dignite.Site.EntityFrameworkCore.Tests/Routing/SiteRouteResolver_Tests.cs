@@ -19,6 +19,7 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly SiteRouteResolver _resolver;
     private readonly PageManager _pageManager;
+    private readonly IPageRepository _pageRepository;
     private readonly IFieldRepository _fieldRepository;
     private readonly ContentTypeManager _contentTypeManager;
     private readonly ContentManager _contentManager;
@@ -27,6 +28,7 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
     {
         _resolver = GetRequiredService<SiteRouteResolver>();
         _pageManager = GetRequiredService<PageManager>();
+        _pageRepository = GetRequiredService<IPageRepository>();
         _fieldRepository = GetRequiredService<IFieldRepository>();
         _contentTypeManager = GetRequiredService<ContentTypeManager>();
         _contentManager = GetRequiredService<ContentManager>();
@@ -375,6 +377,36 @@ public class SiteRouteResolver_Tests : SiteEntityFrameworkCoreTestBase
         match.Kind.ShouldBe(RouteMatchKind.Page);
         match.Page!.Id.ShouldBe(dedicated.Id);
         match.Page.Id.ShouldNotBe(deep.Id);
+    }
+
+    /// <summary>
+    /// The page API and the feeds look a page up by its address (<see cref="IPageRepository.FindByPathAsync"/>)
+    /// rather than resolving a request, and must land on the page the address renders.
+    /// </summary>
+    [Fact]
+    public async Task Finding_A_Page_By_Its_Address_Should_Pick_The_Page_Route_Resolution_Serves_There()
+    {
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "digests-deep", "Digests deep", @"/digests/{publishTime:yyyy-MM:^\d{4}-(0[1-9]|1[0-2])$}/{slug}"));
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync(
+            "digests-month-index", "Digests month index", "/digests/{publishTime:yyyy-MM}"));
+
+        var served = await WithUnitOfWorkAsync(() => _resolver.ResolveAsync("/digests", SiteTestData.EnglishCulture));
+        var found = await WithUnitOfWorkAsync(() => _pageRepository.FindByPathAsync("/digests"));
+
+        found!.Id.ShouldBe(served.Page!.Id);
+    }
+
+    /// <summary>An inactive page is not routed, so it must not hide the active page that shares its address.</summary>
+    [Fact]
+    public async Task Finding_A_Page_By_Its_Address_Should_Skip_An_Inactive_Page()
+    {
+        await WithUnitOfWorkAsync(() => _pageManager.CreateAsync("archive-retired", "Archive", "/archive", isActive: false));
+        var active = await WithUnitOfWorkAsync(() => _pageManager.CreateAsync("archive-posts", "Archive posts", "/archive/{slug}"));
+
+        var found = await WithUnitOfWorkAsync(() => _pageRepository.FindByPathAsync("/archive"));
+
+        found!.Id.ShouldBe(active.Id);
     }
 
     /// <summary>

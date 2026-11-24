@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dignite.Site.Public.Routing;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Mcp.Routing;
 
@@ -13,7 +14,7 @@ public class McpRouteMatch
 {
     public bool Matched { get; set; }
 
-    public RouteMatchKindDto Kind { get; set; }
+    public RouteMatchKind Kind { get; set; }
 
     /// <summary>The language the path was resolved in: its prefix, else the default language.</summary>
     public string CultureName { get; set; } = default!;

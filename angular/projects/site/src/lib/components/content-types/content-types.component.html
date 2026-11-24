@@ -82,8 +82,7 @@
   </ng-template>
   <ng-template #abpBody>
     @if (form) {
-      <form [formGroup]="form" (submit)="save()">
-        <button type="submit" #submitButton style="display: none"></button>
+      <form id="site-content-type-form" [formGroup]="form" (submit)="save()">
 
         <div class="row">
           <div class="col-md-6 mb-3">
@@ -136,7 +135,8 @@
       iconClass="fa fa-check"
       [disabled]="!form?.valid"
       [loading]="isModalBusy()"
-      (click)="submitButton?.nativeElement?.click()"
+      buttonType="submit"
+      formName="site-content-type-form"
     >
       {{ 'AbpUi::Save' | abpLocalization }}
     </abp-button>

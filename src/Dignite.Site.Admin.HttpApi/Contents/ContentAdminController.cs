@@ -40,6 +40,14 @@ public class ContentAdminController : SiteAdminController, IContentAdminAppServi
         return ContentAdminAppService.FindBySlugAsync(pageId, cultureName, slug);
     }
 
+    /// <summary>A POST, not a GET: the field values are a dictionary, which a query string does not carry.</summary>
+    [HttpPost]
+    [Route("path")]
+    public virtual Task<string> GetPathAsync(GetContentPathInput input)
+    {
+        return ContentAdminAppService.GetPathAsync(input);
+    }
+
     [HttpGet]
     public virtual Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
     {

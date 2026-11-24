@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Abp.FlexFields;
-using Dignite.Site.Common;
 using Dignite.Site.Contents;
 using Dignite.Site.Fields;
 using Dignite.Site.Pages;
@@ -72,14 +71,7 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
 
     public virtual async Task<PagedResultDto<ContentDto>> GetListAsync(GetContentListInput input)
     {
-        var asOf = Clock.Now;
-
-        // input.PublishedBefore can only ever narrow this - never widen it past "now" - regardless of what
-        // a caller passes, so a scheduled-future content (Status=Published, PublishTime still ahead of
-        // "now" - 总体设计 §2.4) never surfaces early just because a caller's own filter window happens to
-        // reach past it. input.PublishedAfter needs no such cap: a lower bound cannot reveal anything that
-        // was not already visible.
-        var effectiveBefore = input.PublishedBefore is { } before && before < asOf ? before : asOf;
+        var effectiveBefore = GetVisibleBefore(input.PublishedBefore);
 
         var totalCount = await ContentRepository.GetCountAsync(
             pageId: input.PageId, cultureName: input.CultureName, contentTypeId: input.ContentTypeId,
@@ -119,8 +111,7 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
             return new ListResultDto<ContentFieldValueCountDto>(new List<ContentFieldValueCountDto>());
         }
 
-        var asOf = Clock.Now;
-        var effectiveBefore = input.PublishedBefore is { } before && before < asOf ? before : asOf;
+        var effectiveBefore = GetVisibleBefore(input.PublishedBefore);
 
         var counts = await ContentRepository.GetCountByFieldValueAsync(
             field.Id, valueType,
@@ -132,6 +123,18 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
 
         return new ListResultDto<ContentFieldValueCountDto>(
             counts.Select(c => new ContentFieldValueCountDto { Value = c.Value, Count = c.Count }).ToList());
+    }
+
+    /// <summary>
+    /// The latest publish time a visitor sees: now, or the caller's own bound when it is earlier. A bound can only narrow
+    /// this, never widen it past now, so a scheduled content (Published, its PublishTime still ahead - 总体设计 §2.4) never
+    /// surfaces early because a caller's window reaches past it. A lower bound needs no such cap: it cannot reveal anything
+    /// that was not already visible.
+    /// </summary>
+    protected virtual DateTime GetVisibleBefore(DateTime? requestedBefore)
+    {
+        var now = Clock.Now;
+        return requestedBefore is { } before && before < now ? before : now;
     }
 
     public virtual async Task<ListResultDto<ContentDto>> GetTranslationsAsync(
@@ -194,7 +197,6 @@ public class ContentPublicAppService : SitePublicAppService, IContentPublicAppSe
     protected virtual ContentDto MapToDto(Content content, Page? page, SiteUrlContext urlContext)
     {
         var dto = ObjectMapper.Map<Content, ContentDto>(content);
-        dto.FieldValues = content.FlexFields.ToValueDictionary();
         dto.Url = page != null ? UrlBuilder.BuildContentPath(urlContext, page, content) : string.Empty;
         return dto;
     }

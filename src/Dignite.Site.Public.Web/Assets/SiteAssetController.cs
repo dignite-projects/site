@@ -71,7 +71,7 @@ public class SiteAssetController : AbpController
         }
 
         var preview = LazyServiceProvider.LazyGetRequiredService<SitePreviewState>();
-        if (preview.IsAvailable)
+        if (preview.Ticket != null)
         {
             return await GetPreviewAssetAsync(preview, path);
         }
@@ -91,7 +91,7 @@ public class SiteAssetController : AbpController
         }
 
         // No BOM: the charset is declared, and a BOM before a stylesheet's @charset invalidates it.
-        var body = new UTF8Encoding(false).GetBytes(asset.Body ?? string.Empty);
+        var body = new UTF8Encoding(false).GetBytes(asset.Body);
         return File(body, GetContentType(path));
     }
 
@@ -107,7 +107,7 @@ public class SiteAssetController : AbpController
             return NotFound();
         }
 
-        return File(new UTF8Encoding(false).GetBytes(asset.Body ?? string.Empty), GetContentType(path));
+        return File(new UTF8Encoding(false).GetBytes(asset.Body), GetContentType(path));
     }
 
     /// <summary>

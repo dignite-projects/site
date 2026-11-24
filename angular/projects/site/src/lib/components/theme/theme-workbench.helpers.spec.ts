@@ -13,7 +13,6 @@ import {
   languageOf,
   lineBreakOf,
   normalizeThemePath,
-  pageTemplatePath,
   snippetFor,
   skeletonFor,
   themePathProblem,
@@ -138,14 +137,6 @@ describe('theme workbench helpers', () => {
         error: { error: { message: 'Invalid', validationErrors: [{ message: 'Path is required.' }] } },
       }),
     ).toBe('Invalid\nPath is required.');
-  });
-});
-
-describe('pageTemplatePath', () => {
-  it('drops a trailing .cshtml and a leading slash, as the site resolves a page template', () => {
-    expect(pageTemplatePath('Events')).toBe('Events');
-    expect(pageTemplatePath('Default.cshtml')).toBe('Default');
-    expect(pageTemplatePath(' /blog/Article.CSHTML ')).toBe('blog/Article');
   });
 });
 

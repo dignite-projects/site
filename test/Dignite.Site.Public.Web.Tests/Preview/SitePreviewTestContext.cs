@@ -10,7 +10,6 @@ using Dignite.Site.Themes;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Volo.Abp.MultiTenancy;
@@ -46,16 +45,8 @@ public class SitePreviewTestContext
     public IOptions<SitePreviewOptions> Options { get; } = Microsoft.Extensions.Options.Options.Create(new SitePreviewOptions());
 
     /// <summary>False: a host without the in-process source, as when the site renders against a remote Public API.</summary>
-    public bool HasSource { get; set; } = true;
-
     public SitePreviewState CreateState()
     {
-        var services = new ServiceCollection();
-        if (HasSource)
-        {
-            services.AddSingleton<ISiteThemePreviewSource>(Source);
-        }
-
         return new SitePreviewState(
             Protector,
             CurrentTenant,
@@ -63,7 +54,7 @@ public class SitePreviewTestContext
             new FixedHttpContextAccessor { HttpContext = HttpContext },
             Localizer,
             new UrlHelperFactory(),
-            services.BuildServiceProvider());
+            Source);
     }
 
     /// <summary>A token as the link issuer and the resource filter write it.</summary>

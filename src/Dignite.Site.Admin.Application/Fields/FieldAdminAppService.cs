@@ -33,20 +33,20 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
     public virtual async Task<FieldDto> GetAsync(Guid id)
     {
         var field = await FieldRepository.GetAsync(id);
-        return MapToDto(field);
+        return ObjectMapper.Map<Field, FieldDto>(field);
     }
 
     public virtual async Task<FieldDto?> FindByNameAsync(string name)
     {
         var field = await FieldRepository.FindByNameAsync(name);
-        return field == null ? null : MapToDto(field);
+        return field == null ? null : ObjectMapper.Map<Field, FieldDto>(field);
     }
 
     public virtual async Task<ListResultDto<FieldDto>> GetListAsync(GetFieldListInput input)
     {
         var fields = await FieldRepository.GetListAsync(filter: input.Filter);
 
-        return new ListResultDto<FieldDto>(fields.Select(MapToDto).ToList());
+        return new ListResultDto<FieldDto>(fields.Select(ObjectMapper.Map<Field, FieldDto>).ToList());
     }
 
     [Authorize(SiteAdminPermissions.Fields.Create)]
@@ -56,7 +56,7 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
             input.Name, input.DisplayName, input.FieldTypeName, input.Description,
             input.Configuration.ToFieldConfiguration(), input.GroupName);
 
-        return MapToDto(field);
+        return ObjectMapper.Map<Field, FieldDto>(field);
     }
 
     [Authorize(SiteAdminPermissions.Fields.Update)]
@@ -68,7 +68,7 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
             field, input.DisplayName, input.FieldTypeName, input.Description,
             input.Configuration.ToFieldConfiguration(), input.GroupName);
 
-        return MapToDto(field);
+        return ObjectMapper.Map<Field, FieldDto>(field);
     }
 
     [Authorize(SiteAdminPermissions.Fields.Rename)]
@@ -79,7 +79,7 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
         // Mutates and re-saves `field` in place; the migration count is not surfaced to the caller.
         await FieldManager.RenameAsync(field, input.NewName);
 
-        return MapToDto(field);
+        return ObjectMapper.Map<Field, FieldDto>(field);
     }
 
     [Authorize(SiteAdminPermissions.Fields.Delete)]
@@ -127,12 +127,5 @@ public class FieldAdminAppService : SiteAdminAppService, IFieldAdminAppService
             .ToList();
 
         return Task.FromResult(new ListResultDto<FieldTypeDto>(fieldTypes));
-    }
-
-    protected virtual FieldDto MapToDto(Field field)
-    {
-        var dto = ObjectMapper.Map<Field, FieldDto>(field);
-        dto.Configuration = field.Configuration.ToValueDictionary();
-        return dto;
     }
 }

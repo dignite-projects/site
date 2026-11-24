@@ -352,7 +352,7 @@ public class SiteThemeAnalyzer_Tests
     {
         var analysis = Analyze(
             new() { ["layouts/default"] = Layout },
-            pages: new[] { ("home", "Default"), ("about", "Default"), ("blog", "/Default") });
+            pages: new[] { ("home", "Default"), ("about", "Default"), ("blog", "Default") });
 
         var issue = analysis.Issues.Single(i => i.Code == SiteThemeIssueCodes.PageRenderedByRazor);
         issue.Severity.ShouldBe(SiteThemeIssueSeverity.Warning);

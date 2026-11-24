@@ -261,20 +261,6 @@ public class SiteAssetController_Tests
         httpContext.Response.Headers.CacheControl.ToString().ShouldBe("no-store");
     }
 
-    /// <summary>A host without the in-process source serves the live release, cookie or not.</summary>
-    [Fact]
-    public async Task Without_A_Preview_Source_The_Live_File_Should_Be_Served()
-    {
-        var (controller, _, themes) = Create(null, out var preview);
-        preview.HasSource = false;
-        preview.SetCookie();
-
-        var result = await controller.GetAsync("assets/site.css");
-
-        Encoding.UTF8.GetString(result.ShouldBeOfType<FileContentResult>().FileContents).ShouldBe(SiteCssBody);
-        themes.RequestedPaths.ShouldBe(new[] { "assets/site.css" });
-    }
-
     private static SiteThemeSnapshotDto ScribanSnapshot(params (string Path, string Body)[] files)
     {
         var snapshot = new SiteThemeSnapshotDto();

@@ -19,25 +19,6 @@ public sealed record SiteThemeIssue(
     int? Column,
     IReadOnlyDictionary<string, string> Data);
 
-/// <summary>How a file is used. See <see cref="SiteThemeAnalysis.GetUsages"/>.</summary>
-public enum SiteThemeUsageKind
-{
-    /// <summary>A page's <c>Template</c> names it.</summary>
-    Page = 0,
-
-    /// <summary>A template <c>include</c>s it.</summary>
-    Include = 1,
-
-    /// <summary>A template writes its address with <c>asset_url</c>.</summary>
-    AssetUrl = 2,
-
-    /// <summary>A page template's front matter chooses it as its layout.</summary>
-    Layout = 3,
-
-    /// <summary>The theme's default layout setting names it.</summary>
-    DefaultLayout = 4
-}
-
 /// <summary>One use of a file: by a page (<see cref="PageName"/>), by another file (<see cref="SourcePath"/>), or by the setting.</summary>
 public sealed record SiteThemeUsage(SiteThemeUsageKind Kind, string? SourcePath, string? PageName);
 
@@ -425,6 +406,8 @@ public static class SiteThemeAnalyzer
                 }
             }
 
+            // The layout a page template, or a language version of one, is rendered in: what its front matter says, else
+            // the default. Only a page template's front matter matters - an included file's or a layout's is ignored.
             foreach (var pageTemplate in _pageTemplates)
             {
                 if (GetEffectiveLayout(pageTemplate) is { } layout && IsTemplate(layout))
@@ -463,9 +446,7 @@ public static class SiteThemeAnalyzer
 
         private void ReadPages(List<SiteThemePageTemplate> pages)
         {
-            foreach (var group in pages
-                         .Where(page => !string.IsNullOrWhiteSpace(page.Template))
-                         .GroupBy(page => SiteThemePaths.Normalize(page.Template), StringComparer.Ordinal))
+            foreach (var group in pages.GroupBy(page => page.Template, StringComparer.Ordinal))
             {
                 var template = group.Key;
                 var pageNames = group.Select(page => page.PageName).OrderBy(name => name, StringComparer.Ordinal).ToList();
@@ -515,16 +496,6 @@ public static class SiteThemeAnalyzer
                 if (file.FrontMatter.Layout is { } layout && layout.Path != SiteThemeConsts.NoLayout)
                 {
                     ReadReference(file, layout);
-                }
-            }
-
-            // The layout a page template is rendered in: what its front matter says, else the default. Only a page
-            // template's front matter matters - an included file's or a layout's is ignored when rendering.
-            foreach (var pageTemplate in _pageTemplates)
-            {
-                if (GetEffectiveLayout(pageTemplate) is { } layout && IsTemplate(layout))
-                {
-                    _layouts.Add(layout);
                 }
             }
         }

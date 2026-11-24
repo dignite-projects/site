@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Admin.Themes;
 using Dignite.Site.Mcp.Errors;
+using Dignite.Site.Mcp.Naming;
 using Dignite.Site.Themes;
 using Microsoft.AspNetCore.Authorization;
 using ModelContextProtocol.Server;
@@ -39,9 +40,12 @@ public class SiteThemeTools : ITransientDependency
 
     protected ISiteThemeAdminAppService ThemeAppService { get; }
 
-    public SiteThemeTools(ISiteThemeAdminAppService themeAppService)
+    protected SiteMcpNameResolver NameResolver { get; }
+
+    public SiteThemeTools(ISiteThemeAdminAppService themeAppService, SiteMcpNameResolver nameResolver)
     {
         ThemeAppService = themeAppService;
+        NameResolver = nameResolver;
     }
 
     [McpServerTool(Name = "site_get_theme_guide", Title = "Get the theme guide", ReadOnly = true)]
@@ -100,7 +104,7 @@ public class SiteThemeTools : ITransientDependency
     {
         if (release is { } number)
         {
-            var releaseDto = await GetReleaseAsync(number);
+            var releaseDto = await NameResolver.GetReleaseAsync(number);
             var content = await ThemeAppService.GetReleaseFileAsync(releaseDto.Id, path);
 
             return new SiteThemeFileContent { Path = content.Path, IsAsset = content.IsAsset, Body = content.Body, Release = number };
@@ -248,7 +252,7 @@ public class SiteThemeTools : ITransientDependency
             "Take it from 'nextOffset' of the previous part to read on; one past the end returns nothing.")]
         int? offset = null)
     {
-        Guid? releaseId = release is { } number ? (await GetReleaseAsync(number)).Id : null;
+        Guid? releaseId = release is { } number ? (await NameResolver.GetReleaseAsync(number)).Id : null;
         var limit = maxHtmlLength is { } requested ? Math.Clamp(requested, 1, MaxPreviewHtmlLength) : MaxPreviewHtmlLength;
 
         // A render failure is a business exception (Site:090008, carrying the template, line and column), which the
@@ -319,7 +323,7 @@ public class SiteThemeTools : ITransientDependency
         [Description("A release number from site_list_releases. Omit for the working copy.")]
         int? release = null)
     {
-        Guid? releaseId = release is { } number ? (await GetReleaseAsync(number)).Id : null;
+        Guid? releaseId = release is { } number ? (await NameResolver.GetReleaseAsync(number)).Id : null;
 
         // Goes to the tenant's Site.PrimaryDomain: without one the application service says so (Site:050001), which
         // the server's error envelope reports in full.
@@ -367,7 +371,7 @@ public class SiteThemeTools : ITransientDependency
         [Description("The release number, from site_list_releases.")]
         int release)
     {
-        return await ThemeAppService.SetLiveReleaseAsync((await GetReleaseAsync(release)).Id);
+        return await ThemeAppService.SetLiveReleaseAsync((await NameResolver.GetReleaseAsync(release)).Id);
     }
 
     [McpServerTool(Name = "site_restore_release", Title = "Restore a release into the working copy", Destructive = true)]
@@ -379,20 +383,9 @@ public class SiteThemeTools : ITransientDependency
         [Description("The release number, from site_list_releases.")]
         int release)
     {
-        await ThemeAppService.RestoreReleaseAsync((await GetReleaseAsync(release)).Id);
+        await ThemeAppService.RestoreReleaseAsync((await NameResolver.GetReleaseAsync(release)).Id);
 
         return $"The working copy is now release #{release}. Nothing is published until site_publish_theme.";
-    }
-
-    protected virtual async Task<SiteReleaseDto> GetReleaseAsync(int number)
-    {
-        var releases = await ThemeAppService.GetReleasesAsync();
-
-        return releases.Items.FirstOrDefault(release => release.Number == number)
-               ?? throw new McpEntityNotFoundException(
-                   "release",
-                   number.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                   hint: "Call site_list_releases for the releases this site has.");
     }
 
     protected static string Format(SiteThemeSyntaxErrorDto error)

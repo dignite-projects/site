@@ -9,39 +9,22 @@ import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import type { TreeStatus } from '@swimlane/ngx-datatable';
 import {
   Component,
-  ElementRef,
-  ViewChild,
   inject,
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
-import type { NzTreeNodeOptions } from 'ng-zorro-antd/tree';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import type { GetPageListInput } from '../../proxy/dignite/site/admin/pages/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { eSitePolicyNames } from '../../enums/policy-names';
+import { SITE_CONSTS } from '../../site-consts';
+import { PageTreeSelectComponent } from '../contents/page-tree-select.component';
 
-/** Max lengths mirror `PageConsts` (`src/Dignite.Site.Domain.Shared/Pages/PageConsts.cs`). */
-const PAGE_CONSTS = {
-  maxNameLength: 64,
-  maxDisplayNameLength: 128,
-  maxRouteLength: 512,
-  maxTemplateLength: 256,
-} as const;
-
-/** Mirrors `IdentifierName.Pattern` (`src/Dignite.Site.Domain.Shared/IdentifierName.cs`). */
-const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
-
-/** Mirrors `PageConsts.RoutePattern`. */
-const ROUTE_PATTERN = /^\S+$/;
-
-/** Mirrors `PageConsts.TemplatePattern`. Required - at least one character - since `template` is required. */
-const TEMPLATE_PATTERN = /^\/?[A-Za-z0-9_][A-Za-z0-9_/-]*$/;
+const PAGE_CONSTS = SITE_CONSTS.page;
 
 /** A page, plus the expand/collapse state `ngx-datatable`'s tree mode keeps on each row. */
 type PageRow = PageDto & { treeStatus?: TreeStatus };
@@ -55,7 +38,7 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
     ThemeSharedModule,
     ReactiveFormsModule,
     NgxDatatableModule,
-    NzTreeSelectModule,
+    PageTreeSelectComponent,
     PermissionDirective,
     RouterLink,
   ],
@@ -78,83 +61,6 @@ type PageRow = PageDto & { treeStatus?: TreeStatus };
       width: 16px;
       cursor: pointer;
       color: inherit;
-    }
-
-    /* Dresses nz-tree-select up as a Bootstrap .form-select, matching field-arrangement.component.ts's
-       .field-picker-select for the same reason: ng-zorro's own look does not match the plain
-       .form-control/.form-select styling of every other field in this form.
-
-       Plain ::ng-deep, not :host ::ng-deep - this form lives inside abp-modal, which ng-bootstrap
-       renders as an NgbModalWindow appended straight to <body>, outside <site-pages>'s own DOM
-       subtree. A :host-scoped rule compiles to an attribute-selector prefix scoped to this
-       component's own host element, which can only ever match a descendant of that element - never
-       true here, so the rule silently never applied and the select fell back to ng-zorro's raw
-       styling (a barely 8px-tall selector box, nothing like the surrounding .form-control fields).
-       The .parent-picker-dropdown rules below already got this right; these four did not. */
-    ::ng-deep .parent-picker-select {
-      width: 100%;
-    }
-    ::ng-deep .parent-picker-select.ant-select {
-      color: inherit !important;
-      height:unset !important;
-      font-size: unset !important;
-      --bs-form-select-bg-img: unset !important;
-    }
-    ::ng-deep .parent-picker-select .ant-select-selector {
-      background: transparent !important;
-      border: none !important;
-      padding: 0.475rem 1.25rem !important;
-      box-shadow: none !important;
-      height: auto !important;
-    }
-    ::ng-deep .parent-picker-select .ant-select-selection-placeholder {
-      color: inherit !important;
-    }
-    ::ng-deep .parent-picker-select.form-select {
-      padding: 0 !important;
-    }
-    /* Compound, not descendant - nz-tree-select builds one class STRING ("ant-select-dropdown
-       ant-select-tree-dropdown parent-picker-dropdown") and binds it with [class] on a single <div>
-       (see NzTreeSelectComponent's dropdownClassName/ngOnChanges in ng-zorro-antd-tree-select.mjs),
-       unlike nz-select, which puts nzDropdownClassName on the ancestor .cdk-overlay-pane via
-       [cdkConnectedOverlayPanelClass] (see field-arrangement.component.ts's identically-shaped rule,
-       which is a real ancestor-descendant match). ".parent-picker-dropdown .ant-select-dropdown"
-       (with a space) asks for .ant-select-dropdown *inside* .parent-picker-dropdown, but they're the
-       same element here, so that never matched anything and this panel stayed on ant-design's own
-       white default no matter what the nested rules below did. */
-    /* --lpx-content-bg is a FULL LeptonX token (@volosoft/ngx-lepton-x: #f0f4f7 light, #121212 dark).
-       LeptonX *Lite* - @volo/ngx-lepton-x.lite, what @abp/ng.theme.lepton-x wraps, and what this app
-       actually runs - never defines it: it ships 11 --lpx-* tokens and this is not one of them. The
-       chain therefore fell straight through to the literal #fff and this panel stayed white in every
-       theme, while .ant-select-item/-tree below kept following --bs-body-color into light-grey-on-
-       white. --bs-secondary-bg is the Bootstrap 5.3 "one step off the body surface" token, defined at
-       :root by every Bootstrap-based theme and redefined under [data-bs-theme=dark] (#e9ecef ->
-       #343a40 in Lite), so it flips with the host. Light mode moves from pure white to #e9ecef. */
-    ::ng-deep .parent-picker-dropdown.ant-select-dropdown {
-      background: var(--lpx-content-bg, var(--bs-secondary-bg, #fff)) !important;
-    }
-    /* nz-tree's per-node classes drop the "select-" infix outside of a select's dropdown
-       (NzTreeNodeComponent's host bindings key every tree class off selectMode - see
-       ng-zorro-antd-tree.mjs) - nz-tree-select's own embedded tree always runs in select mode, so
-       its nodes carry ant-select-tree-node-content-wrapper/-selected, never the plain
-       ant-tree-node-* classes a standalone <nz-tree> would use. The un-prefixed selectors here
-       matched nothing, silently leaving every node on ant-design's own default colors. */
-    ::ng-deep .parent-picker-dropdown .ant-select-tree-node-content-wrapper:hover {
-      background-color: var(--bs-primary) !important;
-      color: var(--bs-white) !important;
-    }
-    ::ng-deep .parent-picker-dropdown .ant-select-tree-node-content-wrapper.ant-select-tree-node-selected {
-      background-color: var(--lpx-brand) !important;
-      color: var(--bs-white) !important;
-    }
-    /* !important, matching every other rule in this block - ant-design's own .ant-select-tree rule
-       (background: #fff, color: rgba(0,0,0,.85)) carries the same one-class specificity as this
-       override, and its stylesheet is injected lazily when nz-tree-select first opens, i.e. after
-       this component's styles - a same-specificity tie that source order was resolving in its
-       favor, keeping idle (non-hover, non-selected) nodes on ant-design's white/dark-gray default. */
-    ::ng-deep .parent-picker-dropdown .ant-select-tree {
-      color: var(--bs-body-color) !important;
-      background-color: transparent !important;
     }
   `,
 })
@@ -186,8 +92,6 @@ export class PagesComponent {
   readonly templateOptions = signal<string[]>([]);
   editingPage?: PageDto;
   form?: FormGroup;
-
-  @ViewChild('submitButton') submitButton?: ElementRef<HTMLButtonElement>;
 
   constructor() {
     this.applyFilters();
@@ -318,10 +222,10 @@ export class PagesComponent {
       });
   }
 
-  private parentTreeNodesCache?: {
+  private parentCandidatesCache?: {
     items: PageRow[];
     editingId: string | undefined;
-    nodes: NzTreeNodeOptions[];
+    pages: PageDto[];
   };
 
   /**
@@ -329,28 +233,26 @@ export class PagesComponent {
    * subtree - offering either as a choice would only trade a clean rejection in the picker for a
    * `PageParentCycleException` from the server.
    *
-   * Cached against a cheap key, not recomputed every read, for the same reason
-   * `field-arrangement.component.ts`'s `addableFieldOptions` is: `nz-tree-select` expects a stable
-   * array reference, and a plain rebuild here would hand it a fresh one on every change-detection
-   * cycle, including the ones firing while its dropdown is open.
+   * Cached against a cheap key, not recomputed every read: `site-page-tree-select` rebuilds its tree
+   * whenever it is handed a new array, which a plain filter here would do on every change detection.
    */
-  get parentTreeNodes(): NzTreeNodeOptions[] {
+  get parentCandidates(): PageDto[] {
     const editingId = this.editingPage?.id;
     const items = this.data().items;
 
     if (
-      this.parentTreeNodesCache?.items !== items ||
-      this.parentTreeNodesCache?.editingId !== editingId
+      this.parentCandidatesCache?.items !== items ||
+      this.parentCandidatesCache?.editingId !== editingId
     ) {
       const excluded = editingId ? this.subtreeIds(editingId) : new Set<string>();
-      this.parentTreeNodesCache = {
+      this.parentCandidatesCache = {
         items,
         editingId,
-        nodes: this.buildTreeNodes(null, excluded),
+        pages: items.filter(page => !excluded.has(page.id!)),
       };
     }
 
-    return this.parentTreeNodesCache.nodes;
+    return this.parentCandidatesCache.pages;
   }
 
   /** `rootId` and everything beneath it, found by repeatedly sweeping for newly-matched children. */
@@ -370,24 +272,11 @@ export class PagesComponent {
     return ids;
   }
 
-  private buildTreeNodes(parentId: string | null, excluded: Set<string>): NzTreeNodeOptions[] {
-    const items = this.data().items;
-
-    return items
-      .filter(page => (page.parentId ?? null) === parentId && !excluded.has(page.id!))
-      .map(page => ({
-        key: page.id!,
-        title: page.displayName || page.name || '',
-        children: this.buildTreeNodes(page.id!, excluded),
-        isLeaf: !items.some(child => child.parentId === page.id),
-      }));
-  }
-
   private buildForm(page?: PageDto): FormGroup {
     return this.fb.group({
       name: [
         page?.name ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxNameLength), Validators.pattern(NAME_PATTERN)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxNameLength), Validators.pattern(SITE_CONSTS.namePattern)],
       ],
       displayName: [
         page?.displayName ?? '',
@@ -395,11 +284,11 @@ export class PagesComponent {
       ],
       route: [
         page?.route ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxRouteLength), Validators.pattern(ROUTE_PATTERN)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxRouteLength), Validators.pattern(PAGE_CONSTS.routePattern)],
       ],
       template: [
         page?.template ?? '',
-        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(TEMPLATE_PATTERN)],
+        [Validators.required, Validators.maxLength(PAGE_CONSTS.maxTemplateLength), Validators.pattern(PAGE_CONSTS.templatePattern)],
       ],
       parentId: [page?.parentId ?? null],
       isActive: [page?.isActive ?? true],

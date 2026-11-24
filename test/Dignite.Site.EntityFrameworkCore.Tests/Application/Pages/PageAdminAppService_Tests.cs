@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Dignite.Site.Admin.ContentTypes;
 using Dignite.Site.Admin.Contents;
@@ -170,6 +171,9 @@ public class PageAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
 
         contentType.Fields.Count.ShouldBe(1);
         contentType.Fields[0].FieldId.ShouldBe(seoField!.Id);
+
+        // The page the call returns has it already, though nothing was saved in between.
+        page.ContentTypes.ShouldNotBeNull().Select(ct => ct.Id).ShouldBe(new[] { contentType.Id });
     }
 
     [Fact]

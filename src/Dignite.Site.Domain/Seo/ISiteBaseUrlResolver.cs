@@ -7,9 +7,8 @@ namespace Dignite.Site.Seo;
 /// Answers "what absolute origin does this tenant's site live on" - the one input every derived document
 /// needs before it can emit a single URL (总体设计 §4.2, §5.2).
 /// <para>
-/// An interface rather than a plain domain service purely so the web layer can add a fallback to the
-/// incoming request's own scheme and host without <c>IHttpContextAccessor</c> having to exist down here.
-/// The default implementation reads the setting and nothing else.
+/// The default, <see cref="SettingSiteBaseUrlResolver"/>, reads the <c>Site.PrimaryDomain</c> setting and
+/// falls back to the request being served; a host that maps tenants to addresses its own way replaces it.
 /// </para>
 /// </summary>
 public interface ISiteBaseUrlResolver

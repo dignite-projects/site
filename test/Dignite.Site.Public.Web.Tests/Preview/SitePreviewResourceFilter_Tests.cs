@@ -1,3 +1,4 @@
+using Dignite.Site.Themes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,7 +70,7 @@ public class SitePreviewResourceFilter_Tests
 
     private static string Query(string token, string? before = null, string? after = null)
     {
-        return "?" + (before == null ? "" : before + "&") + SitePreviewConsts.QueryKey + "=" + token +
+        return "?" + (before == null ? "" : before + "&") + SiteThemePreviewConsts.QueryKey + "=" + token +
                (after == null ? "" : "&" + after);
     }
 

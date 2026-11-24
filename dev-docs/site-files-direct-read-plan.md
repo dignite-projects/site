@@ -44,7 +44,7 @@ BM 按 IP 的限流误伤。
 | 层 | 去留 | 理由 |
 |---|---|---|
 | 上传票据（`CreateUploadTicketAsync`） | 留 | 谁能往哪个容器传，是 Site 的权限（`SiteFileAuthorization`） |
-| 浏览器把文件发到 BM（`POST /api/blob-management/uploads/{ticket}`） | 不经 Site | BM 签发的票据就是凭证：签了租户、容器、文件 id、上传人、大小和类型限制、过期时间，只能用一次 |
+| 浏览器把文件发到 BM（`POST /api/blob-management/uploads/{ticket}`） | 不经 Site | BM 签发的票据就是凭证：签了租户、容器、文件 id、上传人、大小和类型限制、过期时间，只能用一次（10.7.7-preview.4 起是“文件的行还在时只能用一次”，软删的也算；文件永久删除后，票据在有效期内还能再存一个文件，Site 的删除就是永久删除） |
 | 确认（`ConfirmAsync`） | 留 | 再查一次容器权限，并要求上传人就是当前用户，然后设为公开 |
 | 删除、列表、按 id 取单个文件 | 留 | 只开放 Site 的三个容器；删除按创建人和权限判断 |
 | MCP 文件工具 | 留 | 同一套规则 |

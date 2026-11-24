@@ -1,6 +1,7 @@
 import { Rest, RestService } from '@abp/ng.core';
 import type { ListResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
+import { BLOB_MANAGEMENT_API_NAME } from './site-file-upload.service';
 
 /**
  * What the signed-in user may do with a container's directories, as Blob Management answers it (`access` of a
@@ -46,7 +47,7 @@ export interface SiteBlobDirectory {
 @Injectable({ providedIn: 'root' })
 export class SiteBlobContainerService {
   private readonly restService = inject(RestService);
-  readonly apiName = 'BlobManagement';
+  readonly apiName = BLOB_MANAGEMENT_API_NAME;
 
   get = (name: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, SiteBlobContainer>(
@@ -66,7 +67,7 @@ export class SiteBlobContainerService {
 @Injectable({ providedIn: 'root' })
 export class SiteBlobDirectoryService {
   private readonly restService = inject(RestService);
-  readonly apiName = 'BlobManagement';
+  readonly apiName = BLOB_MANAGEMENT_API_NAME;
 
   /** The directories one level down; `parentId` none is the top of the container. */
   getList = (containerName: string, parentId?: string | null, config?: Partial<Rest.Config>) =>

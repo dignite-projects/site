@@ -1,7 +1,7 @@
 import { LocalizationService, PermissionService } from '@abp/ng.core';
 import { Confirmation, ConfirmationService, ToasterService } from '@abp/ng.theme.shared';
 import { TestBed } from '@angular/core/testing';
-import { Subject, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
 import { SiteThemeAdminService } from '../../proxy/dignite/site/admin/themes/site-theme-admin.service';
@@ -174,6 +174,21 @@ describe('ThemeWorkbenchComponent', () => {
 
     expect(warn).toHaveBeenCalled();
     expect(component.openFiles().length).toBe(1);
+  });
+
+  it('is left at once with nothing unsaved, and asks first otherwise', () => {
+    const warn = vi.fn(() => of(Confirmation.Status.reject));
+    const { component } = create({}, { warn });
+
+    expect(component.canLeave()).toBe(true);
+
+    component.openFile('Events');
+    component.onEdit('<p>changed</p>');
+    let answer: boolean | undefined;
+    (component.canLeave() as Observable<boolean>).subscribe(value => (answer = value));
+
+    expect(warn).toHaveBeenCalledWith('Site::LeaveThemeConfirm', 'AbpUi::AreYouSure');
+    expect(answer).toBe(false);
   });
 
   it('refuses a path the server would refuse, without asking it', () => {
@@ -463,7 +478,7 @@ describe('ThemeWorkbenchComponent', () => {
     it('finds the active pages the template in front renders', () => {
       const { component } = create({}, {}, [
         { id: 'p-events', name: 'events', displayName: 'Events', route: '/events/{slug?}', template: 'Events', isActive: true },
-        { id: 'p-news', name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events.cshtml', isActive: true },
+        { id: 'p-news', name: 'news', displayName: '', route: '/news/{year}/{slug}', template: 'Events', isActive: true },
         { name: 'old', displayName: 'Old', route: '/old', template: 'Events', isActive: false },
         { name: 'about', displayName: 'About', route: '/about', template: 'Default', isActive: true },
       ]);

@@ -13,7 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, Observable } from 'rxjs';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { FieldAdminService } from '../../proxy/dignite/site/admin/fields/field-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
@@ -32,7 +32,7 @@ import type {
   SiteThemeSyntaxErrorDto,
 } from '../../proxy/dignite/site/admin/themes/models';
 import { SiteThemeRenderScope } from '../../proxy/dignite/site/admin/themes/site-theme-render-scope.enum';
-import { SiteThemeUsageKindDto } from '../../proxy/dignite/site/admin/themes/site-theme-usage-kind-dto.enum';
+import { SiteThemeUsageKind } from '../../proxy/dignite/site/themes/site-theme-usage-kind.enum';
 import { SiteThemeFileStatus } from '../../proxy/dignite/site/themes/site-theme-file-status.enum';
 import { SiteThemeIssueSeverity } from '../../proxy/dignite/site/themes/site-theme-issue-severity.enum';
 import { eSitePolicyNames } from '../../enums/policy-names';
@@ -48,7 +48,6 @@ import {
   isAssetPath,
   languageOf,
   normalizeThemePath,
-  pageTemplatePath,
   skeletonFor,
   themePathProblem,
   withEarlierRenderFindings,
@@ -317,7 +316,7 @@ export class ThemeWorkbenchComponent implements OnInit {
     }
 
     return this.pages()
-      .filter(page => page.isActive && pageTemplatePath(page.template) === path)
+      .filter(page => page.isActive && page.template === path)
       .map(page => ({ id: page.id ?? '', name: page.displayName || page.name }));
   });
 
@@ -452,7 +451,18 @@ export class ThemeWorkbenchComponent implements OnInit {
     }
   }
 
-  /** Asks before leaving the page while a file has unsaved changes. */
+  /** Whether the page may be left now, for the route's `canDeactivate`: at once unless a file has unsaved changes, which leaving loses. */
+  canLeave(): boolean | Observable<boolean> {
+    if (!this.hasUnsavedFiles()) {
+      return true;
+    }
+
+    return this.confirmation
+      .warn('Site::LeaveThemeConfirm', 'AbpUi::AreYouSure')
+      .pipe(map(status => status === Confirmation.Status.confirm));
+  }
+
+  /** The browser's own confirmation when the tab is closed or the page reloaded. */
   @HostListener('window:beforeunload', ['$event'])
   onBeforeUnload(event: BeforeUnloadEvent): void {
     if (this.hasUnsavedFiles()) {
@@ -827,7 +837,7 @@ export class ThemeWorkbenchComponent implements OnInit {
 
   deleteFile(path: string): void {
     this.themeService.getFileUsages(path).subscribe(usages => {
-      const users = describeUsages(usages, kind => this.localization.instant('Site::ThemeUsage:' + SiteThemeUsageKindDto[kind]));
+      const users = describeUsages(usages, kind => this.localization.instant('Site::ThemeUsage:' + SiteThemeUsageKind[kind]));
       const confirm$ = users
         ? this.confirmation.warn('Site::DeleteThemeFileUsedConfirm', 'AbpUi::AreYouSure', {
             messageLocalizationParams: [path, users],
@@ -1136,7 +1146,7 @@ function toOpenFile(file: SiteThemeFileDto): ThemeOpenFile {
 /** Who uses a file, in words: `Events (include), about (page)`; empty when nothing does. */
 export function describeUsages(
   usages: SiteThemeFileUsagesDto,
-  kindName: (kind: SiteThemeUsageKindDto) => string,
+  kindName: (kind: SiteThemeUsageKind) => string,
 ): string {
   return (usages.usages ?? [])
     .map(usage => `${usage.pageName ?? usage.sourcePath ?? ''} (${kindName(usage.kind)})`.trim())

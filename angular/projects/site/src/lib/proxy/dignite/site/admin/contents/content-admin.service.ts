@@ -1,4 +1,4 @@
-import type { CreateContentDto, GetContentListInput, UpdateContentDto } from './models';
+import type { CreateContentDto, GetContentListInput, GetContentPathInput, UpdateContentDto } from './models';
 import { RestService, Rest } from '@abp/ng.core';
 import type { PagedResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
@@ -51,6 +51,16 @@ export class ContentAdminService {
       method: 'GET',
       url: '/api/site-admin/contents',
       params: { pageId: input.pageId, cultureName: input.cultureName, contentTypeId: input.contentTypeId, status: input.status, publishedBefore: input.publishedBefore, publishedAfter: input.publishedAfter, filter: input.filter, flexFieldConditions: input.flexFieldConditions, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
+    },
+    { apiName: this.apiName,...config });
+  
+
+  getPath = (input: GetContentPathInput, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, string>({
+      method: 'POST',
+      responseType: 'text',
+      url: '/api/site-admin/contents/path',
+      body: input,
     },
     { apiName: this.apiName,...config });
   

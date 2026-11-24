@@ -16,6 +16,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Volo.Abp.AspNetCore.Mvc;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Routing;
 
@@ -100,8 +101,8 @@ public class SiteRenderController : AbpController
 
         SiteRenderViewModel? viewModel = match.Kind switch
         {
-            RouteMatchKindDto.Page => BuildPageViewModel(match, headMetadata, currentPage),
-            RouteMatchKindDto.ContentOfPage or RouteMatchKindDto.Content
+            RouteMatchKind.Page => BuildPageViewModel(match, headMetadata, currentPage),
+            RouteMatchKind.ContentOfPage or RouteMatchKind.Content
                 => await BuildContentViewModelAsync(match, headMetadata, currentPage),
             _ => null
         };
@@ -125,13 +126,12 @@ public class SiteRenderController : AbpController
 
         languageContext.HeadMetadata = headMetadata;
 
-        // One required template for every RouteMatchKindDto - the template itself branches on whether
+        // One required template for every RouteMatchKind - the template itself branches on whether
         // viewModel.Content is null (a list/index) or populated (总体设计 §7.3; see Default.cshtml). A template
         // at that path in the live release wins; without one, a missing or misconfigured Page.Template throws
         // (standard ASP.NET Core view-not-found) rather than silently degrading - issue #53. Looked up last,
         // after the other reads, for the same one-DbContext reason as above.
-        var templateName = ResolveTemplateName(match.Page.Template);
-        var templatePath = SiteThemePaths.Normalize(templateName);
+        var templatePath = match.Page.Template;
         // A visitor holding a valid preview cookie sees the theme it names instead; everyone else, the live release.
         var preview = LazyServiceProvider.LazyGetRequiredService<SitePreviewState>();
         var previewing = preview.Ticket != null;
@@ -150,7 +150,7 @@ public class SiteRenderController : AbpController
         {
             // A page still rendered by Razor gets the preview headers but no banner: the view's output is not this
             // controller's to rewrite.
-            result = View(templateName, viewModel);
+            result = View(templatePath, viewModel);
         }
 
         if (previewing)
@@ -208,12 +208,6 @@ public class SiteRenderController : AbpController
 
             await _inner.ExecuteResultAsync(context);
         }
-    }
-
-    /// <summary>See <see cref="SiteRenderViewModelBuilder.ResolveTemplateName"/>.</summary>
-    protected virtual string ResolveTemplateName(string template)
-    {
-        return SiteRenderViewModelBuilder.ResolveTemplateName(template);
     }
 
     /// <param name="match">The resolved route.</param>

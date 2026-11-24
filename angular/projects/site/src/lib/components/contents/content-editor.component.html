@@ -130,9 +130,11 @@
                   </small>
                 }
 
-                <small class="form-text text-muted d-block mt-1">
-                  {{ 'Site::SlugPreview' | abpLocalization: slugPreview }}
-                </small>
+                @if (slugPreview()) {
+                  <small class="form-text text-muted d-block mt-1">
+                    {{ 'Site::SlugPreview' | abpLocalization: slugPreview() }}
+                  </small>
+                }
               </div>
             }
 

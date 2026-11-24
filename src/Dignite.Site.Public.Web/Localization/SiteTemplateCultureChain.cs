@@ -31,22 +31,7 @@ public static class SiteTemplateCultureChain
 
     private static void AddWithParents(List<string> chain, string cultureName)
     {
-        CultureInfo culture;
-        try
-        {
-            culture = CultureInfo.GetCultureInfo(cultureName);
-        }
-        catch (CultureNotFoundException)
-        {
-            if (!chain.Contains(cultureName))
-            {
-                chain.Add(cultureName);
-            }
-
-            return;
-        }
-
-        foreach (var member in CultureChain.Of(culture))
+        foreach (var member in CultureChain.Of(CultureInfo.GetCultureInfo(cultureName)))
         {
             if (!chain.Contains(member.Name))
             {

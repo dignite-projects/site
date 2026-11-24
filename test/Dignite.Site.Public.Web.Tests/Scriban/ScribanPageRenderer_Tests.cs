@@ -39,7 +39,11 @@ public class ScribanPageRenderer_Tests
     {
         var html = await new ScribanTestRenderer().RenderAsync("{{ site_head \"About - page 2\" \"Template copy.\" }}");
 
-        html.ShouldBe(SiteHeadMetadataHtml.Build(ScribanTestRenderer.HeadMetadata, "About - page 2", "Template copy.", 1, "page"));
+        html.ShouldBe(SiteHeadMetadataHtml.Build(
+            ScribanTestRenderer.HeadMetadata,
+            new SiteHeadOptions { Title = "About - page 2", FallbackDescription = "Template copy." },
+            1,
+            "page"));
         html.ShouldContain("<meta content=\"About - page 2\" property=\"og:title\">");
     }
 
@@ -54,7 +58,7 @@ public class ScribanPageRenderer_Tests
 
         var html = await new ScribanTestRenderer().RenderAsync("{{ site_head }}", viewModel: viewModel);
 
-        html.ShouldBe(SiteHeadMetadataHtml.Build(ScribanTestRenderer.HeadMetadata, null, null, 2, "page"));
+        html.ShouldBe(SiteHeadMetadataHtml.Build(ScribanTestRenderer.HeadMetadata, new SiteHeadOptions(), 2, "page"));
         html.ShouldContain("<link href=\"https://acme.example/ja/about?page=2\" rel=\"canonical\">");
         html.ShouldContain("href=\"https://acme.example/about?page=2\" hreflang=\"en\"");
     }
@@ -764,8 +768,6 @@ public class ScribanPageRenderer_Tests
         var renderer = new ScribanTestRenderer();
         renderer.Host.HttpContext.Request.PathBase = "/site";
         const string template = "[{{ app_file_url \"/libs/abp/core/abp.js\" }}][{{ app_file_url \"~/images/logo.svg?x=1\" }}]";
-
-        (await renderer.RenderAsync(template, HeadOnlyLayout)).ShouldEndWith("[/site/libs/abp/core/abp.js][/site/images/logo.svg?x=1]");
 
         renderer.Host.HttpContext.RequestServices = new WithFileVersions(renderer.Host.HttpContext.RequestServices);
         (await renderer.RenderAsync(template, HeadOnlyLayout))

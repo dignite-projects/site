@@ -5,12 +5,13 @@ using Dignite.Site.ContentTypes;
 using Dignite.Site.Contents;
 using Dignite.Site.Pages;
 using Dignite.Site.Public.Seo;
+using Dignite.Site.Routing;
 
 namespace Dignite.Site.Public.Routing;
 
 /// <summary>
 /// The @model every <c>Views/**/*.cshtml</c> template receives - one shape covering every non-None
-/// <c>RouteMatchKindDto</c> outcome, all rendered through the one view <c>Page.Template</c> names. The
+/// <c>RouteMatchKind</c> outcome, all rendered through the one view <c>Page.Template</c> names. The
 /// view itself branches on whether <see cref="Content"/> is null (a list/index) or populated (one
 /// resolved content) - see <c>SiteRenderController.RenderAsync</c>.
 /// </summary>
@@ -71,7 +72,7 @@ public class SiteRenderViewModel
     /// </summary>
     public IReadOnlyDictionary<string, string> Query { get; set; } = SiteRenderQuery.Empty;
 
-    /// <summary>Populated for RouteMatchKindDto.ContentOfPage / .Content. Null for RouteMatchKindDto.Page - a front end queries a list itself (总体设计 §7's "rendering is handed to the front end"), this no longer pre-fetches one.</summary>
+    /// <summary>Populated for RouteMatchKind.ContentOfPage / .Content. Null for RouteMatchKind.Page - a front end queries a list itself (总体设计 §7's "rendering is handed to the front end"), this no longer pre-fetches one.</summary>
     public ContentRenderViewModel? Content { get; init; }
 }
 

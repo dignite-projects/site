@@ -26,12 +26,7 @@ public static class SiteRenderFilterValueMapper
 
         foreach (var (key, capturedValue) in rawFilterValues)
         {
-            // A placeholder's key is its name alone, or name:FORMAT when a format is present - never its
-            // regex (PageRoute.cs's own Accept/IsValid remarks) - so splitting on the first ':' always
-            // recovers (name, format) correctly.
-            var colonIndex = key.IndexOf(':');
-            var name = colonIndex < 0 ? key : key[..colonIndex];
-            var format = colonIndex < 0 ? null : key[(colonIndex + 1)..];
+            var (name, format) = PageRoute.ParseCaptureKey(key);
 
             if (!string.Equals(name, PublishTimeFieldName, StringComparison.OrdinalIgnoreCase))
             {

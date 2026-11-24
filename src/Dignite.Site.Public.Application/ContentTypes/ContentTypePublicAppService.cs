@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Dignite.Site.Common;
 using Dignite.Site.ContentTypes;
 using Volo.Abp.Application.Dtos;
 
@@ -19,19 +18,12 @@ public class ContentTypePublicAppService : SitePublicAppService, IContentTypePub
     public virtual async Task<ContentTypeDto> GetAsync(Guid id)
     {
         var contentType = await ContentTypeRepository.GetAsync(id);
-        return MapToDto(contentType);
+        return ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
     }
 
     public virtual async Task<ListResultDto<ContentTypeDto>> GetListByPageAsync(Guid pageId)
     {
         var contentTypes = await ContentTypeRepository.GetListByPageAsync(pageId);
-        return new ListResultDto<ContentTypeDto>(contentTypes.Select(MapToDto).ToList());
-    }
-
-    protected virtual ContentTypeDto MapToDto(ContentType contentType)
-    {
-        var dto = ObjectMapper.Map<ContentType, ContentTypeDto>(contentType);
-        dto.Fields = contentType.Fields.ToDtoList();
-        return dto;
+        return new ListResultDto<ContentTypeDto>(contentTypes.Select(ObjectMapper.Map<ContentType, ContentTypeDto>).ToList());
     }
 }
