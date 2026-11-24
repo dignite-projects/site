@@ -10,55 +10,49 @@ using Volo.Abp.Settings;
 namespace Dignite.Site.Seo;
 
 /// <summary>
-/// Resolves the site's base URL from the <see cref="SiteSettings.PrimaryDomain"/> tenant setting.
+/// Resolves the site's base URL from the <see cref="SiteSettings.PrimaryDomain"/> tenant setting, and from
+/// the request being served (<see cref="ISiteRequestBaseUrlAccessor"/>) when the setting is blank.
 /// <para>
-/// The web layer replaces this with a subclass that falls back to the incoming request, so this class is
-/// the "configured answer" half only: it returns <see langword="null"/> rather than guessing when the
-/// setting is blank.
+/// <b>The setting always wins when it is set</b>, and that is the point rather than a detail. Serving a
+/// custom domain and a platform subdomain both at 200 with self-referencing URLs is the classic
+/// multi-tenant SEO failure - the same ranking signals split across two addresses (总体设计 §5). The request
+/// fallback exists only for the unconfigured case, where guessing beats failing.
 /// </para>
 /// </summary>
 public class SettingSiteBaseUrlResolver : ISiteBaseUrlResolver, ITransientDependency
 {
     protected ISettingProvider SettingProvider { get; }
 
+    protected ISiteRequestBaseUrlAccessor RequestBaseUrlAccessor { get; }
+
     public ILogger<SettingSiteBaseUrlResolver> Logger { get; set; }
 
-    public SettingSiteBaseUrlResolver(ISettingProvider settingProvider)
+    public SettingSiteBaseUrlResolver(ISettingProvider settingProvider, ISiteRequestBaseUrlAccessor requestBaseUrlAccessor)
     {
         SettingProvider = settingProvider;
+        RequestBaseUrlAccessor = requestBaseUrlAccessor;
         Logger = NullLogger<SettingSiteBaseUrlResolver>.Instance;
     }
 
     public virtual async Task<string?> GetBaseUrlAsync(CancellationToken cancellationToken = default)
     {
-        return await GetConfiguredBaseUrlAsync(cancellationToken);
-    }
-
-    /// <summary>
-    /// The configured value, normalized, or <see langword="null"/> if unset or unusable. Kept separate
-    /// from <see cref="GetBaseUrlAsync"/> so an overriding resolver can ask "is one configured?" without
-    /// re-triggering its own fallback.
-    /// </summary>
-    protected virtual async Task<string?> GetConfiguredBaseUrlAsync(CancellationToken cancellationToken = default)
-    {
         var configured = await SettingProvider.GetOrNullAsync(SiteSettings.PrimaryDomain);
 
-        if (string.IsNullOrWhiteSpace(configured))
+        if (!string.IsNullOrWhiteSpace(configured))
         {
-            return null;
-        }
+            if (TryNormalize(configured, out var normalized))
+            {
+                return normalized;
+            }
 
-        if (!TryNormalize(configured, out var normalized))
-        {
             // Not an exception: a malformed setting must not take the whole site's robots.txt down. The
-            // web layer's fallback still produces a usable URL, and the anomaly surfaces here instead.
+            // request fallback still produces a usable URL, and the anomaly surfaces here instead.
             Logger.LogWarning(
                 "The '{SettingName}' setting is '{Value}', which is not an absolute http(s) URL; ignoring it.",
                 SiteSettings.PrimaryDomain, configured);
-            return null;
         }
 
-        return normalized;
+        return TryNormalize(RequestBaseUrlAccessor.GetBaseUrl(), out var requested) ? requested : null;
     }
 
     /// <summary>

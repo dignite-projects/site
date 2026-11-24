@@ -14,19 +14,46 @@ public class SettingSiteBaseUrlResolver_Tests : SiteDomainTestBase<SiteDomainTes
 {
     private readonly ISiteBaseUrlResolver _resolver;
     private readonly TestSettingValueProvider _settings;
+    private readonly TestSiteRequestBaseUrlAccessor _request;
 
     public SettingSiteBaseUrlResolver_Tests()
     {
         _resolver = GetRequiredService<ISiteBaseUrlResolver>();
         _settings = GetRequiredService<TestSettingValueProvider>();
+        _request = GetRequiredService<TestSiteRequestBaseUrlAccessor>();
     }
 
     [Fact]
-    public async Task Should_Be_Null_When_Unconfigured()
+    public async Task Should_Be_Null_When_Unconfigured_Outside_A_Request()
     {
-        // Null rather than a guess: the web layer's fallback is what turns this into the request's host,
-        // and nothing down here has a request to look at.
         (await _resolver.GetBaseUrlAsync()).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Should_Fall_Back_To_The_Request_When_Unconfigured()
+    {
+        _request.BaseUrl = "https://tenant.platform.example/site/";
+
+        (await _resolver.GetBaseUrlAsync()).ShouldBe("https://tenant.platform.example/site");
+    }
+
+    /// <summary>A configured domain is the one original even when the request arrived on another host.</summary>
+    [Fact]
+    public async Task Should_Prefer_The_Setting_To_The_Request()
+    {
+        _settings.Set(SiteSettings.PrimaryDomain, "https://acme.example");
+        _request.BaseUrl = "https://tenant.platform.example";
+
+        (await _resolver.GetBaseUrlAsync()).ShouldBe("https://acme.example");
+    }
+
+    [Fact]
+    public async Task Should_Fall_Back_To_The_Request_When_The_Setting_Is_Malformed()
+    {
+        _settings.Set(SiteSettings.PrimaryDomain, "acme.example");
+        _request.BaseUrl = "https://tenant.platform.example";
+
+        (await _resolver.GetBaseUrlAsync()).ShouldBe("https://tenant.platform.example");
     }
 
     [Theory]
