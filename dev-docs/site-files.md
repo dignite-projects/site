@@ -107,6 +107,19 @@ nothing in Site changes. Not tried end to end yet. What reading the code turned 
   deletes none of its files. A Site that restores deleted files, or deletes a content's files with the content, would
   pass `false` there and add a restore. A ticket stores one file also
   while that file is soft-deleted; after a delete for good the ticket can store another within its lifetime.
+- `SiteUploadCleanup` is the content editor's own (component-level) service, which `site-file-input` and the picker report
+  their uploads to. A CKEditor field's images reach it through the upload provider, and the root's
+  `SiteCKEditorUploadProvider` cannot see a component's service, so the editor lists the provider in its own `providers`
+  with `CKEDITOR_UPLOAD_PROVIDER` pointing at it; the CKEditor control is created by flex-fields with
+  `ViewContainerRef.createComponent` and no injector of its own, so it takes the token from the editor. The editor calls
+  `saved` after a successful save and `discard` when it is destroyed - unless a save is still running, whose `saved` decides
+  what the content holds. Leaving asks first: the editor routes' `canDeactivate` (`site.routes.ts`) calls
+  `ContentEditorComponent.canLeave`, which opens ABP's modal confirmation when the form is dirty (`form.dirty`: a control
+  changed by the user, which CKEditor's Angular wrapper does not do for the data it sets itself) or the edit uploaded a file,
+  and lets the editor go at once when it was saved or a save is running; `beforeunload` asks the same for a closed tab or
+  a reload, in the browser's own words, and cleans up nothing. Not covered: what a closed tab or reload leaves (nothing
+  runs), a save that fails after the editor was left, a change that does not mark the form dirty, and the SEO settings page,
+  which provides no cleanup and no confirmation.
 - The admin UI calls Blob Management's container and directory APIs itself, with the user's token (the file picker), so
   its token has to be one Blob Management accepts: `oAuthConfig.scope` names Blob Management's scope beside Site's.
 - A site served by an application of its own (`Dignite.Site.Public.Web` with Site's data remote) answers neither

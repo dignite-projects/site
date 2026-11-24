@@ -360,6 +360,8 @@
     "Contents": "Contents",
     "NewContent": "New content",
     "EditContent": "Edit content",
+    "LeaveEditorConfirm": "This content has changes that are not saved, and they are lost if you leave. Leave anyway?",
+    "LeaveEditorWithUploadsConfirm": "This content has changes that are not saved. If you leave, they are lost and the files you uploaded while editing are deleted. Leave anyway?",
     "DisplayName:Content.CultureName": "Language",
     "DisplayName:Content.Slug": "Slug",
     "Description:Content.Slug": "The routing key within the page, e.g. \"my-post\". Empty is legitimate: the single content the page's own address resolves to. Unicode letters, digits, hyphen or underscore only - no spaces or \"/\".",

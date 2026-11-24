@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The content editor asks before it is left with something unsaved.** Leaving with changes to the form, or with files
+  the edit uploaded, opens a confirmation that has to be answered, and says that the uploaded files are deleted when there
+  are any; the browser asks too when the tab is closed or the page reloaded. Saving, or leaving an untouched editor,
+  asks nothing. The texts are `LeaveEditorConfirm` and `LeaveEditorWithUploadsConfirm` of the `Site` resource (English,
+  Japanese and Simplified Chinese; the other languages show the English). See
+  [Admin UI](docs/en/admin-ui.md).
+
 ### Changed
 
 - **Breaking: Site's files are kept in Dignite Blob Management; Site's own file library is gone.** The images and
@@ -90,6 +99,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlobFileDescriptors.Hash` optional and replaces the file indexes. A host that ran an earlier pre-release adds the same
   migration, with that `DELETE` first. Blob Management run as a service of its own sets `ExposeIntegrationServices`; see
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
+
+### Fixed
+
+- **Images uploaded into a CKEditor field, and files uploaded in an edit that is never saved, are no longer left behind.**
+  The content editor deleted an upload that the saved form no longer holds only for the file inputs, and only after a
+  save: an image inserted into a CKEditor field was never tracked, and nothing ran when the editor was left without
+  saving, so those files stayed in Blob Management, public and counted against the allocation. A CKEditor image the
+  saved text does not hold is now deleted when the content is saved, and what an edit uploaded without ever saving is
+  deleted when the editor is left, after the confirmation below. A file stays when the browser is closed or the page
+  reloaded in the middle of an edit. See [Attaching Files in the Admin UI](docs/en/files.md#attaching-files-in-the-admin-ui).
 
 ### Migrate
 

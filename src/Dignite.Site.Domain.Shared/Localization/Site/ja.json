@@ -360,6 +360,8 @@
     "Contents": "コンテンツ",
     "NewContent": "新規コンテンツ",
     "EditContent": "コンテンツを編集",
+    "LeaveEditorConfirm": "このコンテンツには保存されていない変更があります。このまま離れると変更は失われます。離れますか？",
+    "LeaveEditorWithUploadsConfirm": "このコンテンツには保存されていない変更があります。このまま離れると、変更は失われ、編集中にアップロードしたファイルも削除されます。離れますか？",
     "DisplayName:Content.CultureName": "言語",
     "DisplayName:Content.Slug": "スラッグ",
     "Description:Content.Slug": "ページ内でのルーティングキー（例: \"my-post\"）。空にすることも有効で、ページ自身のアドレスに解決される単一のコンテンツを表します。Unicode の文字、数字、ハイフン、アンダースコアのみ使用でき、スペースや \"/\" は使用できません。",

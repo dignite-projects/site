@@ -192,7 +192,7 @@ In the Angular admin UI, `environment.apis.BlobManagement.url` names that servic
 
 ## Attaching Files in the Admin UI
 
-A file field, the SEO field's share image and the default share image of the SEO settings use `site-file-input` from `@dignite/ng.site`, fixed to the field's container (`images` for share images). It checks each chosen file against the container's size and type limits, uploads it in the three steps above, and shows the files attached. Removing a file takes it out of the form; a file uploaded while the form is edited and removed again before it is saved is deleted once the form is saved. A file that was in the form before is not deleted by removing it: other contents may still use it.
+A file field, the SEO field's share image and the default share image of the SEO settings use `site-file-input` from `@dignite/ng.site`, fixed to the field's container (`images` for share images). It checks each chosen file against the container's size and type limits, uploads it in the three steps above, and shows the files attached. Removing a file takes it out of the form; a file uploaded while the form is edited and removed again before it is saved is deleted once the form is saved, and the files uploaded in an edit that ends without a save are deleted when the editor is left, after the editor has asked for confirmation. A file that was in the form before is not deleted by removing it: other contents may still use it. The browser asks as well when the tab is closed or the page reloaded in the middle of an edit, but nothing is deleted then, so what that edit uploaded stays.
 
 A file field has a setting, **How files are attached** (`FileExplorer.InputMode`), with two values:
 
@@ -203,7 +203,7 @@ The value a field stores is the same either way. A file picked from the window i
 
 ## CKEditor Image Upload
 
-`provideSite()` of `@dignite/ng.site` registers the upload provider of `@dignite/ng.flex-fields-ckeditor`. An image inserted into a CKEditor field is uploaded to the container named by the field's `CKEditor.ImagesContainerName` configuration, normally `images`, and embedded by its relative address. The editor shows the image from the `BlobManagement` API's host and saves the relative address, for HTML and Markdown fields alike.
+`provideSite()` of `@dignite/ng.site` registers the upload provider of `@dignite/ng.flex-fields-ckeditor`. An image inserted into a CKEditor field is uploaded to the container named by the field's `CKEditor.ImagesContainerName` configuration, normally `images`, and embedded by its relative address. The editor shows the image from the `BlobManagement` API's host and saves the relative address, for HTML and Markdown fields alike. In the content editor an inserted image counts as an upload of the edit: it is deleted when the content is saved without it in the text, and when the editor is left without a save. An image that was in the text before is never deleted this way.
 
 ## MCP
 

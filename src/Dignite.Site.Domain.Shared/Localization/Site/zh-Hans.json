@@ -360,6 +360,8 @@
     "Contents": "内容",
     "NewContent": "新建内容",
     "EditContent": "编辑内容",
+    "LeaveEditorConfirm": "此内容有未保存的修改，离开后这些修改会丢失。仍要离开吗？",
+    "LeaveEditorWithUploadsConfirm": "此内容有未保存的修改。离开后，这些修改会丢失，编辑时上传的文件也会被删除。仍要离开吗？",
     "DisplayName:Content.CultureName": "语言",
     "DisplayName:Content.Slug": "别名",
     "Description:Content.Slug": "页面下的路由键，例如 \"my-post\"。留空是合法值，表示页面自身地址对应的那条内容。仅限 Unicode 字母、数字、连字符或下划线——不能有空格或 \"/\"。",

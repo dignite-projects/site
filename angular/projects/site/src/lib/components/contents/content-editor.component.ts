@@ -1,11 +1,12 @@
 import { CoreModule, LocalizationService } from '@abp/ng.core';
-import { ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Confirmation, ConfirmationService, ThemeSharedModule, ToasterService } from '@abp/ng.theme.shared';
+import { Component, HostListener, inject, signal, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FlexFieldControlComponent } from '@dignite/ng.flex-fields';
 import type { FlexFieldData, FlexFieldValue } from '@dignite/ng.flex-fields';
-import { catchError, forkJoin, of, switchMap } from 'rxjs';
+import { CKEDITOR_UPLOAD_PROVIDER } from '@dignite/ng.flex-fields-ckeditor';
+import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { ContentAdminService } from '../../proxy/dignite/site/admin/contents/content-admin.service';
 import { ContentTypeAdminService } from '../../proxy/dignite/site/admin/content-types/content-type-admin.service';
 import { PageAdminService } from '../../proxy/dignite/site/admin/pages/page-admin.service';
@@ -16,6 +17,7 @@ import type { FieldDto } from '../../proxy/dignite/site/fields/models';
 import type { PageDto } from '../../proxy/dignite/site/pages/models';
 import { SiteReferenceDataService } from '../../services/site-reference-data.service';
 import { flexFieldErrorMessage } from '../../field-types/flex-field-error-message';
+import { SiteCKEditorUploadProvider } from '../../files/services/site-ckeditor-upload-provider';
 import { SiteUploadCleanup } from '../../files/services/site-upload-cleanup';
 import type { ArrangedField } from './arranged-field';
 
@@ -54,11 +56,17 @@ type SlugState = 'forbidden' | 'required' | 'optional';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './content-editor.component.html',
   imports: [CoreModule, ThemeSharedModule, ReactiveFormsModule, RouterLink, FlexFieldControlComponent],
-  // The file inputs of the content's fields report their uploads to it; a file uploaded and removed again before the
-  // save is deleted once the content is saved.
-  providers: [SiteUploadCleanup],
+  // The file inputs of the content's fields report their uploads to it, and so do the images of its CKEditor fields: a
+  // file uploaded and removed again before the save is deleted once the content is saved, and what an edit uploaded
+  // without ever saving is deleted when the editor is left. The CKEditor fields take their upload provider from here,
+  // not from the root's, so that the provider they use is created beside this cleanup and finds it.
+  providers: [
+    SiteUploadCleanup,
+    SiteCKEditorUploadProvider,
+    { provide: CKEDITOR_UPLOAD_PROVIDER, useExisting: SiteCKEditorUploadProvider },
+  ],
 })
-export class ContentEditorComponent {
+export class ContentEditorComponent implements OnDestroy {
   private readonly contentService = inject(ContentAdminService);
   private readonly contentTypeService = inject(ContentTypeAdminService);
   private readonly pageService = inject(PageAdminService);
@@ -67,6 +75,7 @@ export class ContentEditorComponent {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toaster = inject(ToasterService);
+  private readonly confirmation = inject(ConfirmationService);
   private readonly localization = inject(LocalizationService);
   private readonly uploadCleanup = inject(SiteUploadCleanup);
 
@@ -108,6 +117,9 @@ export class ContentEditorComponent {
   form?: FormGroup;
   readonly isBusy = signal(false);
   readonly isLoading = signal(true);
+
+  /** Set once the content is saved: the editor is then left for the list, and nothing is unsaved any more. */
+  private hasSaved = false;
 
   constructor() {
     const pageId = this.route.snapshot.queryParamMap.get('pageId');
@@ -325,6 +337,7 @@ export class ContentEditorComponent {
     request$.subscribe({
       next: () => {
         this.isBusy.set(false);
+        this.hasSaved = true;
         this.toaster.success('AbpUi::SavedSuccessfully');
         this.uploadCleanup.saved(fieldValues).subscribe();
         this.backToList();
@@ -335,6 +348,49 @@ export class ContentEditorComponent {
 
   backToList(): void {
     this.router.navigate(['/site/contents']);
+  }
+
+  /**
+   * Whether the editor may be left now, for the route's `canDeactivate`: at once when there is nothing to lose, and
+   * otherwise when the user confirms in a dialog that has to be answered. What is lost is the form's changes and, when
+   * the edit uploaded any, those files, which `ngOnDestroy` deletes.
+   */
+  canLeave(): boolean | Observable<boolean> {
+    if (!this.hasUnsavedWork()) {
+      return true;
+    }
+
+    return this.confirmation
+      .warn(
+        this.uploadCleanup.hasUploads() ? 'Site::LeaveEditorWithUploadsConfirm' : 'Site::LeaveEditorConfirm',
+        'AbpUi::AreYouSure',
+      )
+      .pipe(map(status => status === Confirmation.Status.confirm));
+  }
+
+  /** The browser's own confirmation when the tab is closed or the page reloaded; it cannot be worded, and nothing is cleaned up. */
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.hasUnsavedWork()) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+
+  /**
+   * Whether leaving would lose something: the form was changed, or the edit uploaded a file. Not while the content is
+   * being saved, which goes on without the editor, nor once it was saved.
+   */
+  private hasUnsavedWork(): boolean {
+    return !this.hasSaved && !this.isBusy() && (!!this.form?.dirty || this.uploadCleanup.hasUploads());
+  }
+
+  ngOnDestroy(): void {
+    // A save that is still running calls `saved` when it answers, and that decides which uploads the content holds; one
+    // that already answered left nothing to discard.
+    if (!this.isBusy()) {
+      this.uploadCleanup.discard().subscribe();
+    }
   }
 
   private buildForm(): FormGroup {

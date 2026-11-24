@@ -1,6 +1,10 @@
 import { authGuard, permissionGuard, RouterOutletComponent } from '@abp/ng.core';
-import { Routes } from '@angular/router';
+import { CanDeactivateFn, Routes } from '@angular/router';
+import type { ContentEditorComponent } from './components/contents/content-editor.component';
 import { eSitePolicyNames } from './enums/policy-names';
+
+/** Leaving the content editor with changes or uploads that are not saved asks first; see `ContentEditorComponent.canLeave`. */
+const leaveContentEditor: CanDeactivateFn<ContentEditorComponent> = editor => editor.canLeave();
 
 /**
  * No `admin` path segment (unlike Dignite.Cms's `/cms/admin/...`): the public tier has no Angular UI,
@@ -32,12 +36,14 @@ export const SITE_ROUTES: Routes = [
         path: 'contents/create',
         loadComponent: () =>
           import('./components/contents/content-editor.component').then(c => c.ContentEditorComponent),
+        canDeactivate: [leaveContentEditor],
         data: { requiredPolicy: eSitePolicyNames.ContentsCreate },
       },
       {
         path: 'contents/:id/edit',
         loadComponent: () =>
           import('./components/contents/content-editor.component').then(c => c.ContentEditorComponent),
+        canDeactivate: [leaveContentEditor],
         data: { requiredPolicy: eSitePolicyNames.ContentsUpdate },
       },
       {
