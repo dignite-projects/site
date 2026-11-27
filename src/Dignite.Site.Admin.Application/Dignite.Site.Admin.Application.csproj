@@ -27,6 +27,9 @@
     <!-- The file service Site's files are kept through (FileAdminAppService). Contracts only: the host installs Blob
          Management, in its own process or as a remote service. -->
     <PackageReference Include="Dignite.Abp.BlobManagement.Application.Contracts" Version="$(DigniteAbpModulesVersion)" />
+    <!-- Reads the pages the trial render renders as a browser would (RenderedPageAudit). The HTML5 parser the rich text
+         field's sanitizer (HtmlSanitizer) already brings into a site, at the version it resolves to there. -->
+    <PackageReference Include="AngleSharp" Version="1.7.2" />
   </ItemGroup>
 
 </Project>

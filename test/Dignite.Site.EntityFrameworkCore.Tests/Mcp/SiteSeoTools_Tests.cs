@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Dignite.Site.Mcp;
 
-/// <summary>The SEO side of the MCP tools: the default share image, and the width warnings of a stored content.</summary>
+/// <summary>The SEO side of the MCP tools: the default share image, and the warnings about a stored content's SEO texts.</summary>
 public class SiteSeoTools_Tests : SiteEntityFrameworkCoreTestBase
 {
     private readonly SiteSeoSettingsTools _seoTools;
@@ -97,8 +97,64 @@ public class SiteSeoTools_Tests : SiteEntityFrameworkCoreTestBase
             fieldValues: new Dictionary<string, object?>
             {
                 ["title"] = "Narrow",
-                [SeoFieldNames.FieldName] = JsonSerializer.SerializeToElement(new { metaTitle = new string('日', 30) })
+                [SeoFieldNames.FieldName] = JsonSerializer.SerializeToElement(new
+                {
+                    metaTitle = new string('日', 30),
+                    metaDescription = "Short enough."
+                })
             },
+            status: ContentStatus.Published,
+            publishTime: SiteTestData.PublishTime);
+
+        created.Warnings.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// A content whose type has the SEO field and that has no description gives its page none, in a search result or a
+    /// shared link: the client is told, on a create and on an update, whether the field has no value or an empty one.
+    /// </summary>
+    [Fact]
+    public async Task A_Stored_Content_Without_An_SEO_Description_Should_Warn()
+    {
+        var contentType = await CreateSeoContentTypeAsync();
+        var slug = $"bare-{Guid.NewGuid():N}";
+
+        var created = await _contentTools.CreateContentAsync(
+            page: "blog",
+            contentType: contentType,
+            cultureName: SiteTestData.EnglishCulture,
+            slug: slug,
+            fieldValues: new Dictionary<string, object?> { ["title"] = "Bare" },
+            status: ContentStatus.Published,
+            publishTime: SiteTestData.PublishTime);
+
+        created.Warnings.ShouldNotBeNull();
+        created.Warnings.ShouldHaveSingleItem().ShouldContain("no SEO description");
+
+        var updated = await _contentTools.UpdateContentAsync(
+            page: "blog",
+            cultureName: SiteTestData.EnglishCulture,
+            slug: created.Slug,
+            fieldValues: new Dictionary<string, object?>
+            {
+                ["title"] = "Bare",
+                [SeoFieldNames.FieldName] = JsonSerializer.SerializeToElement(new { metaTitle = "Bare", metaDescription = " " })
+            });
+
+        updated.Warnings.ShouldNotBeNull();
+        updated.Warnings.ShouldHaveSingleItem().ShouldContain("no SEO description");
+    }
+
+    /// <summary>A content type without the SEO field has no description to write: nothing is said about one.</summary>
+    [Fact]
+    public async Task A_Stored_Content_Whose_Type_Has_No_SEO_Field_Should_Not_Warn_Of_A_Description()
+    {
+        var created = await _contentTools.CreateContentAsync(
+            page: "blog",
+            contentType: "post-article",
+            cultureName: SiteTestData.EnglishCulture,
+            slug: $"plain-{Guid.NewGuid():N}",
+            fieldValues: new Dictionary<string, object?> { ["title"] = "Plain" },
             status: ContentStatus.Published,
             publishTime: SiteTestData.PublishTime);
 

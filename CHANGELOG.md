@@ -21,6 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   asks nothing. The texts are `LeaveEditorConfirm` and `LeaveEditorWithUploadsConfirm` of the `Site` resource (English,
   Japanese and Simplified Chinese; the other languages show the English). See
   [Admin UI](docs/en/admin-ui.md).
+- **The theme check warns about what search engines and link previews miss on a rendered page.** The trial render reads
+  each page it renders for a title, a description, the language of `<html>`, a viewport, an `<h1>`, an `alt` on every
+  image, a text on every link and an `og:image`, and the home page for structured data, after Lighthouse's SEO audits
+  and the axe-core rules it runs. Each is a warning, once per kind, with the first address, how many pages have it and
+  their page templates (`ThemeIssue:TitleMissing`, `DescriptionMissing`, `LanguageMissing`, `ViewportMissing`,
+  `HeadingMissing`, `ImageAltMissing`, `LinkTextMissing`, `ShareImageMissing`, `StructuredDataMissing`), so no theme
+  that published before stops publishing. See [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
+- **The theme guide says what every site needs**: a title and a description of its own on each page, one `<h1>`, image
+  `alt`s and link texts, contact details as text with `tel:` links, a page about who runs the site and one to get in
+  touch, and structured data on the home page of the schema.org type that fits the site. It is the
+  [What Every Site Needs](docs/en/rendering/scriban-templates.md#what-every-site-needs) section of the Scriban page,
+  which `site://theme-guide` serves; its example layouts now write the viewport.
+- **`site_create_content` and `site_update_content` warn about a content without an SEO description** when its content
+  type has the SEO field, as they warned about one that is too long. See [Tools](docs/en/mcp/tools.md).
 
 ### Changed
 

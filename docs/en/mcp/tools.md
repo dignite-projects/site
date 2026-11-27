@@ -120,7 +120,7 @@ A content is addressed by `page`, `cultureName` and `slug`, an empty string for 
 
 `site_list_contents` takes the optional filters `page`, `contentType` (which needs `page`), `cultureName`, `status` and `filter` (over the slug only), and `skipCount` and `maxResultCount`, 20 by default.
 
-The write and list tools say where a content is, by names, and do not send its values back: `site_create_content` and `site_update_content` return the `page`, `contentType`, `cultureName`, `slug`, `status` and `publishTime`, and `storedFields`, the names of the values that were stored, so a value the content type does not declare shows as missing from it, and `warnings` when the SEO title or description is wider than a search result shows ([Title and Description Length](../seo/index.md#title-and-description-length)); `site_list_contents` returns the same for each row, with the values only when `includeFieldValues` is true. `site_get_content` reads the values.
+The write and list tools say where a content is, by names, and do not send its values back: `site_create_content` and `site_update_content` return the `page`, `contentType`, `cultureName`, `slug`, `status` and `publishTime`, and `storedFields`, the names of the values that were stored, so a value the content type does not declare shows as missing from it, and `warnings` when the SEO title or description is wider than a search result shows ([Title and Description Length](../seo/index.md#title-and-description-length)), or when the content type has the SEO field and the content has no SEO description; `site_list_contents` returns the same for each row, with the values only when `includeFieldValues` is true. `site_get_content` reads the values.
 
 ## Routing
 

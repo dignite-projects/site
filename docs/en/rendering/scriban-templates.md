@@ -133,6 +133,38 @@ Each node must be an object with an `@type`; anything else fails the render. A k
 
 See [Breadcrumbs](../seo/index.md#breadcrumbs).
 
+## What Every Site Needs
+
+Search engines, AI assistants and the people a link is shared with read a page for the same few things. Site writes the canonical URL, the hreflang alternates, the [sitemap](../seo/sitemap-and-feeds.md) and [robots.txt](../seo/robots-and-llms-txt.md) by itself. The rest depends on the theme and the content, and a site that leaves it out is hard to find, however good it looks. Build every site so that each of the following holds.
+
+Every page:
+
+* The layout keeps `<!DOCTYPE html>`, `<html lang="{{ culture }}">`, `<meta charset="utf-8" />`, `<meta name="viewport" content="width=device-width, initial-scale=1" />`, the `<title>` and `site_head`, as the layout a new theme starts with does.
+* Each page has a title and a description of its own, written in the [SEO field](../field-types.md#seo) of its content: `metaTitle` names the page, and the site after it, in about 60 columns; `metaDescription` says in one or two sentences what the page offers, in about 160. No two pages share them. A page that lists contents takes them from its own content, the one with an empty slug; where its route allows none, the template passes `description` to `site_head`. A page without a description has no `description` and no `og:description` tag.
+* The page has one `<h1>`, which says what the page is about, as its title does; the sections under it are `<h2>`, and theirs `<h3>`. The logo in the header is not the page's `<h1>`.
+* Every `<img>` has an `alt`. An image that shows something says what in a few words, in the page's language: `alt="The shop front on Main Street"`, not `alt="photo"`. An image that only decorates has `alt=""`. A file field holds no alternative text, so the template writes it from the content, such as the content's title, or from the theme's [texts](template-localization.md#texts-in-a-scriban-theme); an image in rich text gets its own in the editor.
+* Every link says where it goes, in its text: "Opening hours and access", not "Click here" or "More". A link that shows only an icon says it with `aria-label`, and one that shows only an image with the image's `alt`.
+* A page shared on a social network shows a picture: set the site's default share image (`Site.Seo.DefaultShareImage`, `site_set_default_share_image` over MCP), and give a page one of its own where it has one; see [Share Images](../seo/index.md#share-images).
+
+The information visitors come for:
+
+* A phone number, an address, opening hours and prices are text in the page, never only in an image or written by a script, so that a search engine and an AI assistant can read them and a phone can act on them.
+* A phone number is a link that calls it, with the number in international form in the link: `<a href="tel:+81312345678">03-1234-5678</a>`. An e-mail address is a `mailto:` link.
+* The site has a page that says who runs it, and a page to get in touch, with the phone number, the e-mail address, the address with a link to a map, and the opening hours where there are any. Every page links to both, from the header or the footer. Add the pages that visitors of that kind of site look for, such as a menu, the services and their prices, or the courses.
+
+Structured data:
+
+* The home page describes who runs the site, as a schema.org node given to `site_head` as `schema` (see [Structured Data](#structured-data)), with a `WebSite` node beside it. Choose the most specific type that fits:
+  * a business that customers come to, such as a shop or a restaurant: `LocalBusiness`, or the subtype that fits it, such as `Restaurant` or `Store`, with `name`, `address` (a `PostalAddress`), `telephone`, `openingHoursSpecification` (whose `dayOfWeek` is schema.org's English name, such as `Monday`, whatever the site's language), `url` and `image`;
+  * a clinic: `MedicalClinic`, or the subtype of `MedicalOrganization` that fits;
+  * a school: `EducationalOrganization`, or the subtype that fits;
+  * any other organization: `Organization`, with `name`, `url` and `logo`, and `address` and `telephone` where it has them.
+* A page of a product for sale carries a `Product` node, with `name`, `image`, `description` and its `offers`.
+* What the structured data says is what the page shows: take the values from the content's fields, the same ones the page writes, rather than typing them into the template, so that the two never disagree.
+* Let `site_head` write it rather than a `<script type="application/ld+json">` written by hand: it escapes the values and leaves empty properties out, where a script written by hand breaks on the first title with a quote in it.
+
+The [trial render](#trial-render) reads the rendered pages for most of this and warns about what is missing. It tells whether a page has a description, an `alt` or a link text, not whether they are good.
+
 ## Templates for One Language
 
 Most pages need a single template for every language: the text comes from the content and from [`t`](template-localization.md#texts-in-a-scriban-theme), and the structure is the same. When a language needs a different structure, give the template a **version for that language**: a file with the template's path and the language as its extension.
@@ -223,6 +255,22 @@ The result says which pages it rendered (`render`, and `renderedTemplates`, the 
 The pages are rendered by `Dignite.Site.Public.Web`, in the same application as the administration API or in the application that serves the site; see [When the Site Runs in Another Application](#when-the-site-runs-in-another-application). An application that has neither renders nothing: the check says so in a warning (`ThemeIssue:TrialRenderUnavailable`), and publishing goes ahead without the trial render, so a template that fails only when it renders is not found before it goes live.
 
 The rendered pages are also read for links to an id that nothing on the page has: a `<use href="#icon">` whose symbol is not in the page shows nothing and fails nothing, and an anchor to a section that does not exist goes nowhere. Each is a warning, once per id, with the first address that has it (`ThemeIssue:FragmentReferenceNotFound`); a warning does not stop a publish. A reference to another file (`href="sprite.svg#icon"`), an empty `#` and `#top` are not reported.
+
+They are read, too, for what search engines, AI assistants and link previews need of a page; see [What Every Site Needs](#what-every-site-needs). Each of these is a warning, once per kind, with the first address that has it, how many of the rendered pages do, and the page templates they render through:
+
+| Warning | A rendered page |
+|---|---|
+| `ThemeIssue:TitleMissing` | has no `<title>`, or an empty one. |
+| `ThemeIssue:DescriptionMissing` | has no `<meta name="description">`. |
+| `ThemeIssue:LanguageMissing` | has no `lang` on `<html>`. |
+| `ThemeIssue:ViewportMissing` | has no `<meta name="viewport">`. |
+| `ThemeIssue:HeadingMissing` | has no `<h1>`. |
+| `ThemeIssue:ImageAltMissing` | has an `<img>` with no `alt`, `aria-label` or `title`, unless the image is hidden or has the role `presentation` or `none`. `alt=""` counts. The warning names the first image. |
+| `ThemeIssue:LinkTextMissing` | has a link with no text, no image with an `alt` in it, no `aria-label`, `aria-labelledby` or `title`. The warning names the first link. |
+| `ThemeIssue:ShareImageMissing` | has no `og:image`. |
+| `ThemeIssue:StructuredDataMissing` | is the home page, in any language, and has no `<script type="application/ld+json">`. |
+
+They follow Lighthouse's SEO audits and the axe-core rules that Lighthouse runs. Only whether a thing is there is checked: a link's text is not compared with a list of words such as "click here", which would hold for one language only. A page whose output is not HTML, such as a feed written by a template, is not read.
 
 ## Previewing
 
@@ -619,6 +667,7 @@ A Scriban equivalent of a minimal Razor `Default` view, which renders a content 
 <html lang="{{ culture }}">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ head?.meta_title ?? page.display_name }}</title>
     {{ site_head }}
 </head>
@@ -654,6 +703,7 @@ The document around the page is the same for every page, so it belongs in a layo
 <html lang="{{ culture }}">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ head?.meta_title ?? page.display_name }}</title>
     {{ site_head }}
 </head>

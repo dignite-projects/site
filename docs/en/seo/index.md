@@ -37,7 +37,7 @@ A template writes the head metadata with `site_head` in a [Scriban template](../
 | `twitter:card` | `summary_large_image` with an image, `summary` without. |
 | `hreflang` alternates, `x-default` | See [Hreflang Alternates](#hreflang-alternates). |
 
-The title and the description of a content come from the [SEO field](../field-types.md#seo) when its content type includes one. A content type without it still gets a title, from its first text field that has a value, but no description: no other field is taken for one, since a year, a price or a category is not what the page is about. Add the SEO field to the content types whose pages should have a description. A request for a page itself takes them from the page's own content, the one with an empty slug, when it has one, and from the page's display name otherwise.
+The title and the description of a content come from the [SEO field](../field-types.md#seo) when its content type includes one. A content type without it still gets a title, from its first text field that has a value, but no description: no other field is taken for one, since a year, a price or a category is not what the page is about. Add the SEO field to the content types whose pages should have a description; the MCP tools that store a content warn when it has the field and no description, and the [theme check](../rendering/scriban-templates.md#trial-render) warns about a rendered page without one. A request for a page itself takes them from the page's own content, the one with an empty slug, when it has one, and from the page's display name otherwise.
 
 `HeadMetadata` is also in the template's view model, and `/api/site-public/head-metadata?path=...` returns it to an external front end.
 
@@ -104,6 +104,7 @@ Google still shows rich results for `Organization`, `WebSite`, `BreadcrumbList`,
 * The shape of the structured data, as above.
 * Statistics and site verification tags: written in the layout.
 * Redirects of old URLs: Site keeps no redirect table, so a changed slug or route is a new address.
+* What the page itself shows: one `<h1>`, image `alt`s, link texts, contact details as text. [What Every Site Needs](../rendering/scriban-templates.md#what-every-site-needs) lists it, and the theme check warns about most of it.
 
 ## See Also
 

@@ -9,6 +9,8 @@ using Dignite.Site.Admin.Contents;
 using Dignite.Site.Admin.Fields;
 using Dignite.Site.Admin.Permissions;
 using Dignite.Site.Contents;
+using Dignite.Site.ContentTypes;
+using Dignite.Site.Fields;
 using Dignite.Site.Mcp.Naming;
 using Dignite.Site.Seo;
 using Microsoft.AspNetCore.Authorization;
@@ -144,7 +146,8 @@ public class ContentTools : ITransientDependency
         "content type, language, slug, status, publish time - and storedFields, the names of the values kept: one " +
         "missing from it was dropped. The values are not echoed back; read them with site_get_content. warnings, " +
         "when present, says that the SEO title or description is wider than a search result shows (a Chinese or " +
-        "Japanese character counts as two columns): the content is stored, but shorten it.")]
+        "Japanese character counts as two columns), or that the content type has the SEO field and the content no " +
+        "SEO description: the content is stored, but shorten it, or write one.")]
     [Authorize(SiteAdminPermissions.Contents.Create)]
     public virtual async Task<McpContentSummary> CreateContentAsync(
         [Description("Page name, from site_get_schema.")]
@@ -185,7 +188,7 @@ public class ContentTools : ITransientDependency
         });
 
         var createdSummary = ToSummary(created, includeFieldValues: false, storedFields: true);
-        createdSummary.Warnings = await CheckSeoWidthAsync(created);
+        createdSummary.Warnings = await CheckSeoAsync(created, contentTypeDto);
         return createdSummary;
     }
 
@@ -196,8 +199,9 @@ public class ContentTools : ITransientDependency
         "REPLACES the whole set: read the content first and send it back with your edits merged in, or " +
         "omit it entirely. Returns where the content is now, and storedFields, the names of its values; " +
         "the values are not echoed back. warnings, when present, says that the SEO title or description is wider " +
-        "than a search result shows (a Chinese or Japanese character counts as two columns): the content is " +
-        "stored, but shorten it.")]
+        "than a search result shows (a Chinese or Japanese character counts as two columns), or that the content " +
+        "type has the SEO field and the content no SEO description: the content is stored, but shorten it, or " +
+        "write one.")]
     [Authorize(SiteAdminPermissions.Contents.Update)]
     public virtual async Task<McpContentSummary> UpdateContentAsync(
         [Description("Page name, from site_get_schema.")]
@@ -237,8 +241,35 @@ public class ContentTools : ITransientDependency
         });
 
         var updatedSummary = ToSummary(updated, includeFieldValues: false, storedFields: true);
-        updatedSummary.Warnings = await CheckSeoWidthAsync(updated);
+        updatedSummary.Warnings = await CheckSeoAsync(
+            updated,
+            pageDto.ContentTypes?.FirstOrDefault(type => type.Id == updated.ContentTypeId));
         return updatedSummary;
+    }
+
+    /// <summary>
+    /// What a client should know about the content it has just stored, as <see cref="McpContentSummary.Warnings"/>: an SEO
+    /// title or description that is too wide (<see cref="CheckSeoWidthAsync"/>), and no description at all when the
+    /// content's type has the SEO field - the page then has no description in a search result or a shared link, which
+    /// is what Yoast and Rank Math flag in their editors too. Null when there is nothing to say. Advice only - the content
+    /// is stored either way.
+    /// </summary>
+    protected virtual async Task<string[]?> CheckSeoAsync(ContentDto content, ContentTypeDto? contentType)
+    {
+        var warnings = new List<string>(await CheckSeoWidthAsync(content) ?? Array.Empty<string>());
+
+        if (contentType != null &&
+            string.IsNullOrWhiteSpace(ReadSeoValue(content, "metaDescription")) &&
+            await FindSeoFieldAsync() is { } seoField &&
+            contentType.Fields.Any(field => field.FieldId == seoField.Id))
+        {
+            warnings.Add(
+                "The content has no SEO description (metaDescription in its seo field), so its page has no description " +
+                "in a search result or a shared link unless its template passes one to site_head. Write one or two " +
+                "sentences on what the page offers.");
+        }
+
+        return warnings.Count == 0 ? null : warnings.ToArray();
     }
 
     /// <summary>
@@ -248,22 +279,52 @@ public class ContentTools : ITransientDependency
     /// </summary>
     protected virtual async Task<string[]?> CheckSeoWidthAsync(ContentDto content)
     {
-        if (!content.FieldValues.TryGetValue(SeoTextWidth.SeoFieldName, out var raw) || raw == null)
-        {
-            return null;
-        }
-
-        var value = raw is JsonElement element ? element : JsonSerializer.SerializeToElement(raw, raw.GetType());
-        if (value.ValueKind != JsonValueKind.Object)
+        var value = ReadSeoValue(content);
+        if (value == null)
         {
             return null;
         }
 
         var (titleLimit, descriptionLimit) = await ReadSeoWidthLimitsAsync();
         var warnings = SeoTextWidth.Check(
-            ReadString(value, "metaTitle"), ReadString(value, "metaDescription"), titleLimit, descriptionLimit);
+            ReadString(value.Value, "metaTitle"), ReadString(value.Value, "metaDescription"), titleLimit, descriptionLimit);
 
         return warnings.Count == 0 ? null : warnings.ToArray();
+    }
+
+    /// <summary>The value of the content's SEO field, an object; null when it has none.</summary>
+    private static JsonElement? ReadSeoValue(ContentDto content)
+    {
+        if (!content.FieldValues.TryGetValue(SeoTextWidth.SeoFieldName, out var raw) || raw == null)
+        {
+            return null;
+        }
+
+        var value = raw is JsonElement element ? element : JsonSerializer.SerializeToElement(raw, raw.GetType());
+        return value.ValueKind == JsonValueKind.Object ? value : null;
+    }
+
+    /// <summary>One text of the content's SEO field, such as <c>metaDescription</c>; null when it has none.</summary>
+    private static string? ReadSeoValue(ContentDto content, string name)
+    {
+        var value = ReadSeoValue(content);
+        return value == null ? null : ReadString(value.Value, name);
+    }
+
+    /// <summary>
+    /// The platform's SEO field in the site's field library, or null when the site has none or the client may not read
+    /// the library - then nothing is said that depends on it.
+    /// </summary>
+    protected virtual async Task<FieldDto?> FindSeoFieldAsync()
+    {
+        try
+        {
+            return await FieldAppService.FindByNameAsync(SeoTextWidth.SeoFieldName);
+        }
+        catch (AbpAuthorizationException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -275,18 +336,11 @@ public class ContentTools : ITransientDependency
         var title = SeoTextWidth.DefaultMetaTitleLimit;
         var description = SeoTextWidth.DefaultMetaDescriptionLimit;
 
-        try
+        var configuration = (await FindSeoFieldAsync())?.Configuration;
+        if (configuration != null)
         {
-            var configuration = (await FieldAppService.FindByNameAsync(SeoTextWidth.SeoFieldName))?.Configuration;
-            if (configuration != null)
-            {
-                title = ReadInt(configuration, SeoTextWidth.MetaTitleLimitKey) ?? title;
-                description = ReadInt(configuration, SeoTextWidth.MetaDescriptionLimitKey) ?? description;
-            }
-        }
-        catch (AbpAuthorizationException)
-        {
-            // The defaults, as above.
+            title = ReadInt(configuration, SeoTextWidth.MetaTitleLimitKey) ?? title;
+            description = ReadInt(configuration, SeoTextWidth.MetaDescriptionLimitKey) ?? description;
         }
 
         return (title, description);
