@@ -167,6 +167,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   everything but the theme's static files (`/site-assets/`) and the site's files (`/blobs/`), and still disallows every
   other crawler. An open site's `robots.txt` is unchanged. A front end that serves the site from another process sends
   the header itself. See [A Site Closed to Indexing](docs/en/seo/robots-and-llms-txt.md#a-site-closed-to-indexing).
+- **Breaking: every site serves `llms.txt`, and `Site.EnableLlmsTxt` is gone.** It was off by default, so `/llms.txt`
+  answered `404` unless a site turned it on. It costs almost nothing and lists only pages the sitemap already lists, and a
+  site closed to indexing sends it with `X-Robots-Tag: noindex`, so there is nothing to turn off. `SiteSettings.EnableLlmsTxt`
+  and its texts are removed, and `IRobotsDocumentAppService.GetLlmsTxtAsync` never returns `null`. See
+  [robots.txt and llms.txt](docs/en/seo/robots-and-llms-txt.md).
 
 ### Fixed
 
@@ -226,6 +231,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   answers from 10.7.7-preview.3; Site depends on 10.7.7-preview.7. See
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
 - **A host that configured `SiteImageRenderingOptions`** removes it: Site renders no pictures.
+- **A host or tenant that set `Site.EnableLlmsTxt`** removes the value: Site no longer reads it, and a stored value is
+  ignored.
 - **A host that configured `SiteMcpFileOptions`** sets `SiteMcpOptions.BaseUrl` for the theme links instead of
   `UploadBaseUrl`.
 

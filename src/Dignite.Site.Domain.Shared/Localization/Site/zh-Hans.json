@@ -108,9 +108,6 @@
     "DisplayName:Site.PrimaryDomain": "主域名",
     "Description:Site.PrimaryDomain": "站点的主地址（绝对地址），例如 \"https://example.com\"。站点地图、robots.txt、订阅源和规范 URL（canonical）都以它为基础生成，这样自定义域名与平台子域名就不会作为重复内容相互竞争。留空则使用每个请求到达时所用的地址。",
 
-    "DisplayName:Site.EnableLlmsTxt": "提供 llms.txt",
-    "Description:Site.EnableLlmsTxt": "发布本站点页面的 /llms.txt 索引。可选，默认关闭：目前采用率约为 10%，且 Google 已表示不支持，因此它不是排名机制。",
-
     "DisplayName:Site.Robots.AllowIndexing": "允许搜索引擎索引",
     "Description:Site.Robots.AllowIndexing": "是否允许搜索引擎索引本站点。",
 

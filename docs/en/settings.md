@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "Configure a Dignite Site: the Site.* settings for languages, primary domain, robots, llms.txt and branding, the Site.Enable feature, and the SiteAdmin permissions."
+    "Description": "Configure a Dignite Site: the Site.* settings for languages, primary domain, robots and branding, the Site.Enable feature, and the SiteAdmin permissions."
 }
 ```
 
@@ -18,13 +18,12 @@ A site has no configuration entity of its own: every tenant is one site, and its
 | `Site.Robots.AllowIndexing` | `true` | Whether search engines may index the site. |
 | `Site.Robots.AllowAiTraining` | `false` | Whether crawlers that train AI models (GPTBot, Google-Extended, ClaudeBot, CCBot) may crawl the site. |
 | `Site.Robots.AllowAiSearch` | `true` | Whether crawlers that power AI search answers (OAI-SearchBot, PerplexityBot, Claude-SearchBot) may crawl the site. |
-| `Site.EnableLlmsTxt` | `false` | Whether the site serves an `/llms.txt` index of its pages. |
 | `Site.Branding.AppName` | Empty | The site's display name. Empty uses the application's default. |
 | `Site.Branding.LogoUrl` | Empty | The logo shown on a light background. |
 | `Site.Branding.LogoReverseUrl` | Empty | The logo shown on a dark background. |
 | `Site.Seo.DefaultShareImage` | Empty | The image shown when a page shared on a social network has no share image of its own: the address of an image uploaded to the site's [files](files.md), or an absolute URL. See [Share Images](seo/index.md#share-images). Set on the SEO tab of the admin UI's Setting Management page, with `PUT /api/site-admin/seo-settings`, or with the `site_set_default_share_image` [MCP tool](mcp/tools.md). |
 
-The `Site.Robots.*` and `Site.EnableLlmsTxt` settings are described in [robots.txt and llms.txt](seo/robots-and-llms-txt.md). The branding settings replace ABP's branding provider, so the theme of an ABP application shows each tenant's own name and logo.
+The `Site.Robots.*` settings are described in [robots.txt and llms.txt](seo/robots-and-llms-txt.md). The branding settings replace ABP's branding provider, so the theme of an ABP application shows each tenant's own name and logo.
 
 Every setting can be set at any level: a value in the host's `appsettings.json` is the default of all sites, and a tenant can override it.
 

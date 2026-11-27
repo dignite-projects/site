@@ -1,7 +1,7 @@
 ```json
 //[doc-seo]
 {
-    "Description": "The robots.txt of a Dignite Site, with separate switches for search engines, AI training crawlers and AI search crawlers, how a site closed to indexing stays out of search results, and the optional llms.txt index of its pages."
+    "Description": "The robots.txt of a Dignite Site, with separate switches for search engines, AI training crawlers and AI search crawlers, how a site closed to indexing stays out of search results, and the llms.txt index of its pages."
 }
 ```
 
@@ -101,7 +101,7 @@ A page that a search engine has already indexed leaves its results once the engi
 
 ## llms.txt
 
-With `Site.EnableLlmsTxt` set to `true`, `/llms.txt` serves a Markdown index of the site's active pages, for AI clients that look for one:
+`/llms.txt` serves a Markdown index of the site's active pages, for AI clients that look for one:
 
 ````text
 # Example Company
@@ -112,9 +112,9 @@ With `Site.EnableLlmsTxt` set to `true`, `/llms.txt` serves a Markdown index of 
 - [Blog](https://www.example.com/blog)
 ````
 
-The heading is the display name of the home page. The links are the pages' own addresses in the default language, on the primary domain; contents are not listed. While the setting is off, the default, `/llms.txt` answers `404`.
+The heading is the display name of the home page. The links are the pages' own addresses in the default language, on the primary domain; contents are not listed. Every site serves it; there is no setting to turn it off. It lists only pages that the sitemap already lists, and a [site closed to indexing](#a-site-closed-to-indexing) sends it with `X-Robots-Tag: noindex`.
 
-`llms.txt` is an optional convenience, not a ranking signal: few sites serve one, and Google has said it does not use it.
+`llms.txt` is a convenience for AI clients, not a ranking signal: few sites serve one, and Google has said it does not use it.
 
 ## External Front Ends
 

@@ -24,7 +24,7 @@ public class RobotsDocumentPublicController : SitePublicController, IRobotsDocum
 
     [HttpGet]
     [Route("llms-txt")]
-    public virtual Task<SiteDocument?> GetLlmsTxtAsync()
+    public virtual Task<SiteDocument> GetLlmsTxtAsync()
     {
         return RobotsDocumentAppService.GetLlmsTxtAsync();
     }

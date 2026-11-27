@@ -40,21 +40,11 @@ public class RobotsDocumentAppService_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
-    /// Off by default. Roughly 10% adoption and Google has said it does not support the file, so a site
-    /// publishes it only by choosing to - and a site that has not chosen should 404 rather than serve an
-    /// empty document.
+    /// Served by every site, with no setting to turn on: it lists only pages the sitemap already makes public.
     /// </summary>
     [Fact]
-    public async Task Llms_Txt_Should_Not_Exist_Unless_The_Tenant_Opts_In()
+    public async Task Llms_Txt_Should_List_The_Site_Pages()
     {
-        (await WithUnitOfWorkAsync(() => _robots.GetLlmsTxtAsync())).ShouldBeNull();
-    }
-
-    [Fact]
-    public async Task Llms_Txt_Should_List_The_Site_Pages_When_Enabled()
-    {
-        _settings.Set(SiteSettings.EnableLlmsTxt, "true");
-
         var document = await WithUnitOfWorkAsync(() => _robots.GetLlmsTxtAsync());
 
         document.ShouldNotBeNull();
