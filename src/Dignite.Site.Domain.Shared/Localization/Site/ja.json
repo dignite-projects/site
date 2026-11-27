@@ -108,9 +108,6 @@
     "DisplayName:Site.PrimaryDomain": "プライマリドメイン",
     "Description:Site.PrimaryDomain": "サイトの主となる絶対アドレス（例: \"https://example.com\"）。サイトマップ、robots.txt、フィード、canonical URL はすべてこれを基に生成されるため、カスタムドメインとプラットフォームのサブドメインが重複コンテンツとして競合することはありません。空のままにすると、各リクエストが届いたアドレスを使用します。",
 
-    "DisplayName:Site.EnableLlmsTxt": "llms.txt を提供する",
-    "Description:Site.EnableLlmsTxt": "このサイトのページの /llms.txt インデックスを公開します。任意の機能で、既定ではオフです。普及率は約 10% で、Google は対応していないと表明しているため、検索順位を上げる仕組みではありません。",
-
     "DisplayName:Site.Robots.AllowIndexing": "検索エンジンによるインデックスを許可",
     "Description:Site.Robots.AllowIndexing": "検索エンジンがこのサイトをインデックスすることを許可するかどうか。",
 

@@ -5,7 +5,7 @@ using Volo.Abp.Caching;
 namespace Dignite.Site.Public.Seo;
 
 /// <summary>
-/// <c>robots.txt</c> and the optional <c>llms.txt</c>, per domain (总体设计 §5.6, GitHub issue #18).
+/// <c>robots.txt</c> and the <c>llms.txt</c> index of its pages, per domain (总体设计 §5.6, GitHub issue #18).
 /// </summary>
 public class RobotsController : SiteDocumentController
 {
@@ -44,7 +44,7 @@ public class RobotsController : SiteDocumentController
     {
         return ServeAsync(
             "llms",
-            () => RobotsDocumentAppService.GetLlmsTxtAsync(),
+            async () => await RobotsDocumentAppService.GetLlmsTxtAsync(),
             MaxAgeSeconds,
             compressible: false);
     }

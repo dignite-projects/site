@@ -19,9 +19,12 @@ public class FakeRobotsDocumentAppService : IRobotsDocumentAppService
         return Task.FromResult(RobotsTxt);
     }
 
-    /// <summary>Always null, the same as a tenant that never opted into publishing this document.</summary>
-    public Task<SiteDocument?> GetLlmsTxtAsync()
+    public static readonly SiteDocument LlmsTxt = new(
+        "text/markdown",
+        "# Example\n\n## Pages\n- [Example](https://www.example.com/)\n");
+
+    public Task<SiteDocument> GetLlmsTxtAsync()
     {
-        return Task.FromResult<SiteDocument?>(null);
+        return Task.FromResult(LlmsTxt);
     }
 }

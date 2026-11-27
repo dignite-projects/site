@@ -11,7 +11,7 @@ Site derives what search engines need from the site's own data, so it never drif
 
 * The **head metadata** of every page and content: title, description, canonical URL, robots, Open Graph, Twitter card and hreflang alternates, the page's **breadcrumb**, and a safe way to write the **structured data** a template chooses.
 * A **[sitemap](sitemap-and-feeds.md)** of every page and published content, and **[feeds](sitemap-and-feeds.md#feeds)** of each page.
-* **[robots.txt](robots-and-llms-txt.md)** with switches for search, AI training and AI search crawlers, and an optional **[llms.txt](robots-and-llms-txt.md)**.
+* **[robots.txt](robots-and-llms-txt.md)** with switches for search, AI training and AI search crawlers, and an **[llms.txt](robots-and-llms-txt.md)** index of the pages.
 
 All of them follow four rules:
 

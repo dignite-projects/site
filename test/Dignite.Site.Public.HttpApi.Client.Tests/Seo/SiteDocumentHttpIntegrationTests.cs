@@ -50,11 +50,13 @@ public class SiteDocumentHttpIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task Robots_GetLlmsTxtAsync_returns_null_over_HTTP_when_the_app_service_returns_null()
+    public async Task Robots_GetLlmsTxtAsync_round_trips_ContentType_and_Content()
     {
         var result = await _client.Resolve<RobotsDocumentPublicClientProxy>().GetLlmsTxtAsync();
 
-        result.ShouldBeNull();
+        result.ShouldNotBeNull();
+        result.ContentType.ShouldBe(FakeRobotsDocumentAppService.LlmsTxt.ContentType);
+        result.Content.ShouldBe(FakeRobotsDocumentAppService.LlmsTxt.Content);
     }
 
     [Fact]

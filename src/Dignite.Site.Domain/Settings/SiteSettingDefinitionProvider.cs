@@ -18,8 +18,6 @@ public class SiteSettingDefinitionProvider : SettingDefinitionProvider
             // request's own host the fallback (see SettingSiteBaseUrlResolver).
             new SettingDefinition(SiteSettings.PrimaryDomain, "",
                 L("DisplayName:Site.PrimaryDomain"), L("Description:Site.PrimaryDomain"), true),
-            new SettingDefinition(SiteSettings.EnableLlmsTxt, "false",
-                L("DisplayName:Site.EnableLlmsTxt"), L("Description:Site.EnableLlmsTxt"), true),
             new SettingDefinition(SiteSettings.Robots.AllowIndexing, "true",
                 L("DisplayName:Site.Robots.AllowIndexing"), L("Description:Site.Robots.AllowIndexing"), true),
             new SettingDefinition(SiteSettings.Robots.AllowAiTraining, "false",

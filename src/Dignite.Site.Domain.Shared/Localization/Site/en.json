@@ -108,9 +108,6 @@
     "DisplayName:Site.PrimaryDomain": "Primary domain",
     "Description:Site.PrimaryDomain": "The site's primary absolute address, e.g. \"https://example.com\". Sitemap, robots.txt, feeds and canonical URLs are all built on it, so that a custom domain and a platform subdomain never compete as duplicate content. Leave empty to use the address each request arrives on.",
 
-    "DisplayName:Site.EnableLlmsTxt": "Serve llms.txt",
-    "Description:Site.EnableLlmsTxt": "Publish an /llms.txt index of this site's pages. Optional and off by default: adoption is around 10% and Google has stated it does not support it, so it is not a ranking mechanism.",
-
     "DisplayName:Site.Robots.AllowIndexing": "Allow search engine indexing",
     "Description:Site.Robots.AllowIndexing": "Whether search engines are allowed to index this site.",
 

@@ -4,7 +4,7 @@ using Dignite.Site.Seo;
 namespace Dignite.Site.Public.Seo;
 
 /// <summary>
-/// Serves <c>robots.txt</c> and the optional <c>llms.txt</c> (总体设计 §5.6, GitHub issue #18).
+/// Serves <c>robots.txt</c> and the <c>llms.txt</c> index of its pages (总体设计 §5.6, GitHub issue #18).
 /// <para>
 /// Neither document carries a <c>Last-Modified</c>: they are computed from settings rather than from
 /// content, so there is no real modification time to report and inventing one would be the same mistake
@@ -31,10 +31,8 @@ public class RobotsDocumentAppService : SitePublicAppService, IRobotsDocumentApp
         return new SiteDocument(PlainTextContentType, await RobotsTxtBuilder.BuildAsync());
     }
 
-    public virtual async Task<SiteDocument?> GetLlmsTxtAsync()
+    public virtual async Task<SiteDocument> GetLlmsTxtAsync()
     {
-        var content = await LlmsTxtBuilder.BuildAsync();
-
-        return content == null ? null : new SiteDocument(MarkdownContentType, content);
+        return new SiteDocument(MarkdownContentType, await LlmsTxtBuilder.BuildAsync());
     }
 }

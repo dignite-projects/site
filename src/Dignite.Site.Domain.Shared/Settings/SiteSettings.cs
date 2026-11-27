@@ -28,11 +28,6 @@ public static class SiteSettings
     /// </summary>
     public const string PrimaryDomain = GroupName + ".PrimaryDomain";
 
-    /// <summary>
-    /// Whether <c>/llms.txt</c> is served. Off by default deliberately - see <c>LlmsTxtBuilder</c>.
-    /// </summary>
-    public const string EnableLlmsTxt = GroupName + ".EnableLlmsTxt";
-
     public static class Robots
     {
         public const string AllowIndexing = GroupName + ".Robots.AllowIndexing";
