@@ -38,6 +38,12 @@ namespace Dignite.Site.Admin.Themes;
 /// read as a check whose pages rendered well.
 /// </para>
 /// <para>
+/// What renders can still lack what search engines, AI assistants and link previews read from a page - a title, a
+/// description, a heading, the text of an image or a link, the home page's structured data. Each rendered page is read
+/// for that too (<see cref="RenderedPageAudit"/>), and what it lacks is a warning, once per kind, never an error: a theme
+/// that lacks it still renders, and one published before the check looked for it must stay publishable.
+/// </para>
+/// <para>
 /// After one file changed, only the pages it takes part in need rendering again: those whose template, layout or a
 /// partial either includes it is (<see cref="SiteThemeAnalysis.GetRenderedFiles"/>). A file of the theme's texts is read
 /// by every template, so it takes part in every page; a static file renders into none.
@@ -129,6 +135,9 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
         var failures = new Dictionary<string, SiteThemeIssue>(StringComparer.Ordinal);
         var fragmentWarnings = new Dictionary<string, SiteThemeIssue>(StringComparer.Ordinal);
+        var pageFindings = new Dictionary<string, PageFindingTally>(StringComparer.Ordinal);
+        var languages = await GetLanguagesAsync(cancellationToken);
+        var audited = 0;
         var stopwatch = Stopwatch.StartNew();
         var rendered = 0;
         var outOfTime = false;
@@ -168,6 +177,24 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
                     result.AddTemplate(warning, template);
                 }
+
+                if (IsHtmlDocument(preview.Html))
+                {
+                    audited++;
+                    foreach (var finding in RenderedPageAudit.Find(preview.Html, IsHomePageAddress(path, languages)))
+                    {
+                        if (!pageFindings.TryGetValue(finding.Code, out var tally))
+                        {
+                            pageFindings[finding.Code] = tally = new PageFindingTally(path, finding.Element);
+                        }
+
+                        tally.Count++;
+                        if (!tally.Templates.Contains(template, StringComparer.Ordinal))
+                        {
+                            tally.Templates.Add(template);
+                        }
+                    }
+                }
             }
             catch (BusinessException exception) when (exception.Code is
                                                           SiteErrorCodes.SiteTemplatePreviewRenderFailed
@@ -200,6 +227,19 @@ public class SiteThemeTrialRenderer : ITransientDependency
 
         issues.AddRange(failures.Values);
         issues.AddRange(fragmentWarnings.Values);
+
+        foreach (var code in RenderedPageAudit.Codes)
+        {
+            if (pageFindings.TryGetValue(code, out var tally))
+            {
+                var warning = ToPageIssue(code, tally, audited);
+                issues.Add(warning);
+                foreach (var template in tally.Templates)
+                {
+                    result.AddTemplate(warning, template);
+                }
+            }
+        }
 
         if (rendered < paths.Count)
         {
@@ -280,6 +320,78 @@ public class SiteThemeTrialRenderer : ITransientDependency
         }
 
         return new SiteThemeIssue(SiteThemeIssueSeverity.Warning, code, null, null, null, data);
+    }
+
+    /// <summary>
+    /// What the rendered pages lack (<see cref="RenderedPageAudit"/>), as one warning per kind: the first address that
+    /// lacks it, how many of the <paramref name="audited"/> pages do, and the first image or link it is about.
+    /// </summary>
+    protected virtual SiteThemeIssue ToPageIssue(string code, PageFindingTally tally, int audited)
+    {
+        var data = new Dictionary<string, string>
+        {
+            ["Path"] = tally.Path,
+            ["Count"] = tally.Count.ToString(CultureInfo.InvariantCulture),
+            ["Rendered"] = audited.ToString(CultureInfo.InvariantCulture)
+        };
+
+        if (tally.Element != null)
+        {
+            data["Element"] = tally.Element;
+        }
+
+        return new SiteThemeIssue(SiteThemeIssueSeverity.Warning, code, null, null, null, data);
+    }
+
+    /// <summary>The site's languages, to tell the home page's address in each of them.</summary>
+    protected virtual async Task<SiteLanguages> GetLanguagesAsync(CancellationToken cancellationToken)
+    {
+        var languages = await LanguageProvider.GetEnabledLanguagesAsync(cancellationToken);
+        return new SiteLanguages(languages[0], languages);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="path"/> is the home page's own address in a language: <c>/</c>, or <c>/ja</c>. A route that
+    /// answers <c>/</c> is the home page's (<see cref="PageRoute.IsHomeRoute"/>); its contents and later pages are not it.
+    /// </summary>
+    protected virtual bool IsHomePageAddress(string path, SiteLanguages languages)
+    {
+        if (path.Contains('?'))
+        {
+            return false;
+        }
+
+        languages.TryStripCulturePrefix(path, out _, out var remaining);
+        return remaining == "/";
+    }
+
+    /// <summary>
+    /// Whether a page's output is an HTML document, which is what <see cref="RenderedPageAudit"/> reads. A page template can
+    /// write anything, such as a feed in XML or data in JSON, and those have no title or headings to lack.
+    /// </summary>
+    protected virtual bool IsHtmlDocument(string? html)
+    {
+        var text = html?.TrimStart();
+        return !string.IsNullOrEmpty(text) && text[0] == '<' && !text.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The rendered addresses that lack one thing: the first of them, with the element it is about, and how many.</summary>
+    protected class PageFindingTally
+    {
+        public PageFindingTally(string path, string? element)
+        {
+            Path = path;
+            Element = element;
+        }
+
+        public string Path { get; }
+
+        public string? Element { get; }
+
+        public int Count { get; set; }
+
+        /// <summary>The page templates (language versions apart) of the addresses that lack it.</summary>
+        public List<string> Templates { get; } = new();
     }
 
     /// <summary>

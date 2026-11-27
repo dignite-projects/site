@@ -96,6 +96,46 @@ public static class SiteThemeIssueCodes
     /// </summary>
     public const string FragmentReferenceNotFound = Prefix + "FragmentReferenceNotFound";
 
+    // Warnings of the trial render about what search engines, AI assistants and link previews read from a page; each
+    // is reported once, with the first sample address that has it, how many of the rendered addresses do (Count) and
+    // how many were rendered (Rendered). See RenderedPageAudit for where each check comes from.
+
+    /// <summary>A rendered page has no <c>&lt;title&gt;</c>, or an empty one. Data: Path, Count, Rendered.</summary>
+    public const string TitleMissing = Prefix + "TitleMissing";
+
+    /// <summary>A rendered page has no <c>&lt;meta name="description"&gt;</c> with a content. Data: Path, Count, Rendered.</summary>
+    public const string DescriptionMissing = Prefix + "DescriptionMissing";
+
+    /// <summary>A rendered page's <c>&lt;html&gt;</c> has no <c>lang</c>. Data: Path, Count, Rendered.</summary>
+    public const string LanguageMissing = Prefix + "LanguageMissing";
+
+    /// <summary>A rendered page has no <c>&lt;meta name="viewport"&gt;</c>. Data: Path, Count, Rendered.</summary>
+    public const string ViewportMissing = Prefix + "ViewportMissing";
+
+    /// <summary>A rendered page has no <c>&lt;h1&gt;</c>. Data: Path, Count, Rendered.</summary>
+    public const string HeadingMissing = Prefix + "HeadingMissing";
+
+    /// <summary>
+    /// A rendered page has an <c>&lt;img&gt;</c> without <c>alt</c>. Data: Path, Count, Rendered, Element (the first such
+    /// image's <c>src</c>).
+    /// </summary>
+    public const string ImageAltMissing = Prefix + "ImageAltMissing";
+
+    /// <summary>
+    /// A rendered page has a link with no text a reader is told: no text, no image <c>alt</c>, no <c>aria-label</c>.
+    /// Data: Path, Count, Rendered, Element (the first such link's <c>href</c>).
+    /// </summary>
+    public const string LinkTextMissing = Prefix + "LinkTextMissing";
+
+    /// <summary>A rendered page has no <c>og:image</c>. Data: Path, Count, Rendered.</summary>
+    public const string ShareImageMissing = Prefix + "ShareImageMissing";
+
+    /// <summary>
+    /// The home page, in a language, has no structured data (<c>&lt;script type="application/ld+json"&gt;</c>). Data: Path,
+    /// Count, Rendered.
+    /// </summary>
+    public const string StructuredDataMissing = Prefix + "StructuredDataMissing";
+
     /// <summary>
     /// The trial render rendered part of the sample: the site has more sample addresses than a check renders. One of each
     /// template version and way it renders came first, so what is left out repeats what was rendered. Data: Rendered,

@@ -36,7 +36,8 @@ public class McpContentSummary
 
     /// <summary>
     /// After a create or an update: what the client should know about what it stored - an SEO title or description wider
-    /// than a search result shows. Advice only; the content was stored. Left out when there is nothing to say.
+    /// than a search result shows, or no SEO description where the content type has the SEO field. Advice only; the
+    /// content was stored. Left out when there is nothing to say.
     /// </summary>
     public string[]? Warnings { get; set; }
 

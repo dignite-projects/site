@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Dignite.Site.Application.Themes;
 using Dignite.Site.EntityFrameworkCore;
 using Dignite.Site.Themes;
 using Shouldly;
@@ -308,7 +309,8 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
     [Fact]
     public async Task The_Check_Should_Render_A_Sample_Of_The_Pages_With_The_Working_Copy()
     {
-        await SaveAsync("Default", "<p>draft</p>");
+        // A page that lacks nothing, so that the check has no warning about the rendered pages either.
+        await SaveAsync("Default", RenderedPageAudit_Tests.CompletePage);
 
         var check = await _themeAppService.CheckAsync();
 
@@ -322,7 +324,7 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
             });
         _previewRenderer.Requests.ShouldAllBe(request => request.Snapshot.ReleaseId == null);
         _previewRenderer.Requests.ShouldAllBe(
-            request => request.Snapshot.Files.Single(file => file.Path == "Default").Body == "<p>draft</p>");
+            request => request.Snapshot.Files.Single(file => file.Path == "Default").Body == RenderedPageAudit_Tests.CompletePage);
     }
 
     /// <summary>Reading alone: every file is read and nothing is rendered, which is what the theme screen does on opening.</summary>
@@ -452,6 +454,35 @@ public class SiteThemeAdminAppService_Tests : SiteEntityFrameworkCoreTestBase
         warning.Message.ShouldContain("icon-missing");
 
         // Warnings do not stop a publish.
+        await _themeAppService.PublishAsync(new PublishSiteThemeDto { Fingerprint = check.Fingerprint });
+    }
+
+    /// <summary>
+    /// A page that renders but lacks what search engines and link previews read: one warning per kind, with the first
+    /// address, how many of the rendered pages lack it and their template - and the home page, the only one asked for
+    /// structured data, alone in its count. Warnings, so the theme still publishes.
+    /// </summary>
+    [Fact]
+    public async Task The_Check_Should_Warn_Once_Per_Kind_About_What_The_Rendered_Pages_Lack()
+    {
+        await SaveAsync("Default", "<p>x</p><img src=\"/a.jpg\" /><a href=\"/next\"></a>");
+
+        using var english = CultureHelper.Use("en");
+        var check = await _themeAppService.CheckAsync();
+
+        check.HasErrors.ShouldBeFalse();
+        var warnings = check.Issues.Where(i => RenderedPageAudit.Codes.Contains(i.Code)).ToList();
+        warnings.Select(i => i.Code).ShouldBe(RenderedPageAudit.Codes);
+        warnings.ShouldAllBe(i => i.Severity == SiteThemeIssueSeverity.Warning && i.FoundByRender);
+        warnings.ShouldAllBe(i => i.Templates.SequenceEqual(new[] { "Default" }));
+
+        var title = warnings.Single(i => i.Code == SiteThemeIssueCodes.TitleMissing);
+        title.Message.ShouldStartWith("8 of the 8 pages rendered have no title, the first being '/'");
+
+        warnings.Single(i => i.Code == SiteThemeIssueCodes.ImageAltMissing).Message.ShouldContain("'/a.jpg' on '/'");
+        warnings.Single(i => i.Code == SiteThemeIssueCodes.LinkTextMissing).Message.ShouldContain("'/next' on '/'");
+        warnings.Single(i => i.Code == SiteThemeIssueCodes.StructuredDataMissing).Message.ShouldStartWith("The home page '/'");
+
         await _themeAppService.PublishAsync(new PublishSiteThemeDto { Fingerprint = check.Fingerprint });
     }
 
