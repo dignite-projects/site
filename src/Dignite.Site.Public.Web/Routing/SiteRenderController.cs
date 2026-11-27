@@ -50,6 +50,7 @@ namespace Dignite.Site.Public.Routing;
 /// </summary>
 [ControllerName(ControllerName)]
 [ServiceFilter(typeof(SitePreviewResourceFilter))]
+[ServiceFilter(typeof(SiteNoIndexResultFilter))]
 public class SiteRenderController : AbpController
 {
     public const string ControllerName = "SiteRender";

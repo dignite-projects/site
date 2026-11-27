@@ -84,4 +84,10 @@ public static class SiteThemeConsts
 
     /// <summary>The function that writes the versioned address of a static file.</summary>
     public const string AssetUrlFunctionName = "asset_url";
+
+    /// <summary>
+    /// The first segment of the address every static file of the theme is served at, <c>/site-assets/{path}</c>. Here
+    /// rather than only beside the endpoint, because <c>robots.txt</c>, built in the domain layer, names it too.
+    /// </summary>
+    public const string AssetRoutePrefix = "site-assets";
 }

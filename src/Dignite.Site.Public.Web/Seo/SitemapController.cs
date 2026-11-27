@@ -9,6 +9,7 @@ namespace Dignite.Site.Public.Seo;
 /// The sitemap index and its shards, at the addresses crawlers and <c>robots.txt</c> expect
 /// (总体设计 §5.2, GitHub issue #15).
 /// </summary>
+[ServiceFilter(typeof(SiteNoIndexResultFilter))]
 public class SitemapController : SiteDocumentController
 {
     /// <summary>An hour. The document changes when content is published, which is not a per-minute event.</summary>

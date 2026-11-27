@@ -198,6 +198,11 @@ public class HeadMetadataBuilder : DomainService
 
         var siteName = await SettingProvider.GetOrNullAsync(SiteSettings.Branding.AppName);
 
+        // A site closed to indexing is noindex on every page: that, not robots.txt, is what keeps a page out of an
+        // index - a URL robots.txt blocks can still be listed when other sites link to it. RobotsTxtBuilder lets the
+        // search engines that obey noindex fetch the pages to read it.
+        var siteNoIndex = !await SettingProvider.IsTrueAsync(SiteSettings.Robots.AllowIndexing);
+
         return new HeadMetadata(
             title,
             baseTitle,
@@ -205,7 +210,7 @@ public class HeadMetadataBuilder : DomainService
             ogImageUrl,
             canonicalUrl,
             effectiveCultureName,
-            includeUnpublished || contentNoIndex || (isFilteredView && !isDeclaredFilteredView),
+            includeUnpublished || siteNoIndex || contentNoIndex || (isFilteredView && !isDeclaredFilteredView),
             hreflangAlternates,
             xDefaultUrl)
         {

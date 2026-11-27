@@ -144,6 +144,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlobFileDescriptors.Hash` optional and replaces the file indexes. A host that ran an earlier pre-release adds the same
   migration, with that `DELETE` first. Blob Management run as a service of its own sets `ExposeIntegrationServices`; see
   [Blob Management as a Service of Its Own](docs/en/files.md#blob-management-as-a-service-of-its-own).
+- **A site closed to indexing says `noindex`, and lets Google and Bing in to read it.** With `Site.Robots.AllowIndexing`
+  off, every page's head metadata is `noindex` (the robots tag, `robots_content`, and `RobotsContent` of
+  `/api/site-public/head-metadata`), and the pages, the sitemap, the feeds and `llms.txt` are sent with
+  `X-Robots-Tag: noindex`. `robots.txt` used to disallow every crawler, so no search engine could read a `noindex`, and an
+  address other sites link to could still be listed without a description. It now lets `Googlebot` and `Bingbot` fetch
+  everything but the theme's static files (`/site-assets/`) and the site's files (`/blobs/`), and still disallows every
+  other crawler. An open site's `robots.txt` is unchanged. A front end that serves the site from another process sends
+  the header itself. See [A Site Closed to Indexing](docs/en/seo/robots-and-llms-txt.md#a-site-closed-to-indexing).
 
 ### Fixed
 

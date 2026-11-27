@@ -1,3 +1,5 @@
+using Dignite.Site.Themes;
+
 namespace Dignite.Site.Public.Assets;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace Dignite.Site.Public.Assets;
 public static class SiteAssetUrl
 {
     /// <summary>The first segment of every static file's address.</summary>
-    public const string RoutePrefix = "site-assets";
+    public const string RoutePrefix = SiteThemeConsts.AssetRoutePrefix;
 
     /// <summary>
     /// The query parameter carrying the content hash. It changes the address whenever the content changes, so a browser

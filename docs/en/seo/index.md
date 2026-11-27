@@ -29,7 +29,7 @@ A template writes the head metadata with `site_head` in a [Scriban template](../
 | `<title>`, `og:title` | The SEO field's `metaTitle`, or the first text field of the content that has a value, or the slug. |
 | `description`, `og:description` | The SEO field's `metaDescription`. Without one there is no tag. |
 | `canonical`, `og:url` | The absolute URL of the content or the page, in its language. |
-| `robots` | `noindex`, when the content is marked so or the request is a [truncated filtered view](#filtered-views); otherwise no tag. |
+| `robots` | `noindex`, when the site is [closed to indexing](robots-and-llms-txt.md#a-site-closed-to-indexing), the content is marked so or the request is a [truncated filtered view](#filtered-views); otherwise no tag. |
 | `og:type` | `website`, or `article` when the template says so, with `article:published_time` and `article:modified_time` from the content. |
 | `og:site_name` | The `Site.Branding.AppName` [setting](../settings.md); without one there is no tag. |
 | `og:locale`, `og:locale:alternate` | The page's language and the languages of its translations, as Open Graph writes them: `ja` is `ja_JP`, `en` is `en_US`, `zh-Hans` is `zh_CN`, `zh-Hant` is `zh_TW`, and a language that names its territory keeps it (`en-GB` is `en_GB`). |
@@ -64,6 +64,8 @@ Setting `noIndex` in a content's SEO field:
 * removes it from the hreflang alternates of its translations.
 
 For a page's own content, the page's address goes with it, so an "about" page marked `noindex` leaves the sitemap entirely.
+
+To keep the whole site out of search results, turn `Site.Robots.AllowIndexing` off instead: every page is then `noindex`, and `robots.txt` lets Google and Bing in to read it. See [A Site Closed to Indexing](robots-and-llms-txt.md#a-site-closed-to-indexing).
 
 ## Hreflang Alternates
 
