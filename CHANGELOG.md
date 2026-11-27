@@ -29,8 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `HeadingMissing`, `ImageAltMissing`, `LinkTextMissing`, `ShareImageMissing`, `StructuredDataMissing`), so no theme
   that published before stops publishing. See [Trial Render](docs/en/rendering/scriban-templates.md#trial-render).
 - **The theme guide says what every site needs**: a title and a description of its own on each page, one `<h1>`, image
-  `alt`s and link texts, contact details as text with `tel:` links, a page about who runs the site and one to get in
-  touch, and structured data on the home page of the schema.org type that fits the site. It is the
+  `alt`s and link texts, a home page with text of its own, contact details, opening hours, prices and how to book as
+  text with `tel:` links, a page about who runs the site and one to get in touch, and structured data on the home page
+  of the schema.org type that fits the site. It is the
   [What Every Site Needs](docs/en/rendering/scriban-templates.md#what-every-site-needs) section of the Scriban page,
   which `site://theme-guide` serves; its example layouts now write the viewport.
 - **`site_create_content` and `site_update_content` warn about a content without an SEO description** when its content

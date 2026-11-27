@@ -148,7 +148,8 @@ Every page:
 
 The information visitors come for:
 
-* A phone number, an address, opening hours and prices are text in the page, never only in an image or written by a script, so that a search engine and an AI assistant can read them and a phone can act on them.
+* The home page says in its own text what the site is, what it offers, and where and when: a few paragraphs, not a heading over pictures. A page that is mostly pictures and slogans gives search engines and AI assistants little to read, and nothing to quote.
+* A phone number, an address, opening hours, prices and how to book or order are text in the page, never only in an image or written by a script, so that a search engine and an AI assistant can read them and a phone can act on them. An address is written in full, as a visitor from elsewhere reads it, with the country.
 * A phone number is a link that calls it, with the number in international form in the link: `<a href="tel:+81312345678">03-1234-5678</a>`. An e-mail address is a `mailto:` link.
 * The site has a page that says who runs it, and a page to get in touch, with the phone number, the e-mail address, the address with a link to a map, and the opening hours where there are any. Every page links to both, from the header or the footer. Add the pages that visitors of that kind of site look for, such as a menu, the services and their prices, or the courses.
 
