@@ -116,6 +116,25 @@ public class HeadMetadataBuilder_Tests : SiteEntityFrameworkCoreTestBase
     }
 
     /// <summary>
+    /// <c>noindex</c>, not <c>robots.txt</c>, is what keeps a page out of an index: a URL robots.txt blocks can still be
+    /// listed when other sites link to it. So a site closed to indexing says it on every page - a page, its own
+    /// content, a list and a content of it.
+    /// </summary>
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/about")]
+    [InlineData("/blog")]
+    [InlineData("/blog/my-trip")]
+    public async Task NoIndex_Should_Be_True_On_Every_Page_Of_A_Site_Closed_To_Indexing(string path)
+    {
+        _settings.Set(SiteSettings.Robots.AllowIndexing, "false");
+
+        var metadata = await BuildAsync(path, SiteTestData.EnglishCulture);
+
+        metadata.NoIndex.ShouldBeTrue();
+    }
+
+    /// <summary>
     /// The concrete discharge of <c>SiteRouteResolver.ResolveAsync</c>'s documented obligation: a caller
     /// that resolved with <c>includeUnpublished: true</c> must force noindex on the response, since an
     /// indexable preview is duplicate content against the real URL (GitHub issue #16).

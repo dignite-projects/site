@@ -9,6 +9,7 @@ namespace Dignite.Site.Public.Seo;
 /// language-prefixed forms of the same, e.g. <c>/zh-Hans/about/feed.xml</c>
 /// (总体设计 §5.9, GitHub issue #31).
 /// </summary>
+[ServiceFilter(typeof(SiteNoIndexResultFilter))]
 public class FeedController : SiteDocumentController
 {
     /// <summary>

@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Dignite.Abp.BlobManagement;
 using Dignite.Site.Settings;
+using Dignite.Site.Themes;
 using Volo.Abp.Domain.Services;
 using Volo.Abp.Settings;
 
@@ -20,6 +23,12 @@ namespace Dignite.Site.Seo;
 /// cited in AI answers while not being trained on. The platform defaults (indexing on, training off,
 /// search on) already <i>are</i> that policy, so the common choice is the one that needs no configuration
 /// at all.
+/// </para>
+/// <para>
+/// <b>A site closed to indexing is kept out by <c>noindex</c>, not by this file.</b> Its pages carry
+/// <c>noindex</c> (<see cref="HeadMetadataBuilder"/>), and a search engine reads that only on a page it may
+/// fetch, so the engines that obey it are let in (<see cref="SearchCrawlers.ReadingNoIndex"/>); every other
+/// crawler is still disallowed everything.
 /// </para>
 /// </summary>
 public class RobotsTxtBuilder : DomainService
@@ -43,6 +52,16 @@ public class RobotsTxtBuilder : DomainService
         var builder = new StringBuilder();
 
         AppendGroup(builder, "*", allowIndexing);
+
+        if (!allowIndexing)
+        {
+            builder.AppendLine();
+            builder.AppendLine("# Search engines that read noindex");
+            foreach (var userAgent in SearchCrawlers.ReadingNoIndex)
+            {
+                AppendNoIndexReaderGroup(builder, userAgent);
+            }
+        }
 
         builder.AppendLine();
         builder.AppendLine("# AI training crawlers");
@@ -79,12 +98,40 @@ public class RobotsTxtBuilder : DomainService
     /// every caller above.</b> A crawler obeys only the single most specific group that matches it and
     /// ignores <c>User-agent: *</c> entirely - so a named group left saying <c>Allow: /</c> while the site
     /// is closed would keep that one crawler running over a site the owner believes is sealed. Turning
-    /// indexing off has to turn every group off with it.
+    /// indexing off has to turn every group off with it, but for the search engines let in to read
+    /// <c>noindex</c> (<see cref="AppendNoIndexReaderGroup"/>).
     /// </para>
     /// </summary>
     protected virtual void AppendGroup(StringBuilder builder, string userAgent, bool allow)
     {
         builder.AppendLine($"User-agent: {userAgent}");
         builder.AppendLine(allow ? "Allow: /" : "Disallow: /");
+    }
+
+    /// <summary>
+    /// The group of a search engine let into a site closed to indexing so that it reads the pages' <c>noindex</c>
+    /// (<see cref="SearchCrawlers"/>): everything but <see cref="GetPathsWithoutNoIndex"/>.
+    /// </summary>
+    protected virtual void AppendNoIndexReaderGroup(StringBuilder builder, string userAgent)
+    {
+        builder.AppendLine($"User-agent: {userAgent}");
+        builder.AppendLine("Allow: /");
+        foreach (var path in GetPathsWithoutNoIndex())
+        {
+            // The longer path wins over "Allow: /", whatever the order (RFC 9309).
+            builder.AppendLine($"Disallow: {path}");
+        }
+    }
+
+    /// <summary>
+    /// What a closed site keeps every crawler out of, because its responses carry no <c>noindex</c> to read: the
+    /// theme's static files, which are cached for a year - a <c>noindex</c> header on them would outlive the site's
+    /// opening - and the site's files, which Blob Management serves. Disallowing them is what keeps a site's
+    /// images, PDFs and other files out of an index while it is closed.
+    /// </summary>
+    protected virtual IEnumerable<string> GetPathsWithoutNoIndex()
+    {
+        yield return "/" + SiteThemeConsts.AssetRoutePrefix + "/";
+        yield return "/" + BlobManagementPublicUrl.RoutePrefix + "/";
     }
 }

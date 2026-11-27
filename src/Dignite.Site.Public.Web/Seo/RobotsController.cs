@@ -37,7 +37,9 @@ public class RobotsController : SiteDocumentController
             compressible: false);
     }
 
+    // robots.txt itself goes without the noindex header; the index of the site's pages carries it.
     [AcceptVerbs("GET", "HEAD", Route = "/llms.txt")]
+    [ServiceFilter(typeof(SiteNoIndexResultFilter))]
     public virtual Task<IActionResult> GetLlmsTxtAsync()
     {
         return ServeAsync(

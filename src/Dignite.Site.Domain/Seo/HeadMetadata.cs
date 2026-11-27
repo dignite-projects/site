@@ -62,9 +62,10 @@ public class HeadMetadata
     public string CanonicalUrl { get; }
 
     /// <summary>
-    /// True when the content's own SEO field says so, or when this metadata was built for a preview
-    /// (<c>includeUnpublished: true</c>) - <c>SiteRouteResolver.ResolveAsync</c>'s own documented
-    /// obligation, discharged here (GitHub issue #16).
+    /// True when the content's own SEO field says so, when the site is closed to indexing
+    /// (<c>Site.Robots.AllowIndexing</c> off), when the request is a truncated filtered view, or when this
+    /// metadata was built for a preview (<c>includeUnpublished: true</c>) - <c>SiteRouteResolver.ResolveAsync</c>'s
+    /// own documented obligation, discharged here (GitHub issue #16).
     /// </summary>
     public bool NoIndex { get; }
 
