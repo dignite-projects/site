@@ -91,7 +91,7 @@ nothing in Site changes. Not tried end to end yet. What reading the code turned 
   limits from, and keeping a copy of the presets in Site's host would drift from Blob Management's. Appwrite's server SDK
   reads a bucket's `maximumFileSize` and `allowedFileExtensions` with an API key (`getBucket`), and Supabase's `getBucket`
   returns `file_size_limit` and `allowed_mime_types`. So the fix was Blob Management's: one container's limits for any
-  authenticated caller, a client's `access` being none (abp-modules#418, in 10.7.7-preview.3; Site depends on 10.7.7-preview.6).
+  authenticated caller, a client's `access` being none (abp-modules#418, in 10.7.7-preview.3; Site depends on 10.7.7-preview.7).
 - Since 10.7.7-preview.4 the BLOB and file APIs a back end calls are ABP integration services
   (`IBlobManagementBlobIntegrationService`, `IBlobManagementFileIntegrationService`, at `integration-api/blob-management/`),
   hidden unless the service sets `ExposeIntegrationServices`; `IBlobManagementFileService` and `IBlobManagementBlobService`
